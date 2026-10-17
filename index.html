@@ -101,6 +101,29 @@
     </section>
 
     <section class="seccion-stl">
+      <h2>El humano en el ciclo</h2>
+      <p>Con IA, la pregunta no es solo qué hace el modelo, sino qué le queda al ingeniero: cuándo decide, con qué información y cuánto control conserva. Cada método lo resuelve distinto, y ninguno es gratis. Scrum le da autonomía inmediata, pero lo deja decidiendo solo, prompt a prompt. SDD le pide decidir bien al inicio, en la spec, y lo aleja de la implementación. STL le pide decidir en cada revisión, con un director que propone y con la última palabra.</p>
+      <figure class="grafico-stl">
+        <div class="lienzo-stl"><img src="grafico-humano.svg" alt="El humano en el ciclo: Scrum, SDD y STL trabajando con IA, con el mismo peso. En Scrum el ingeniero decide cada prompt con el sprint como marco: gana autonomía inmediata y contacto con el código, arriesga decidir solo, la fatiga de supervisar mucha IA y notar tarde el desvío. En SDD decide la spec al inicio y revisa al final: gana decisiones escritas y de alto nivel, arriesga aprobar sin leer a fondo, alejarse del código y reabrir la spec en cada cambio. En STL decide en cada revisión con un director que propone: gana pensar antes de enviar, leer en orden con una respuesta por observación y una sola misión a la vez, arriesga menos inmediatez, delegar de más en el director y tocar menos el código." loading="lazy"></div>
+        <figcaption>Las tres tarjetas tienen el mismo peso: cada método le da algo al ingeniero y le cobra algo. STL no le da más autonomía inmediata que Scrum: le cambia cuándo y con qué decide. <a href="grafico-humano.svg" target="_blank" rel="noopener noreferrer">Abrir en grande ↗</a></figcaption>
+      </figure>
+      <h3>Lo que STL le devuelve al ingeniero</h3>
+      <ul class="ventajas-stl">
+        <li><b>Decide con todo a la vista.</b> No responde a un prompt a la vez: el director le presenta todo junto y en orden, con una respuesta por observación y las razones y los riesgos de cada propuesta.</li>
+        <li><b>Piensa antes de enviar.</b> El buzón le da tiempo de corregir o borrar lo que dijo de prisa: lo que llega al modelo es lo que de verdad decidió.</li>
+        <li><b>Conserva la última palabra.</b> El director propone; la meta la fija el ingeniero, las puertas las cruza él y ninguna propuesta se vuelve misión sin que la acepte.</li>
+        <li><b>Su criterio queda escrito.</b> Cada decisión y su porqué viven en los archivos del proyecto, no en un chat que se pierde.</li>
+      </ul>
+      <h3>Lo que STL le cobra, y cómo se cuida</h3>
+      <ul class="ventajas-stl">
+        <li><b>Menos inmediatez.</b> Lo que dice espera a la revisión. Para una urgencia, el agente directo sigue siendo lo indicado (ver «Cuándo no usarlo»).</li>
+        <li><b>El riesgo de delegar de más.</b> Si acepta las propuestas del director sin leerlas, cambia un modelo que lo sigue sin cuestionar por un director al que él sigue sin cuestionar. Por eso cada documento empieza con «Lo que entendí», cada decisión trae la recomendación con sus razones y sus riesgos, y nada se decide en su nombre.</li>
+        <li><b>Menos contacto con el código.</b> Si el director ejecuta el trabajo técnico, el ingeniero toca menos código. Puede tomar él una misión técnica cuando quiera entender a fondo una parte.</li>
+      </ul>
+      <p class="como">Son efectos del diseño, no mediciones. STL medirá la carga mental y la fatiga con un cuestionario antes y después de usarlo.</p>
+    </section>
+
+    <section class="seccion-stl">
       <h2>Por qué STL</h2>
       <h3>Las ventajas</h3>
       <ul class="ventajas-stl">
@@ -114,11 +137,11 @@
       </ul>
       <h3>Frente a otras herramientas de IA</h3>
       <p>STL no inventa la planificación ni la memoria del proyecto: los asistentes del editor (GitHub Copilot, Cursor, Windsurf), los agentes de terminal (Claude Code, Codex), <a href="https://github.com/github/spec-kit" target="_blank" rel="noopener noreferrer">Spec Kit</a> y <a href="https://docs.bmad-method.org/" target="_blank" rel="noopener noreferrer">BMad</a> ya lo hacen bien, y STL se usa junto con ellos: el director trabaja con tu agente. Lo que STL agrega son sus dos actores, el Studio y el director, y con ellos la experiencia de quien dirige: comentar donde estás leyendo, corregir antes de enviar, recibir una respuesta por cada observación y salir de cada revisión con un solo paso siguiente.</p>
-      <p class="leyenda-stl"><span class="nivel-stl si">Sí</span> parte central de su flujo <span class="nivel-stl parte">En parte</span> en parte o de otra forma <span class="nivel-stl no">No</span> no es parte de su flujo</p>
       <div class="tabla-stl"><table>
-        <thead><tr><th scope="col">Lo que necesitas para dirigir un proyecto</th><th scope="col" class="stl"><b>STL</b><small>esta metodología</small></th><th scope="col"><b>Chat directo</b><small>ChatGPT, Claude, Gemini</small></th><th scope="col"><b>Asistentes del editor</b><small>GitHub Copilot, Cursor, Windsurf</small></th><th scope="col"><b>Agentes de terminal</b><small>Claude Code, Codex</small></th><th scope="col"><b>Spec Kit</b><small>especificación → plan → tareas</small></th><th scope="col"><b>BMad</b><small>agentes por rol</small></th></tr></thead>
+        <thead><tr><th scope="col">Lo que necesitas para dirigir un proyecto con IA</th><th scope="col" class="stl"><b>STL</b><small>esta metodología</small></th><th scope="col"><b>Chat directo</b><small>ChatGPT, Claude, Gemini</small></th><th scope="col"><b>Asistentes del editor</b><small>GitHub Copilot, Cursor, Windsurf</small></th><th scope="col"><b>Agentes de terminal</b><small>Claude Code, Codex</small></th><th scope="col"><b>Spec Kit</b><small>especificación → plan → tareas</small></th><th scope="col"><b>BMad</b><small>agentes por rol</small></th></tr></thead>
         <tbody><tr><th scope="row">Planear antes de ejecutar</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td></tr><tr><th scope="row">Memoria del proyecto entre sesiones</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td></tr><tr><th scope="row">Fases con puertas y criterios para cruzarlas</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td></tr><tr><th scope="row">Comentar el párrafo o el paso exacto</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td></tr><tr><th scope="row">Un buzón que se corrige antes de enviar</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td></tr><tr><th scope="row">Revisión agrupada que responde cada observación</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td></tr><tr><th scope="row">Una sola misión siguiente, con su porqué</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td></tr><tr><th scope="row">Lo aprobado no se reescribe en silencio</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td></tr><tr><th scope="row">Varios proyectos dirigidos desde un solo lugar</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td></tr></tbody>
       </table></div>
+      <p class="leyenda-stl"><span class="nivel-stl si">Sí</span> parte central de su flujo <span class="nivel-stl parte">En parte</span> en parte o de otra forma <span class="nivel-stl no">No</span> no es parte de su flujo</p>
       <p class="como">Según la documentación pública de cada herramienta, en octubre de 2026. «No» quiere decir que no es parte de su flujo, no que sea imposible con extensiones o disciplina. Es una comparación de diseño, no un experimento: el ahorro de tiempo y de tokens se medirá con pruebas reales antes de prometer cifras.</p>
     </section>
 
@@ -173,7 +196,7 @@
   </article>
     <footer class="pie-publico">
       <p>Versión pública de la página «Qué es STL» del STL Studio, publicada para que ingenieros y modelos de IA revisen si lo que dice es cierto y si la metodología cumple lo que promete. Versión del 2026-10-17.</p>
-      <p>El gráfico comparativo, en grande: <a href="grafico-comparativo.svg">SVG</a> · <a href="grafico-comparativo.png">PNG</a>.</p>
+      <p>Los gráficos, en grande: Scrum, SDD y STL trabajando con IA, en carriles (<a href="grafico-comparativo.svg">SVG</a> · <a href="grafico-comparativo.png">PNG</a>); el humano en el ciclo: qué decide el ingeniero en cada método (<a href="grafico-humano.svg">SVG</a> · <a href="grafico-humano.png">PNG</a>).</p>
     </footer>
   </main>
 </body>

@@ -714,13 +714,14 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 .pasos-stl.ciclo li.avance::before { background: var(--acento); color: #fff; }
 .pasos-stl.ciclo li.avance b { font-size: 16px; color: var(--acento-texto); }
 .tabla-stl { overflow-x: auto; margin: 6px 0 10px; border: 1px solid var(--borde); border-radius: var(--radio-g); background: var(--panel); box-shadow: var(--sombra); }
-.tabla-stl table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 860px; font-size: 14px; }
-.tabla-stl tbody th { min-width: 15em; }
+/* columnas del mismo ancho: cada encabezado queda justo sobre su columna, con el nombre arriba y a la misma altura */
+.tabla-stl table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 860px; font-size: 14px; table-layout: fixed; }
+.tabla-stl thead th:first-child { width: 26%; }
 /* la columna de lo que se compara queda fija al desplazar la tabla de lado */
 .tabla-stl th:first-child { position: sticky; left: 0; z-index: 1; background: var(--panel); box-shadow: 1px 0 0 var(--borde); }
 .tabla-stl th, .tabla-stl td { padding: 10px 12px; border-bottom: 1px solid var(--borde); text-align: center; }
 .tabla-stl tbody tr:last-child th, .tabla-stl tbody tr:last-child td { border-bottom: 0; }
-.tabla-stl thead th { font-size: 13px; color: var(--suave); font-weight: 700; vertical-align: bottom; }
+.tabla-stl thead th { font-size: 13px; color: var(--suave); font-weight: 700; vertical-align: top; }
 .tabla-stl thead th b { display: block; font-size: 14px; color: var(--texto); }
 .tabla-stl thead th small { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--tenue); line-height: 1.35; }
 .tabla-stl thead th:first-child { text-align: left; }
