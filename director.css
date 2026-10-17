@@ -411,15 +411,30 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .redactar .botones { display: flex; justify-content: flex-end; }
 .grabadora { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .grabadora button { font-size: 14px; }
-.grabadora button.grabando { background: #fcebeb; border-color: #e7a9a6; color: #791f1f; animation: latido-g 1.2s ease-in-out infinite; }
+.grabadora button.grabando { background: #fcebeb; border-color: #e7a9a6; color: #791f1f; }
+.grabadora button.grabar { border-color: #e7a9a6; color: #791f1f; font-weight: 600; }
 .grabadora .ayuda-g { font-size: 13px; color: var(--suave); }
+.grabadora .esperando-mic { color: var(--aviso-texto); font-weight: 600; }
+.grabadora .audio-listo { flex-basis: 100%; margin: 0; font-size: 13.5px; color: var(--ok-texto); font-weight: 600; }
 @keyframes latido-g { 50% { background: #f8d4d4; } }
-/* Mientras graba, el diálogo se hace a un lado: solo queda la pastilla de la grabación, abajo al centro, y la página
-   se puede leer y recorrer (estudio/src/grabadora.ts) */
+/* Grabando: imposible no verlo. Un punto rojo que late, el tiempo y un medidor que se mueve con la voz */
+.grabadora.en-grabacion { padding: 8px 12px; border: 2px solid var(--peligro); border-radius: 14px; background: #fff7f6; }
+.punto-grabando { flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--peligro); animation: punto-g 1s ease-in-out infinite; }
+@keyframes punto-g { 0%, 100% { box-shadow: 0 0 0 0 rgba(179, 54, 47, 0.55); } 50% { box-shadow: 0 0 0 7px rgba(179, 54, 47, 0); opacity: 0.75; } }
+.grabando-texto { font-size: 15px; color: var(--peligro-texto); font-variant-numeric: tabular-nums; }
+.nivel-voz { display: inline-flex; align-items: center; gap: 3px; height: 26px; }
+.nivel-voz i { width: 4px; border-radius: 2px; background: var(--peligro); height: calc(4px + var(--nivel, 0) * 18px); transition: height 0.08s linear; }
+.nivel-voz i:nth-child(2), .nivel-voz i:nth-child(4) { height: calc(4px + var(--nivel, 0) * 13px); }
+.nivel-voz i:nth-child(1), .nivel-voz i:nth-child(5) { height: calc(4px + var(--nivel, 0) * 8px); }
+@media (prefers-reduced-motion: reduce) { .punto-grabando { animation: none; } }
+/* Mientras graba, el diálogo se hace a un lado: solo queda la pastilla de la grabación, abajo y al centro, grande, y la
+   página se puede leer y recorrer (estudio/src/grabadora.ts) */
 dialog.a-un-lado { position: fixed; inset: auto; z-index: 90; width: 0; height: 0; margin: 0; padding: 0; border: 0; overflow: visible; background: none; box-shadow: none; visibility: hidden; }
-dialog.a-un-lado .grabadora { visibility: visible; position: fixed; left: calc(var(--lateral) + 24px); bottom: 20px; width: max-content; max-width: min(460px, calc(100vw - var(--lateral) - 140px)); padding: 6px 12px 6px 6px; gap: 10px; background: var(--panel); border: 1px solid #e7a9a6; border-radius: 999px; box-shadow: var(--sombra-alta); flex-wrap: nowrap; }
-dialog.a-un-lado .grabadora .ayuda-g { font-size: 12.5px; line-height: 1.35; }
-@media (max-width: 759px) { dialog.a-un-lado .grabadora { left: 12px; max-width: calc(100vw - 96px); border-radius: 18px; } }
+dialog.a-un-lado .grabadora { visibility: visible; position: fixed; left: calc(var(--lateral) + (100vw - var(--lateral)) / 2); bottom: 24px; transform: translateX(-50%); width: max-content; max-width: min(620px, calc(100vw - var(--lateral) - 48px)); padding: 10px 14px; gap: 12px; flex-wrap: wrap; justify-content: center; background: #fff7f6; border: 2px solid var(--peligro); border-radius: 18px; box-shadow: 0 0 0 4px rgba(179, 54, 47, 0.12), var(--sombra-alta); animation: pastilla-g 2s ease-in-out infinite; }
+@keyframes pastilla-g { 50% { box-shadow: 0 0 0 9px rgba(179, 54, 47, 0.08), var(--sombra-alta); } }
+dialog.a-un-lado .grabadora .ayuda-g { flex-basis: 100%; text-align: center; font-size: 12.5px; line-height: 1.35; }
+dialog.a-un-lado .grabadora button { min-height: 38px; }
+@media (max-width: 759px) { dialog.a-un-lado .grabadora { left: 50%; max-width: calc(100vw - 24px); bottom: 16px; } }
 .notas-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; max-width: 900px; }
 .nota-d { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; font-size: 14.5px; }
 .nota-d header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -533,10 +548,21 @@ dialog.a-un-lado .grabadora .ayuda-g { font-size: 12.5px; line-height: 1.35; }
 .estado-revision { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: var(--radio); font-size: 13.5px; border: 1px solid var(--acento-borde); background: var(--acento-fondo); color: var(--acento-texto); }
 .estado-revision.en-curso { gap: 0; }
 .estado-revision .enlace { font-size: 13px; margin-left: 4px; }
+.estado-revision.sin-vigilia { border-color: #e7a9a6; background: var(--peligro-fondo); color: var(--peligro-texto); font-weight: 600; }
 .cabeza-proyecto .donde { min-width: 0; }
 .sobretitulo { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--tenue); }
 .cabeza-proyecto h1 { margin: 4px 0 0; font-size: 26px; line-height: 1.2; }
 .cabeza-proyecto h1 small { font-size: 15px; font-weight: 400; color: var(--suave); margin-left: 4px; }
+.cabeza-proyecto .sobretitulo .aqui { color: var(--acento-texto); }
+/* La cabecera queda fija al desplazar: siempre se sabe en qué proyecto y en qué sección estás. Al bajar se compacta. */
+@media (min-width: 760px) {
+  .cabeza-proyecto { position: sticky; top: 0; z-index: 8; transition: padding 0.15s; }
+  body.cabeza-compacta .cabeza-proyecto { padding-top: 10px; padding-bottom: 10px; gap: 6px; box-shadow: 0 2px 12px rgba(30, 28, 24, 0.07); }
+  body.cabeza-compacta .cabeza-fila.segunda { display: none; }
+  body.cabeza-compacta .cabeza-proyecto h1 { font-size: 19px; margin-top: 2px; }
+}
+/* El título de cada parte de un documento queda fijo bajo la cabecera mientras la lees */
+.parte-doc > h2:first-child, .parte-doc > h3:first-child { position: sticky; top: var(--alto-cabeza, 0px); z-index: 2; margin-top: 0; padding: 8px 0; background: var(--panel); box-shadow: 0 6px 6px -6px rgba(30, 28, 24, 0.12); }
 .avance-puerta { min-height: 32px; gap: 10px; padding: 2px 4px; border: 0; background: none; font-size: 14px; color: var(--suave); justify-content: flex-start; text-align: left; }
 .avance-puerta:hover { background: none; color: var(--acento-texto); }
 .avance-puerta .barra-medida { width: 150px; flex: none; }

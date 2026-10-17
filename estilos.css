@@ -191,6 +191,17 @@ button.insignia { border: 0; min-height: 30px; padding: 4px 10px; font-size: 13p
 /* cuántas preguntas tienes en tu lote, sin enviar */
 .atajo[data-cifra]:not([data-cifra=''])::after { content: attr(data-cifra); position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; background: var(--acento); color: #fff; font-size: 11.5px; font-weight: 800; box-shadow: 0 0 0 2px var(--fondo); }
 body.sin-proyectos .atajos-director, body.sin-proyectos .selector-proyecto, body.sin-proyectos .navegacion, body.sin-proyectos .identidad { display: none !important; }
+/* el atajo de la revisión: azul mientras está pedida o en curso; rojo si nadie la está mirando */
+.atajo.activo { background: var(--acento); color: #fff; }
+.atajo.alerta { background: var(--peligro); color: #fff; animation: latido-atajo 1.6s ease-in-out infinite; }
+@keyframes latido-atajo { 50% { box-shadow: 0 0 0 6px rgba(179, 54, 47, 0.25), 0 4px 14px rgba(0, 0, 0, 0.25); } }
+/* Lo que pasa en segundo plano (transcripciones, la revisión): una pastilla sobre los atajos, siempre a la vista */
+.segundo-plano { position: fixed; right: 24px; bottom: 258px; z-index: 6; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+.segundo-plano[hidden] { display: none; }
+.sp-linea { pointer-events: auto; display: inline-flex; align-items: baseline; gap: 0; padding: 5px 12px; border-radius: 999px; background: var(--tinta); color: #f6f2e6; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2); }
+button.sp-linea { width: auto; min-height: 0; border: 0; font-weight: 600; cursor: pointer; }
+.sp-linea.alerta { background: var(--peligro); color: #fff; }
+body.sin-proyectos .segundo-plano { display: none !important; }
 
 /* ── Los avisos: abajo, sin mover la página ── */
 .aviso-flotante {
@@ -250,6 +261,8 @@ body.sin-servidor .cabeza-proyecto::before { content: '⚠ El servidor del Studi
   .cabeza-proyecto { padding-top: 14px; }
   body.menu-abierto .atajos-director { display: none; }
   .atajos-director { right: 26px; bottom: 84px; }
+  .segundo-plano { right: 18px; bottom: 243px; }
+  body.menu-abierto .segundo-plano { display: none; }
   .atajo { width: 40px; height: 40px; }
   .aviso-flotante { left: 12px; right: 96px; transform: none; width: auto; max-width: none; bottom: 16px; }
   .dialogo-director form { padding: 20px 18px 0; }

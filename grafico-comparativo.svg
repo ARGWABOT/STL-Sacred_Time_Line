@@ -9,12 +9,13 @@
 <marker id="m-gris" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a9a59b"/></marker>
 <marker id="m-rojo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c8453b"/></marker>
 <marker id="m-verde" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3b7d2a"/></marker>
+<marker id="m-ambar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c77d0a"/></marker>
 <symbol id="chip" viewBox="0 0 44 44"><g stroke="#2c2c2a" stroke-width="2.5" stroke-linecap="round"><path d="M15 3v6M22 3v6M29 3v6M15 35v6M22 35v6M29 35v6M3 15h6M3 22h6M3 29h6M35 15h6M35 22h6M35 29h6"/></g><rect x="8" y="8" width="28" height="28" rx="6" fill="#2c2c2a"/><text x="22" y="27" text-anchor="middle" font-size="12" font-weight="700" fill="#f6e7b4">IA</text></symbol>
 <style>text { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }</style>
 </defs>
 <rect width="1600" height="1384" fill="#f6f4ef"/>
 <text x="800" y="56" font-size="34" font-weight="800" fill="#23221f" text-anchor="middle">Con IA, todo proyecto se bifurca más rápido. ¿Quién decide qué sigue?</text>
-<text x="800" y="89" font-size="18" font-weight="400" fill="#5c5b55" text-anchor="middle">Quién hace qué en cada método: dónde trabaja el humano, dónde la IA, y quién le entrega a quién.</text>
+<text x="800" y="89" font-size="18" font-weight="400" fill="#5c5b55" text-anchor="middle">No comparamos cómo se gestiona el proyecto, sino cómo trabaja cada desarrollador con el modelo, prompt a prompt.</text>
 <g>
 <circle cx="296" cy="122" r="13" fill="#2f5fb3"/><circle cx="296" cy="118.75" r="3.9" fill="#fff"/><path d="M288.9583333333333 130.125q7.041666666666666 -10.291666666666666 14.083333333333332 0z" fill="#fff"/>
 </g>
@@ -51,10 +52,12 @@
 <rect x="20" y="192" width="200" height="240" rx="16" fill="#2d7c7a"/><rect x="190" y="192" width="30" height="240" fill="#2d7c7a"/>
 <text x="38" y="238" font-size="30" font-weight="800" fill="#fff" text-anchor="start">Scrum</text>
 <text x="38" y="264" font-size="15" font-weight="400" fill="#fff" text-anchor="start" opacity="0.92">+ CI/CD, con IA</text>
-<rect x="32" y="291" width="176" height="74" rx="10" fill="#fff" fill-opacity="0.17"/>
+<rect x="32" y="291" width="176" height="114" rx="10" fill="#fff" fill-opacity="0.17"/>
 <text x="46" y="315" font-size="15" font-weight="700" fill="#fff" text-anchor="start">¿Qué sigue?</text>
-<text x="46" y="337" font-size="15" font-weight="400" fill="#fff" text-anchor="start">Lo que esté arriba</text>
-<text x="46" y="357" font-size="15" font-weight="400" fill="#fff" text-anchor="start">del backlog.</text>
+<text x="46" y="337" font-size="15" font-weight="400" fill="#fff" text-anchor="start">Por sprint, lo que</text>
+<text x="46" y="357" font-size="15" font-weight="400" fill="#fff" text-anchor="start">ordena el PO.</text>
+<text x="46" y="377" font-size="15" font-weight="400" fill="#fff" text-anchor="start">Prompt a prompt,</text>
+<text x="46" y="397" font-size="15" font-weight="400" fill="#fff" text-anchor="start">el dev, solo.</text>
 <rect x="228" y="200" width="1344" height="110" rx="8" fill="#edf3fb"/>
 <g>
 <circle cx="245" cy="214" r="10" fill="#2f5fb3"/><circle cx="245" cy="211.5" r="3.0" fill="#fff"/><path d="M239.58333333333334 220.25q5.416666666666667 -7.916666666666667 10.833333333333334 0z" fill="#fff"/>
@@ -73,26 +76,29 @@
 <circle cx="258.0" cy="235.0" r="14" fill="#2f5fb3"/><circle cx="258.0" cy="231.5" r="4.2" fill="#fff"/><path d="M250.41666666666666 243.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
 </g>
 <rect x="487.0" y="234.0" width="196" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
-<text x="585.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Visión y backlog</text>
+<text x="585.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Backlog ordenado (PO)</text>
 <text x="585.0" y="274.0" font-size="14" font-weight="700" fill="#3b7d2a" text-anchor="middle">meta definida</text>
 <g>
 <circle cx="488.0" cy="235.0" r="14" fill="#2f5fb3"/><circle cx="488.0" cy="231.5" r="4.2" fill="#fff"/><path d="M480.4166666666667 243.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
 </g>
 <rect x="718.0" y="234.0" width="214" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
-<text x="825.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Cada persona pide lo suyo</text>
-<text x="825.0" y="274.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">feature, bug, refactor…</text>
+<text x="825.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Cada desarrollador</text>
+<text x="825.0" y="274.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">pide a su IA, prompt a prompt</text>
 <g>
 <circle cx="719.0" cy="235.0" r="14" fill="#2f5fb3"/><circle cx="719.0" cy="231.5" r="4.2" fill="#fff"/><path d="M711.4166666666666 243.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
 </g>
+<rect x="841.0" y="225" width="92" height="18" rx="9" fill="#fff4e0" stroke="#c77d0a" stroke-width="1.5"/>
+<path d="M855.9 227.35L850.2 234.95H854.0L852.1 240.65L857.8 233.05H854.0Z" fill="#c77d0a"/>
+<text x="863.0" y="238" font-size="11" font-weight="800" fill="#8a5200" text-anchor="start">algo cambia</text>
 <rect x="1020.0" y="234.0" width="300" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
-<text x="1170.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Prioriza en el sprint planning</text>
-<text x="1170.0" y="274.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">al inicio de cada sprint</text>
+<text x="1170.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">El PO y el equipo planean el sprint</text>
+<text x="1170.0" y="274.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">y lo ajustan en la Daily, cada 24 h</text>
 <g>
 <circle cx="1021.0" cy="235.0" r="14" fill="#2f5fb3"/><circle cx="1021.0" cy="231.5" r="4.2" fill="#fff"/><path d="M1013.4166666666666 243.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
 </g>
 <rect x="257.0" y="348.0" width="196" height="52" rx="10" fill="#fff" stroke="#a9a59b" stroke-width="2" stroke-dasharray="6 5"/>
-<text x="355.0" y="370.0" font-size="14" font-weight="700" fill="#73716a" text-anchor="middle">Cada quien suma su chat</text>
-<text x="355.0" y="388.0" font-size="14" font-weight="400" fill="#73716a" text-anchor="middle">por su cuenta</text>
+<text x="355.0" y="370.0" font-size="14" font-weight="700" fill="#73716a" text-anchor="middle">Cada quien usa su IA</text>
+<text x="355.0" y="388.0" font-size="14" font-weight="400" fill="#73716a" text-anchor="middle">Scrum no define cómo</text>
 <g opacity="0.55">
 <path d="M252.26 334.02v3.5M263.74 334.02v3.5M252.26 360.48v3.5M263.74 360.48v3.5M243.02 343.26h3.5M243.02 354.74h3.5M269.48 343.26h3.5M269.48 354.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="246.52" y="337.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
 <text x="258.0" y="353.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
@@ -113,7 +119,7 @@
 </g>
 <rect x="1020.0" y="348.0" width="300" height="52" rx="10" fill="#fff" stroke="#11867a" stroke-width="2"/>
 <text x="1170.0" y="370.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Sigue el último prompt</text>
-<text x="1170.0" y="388.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">cada sesión empieza de cero</text>
+<text x="1170.0" y="388.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">aunque se aleje del objetivo del sprint</text>
 <g>
 <path d="M1015.26 334.02v3.5M1026.74 334.02v3.5M1015.26 360.48v3.5M1026.74 360.48v3.5M1006.02 343.26h3.5M1006.02 354.74h3.5M1032.48 343.26h3.5M1032.48 354.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="1009.52" y="337.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
 <text x="1021.0" y="353.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
@@ -126,25 +132,35 @@
 <line x1="865" y1="288" x2="865" y2="346" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
 <text x="880" y="321" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="start">prompts</text>
 <line x1="934" y1="374" x2="1018" y2="374" stroke="#11867a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-m)"/>
-<circle cx="1170" cy="317" r="15" fill="#fff" stroke="#c8453b" stroke-width="2.5"/>
-<text x="1170" y="324" font-size="20" font-weight="800" fill="#c8453b" text-anchor="middle">?</text>
-<text x="1192" y="322" font-size="13" font-weight="700" fill="#c8453b" text-anchor="start">entre sprints, ¿quién decide?</text>
-<path d="M1322 374C1360 374 1370 326.0 1410 320.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
-<path d="M1322 374C1360 374 1370 358.0 1410 356.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
-<path d="M1322 374C1360 374 1370 390.0 1410 392.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
-<path d="M1322 374C1360 374 1370 422.0 1410 428.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
-<line x1="1478" y1="232" x2="1478" y2="304.0" stroke="#2c2c2a" stroke-width="3"/><path d="M1478 232h41.4l-10.8 12.6 10.8 12.6h-41.4z" fill="#b9b5ab"/>
-<text x="1500" y="342" font-size="14" font-weight="700" fill="#c8453b" text-anchor="middle">La meta se aleja</text>
-<text x="1500" y="360" font-size="12" font-weight="400" fill="#73716a" text-anchor="middle">tests en verde ≠ meta</text>
+<circle cx="1040" cy="317" r="14" fill="#fff" stroke="#c8453b" stroke-width="2.5"/>
+<text x="1040" y="324" font-size="19" font-weight="800" fill="#c8453b" text-anchor="middle">?</text>
+<text x="1062" y="314" font-size="13" font-weight="700" fill="#c8453b" text-anchor="start">Prompt a prompt, ¿quién decide?</text>
+<text x="1062" y="330" font-size="12" font-weight="400" fill="#c8453b" text-anchor="start">el desarrollador, solo: el sprint no llega ahí</text>
+<path d="M1322 374C1350 374 1360 350.0 1392 347.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
+<path d="M1322 374C1350 374 1360 366.0 1392 365.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
+<path d="M1322 374C1350 374 1360 382.0 1392 383.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
+<path d="M1322 374C1350 374 1360 398.0 1392 401.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
+<line x1="1322" y1="260" x2="1392" y2="260" stroke="#3b7d2a" stroke-width="3" stroke-linecap="round" marker-end="url(#m-verde)"/>
+<rect x="1396" y="230" width="176" height="56" rx="10" fill="#eef6e7" stroke="#3b7d2a" stroke-width="2"/>
+<line x1="1409" y1="237" x2="1409" y2="252" stroke="#2c2c2a" stroke-width="1.6"/><path d="M1409 237h11l-3 3.5 3 3.5h-11z" fill="#3b7d2a"/>
+<text x="1426" y="248" font-size="12.5" font-weight="800" fill="#27500a" text-anchor="start">Si nada cambia</text>
+<text x="1408" y="264" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">Llega sprint a sprint,</text>
+<text x="1408" y="279" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">con incrementos revisados</text>
+<rect x="1396" y="344" width="176" height="56" rx="10" fill="#fff4e0" stroke="#c77d0a" stroke-width="2"/>
+<path d="M1414.2 350.3L1407.6 359.1H1412L1409.8 365.7L1416.4 356.9H1412Z" fill="#c77d0a"/>
+<text x="1426" y="362" font-size="12.5" font-weight="800" fill="#6b4206" text-anchor="start">Si algo cambia</text>
+<text x="1408" y="378" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">Dev e IA ajustan solos;</text>
+<text x="1408" y="393" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">se nota en Daily o Review</text>
 <rect x="20" y="446" width="1560" height="272" rx="16" fill="#fff" stroke="#ddd3ee" stroke-width="1.5"/>
 <rect x="20" y="446" width="200" height="272" rx="16" fill="#6a4c9c"/><rect x="190" y="446" width="30" height="272" fill="#6a4c9c"/>
 <text x="38" y="492" font-size="30" font-weight="800" fill="#fff" text-anchor="start">SDD</text>
 <text x="38" y="518" font-size="15" font-weight="400" fill="#fff" text-anchor="start" opacity="0.92">Spec-Driven Dev.,</text>
 <text x="38" y="539" font-size="15" font-weight="400" fill="#fff" text-anchor="start" opacity="0.92">con IA</text>
-<rect x="32" y="566" width="176" height="74" rx="10" fill="#fff" fill-opacity="0.17"/>
+<rect x="32" y="566" width="176" height="94" rx="10" fill="#fff" fill-opacity="0.17"/>
 <text x="46" y="590" font-size="15" font-weight="700" fill="#fff" text-anchor="start">¿Qué sigue?</text>
-<text x="46" y="612" font-size="15" font-weight="400" fill="#fff" text-anchor="start">Lo que diga la spec,</text>
-<text x="46" y="632" font-size="15" font-weight="400" fill="#fff" text-anchor="start">aunque ya cambió.</text>
+<text x="46" y="612" font-size="15" font-weight="400" fill="#fff" text-anchor="start">La siguiente tarea</text>
+<text x="46" y="632" font-size="15" font-weight="400" fill="#fff" text-anchor="start">de la spec. Lo nuevo</text>
+<text x="46" y="652" font-size="15" font-weight="400" fill="#fff" text-anchor="start">obliga a reabrirla.</text>
 <rect x="228" y="454" width="1344" height="110" rx="8" fill="#edf3fb"/>
 <g>
 <circle cx="245" cy="468" r="10" fill="#2f5fb3"/><circle cx="245" cy="465.5" r="3.0" fill="#fff"/><path d="M239.58333333333334 474.25q5.416666666666667 -7.916666666666667 10.833333333333334 0z" fill="#fff"/>
@@ -174,6 +190,9 @@
 <g>
 <circle cx="719.0" cy="489.0" r="14" fill="#2f5fb3"/><circle cx="719.0" cy="485.5" r="4.2" fill="#fff"/><path d="M711.4166666666666 497.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
 </g>
+<rect x="841.0" y="479" width="92" height="18" rx="9" fill="#fff4e0" stroke="#c77d0a" stroke-width="1.5"/>
+<path d="M855.9 481.35L850.2 488.95H854.0L852.1 494.65L857.8 487.05H854.0Z" fill="#c77d0a"/>
+<text x="863.0" y="492" font-size="11" font-weight="800" fill="#8a5200" text-anchor="start">algo cambia</text>
 <rect x="1020.0" y="488.0" width="300" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
 <text x="1170.0" y="510.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Reabre la spec</text>
 <text x="1170.0" y="528.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">y la vuelve a aprobar</text>
@@ -222,10 +241,21 @@
 <text x="1180.0" y="575" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="start">spec nueva</text>
 <path d="M1170.0 656V698H585.0V658" fill="none" stroke="#c8453b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#m-rojo)"/>
 <rect x="800" y="688" width="150" height="20" rx="10" fill="#fff" stroke="#c8453b" stroke-width="1.5"/>
-<text x="875" y="702" font-size="12" font-weight="700" fill="#c8453b" text-anchor="middle">vuelta al principio</text>
-<line x1="1478" y1="486" x2="1478" y2="558.0" stroke="#2c2c2a" stroke-width="3"/><path d="M1478 486h41.4l-10.8 12.6 10.8 12.6h-41.4z" fill="#b9b5ab"/>
-<text x="1500" y="596" font-size="14" font-weight="700" fill="#c8453b" text-anchor="middle">Llega tarde</text>
-<text x="1500" y="614" font-size="12" font-weight="400" fill="#73716a" text-anchor="middle">tras volver al principio</text>
+<text x="875" y="702" font-size="12" font-weight="700" fill="#c8453b" text-anchor="middle">vuelve a especificar</text>
+<line x1="1322" y1="514" x2="1392" y2="514" stroke="#c77d0a" stroke-width="3" stroke-linecap="round" marker-end="url(#m-ambar)"/>
+<rect x="1396" y="484" width="176" height="56" rx="10" fill="#fff4e0" stroke="#c77d0a" stroke-width="2"/>
+<path d="M1414.2 490.3L1407.6 499.1H1412L1409.8 505.7L1416.4 496.9H1412Z" fill="#c77d0a"/>
+<text x="1426" y="502" font-size="12.5" font-weight="800" fill="#6b4206" text-anchor="start">Si algo cambia</text>
+<text x="1408" y="518" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">Reabrir la spec y regenerar</text>
+<text x="1408" y="533" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">el plan y las tareas</text>
+<path d="M934 642H990V668H1360V628H1392" fill="none" stroke="#3b7d2a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#m-verde)"/>
+<rect x="1025.7" y="659" width="108.60000000000001" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="1080" y="672" font-size="12" font-weight="700" fill="#3b7d2a" text-anchor="middle">si nada cambia</text>
+<rect x="1396" y="598" width="176" height="56" rx="10" fill="#eef6e7" stroke="#3b7d2a" stroke-width="2"/>
+<line x1="1409" y1="605" x2="1409" y2="620" stroke="#2c2c2a" stroke-width="1.6"/><path d="M1409 605h11l-3 3.5 3 3.5h-11z" fill="#3b7d2a"/>
+<text x="1426" y="616" font-size="12.5" font-weight="800" fill="#27500a" text-anchor="start">Si nada cambia</text>
+<text x="1408" y="632" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">Llega de una: la IA ejecuta</text>
+<text x="1408" y="647" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">el plan. Es el más directo.</text>
 <rect x="20" y="732" width="1560" height="540" rx="16" fill="#fffdf5" stroke="#d6b65c" stroke-width="3"/>
 <rect x="20" y="732" width="200" height="540" rx="16" fill="#b5862a"/><rect x="190" y="732" width="30" height="540" fill="#b5862a"/>
 <text x="38" y="778" font-size="36" font-weight="800" fill="#fff" text-anchor="start">STL</text>
@@ -326,11 +356,14 @@
 <rect x="589.0" y="856.0" width="101.7" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
 <text x="595.0" y="869.0" font-size="12" font-weight="700" fill="#6b4f00" text-anchor="start">te lo muestra</text>
 <rect x="718.0" y="776.0" width="214" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
-<text x="825.0" y="798.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Ideas, comentarios,</text>
-<text x="825.0" y="816.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">notas de voz, preguntas</text>
+<text x="825.0" y="798.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Ideas, cambios, fallos,</text>
+<text x="825.0" y="816.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">comentarios y preguntas</text>
 <g>
 <circle cx="719.0" cy="777.0" r="14" fill="#2f5fb3"/><circle cx="719.0" cy="773.5" r="4.2" fill="#fff"/><path d="M711.4166666666666 785.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
 </g>
+<rect x="841.0" y="767" width="92" height="18" rx="9" fill="#fff4e0" stroke="#c77d0a" stroke-width="1.5"/>
+<path d="M855.9 769.35L850.2 776.95H854.0L852.1 782.65L857.8 775.05H854.0Z" fill="#c77d0a"/>
+<text x="863.0" y="780" font-size="11" font-weight="800" fill="#8a5200" text-anchor="start">algo cambia</text>
 <path d="M760 829C760 862 825.0 858 825.0 890" fill="none" stroke="#d6b65c" stroke-width="2.5"/>
 <path d="M800 829C800 862 825.0 858 825.0 890" fill="none" stroke="#d6b65c" stroke-width="2.5"/>
 <path d="M850 829C850 862 825.0 858 825.0 890" fill="none" stroke="#d6b65c" stroke-width="2.5"/>
@@ -431,7 +464,7 @@
 <rect x="1400" y="773" width="174" height="58" rx="13" fill="none" stroke="#9cc0f0" stroke-width="4" opacity="0.6"/>
 <rect x="1404" y="777" width="166" height="50" rx="10" fill="#2f5fb3" stroke="#1d4690" stroke-width="2"/>
 <text x="1487" y="798" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">Cumples tu misión</text>
-<text x="1487" y="815" font-size="13" font-weight="400" fill="#fff" text-anchor="middle">y cruzas la puerta</text>
+<text x="1487" y="815" font-size="13" font-weight="400" fill="#fff" text-anchor="middle">y el proyecto avanza</text>
 <g>
 <circle cx="1405" cy="778" r="14" fill="#2f5fb3"/><circle cx="1405" cy="774.5" r="4.2" fill="#fff"/><path d="M1397.4166666666667 786.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
 </g>
@@ -440,9 +473,17 @@
 <line x1="1540" y1="829" x2="1540" y2="904" stroke="#3b7d2a" stroke-width="3.5" stroke-linecap="round" marker-end="url(#m-verde)"/>
 <line x1="1505" y1="910" x2="1505" y2="1002.0" stroke="#2c2c2a" stroke-width="3"/><path d="M1505 910h52.9l-13.799999999999999 16.099999999999998 13.799999999999999 16.099999999999998h-52.9z" fill="#3b7d2a"/>
 <text x="1514" y="992" font-size="15" font-weight="800" fill="#3b7d2a" text-anchor="start">la meta</text>
+<rect x="1396" y="1122" width="176" height="41" rx="10" fill="#eef6e7" stroke="#3b7d2a" stroke-width="2"/>
+<line x1="1409" y1="1129" x2="1409" y2="1144" stroke="#2c2c2a" stroke-width="1.6"/><path d="M1409 1129h11l-3 3.5 3 3.5h-11z" fill="#3b7d2a"/>
+<text x="1426" y="1140" font-size="12.5" font-weight="800" fill="#27500a" text-anchor="start">Si nada cambia</text>
+<text x="1408" y="1156" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">misión a misión, revisando</text>
+<rect x="1396" y="1176" width="176" height="41" rx="10" fill="#fff4e0" stroke="#c77d0a" stroke-width="2"/>
+<path d="M1414.2 1182.3L1407.6 1191.1H1412L1409.8 1197.7L1416.4 1188.9H1412Z" fill="#c77d0a"/>
+<text x="1426" y="1194" font-size="12.5" font-weight="800" fill="#6b4206" text-anchor="start">Si algo cambia</text>
+<text x="1408" y="1210" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">lo encauza sin perder rumbo</text>
 <text x="905" y="1257" font-size="15" font-weight="700" fill="#6b4f00" text-anchor="middle">El director orquesta a los dos: al modelo le dice qué ejecutar, y a ti, tu única misión. Un guardrail para ambos.</text>
 <g stroke="#cfcabd" stroke-width="1.2" stroke-dasharray="3 6"><path d="M470 184V1272"/><path d="M700 184V1272"/><path d="M950 184V1272"/><path d="M1390 184V1272"/></g>
 <rect x="240" y="1288" width="1340" height="50" rx="14" fill="#f6e7b4" stroke="#ecdcae" stroke-width="1.5"/>
-<text x="910" y="1320" font-size="21" font-weight="800" fill="#6b4f00" text-anchor="middle">STL no reemplaza tu Scrum, tu SDD ni tu agente: les suma el Studio y el director.</text>
-<text x="800" y="1368" font-size="13" font-weight="400" fill="#73716a" text-anchor="middle">Comparación conceptual del trabajo con modelos de IA. STL se usa junto con tu agente; sus ahorros se medirán con pruebas reales antes de prometer cifras.</text>
+<text x="910" y="1320" font-size="21" font-weight="800" fill="#6b4f00" text-anchor="middle">Si nada cambia, SDD es el camino más directo. Cuando algo cambia, STL mantiene el rumbo.</text>
+<text x="800" y="1368" font-size="13" font-weight="400" fill="#73716a" text-anchor="middle">STL no reemplaza tu Scrum, tu SDD ni tu agente: les suma el Studio y el director. Comparación conceptual; los ahorros de STL se medirán con pruebas reales antes de prometer cifras.</text>
 </svg>
