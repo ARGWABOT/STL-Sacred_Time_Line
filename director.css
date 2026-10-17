@@ -691,6 +691,11 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 .actor-stl.nuevo small { color: var(--sobre-texto); }
 .nuevo-stl { justify-self: start; padding: 1px 9px; border-radius: 999px; background: #b5862a; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; }
 .quien-stl { font-size: 12px; font-weight: 700; color: var(--acento-texto); }
+/* lo que solo hace STL: el guardrail también para el desarrollador */
+.destacado-stl { margin: 4px 0 14px; padding: 16px 20px; border-radius: var(--radio-g); background: var(--sobre); border: 2px solid #d6b65c; border-left-width: 6px; }
+.destacado-stl .destacado-titulo { display: block; margin-bottom: 6px; font-size: 17px; color: var(--sobre-texto); }
+.destacado-stl p { margin: 0 0 8px; font-size: 15.5px; }
+.destacado-stl p:last-child { margin-bottom: 0; }
 .guia-stl li::marker { color: var(--acento); font-weight: 700; }
 .guia-stl .ir-paso { margin-left: 4px; }
 .pasos-stl { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; counter-reset: stl; }

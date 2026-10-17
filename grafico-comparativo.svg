@@ -481,8 +481,10 @@
 <path d="M1414.2 1182.3L1407.6 1191.1H1412L1409.8 1197.7L1416.4 1188.9H1412Z" fill="#c77d0a"/>
 <text x="1426" y="1194" font-size="12.5" font-weight="800" fill="#6b4206" text-anchor="start">Si algo cambia</text>
 <text x="1408" y="1210" font-size="11.5" font-weight="500" fill="#3f3e3a" text-anchor="start">lo encauza sin perder rumbo</text>
-<text x="905" y="1257" font-size="15" font-weight="700" fill="#6b4f00" text-anchor="middle">El director orquesta a los dos: al modelo le dice qué ejecutar, y a ti, tu única misión. Un guardrail para ambos.</text>
-<g stroke="#cfcabd" stroke-width="1.2" stroke-dasharray="3 6"><path d="M470 184V1272"/><path d="M700 184V1272"/><path d="M950 184V1272"/><path d="M1390 184V1272"/></g>
+<rect x="232" y="1233" width="1336" height="34" rx="17" fill="#b5862a"/>
+<path d="M262 1240l3.2 6.6 7.2 1-5.2 5.1 1.2 7.2-6.4-3.4-6.4 3.4 1.2-7.2-5.2-5.1 7.2-1z" fill="#fff"/>
+<text x="282" y="1255" font-size="14.5" font-weight="800" fill="#fff" text-anchor="start">Lo que solo hace STL: te orquesta también a ti. Lo que le pides al modelo pasa antes por el buzón y el director: un guardrail para ti, no solo para el modelo.</text>
+<g stroke="#cfcabd" stroke-width="1.2" stroke-dasharray="3 6"><path d="M470 184V1228"/><path d="M700 184V1228"/><path d="M950 184V1228"/><path d="M1390 184V1228"/></g>
 <rect x="240" y="1288" width="1340" height="50" rx="14" fill="#f6e7b4" stroke="#ecdcae" stroke-width="1.5"/>
 <text x="910" y="1320" font-size="21" font-weight="800" fill="#6b4f00" text-anchor="middle">Si nada cambia, SDD es el camino más directo. Cuando algo cambia, STL mantiene el rumbo.</text>
 <text x="800" y="1368" font-size="13" font-weight="400" fill="#73716a" text-anchor="middle">STL no reemplaza tu Scrum, tu SDD ni tu agente: les suma el Studio y el director. Comparación conceptual; los ahorros de STL se medirán con pruebas reales antes de prometer cifras.</text>
