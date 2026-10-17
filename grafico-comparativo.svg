@@ -1,0 +1,448 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1384" width="1600" height="1384" role="img" aria-labelledby="titulo desc">
+<title id="titulo">Con IA, todo proyecto se bifurca más rápido. ¿Quién decide qué sigue?</title>
+<desc id="desc">Scrum + CI/CD, SDD y STL trabajando con IA, en carriles: dónde trabaja el humano, dónde la IA y quién le entrega a quién. STL suma dos actores nuevos: el Studio, que recibe y detiene lo que dices hasta que lo das por bueno, y el director, que lo ordena, gestiona la conversación con el modelo, te devuelve los resultados en orden y propone el paso más estratégico. Nada llega directo al modelo.</desc>
+<defs>
+<marker id="m-h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2f5fb3"/></marker>
+<marker id="m-ia" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2c2c2a"/></marker>
+<marker id="m-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#11867a"/></marker>
+<marker id="m-st" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b5862a"/></marker>
+<marker id="m-gris" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a9a59b"/></marker>
+<marker id="m-rojo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c8453b"/></marker>
+<marker id="m-verde" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3b7d2a"/></marker>
+<symbol id="chip" viewBox="0 0 44 44"><g stroke="#2c2c2a" stroke-width="2.5" stroke-linecap="round"><path d="M15 3v6M22 3v6M29 3v6M15 35v6M22 35v6M29 35v6M3 15h6M3 22h6M3 29h6M35 15h6M35 22h6M35 29h6"/></g><rect x="8" y="8" width="28" height="28" rx="6" fill="#2c2c2a"/><text x="22" y="27" text-anchor="middle" font-size="12" font-weight="700" fill="#f6e7b4">IA</text></symbol>
+<style>text { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }</style>
+</defs>
+<rect width="1600" height="1384" fill="#f6f4ef"/>
+<text x="800" y="56" font-size="34" font-weight="800" fill="#23221f" text-anchor="middle">Con IA, todo proyecto se bifurca más rápido. ¿Quién decide qué sigue?</text>
+<text x="800" y="89" font-size="18" font-weight="400" fill="#5c5b55" text-anchor="middle">Quién hace qué en cada método: dónde trabaja el humano, dónde la IA, y quién le entrega a quién.</text>
+<g>
+<circle cx="296" cy="122" r="13" fill="#2f5fb3"/><circle cx="296" cy="118.75" r="3.9" fill="#fff"/><path d="M288.9583333333333 130.125q7.041666666666666 -10.291666666666666 14.083333333333332 0z" fill="#fff"/>
+</g>
+<text x="316" y="127" font-size="14" font-weight="700" fill="#0c447c" text-anchor="start">Humano</text>
+<g>
+<circle cx="400" cy="122" r="13" fill="#b5862a"/>
+<rect x="393.5" y="117.39583333333333" width="13.0" height="9.208333333333332" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M393.5 118.39583333333333l6.5 5.064583333333333 6.5 -5.064583333333333" fill="none" stroke="#fff" stroke-width="1.8"/>
+</g>
+<text x="420" y="127" font-size="14" font-weight="700" fill="#6b4f00" text-anchor="start">Studio</text>
+<g>
+<circle cx="492" cy="122" r="13" fill="#2c2c2a" stroke="#f6e7b4" stroke-width="1.7333333333333334"/>
+<text x="492" y="126.65833333333333" font-size="14.1" font-weight="800" fill="#f6e7b4" text-anchor="middle">D</text>
+</g>
+<text x="512" y="127" font-size="14" font-weight="700" fill="#2c2c2a" text-anchor="start">Director (IA)</text>
+<g>
+<path d="M622.67 108.09v3.25M633.33 108.09v3.25M622.67 132.66v3.25M633.33 132.66v3.25M614.09 116.67h3.25M614.09 127.33h3.25M638.66 116.67h3.25M638.66 127.33h3.25" stroke="#11867a" stroke-width="1.7333333333333334" stroke-linecap="round"/><rect x="617.34" y="111.34" width="21.32" height="21.32" rx="4.333333333333333" fill="#11867a"/>
+<text x="628" y="125.9" font-size="10.3" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<text x="648" y="127" font-size="14" font-weight="700" fill="#0b5d55" text-anchor="start">Modelo o IA</text>
+<line x1="758" y1="122" x2="794" y2="122" stroke="#2c2c2a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-ia)"/>
+<text x="802" y="127" font-size="14" font-weight="400" fill="#4a4944" text-anchor="start">quién le entrega a quién</text>
+<path d="M974 122h36" fill="none" stroke="#c8453b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#m-rojo)"/>
+<text x="1018" y="127" font-size="14" font-weight="400" fill="#4a4944" text-anchor="start">retrabajo o bloqueo</text>
+<rect x="1166" y="113" width="58" height="18" rx="9" fill="#b5862a"/>
+<text x="1195" y="126" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">NUEVO</text>
+<text x="1232" y="127" font-size="14" font-weight="400" fill="#4a4944" text-anchor="start">actor que solo trae STL</text>
+<rect x="240" y="146" width="1340" height="34" rx="17" fill="#e9e5db"/>
+<text x="355.0" y="169" font-size="16" font-weight="700" fill="#23221f" text-anchor="middle">0. Integración</text>
+<text x="585.0" y="169" font-size="16" font-weight="700" fill="#23221f" text-anchor="middle">1. Arranque</text>
+<text x="825.0" y="169" font-size="16" font-weight="700" fill="#23221f" text-anchor="middle">2. Se bifurca</text>
+<text x="1170.0" y="169" font-size="16" font-weight="700" fill="#23221f" text-anchor="middle">3. ¿Qué sigue?</text>
+<text x="1485.0" y="169" font-size="16" font-weight="700" fill="#23221f" text-anchor="middle">Resultado</text>
+<rect x="20" y="192" width="1560" height="240" rx="16" fill="#fff" stroke="#cfe3e1" stroke-width="1.5"/>
+<rect x="20" y="192" width="200" height="240" rx="16" fill="#2d7c7a"/><rect x="190" y="192" width="30" height="240" fill="#2d7c7a"/>
+<text x="38" y="238" font-size="30" font-weight="800" fill="#fff" text-anchor="start">Scrum</text>
+<text x="38" y="264" font-size="15" font-weight="400" fill="#fff" text-anchor="start" opacity="0.92">+ CI/CD, con IA</text>
+<rect x="32" y="291" width="176" height="74" rx="10" fill="#fff" fill-opacity="0.17"/>
+<text x="46" y="315" font-size="15" font-weight="700" fill="#fff" text-anchor="start">¿Qué sigue?</text>
+<text x="46" y="337" font-size="15" font-weight="400" fill="#fff" text-anchor="start">Lo que esté arriba</text>
+<text x="46" y="357" font-size="15" font-weight="400" fill="#fff" text-anchor="start">del backlog.</text>
+<rect x="228" y="200" width="1344" height="110" rx="8" fill="#edf3fb"/>
+<g>
+<circle cx="245" cy="214" r="10" fill="#2f5fb3"/><circle cx="245" cy="211.5" r="3.0" fill="#fff"/><path d="M239.58333333333334 220.25q5.416666666666667 -7.916666666666667 10.833333333333334 0z" fill="#fff"/>
+</g>
+<text x="262" y="218" font-size="12" font-weight="700" fill="#0c447c" text-anchor="start">El equipo (humano)</text>
+<rect x="228" y="314" width="1344" height="110" rx="8" fill="#e6f3f1"/>
+<g>
+<path d="M240.9 317.3v2.5M249.1 317.3v2.5M240.9 336.2v2.5M249.1 336.2v2.5M234.3 323.9h2.5M234.3 332.1h2.5M253.2 323.9h2.5M253.2 332.1h2.5" stroke="#11867a" stroke-width="1.3333333333333335" stroke-linecap="round"/><rect x="236.8" y="319.8" width="16.4" height="16.4" rx="3.3333333333333335" fill="#11867a"/>
+<text x="245" y="331.0" font-size="7.9" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<text x="262" y="332" font-size="12" font-weight="700" fill="#0b5d55" text-anchor="start">La IA (chat o copiloto)</text>
+<rect x="257.0" y="234.0" width="196" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="355.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Adopta Scrum</text>
+<text x="355.0" y="274.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">roles, ceremonias, backlog</text>
+<g>
+<circle cx="258.0" cy="235.0" r="14" fill="#2f5fb3"/><circle cx="258.0" cy="231.5" r="4.2" fill="#fff"/><path d="M250.41666666666666 243.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="487.0" y="234.0" width="196" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="585.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Visión y backlog</text>
+<text x="585.0" y="274.0" font-size="14" font-weight="700" fill="#3b7d2a" text-anchor="middle">meta definida</text>
+<g>
+<circle cx="488.0" cy="235.0" r="14" fill="#2f5fb3"/><circle cx="488.0" cy="231.5" r="4.2" fill="#fff"/><path d="M480.4166666666667 243.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="718.0" y="234.0" width="214" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="825.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Cada persona pide lo suyo</text>
+<text x="825.0" y="274.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">feature, bug, refactor…</text>
+<g>
+<circle cx="719.0" cy="235.0" r="14" fill="#2f5fb3"/><circle cx="719.0" cy="231.5" r="4.2" fill="#fff"/><path d="M711.4166666666666 243.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="1020.0" y="234.0" width="300" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="1170.0" y="256.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Prioriza en el sprint planning</text>
+<text x="1170.0" y="274.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">al inicio de cada sprint</text>
+<g>
+<circle cx="1021.0" cy="235.0" r="14" fill="#2f5fb3"/><circle cx="1021.0" cy="231.5" r="4.2" fill="#fff"/><path d="M1013.4166666666666 243.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="257.0" y="348.0" width="196" height="52" rx="10" fill="#fff" stroke="#a9a59b" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="355.0" y="370.0" font-size="14" font-weight="700" fill="#73716a" text-anchor="middle">Cada quien suma su chat</text>
+<text x="355.0" y="388.0" font-size="14" font-weight="400" fill="#73716a" text-anchor="middle">por su cuenta</text>
+<g opacity="0.55">
+<path d="M252.26 334.02v3.5M263.74 334.02v3.5M252.26 360.48v3.5M263.74 360.48v3.5M243.02 343.26h3.5M243.02 354.74h3.5M269.48 343.26h3.5M269.48 354.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="246.52" y="337.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="258.0" y="353.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<rect x="487.0" y="348.0" width="196" height="52" rx="10" fill="#fff" stroke="#a9a59b" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="585.0" y="370.0" font-size="14" font-weight="700" fill="#73716a" text-anchor="middle">No participa</text>
+<text x="585.0" y="388.0" font-size="14" font-weight="400" fill="#73716a" text-anchor="middle">no conoce la meta</text>
+<g opacity="0.55">
+<path d="M482.26 334.02v3.5M493.74 334.02v3.5M482.26 360.48v3.5M493.74 360.48v3.5M473.02 343.26h3.5M473.02 354.74h3.5M499.48 343.26h3.5M499.48 354.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="476.52" y="337.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="488.0" y="353.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<rect x="718.0" y="348.0" width="214" height="52" rx="10" fill="#fff" stroke="#11867a" stroke-width="2"/>
+<text x="825.0" y="370.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Ejecuta cada prompt</text>
+<text x="825.0" y="388.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">al instante, sin cuestionar</text>
+<g>
+<path d="M713.26 334.02v3.5M724.74 334.02v3.5M713.26 360.48v3.5M724.74 360.48v3.5M704.02 343.26h3.5M704.02 354.74h3.5M730.48 343.26h3.5M730.48 354.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="707.52" y="337.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="719.0" y="353.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<rect x="1020.0" y="348.0" width="300" height="52" rx="10" fill="#fff" stroke="#11867a" stroke-width="2"/>
+<text x="1170.0" y="370.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Sigue el último prompt</text>
+<text x="1170.0" y="388.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">cada sesión empieza de cero</text>
+<g>
+<path d="M1015.26 334.02v3.5M1026.74 334.02v3.5M1015.26 360.48v3.5M1026.74 360.48v3.5M1006.02 343.26h3.5M1006.02 354.74h3.5M1032.48 343.26h3.5M1032.48 354.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="1009.52" y="337.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="1021.0" y="353.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<line x1="455" y1="260" x2="485" y2="260" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<line x1="685" y1="260" x2="716" y2="260" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<line x1="934" y1="260" x2="1018" y2="260" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<line x1="785" y1="288" x2="785" y2="346" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<line x1="825" y1="288" x2="825" y2="346" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<line x1="865" y1="288" x2="865" y2="346" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<text x="880" y="321" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="start">prompts</text>
+<line x1="934" y1="374" x2="1018" y2="374" stroke="#11867a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-m)"/>
+<circle cx="1170" cy="317" r="15" fill="#fff" stroke="#c8453b" stroke-width="2.5"/>
+<text x="1170" y="324" font-size="20" font-weight="800" fill="#c8453b" text-anchor="middle">?</text>
+<text x="1192" y="322" font-size="13" font-weight="700" fill="#c8453b" text-anchor="start">entre sprints, ¿quién decide?</text>
+<path d="M1322 374C1360 374 1370 326.0 1410 320.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
+<path d="M1322 374C1360 374 1370 358.0 1410 356.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
+<path d="M1322 374C1360 374 1370 390.0 1410 392.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
+<path d="M1322 374C1360 374 1370 422.0 1410 428.0" fill="none" stroke="#d6b65c" stroke-width="2.5" stroke-dasharray="5 6"/>
+<line x1="1478" y1="232" x2="1478" y2="304.0" stroke="#2c2c2a" stroke-width="3"/><path d="M1478 232h41.4l-10.8 12.6 10.8 12.6h-41.4z" fill="#b9b5ab"/>
+<text x="1500" y="342" font-size="14" font-weight="700" fill="#c8453b" text-anchor="middle">La meta se aleja</text>
+<text x="1500" y="360" font-size="12" font-weight="400" fill="#73716a" text-anchor="middle">tests en verde ≠ meta</text>
+<rect x="20" y="446" width="1560" height="272" rx="16" fill="#fff" stroke="#ddd3ee" stroke-width="1.5"/>
+<rect x="20" y="446" width="200" height="272" rx="16" fill="#6a4c9c"/><rect x="190" y="446" width="30" height="272" fill="#6a4c9c"/>
+<text x="38" y="492" font-size="30" font-weight="800" fill="#fff" text-anchor="start">SDD</text>
+<text x="38" y="518" font-size="15" font-weight="400" fill="#fff" text-anchor="start" opacity="0.92">Spec-Driven Dev.,</text>
+<text x="38" y="539" font-size="15" font-weight="400" fill="#fff" text-anchor="start" opacity="0.92">con IA</text>
+<rect x="32" y="566" width="176" height="74" rx="10" fill="#fff" fill-opacity="0.17"/>
+<text x="46" y="590" font-size="15" font-weight="700" fill="#fff" text-anchor="start">¿Qué sigue?</text>
+<text x="46" y="612" font-size="15" font-weight="400" fill="#fff" text-anchor="start">Lo que diga la spec,</text>
+<text x="46" y="632" font-size="15" font-weight="400" fill="#fff" text-anchor="start">aunque ya cambió.</text>
+<rect x="228" y="454" width="1344" height="110" rx="8" fill="#edf3fb"/>
+<g>
+<circle cx="245" cy="468" r="10" fill="#2f5fb3"/><circle cx="245" cy="465.5" r="3.0" fill="#fff"/><path d="M239.58333333333334 474.25q5.416666666666667 -7.916666666666667 10.833333333333334 0z" fill="#fff"/>
+</g>
+<text x="262" y="472" font-size="12" font-weight="700" fill="#0c447c" text-anchor="start">Tú (humano)</text>
+<rect x="228" y="568" width="1344" height="110" rx="8" fill="#e6f3f1"/>
+<g>
+<path d="M240.9 571.3v2.5M249.1 571.3v2.5M240.9 590.2v2.5M249.1 590.2v2.5M234.3 577.9h2.5M234.3 586.1h2.5M253.2 577.9h2.5M253.2 586.1h2.5" stroke="#11867a" stroke-width="1.3333333333333335" stroke-linecap="round"/><rect x="236.8" y="573.8" width="16.4" height="16.4" rx="3.3333333333333335" fill="#11867a"/>
+<text x="245" y="585.0" font-size="7.9" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<text x="262" y="586" font-size="12" font-weight="700" fill="#0b5d55" text-anchor="start">La IA (agente)</text>
+<rect x="257.0" y="488.0" width="196" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="355.0" y="510.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Instala el kit de specs</text>
+<text x="355.0" y="528.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">y escribe sus principios</text>
+<g>
+<circle cx="258.0" cy="489.0" r="14" fill="#2f5fb3"/><circle cx="258.0" cy="485.5" r="4.2" fill="#fff"/><path d="M250.41666666666666 497.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="487.0" y="488.0" width="196" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="585.0" y="510.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Describe y aprueba</text>
+<text x="585.0" y="528.0" font-size="14" font-weight="700" fill="#3b7d2a" text-anchor="middle">meta definida</text>
+<g>
+<circle cx="488.0" cy="489.0" r="14" fill="#2f5fb3"/><circle cx="488.0" cy="485.5" r="4.2" fill="#fff"/><path d="M480.4166666666667 497.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="718.0" y="488.0" width="214" height="52" rx="10" fill="#fff" stroke="#c8453b" stroke-width="2"/>
+<text x="825.0" y="510.0" font-size="14" font-weight="700" fill="#c8453b" text-anchor="middle">Surge algo nuevo</text>
+<text x="825.0" y="528.0" font-size="14" font-weight="400" fill="#c8453b" text-anchor="middle">que la spec no cubre</text>
+<g>
+<circle cx="719.0" cy="489.0" r="14" fill="#2f5fb3"/><circle cx="719.0" cy="485.5" r="4.2" fill="#fff"/><path d="M711.4166666666666 497.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="1020.0" y="488.0" width="300" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="1170.0" y="510.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Reabre la spec</text>
+<text x="1170.0" y="528.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">y la vuelve a aprobar</text>
+<g>
+<circle cx="1021.0" cy="489.0" r="14" fill="#2f5fb3"/><circle cx="1021.0" cy="485.5" r="4.2" fill="#fff"/><path d="M1013.4166666666666 497.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="257.0" y="602.0" width="196" height="52" rx="10" fill="#fff" stroke="#11867a" stroke-width="2"/>
+<text x="355.0" y="624.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Toma los principios</text>
+<text x="355.0" y="642.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">como reglas</text>
+<g>
+<path d="M252.26 588.02v3.5M263.74 588.02v3.5M252.26 614.48v3.5M263.74 614.48v3.5M243.02 597.26h3.5M243.02 608.74h3.5M269.48 597.26h3.5M269.48 608.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="246.52" y="591.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="258.0" y="607.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<rect x="487.0" y="602.0" width="196" height="52" rx="10" fill="#fff" stroke="#11867a" stroke-width="2"/>
+<text x="585.0" y="624.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Redacta la spec,</text>
+<text x="585.0" y="642.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">el plan y las tareas</text>
+<g>
+<path d="M482.26 588.02v3.5M493.74 588.02v3.5M482.26 614.48v3.5M493.74 614.48v3.5M473.02 597.26h3.5M473.02 608.74h3.5M499.48 597.26h3.5M499.48 608.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="476.52" y="591.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="488.0" y="607.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<rect x="718.0" y="602.0" width="214" height="52" rx="10" fill="#fff" stroke="#11867a" stroke-width="2"/>
+<text x="825.0" y="624.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Implementa</text>
+<text x="825.0" y="642.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">tarea por tarea</text>
+<g>
+<path d="M713.26 588.02v3.5M724.74 588.02v3.5M713.26 614.48v3.5M724.74 614.48v3.5M704.02 597.26h3.5M704.02 608.74h3.5M730.48 597.26h3.5M730.48 608.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="707.52" y="591.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="719.0" y="607.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<rect x="1020.0" y="602.0" width="300" height="52" rx="10" fill="#fff" stroke="#11867a" stroke-width="2"/>
+<text x="1170.0" y="624.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Regenera el plan y las tareas</text>
+<text x="1170.0" y="642.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">y relee la spec completa</text>
+<g>
+<path d="M1015.26 588.02v3.5M1026.74 588.02v3.5M1015.26 614.48v3.5M1026.74 614.48v3.5M1006.02 597.26h3.5M1006.02 608.74h3.5M1032.48 597.26h3.5M1032.48 608.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="1009.52" y="591.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="1021.0" y="607.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<line x1="355.0" y1="542" x2="355.0" y2="600" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<text x="365.0" y="575" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="start">reglas</text>
+<line x1="560" y1="542" x2="560" y2="600" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<text x="550" y="575" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="end">describe</text>
+<line x1="610" y1="600" x2="610" y2="542" stroke="#11867a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-m)"/>
+<text x="620" y="575" font-size="12" font-weight="700" fill="#0b5d55" text-anchor="start">borrador</text>
+<line x1="685" y1="628" x2="716" y2="628" stroke="#11867a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-m)"/>
+<line x1="825.0" y1="600" x2="825.0" y2="542" stroke="#c8453b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-rojo)"/>
+<text x="835.0" y="575" font-size="12" font-weight="700" fill="#c8453b" text-anchor="start">no cabe</text>
+<line x1="934" y1="514" x2="1018" y2="514" stroke="#c8453b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-rojo)"/>
+<line x1="1170.0" y1="542" x2="1170.0" y2="600" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<text x="1180.0" y="575" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="start">spec nueva</text>
+<path d="M1170.0 656V698H585.0V658" fill="none" stroke="#c8453b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#m-rojo)"/>
+<rect x="800" y="688" width="150" height="20" rx="10" fill="#fff" stroke="#c8453b" stroke-width="1.5"/>
+<text x="875" y="702" font-size="12" font-weight="700" fill="#c8453b" text-anchor="middle">vuelta al principio</text>
+<line x1="1478" y1="486" x2="1478" y2="558.0" stroke="#2c2c2a" stroke-width="3"/><path d="M1478 486h41.4l-10.8 12.6 10.8 12.6h-41.4z" fill="#b9b5ab"/>
+<text x="1500" y="596" font-size="14" font-weight="700" fill="#c8453b" text-anchor="middle">Llega tarde</text>
+<text x="1500" y="614" font-size="12" font-weight="400" fill="#73716a" text-anchor="middle">tras volver al principio</text>
+<rect x="20" y="732" width="1560" height="540" rx="16" fill="#fffdf5" stroke="#d6b65c" stroke-width="3"/>
+<rect x="20" y="732" width="200" height="540" rx="16" fill="#b5862a"/><rect x="190" y="732" width="30" height="540" fill="#b5862a"/>
+<text x="38" y="778" font-size="36" font-weight="800" fill="#fff" text-anchor="start">STL</text>
+<text x="38" y="804" font-size="15" font-weight="400" fill="#fff" text-anchor="start" opacity="0.92">Studio + director,</text>
+<text x="38" y="825" font-size="15" font-weight="400" fill="#fff" text-anchor="start" opacity="0.92">con IA</text>
+<rect x="32" y="852" width="176" height="134" rx="10" fill="#fff" fill-opacity="0.17"/>
+<text x="46" y="876" font-size="15" font-weight="700" fill="#fff" text-anchor="start">¿Qué sigue?</text>
+<text x="46" y="898" font-size="15" font-weight="400" fill="#fff" text-anchor="start">El paso más</text>
+<text x="46" y="918" font-size="15" font-weight="400" fill="#fff" text-anchor="start">estratégico, uno</text>
+<text x="46" y="938" font-size="15" font-weight="400" fill="#fff" text-anchor="start">solo. Lo propone</text>
+<text x="46" y="958" font-size="15" font-weight="400" fill="#fff" text-anchor="start">el director;</text>
+<text x="46" y="978" font-size="15" font-weight="400" fill="#fff" text-anchor="start">tú decides.</text>
+<text x="38" y="1032" font-size="15" font-weight="800" fill="#fff" text-anchor="start">Dos actores nuevos</text>
+<text x="38" y="1054" font-size="14" font-weight="400" fill="#fff" text-anchor="start">entre tú y tu agente:</text>
+<text x="38" y="1074" font-size="14" font-weight="400" fill="#fff" text-anchor="start">el Studio detiene</text>
+<text x="38" y="1094" font-size="14" font-weight="400" fill="#fff" text-anchor="start">y ordena; el director</text>
+<text x="38" y="1114" font-size="14" font-weight="400" fill="#fff" text-anchor="start">orquesta al modelo</text>
+<text x="38" y="1134" font-size="14" font-weight="400" fill="#fff" text-anchor="start">y te orquesta a ti.</text>
+<rect x="228" y="740" width="1344" height="112" rx="8" fill="#edf3fb"/>
+<g>
+<circle cx="245" cy="754" r="10" fill="#2f5fb3"/><circle cx="245" cy="751.5" r="3.0" fill="#fff"/><path d="M239.58333333333334 760.25q5.416666666666667 -7.916666666666667 10.833333333333334 0z" fill="#fff"/>
+</g>
+<text x="262" y="758" font-size="12" font-weight="700" fill="#0c447c" text-anchor="start">Tú (humano)</text>
+<rect x="228" y="856" width="1344" height="140" rx="8" fill="#fbf1d6" stroke="#d6b65c" stroke-width="2"/>
+<g>
+<circle cx="245" cy="870" r="10" fill="#b5862a"/>
+<rect x="240.0" y="866.4583333333334" width="10.0" height="7.083333333333334" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M240.0 867.4583333333334l5.0 3.895833333333334 5.0 -3.895833333333334" fill="none" stroke="#fff" stroke-width="1.8"/>
+</g>
+<text x="262" y="874" font-size="12" font-weight="700" fill="#6b4f00" text-anchor="start">El Studio</text>
+<rect x="331.4" y="861" width="58" height="18" rx="9" fill="#b5862a"/>
+<text x="360.4" y="874" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">NUEVO</text>
+<rect x="228" y="1000" width="1344" height="112" rx="8" fill="#efeee9" stroke="#d6b65c" stroke-width="2"/>
+<g>
+<circle cx="245" cy="1014" r="10" fill="#2c2c2a" stroke="#f6e7b4" stroke-width="1.3333333333333335"/>
+<text x="245" y="1017.5833333333334" font-size="10.8" font-weight="800" fill="#f6e7b4" text-anchor="middle">D</text>
+</g>
+<text x="262" y="1018" font-size="12" font-weight="700" fill="#2c2c2a" text-anchor="start">El director (IA)</text>
+<rect x="377.6" y="1005" width="58" height="18" rx="9" fill="#b5862a"/>
+<text x="406.6" y="1018" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">NUEVO</text>
+<rect x="228" y="1116" width="1344" height="112" rx="8" fill="#e6f3f1"/>
+<g>
+<path d="M240.9 1119.3v2.5M249.1 1119.3v2.5M240.9 1138.2v2.5M249.1 1138.2v2.5M234.3 1125.9h2.5M234.3 1134.1h2.5M253.2 1125.9h2.5M253.2 1134.1h2.5" stroke="#11867a" stroke-width="1.3333333333333335" stroke-linecap="round"/><rect x="236.8" y="1121.8" width="16.4" height="16.4" rx="3.3333333333333335" fill="#11867a"/>
+<text x="245" y="1133.0" font-size="7.9" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<text x="262" y="1134" font-size="12" font-weight="700" fill="#0b5d55" text-anchor="start">El modelo: tu agente (Claude Code, Codex…)</text>
+<rect x="257.0" y="776.0" width="196" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="355.0" y="798.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Entregas tu proyecto</text>
+<text x="355.0" y="816.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">el repositorio o la idea</text>
+<g>
+<circle cx="258.0" cy="777.0" r="14" fill="#2f5fb3"/><circle cx="258.0" cy="773.5" r="4.2" fill="#fff"/><path d="M250.41666666666666 785.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="257.0" y="902.0" width="196" height="52" rx="10" fill="#fff" stroke="#b5862a" stroke-width="2"/>
+<text x="355.0" y="924.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Crea su espacio</text>
+<text x="355.0" y="942.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">buzón, ruta y documentos</text>
+<g>
+<circle cx="258.0" cy="903.0" r="14" fill="#b5862a"/>
+<rect x="251.0" y="898.0416666666666" width="14.0" height="9.916666666666668" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M251.0 899.0416666666666l7.0 5.4541666666666675 7.0 -5.4541666666666675" fill="none" stroke="#fff" stroke-width="1.8"/>
+</g>
+<rect x="257.0" y="1036.0" width="196" height="52" rx="10" fill="#fff" stroke="#2c2c2a" stroke-width="2"/>
+<text x="355.0" y="1058.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Lee el repositorio</text>
+<text x="355.0" y="1076.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">código, historia y docs</text>
+<g>
+<circle cx="258.0" cy="1037.0" r="14" fill="#2c2c2a" stroke="#f6e7b4" stroke-width="1.866666666666667"/>
+<text x="258.0" y="1042.0166666666667" font-size="15.2" font-weight="800" fill="#f6e7b4" text-anchor="middle">D</text>
+</g>
+<rect x="487.0" y="1036.0" width="196" height="52" rx="10" fill="#fff" stroke="#2c2c2a" stroke-width="2"/>
+<text x="585.0" y="1058.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Diagnostica y propone</text>
+<text x="585.0" y="1076.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">2 o 3 objetivos</text>
+<g>
+<circle cx="488.0" cy="1037.0" r="14" fill="#2c2c2a" stroke="#f6e7b4" stroke-width="1.866666666666667"/>
+<text x="488.0" y="1042.0166666666667" font-size="15.2" font-weight="800" fill="#f6e7b4" text-anchor="middle">D</text>
+</g>
+<rect x="487.0" y="902.0" width="196" height="52" rx="10" fill="#fff" stroke="#b5862a" stroke-width="2"/>
+<text x="585.0" y="924.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">El diagnóstico, en partes</text>
+<text x="585.0" y="942.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">que comentas una a una</text>
+<g>
+<circle cx="488.0" cy="903.0" r="14" fill="#b5862a"/>
+<rect x="481.0" y="898.0416666666666" width="14.0" height="9.916666666666668" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M481.0 899.0416666666666l7.0 5.4541666666666675 7.0 -5.4541666666666675" fill="none" stroke="#fff" stroke-width="1.8"/>
+</g>
+<rect x="487.0" y="776.0" width="196" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="585.0" y="798.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Comentas y fijas</text>
+<text x="585.0" y="816.0" font-size="14" font-weight="700" fill="#3b7d2a" text-anchor="middle">meta definida</text>
+<g>
+<circle cx="488.0" cy="777.0" r="14" fill="#2f5fb3"/><circle cx="488.0" cy="773.5" r="4.2" fill="#fff"/><path d="M480.4166666666667 785.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<line x1="440" y1="830" x2="440" y2="900" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<line x1="440" y1="956" x2="440" y2="1034" stroke="#b5862a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-st)"/>
+<line x1="455" y1="1062" x2="485" y2="1062" stroke="#2c2c2a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-ia)"/>
+<line x1="585.0" y1="1034" x2="585.0" y2="956" stroke="#2c2c2a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-ia)"/>
+<line x1="585.0" y1="900" x2="585.0" y2="830" stroke="#b5862a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-st)"/>
+<line x1="685" y1="802" x2="716" y2="802" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<rect x="442" y="856.0" width="67.2" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="448" y="869.0" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="start">entregas</text>
+<rect x="442" y="986.0" width="60.300000000000004" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="448" y="999.0" font-size="12" font-weight="700" fill="#6b4f00" text-anchor="start">lo pasa</text>
+<rect x="589.0" y="986.0" width="87.9" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="595.0" y="999.0" font-size="12" font-weight="700" fill="#2c2c2a" text-anchor="start">diagnóstico</text>
+<rect x="589.0" y="856.0" width="101.7" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="595.0" y="869.0" font-size="12" font-weight="700" fill="#6b4f00" text-anchor="start">te lo muestra</text>
+<rect x="718.0" y="776.0" width="214" height="52" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="825.0" y="798.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Ideas, comentarios,</text>
+<text x="825.0" y="816.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">notas de voz, preguntas</text>
+<g>
+<circle cx="719.0" cy="777.0" r="14" fill="#2f5fb3"/><circle cx="719.0" cy="773.5" r="4.2" fill="#fff"/><path d="M711.4166666666666 785.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<path d="M760 829C760 862 825.0 858 825.0 890" fill="none" stroke="#d6b65c" stroke-width="2.5"/>
+<path d="M800 829C800 862 825.0 858 825.0 890" fill="none" stroke="#d6b65c" stroke-width="2.5"/>
+<path d="M850 829C850 862 825.0 858 825.0 890" fill="none" stroke="#d6b65c" stroke-width="2.5"/>
+<path d="M890 829C890 862 825.0 858 825.0 890" fill="none" stroke="#d6b65c" stroke-width="2.5"/>
+<rect x="714.0" y="893.0" width="222" height="70" rx="10" fill="#fff4d6" stroke="#b5862a" stroke-width="3"/>
+<text x="825.0" y="915.0" font-size="14" font-weight="700" fill="#23221f" text-anchor="middle">Buzón: recibe y detiene</text>
+<text x="825.0" y="933.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">relees, corriges o borras;</text>
+<text x="825.0" y="951.0" font-size="14" font-weight="400" fill="#4a4944" text-anchor="middle">todo se une en una entrega</text>
+<g>
+<circle cx="715.0" cy="894.0" r="14" fill="#b5862a"/>
+<rect x="708.0" y="889.0416666666666" width="14.0" height="9.916666666666668" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M708.0 890.0416666666666l7.0 5.4541666666666675 7.0 -5.4541666666666675" fill="none" stroke="#fff" stroke-width="1.8"/>
+</g>
+<path d="M790 964V1062H958" fill="none" stroke="#b5862a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#m-st)"/>
+<rect x="828" y="1048" width="104" height="28" rx="14" fill="#fff" stroke="#b5862a" stroke-width="2"/>
+<g>
+<circle cx="845" cy="1062" r="11" fill="#2c2c2a" stroke="#f6e7b4" stroke-width="1.4666666666666668"/>
+<text x="845" y="1065.9416666666666" font-size="11.9" font-weight="800" fill="#f6e7b4" text-anchor="middle">D</text>
+</g>
+<text x="862" y="1067" font-size="14" font-weight="800" fill="#6b4f00" text-anchor="start">«Revisa»</text>
+<text x="800" y="1040" font-size="11.5" font-weight="700" fill="#2c2c2a" text-anchor="start">todo junto, al director</text>
+<text x="714" y="1097" font-size="12" font-weight="700" fill="#c8453b" text-anchor="start">no va directo al modelo</text>
+<rect x="710.0" y="1152.0" width="230" height="52" rx="10" fill="#fff" stroke="#c8453b" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="825.0" y="1174.0" font-size="14" font-weight="700" fill="#c8453b" text-anchor="middle">Nada llega directo al modelo</text>
+<text x="825.0" y="1192.0" font-size="14" font-weight="400" fill="#c8453b" text-anchor="middle">sin pasar por buzón y director</text>
+<g>
+<path d="M705.26 1138.02v3.5M716.74 1138.02v3.5M705.26 1164.48v3.5M716.74 1164.48v3.5M696.02 1147.26h3.5M696.02 1158.74h3.5M722.48 1147.26h3.5M722.48 1158.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="699.52" y="1141.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="711.0" y="1157.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<path d="M716 814H700V1166H707" fill="none" stroke="#c8453b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#m-rojo)"/>
+<circle cx="700" cy="1092" r="11" fill="#fff" stroke="#c8453b" stroke-width="2.2"/><path d="M695 1087l10 10M705 1087l-10 10" stroke="#c8453b" stroke-width="2.2" stroke-linecap="round"/>
+<rect x="960.0" y="1037.0" width="200" height="50" rx="10" fill="#fff" stroke="#2c2c2a" stroke-width="2"/>
+<text x="1060" y="1058.0" font-size="13" font-weight="700" fill="#23221f" text-anchor="middle">① Recibe todo junto</text>
+<text x="1060" y="1075.0" font-size="13" font-weight="400" fill="#4a4944" text-anchor="middle">y lo ordena contra la meta</text>
+<g>
+<circle cx="961.0" cy="1038.0" r="14" fill="#2c2c2a" stroke="#f6e7b4" stroke-width="1.866666666666667"/>
+<text x="961.0" y="1043.0166666666667" font-size="15.2" font-weight="800" fill="#f6e7b4" text-anchor="middle">D</text>
+</g>
+<rect x="1065.0" y="1153.0" width="210" height="50" rx="10" fill="#fff" stroke="#11867a" stroke-width="2"/>
+<text x="1170" y="1174.0" font-size="13" font-weight="700" fill="#23221f" text-anchor="middle">② Ejecuta lo aprobado</text>
+<text x="1170" y="1191.0" font-size="13" font-weight="400" fill="#4a4944" text-anchor="middle">solo lo que quedó en firme</text>
+<g>
+<path d="M1060.26 1139.02v3.5M1071.74 1139.02v3.5M1060.26 1165.48v3.5M1071.74 1165.48v3.5M1051.02 1148.26h3.5M1051.02 1159.74h3.5M1077.48 1148.26h3.5M1077.48 1159.74h3.5" stroke="#11867a" stroke-width="1.866666666666667" stroke-linecap="round"/><rect x="1054.52" y="1142.52" width="22.959999999999997" height="22.959999999999997" rx="4.666666666666667" fill="#11867a"/>
+<text x="1066.0" y="1158.2" font-size="11.1" font-weight="800" fill="#fff" text-anchor="middle">IA</text>
+</g>
+<rect x="1187.0" y="1037.0" width="196" height="50" rx="10" fill="#fff" stroke="#2c2c2a" stroke-width="3"/>
+<text x="1285" y="1058.0" font-size="13" font-weight="700" fill="#23221f" text-anchor="middle">③ Analiza y decide:</text>
+<text x="1285" y="1075.0" font-size="13" font-weight="400" fill="#4a4944" text-anchor="middle">¿ajustar o avanzar?</text>
+<g>
+<circle cx="1188.0" cy="1038.0" r="14" fill="#2c2c2a" stroke="#f6e7b4" stroke-width="1.866666666666667"/>
+<text x="1188.0" y="1043.0166666666667" font-size="15.2" font-weight="800" fill="#f6e7b4" text-anchor="middle">D</text>
+</g>
+<rect x="1187.0" y="894.5" width="196" height="67" rx="10" fill="#fff" stroke="#b5862a" stroke-width="2"/>
+<text x="1285" y="915.5" font-size="13" font-weight="700" fill="#23221f" text-anchor="middle">④ Te responde en orden</text>
+<text x="1285" y="932.5" font-size="13" font-weight="400" fill="#4a4944" text-anchor="middle">una respuesta por nota</text>
+<text x="1285" y="949.5" font-size="13" font-weight="400" fill="#4a4944" text-anchor="middle">y documentos por partes</text>
+<g>
+<circle cx="1188.0" cy="895.5" r="14" fill="#b5862a"/>
+<rect x="1181.0" y="890.5416666666666" width="14.0" height="9.916666666666668" rx="2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M1181.0 891.5416666666666l7.0 5.4541666666666675 7.0 -5.4541666666666675" fill="none" stroke="#fff" stroke-width="1.8"/>
+</g>
+<rect x="1187.0" y="777.0" width="196" height="50" rx="10" fill="#fff" stroke="#2f5fb3" stroke-width="2"/>
+<text x="1285" y="798.0" font-size="13" font-weight="700" fill="#23221f" text-anchor="middle">⑤ Lees y comentas</text>
+<text x="1285" y="815.0" font-size="13" font-weight="400" fill="#4a4944" text-anchor="middle">lo que haya que ajustar</text>
+<g>
+<circle cx="1188.0" cy="778.0" r="14" fill="#2f5fb3"/><circle cx="1188.0" cy="774.5" r="4.2" fill="#fff"/><path d="M1180.4166666666667 786.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<line x1="1080" y1="1089" x2="1110" y2="1151" stroke="#2c2c2a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-ia)"/>
+<rect x="942.0" y="1107" width="150.0" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="1086" y="1120" font-size="12" font-weight="700" fill="#2c2c2a" text-anchor="end">le dice qué ejecutar</text>
+<line x1="1235" y1="1151" x2="1265" y2="1089" stroke="#11867a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-m)"/>
+<rect x="1256" y="1107" width="67.2" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="1262" y="1120" font-size="12" font-weight="700" fill="#0b5d55" text-anchor="start">devuelve</text>
+<line x1="1285" y1="1035" x2="1285" y2="964" stroke="#2c2c2a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-ia)"/>
+<line x1="1285" y1="892" x2="1285" y2="829" stroke="#b5862a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-st)"/>
+<rect x="1289" y="990.5" width="122.4" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="1295" y="1003.5" font-size="12" font-weight="700" fill="#2c2c2a" text-anchor="start">si falta ajustar</text>
+<rect x="1289" y="851.5" width="101.7" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="1295" y="864.5" font-size="12" font-weight="700" fill="#6b4f00" text-anchor="start">te lo muestra</text>
+<line x1="1185" y1="802" x2="936" y2="802" stroke="#2f5fb3" stroke-width="2.5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<rect x="988.45" y="777" width="143.1" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="1060" y="790" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="middle">↻ bucle de revisión</text>
+<rect x="975" y="908" width="170" height="40" rx="12" fill="#eaf1fb" stroke="#b9d3ef" stroke-width="1.5"/>
+<text x="1060" y="925" font-size="12" font-weight="700" fill="#0c447c" text-anchor="middle">Lo demás, en espera:</text>
+<text x="1060" y="941" font-size="12" font-weight="400" fill="#0c447c" text-anchor="middle">vuelve en su fase</text>
+<path d="M1200 1036L1130 950" stroke="#7ea6d8" stroke-width="2" stroke-dasharray="4 5"/>
+<rect x="1412.0" y="1037.0" width="160" height="50" rx="10" fill="#fff" stroke="#2c2c2a" stroke-width="3"/>
+<text x="1492" y="1058.0" font-size="13" font-weight="700" fill="#23221f" text-anchor="middle">⑥ Una sola misión</text>
+<text x="1492" y="1075.0" font-size="13" font-weight="400" fill="#4a4944" text-anchor="middle">el paso más estratégico</text>
+<g>
+<circle cx="1413.0" cy="1038.0" r="14" fill="#2c2c2a" stroke="#f6e7b4" stroke-width="1.866666666666667"/>
+<text x="1413.0" y="1043.0166666666667" font-size="15.2" font-weight="800" fill="#f6e7b4" text-anchor="middle">D</text>
+</g>
+<line x1="1384" y1="1062" x2="1410" y2="1062" stroke="#2c2c2a" stroke-width="3.5" stroke-linecap="round" marker-end="url(#m-ia)"/>
+<rect x="1366.85" y="1093" width="60.300000000000004" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="1397" y="1106" font-size="12" font-weight="700" fill="#2c2c2a" text-anchor="middle">avanzar</text>
+<line x1="1440" y1="1036" x2="1440" y2="832" stroke="#2f5fb3" stroke-width="5" stroke-linecap="round" marker-end="url(#m-h)"/>
+<rect x="1382.25" y="919" width="115.5" height="18" rx="9" fill="#fff" fill-opacity="0.95"/>
+<text x="1440" y="932" font-size="12" font-weight="700" fill="#2f5fb3" text-anchor="middle">a ti: tu misión</text>
+<rect x="1400" y="773" width="174" height="58" rx="13" fill="none" stroke="#9cc0f0" stroke-width="4" opacity="0.6"/>
+<rect x="1404" y="777" width="166" height="50" rx="10" fill="#2f5fb3" stroke="#1d4690" stroke-width="2"/>
+<text x="1487" y="798" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">Cumples tu misión</text>
+<text x="1487" y="815" font-size="13" font-weight="400" fill="#fff" text-anchor="middle">y cruzas la puerta</text>
+<g>
+<circle cx="1405" cy="778" r="14" fill="#2f5fb3"/><circle cx="1405" cy="774.5" r="4.2" fill="#fff"/><path d="M1397.4166666666667 786.75q7.583333333333334 -11.083333333333334 15.166666666666668 0z" fill="#fff"/>
+</g>
+<rect x="1420" y="746" width="150" height="20" rx="10" fill="#3b7d2a"/>
+<text x="1495" y="760" font-size="11" font-weight="800" fill="#fff" text-anchor="middle">sale del bucle → avanza</text>
+<line x1="1540" y1="829" x2="1540" y2="904" stroke="#3b7d2a" stroke-width="3.5" stroke-linecap="round" marker-end="url(#m-verde)"/>
+<line x1="1505" y1="910" x2="1505" y2="1002.0" stroke="#2c2c2a" stroke-width="3"/><path d="M1505 910h52.9l-13.799999999999999 16.099999999999998 13.799999999999999 16.099999999999998h-52.9z" fill="#3b7d2a"/>
+<text x="1514" y="992" font-size="15" font-weight="800" fill="#3b7d2a" text-anchor="start">la meta</text>
+<text x="905" y="1257" font-size="15" font-weight="700" fill="#6b4f00" text-anchor="middle">El director orquesta a los dos: al modelo le dice qué ejecutar, y a ti, tu única misión. Un guardrail para ambos.</text>
+<g stroke="#cfcabd" stroke-width="1.2" stroke-dasharray="3 6"><path d="M470 184V1272"/><path d="M700 184V1272"/><path d="M950 184V1272"/><path d="M1390 184V1272"/></g>
+<rect x="240" y="1288" width="1340" height="50" rx="14" fill="#f6e7b4" stroke="#ecdcae" stroke-width="1.5"/>
+<text x="910" y="1320" font-size="21" font-weight="800" fill="#6b4f00" text-anchor="middle">STL no reemplaza tu Scrum, tu SDD ni tu agente: les suma el Studio y el director.</text>
+<text x="800" y="1368" font-size="13" font-weight="400" fill="#73716a" text-anchor="middle">Comparación conceptual del trabajo con modelos de IA. STL se usa junto con tu agente; sus ahorros se medirán con pruebas reales antes de prometer cifras.</text>
+</svg>

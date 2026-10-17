@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Qué es STL · La metodología STL (Sacred Time Line)</title>
+  <meta name="description" content="STL es una forma de dirigir proyectos con IA. Entre tú y tu agente de código suma dos actores nuevos: el Studio, que detiene y ordena lo que dices, y el director, que orquesta al modelo y a ti con una sola misión a la vez." />
+  <meta property="og:title" content="Qué es STL · La metodología STL (Sacred Time Line)" />
+  <meta property="og:description" content="STL es una forma de dirigir proyectos con IA. Entre tú y tu agente de código suma dos actores nuevos: el Studio, que detiene y ordena lo que dices, y el director, que orquesta al modelo y a ti con una sola misión a la vez." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://incocrea.github.io/stl-metodologia/" />
+  <meta property="og:image" content="https://incocrea.github.io/stl-metodologia/grafico-comparativo.png" />
+  <link rel="canonical" href="https://incocrea.github.io/stl-metodologia/" />
+  <link rel="stylesheet" href="estilos.css" />
+  <link rel="stylesheet" href="director.css" />
+  <style>
+    .publica { max-width: var(--contenido); margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 48px; }
+    .pie-publico { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--borde); font-size: 13.5px; color: var(--tenue); max-width: var(--lectura); }
+  </style>
+</head>
+<body>
+  <main class="publica">
+<article class="pagina-stl">
+    <header class="portada-stl">
+      <span class="sobretitulo">La metodología STL · Sacred Time Line</span>
+      <h1>Una sola línea de tiempo para tu proyecto</h1>
+      <p class="entrada">STL es una forma de dirigir proyectos con IA. Entre tú y tu agente de código pone <b>dos actores nuevos</b>: el <b>Studio</b>, que recibe y detiene todo lo que dices hasta que lo das por bueno, y el <b>director</b>, que lo ordena y <b>orquesta a los dos</b>: al modelo le dice qué ejecutar, y a ti te devuelve los resultados en orden con <b>una sola misión: el paso más estratégico</b>.</p>
+      <p><b>Sacred Time Line</b>, tres palabras: una <b>línea</b> de <b>tiempo</b> <b>sagrada</b>. El proyecto avanza por una sola línea principal, y tus ideas, comentarios, ajustes y preguntas la bifurcan todo el tiempo: así se crea. El director las recoge, decide qué hace con cada una (la integra, la aplaza o la descarta, con su razón) y devuelve la línea a su cauce con una sola respuesta: <b>qué sigue</b>. Lo decidido queda en la historia y nunca se vuelve atrás.</p>
+      <p class="como">Metodología creada por Harold Vélez. El STL Studio es su aplicación base: la interfaz del director con sus secciones, gratuita para desarrolladores.</p>
+    </header>
+
+    <section class="seccion-stl">
+      <h2>La idea, en un gráfico</h2>
+      <figure class="grafico-stl">
+    <div class="lienzo-stl"><svg viewBox="0 0 800 300" role="img" aria-labelledby="titulo-grafico-stl">
+      <title id="titulo-grafico-stl">La metodología STL: las ideas, los comentarios, los ajustes y las preguntas se bifurcan de la línea del proyecto; el director los recoge y devuelve un solo paso siguiente, fase por fase, hasta la meta. Lo decidido queda sellado atrás.</title>
+      <defs><marker id="punta-stl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="g-punta"/></marker></defs>
+      <line class="g-pasado" x1="24" y1="160" x2="362" y2="160"/>
+      <path class="g-rama" d="M170 154 C 200 40, 320 50, 366 146"/><path class="g-rama" d="M220 154 C 250 108, 330 108, 368 152"/><path class="g-rama" d="M220 166 C 250 212, 330 212, 368 168"/><path class="g-rama" d="M170 166 C 200 280, 320 270, 366 174"/>
+      <circle class="g-brote" cx="170" cy="160" r="5"/><circle class="g-brote" cx="220" cy="160" r="5"/>
+      <circle class="g-sello" cx="50" cy="160" r="9"/><path class="g-check" d="M46 160l3 3 5-6"/><circle class="g-sello" cx="90" cy="160" r="9"/><path class="g-check" d="M86 160l3 3 5-6"/><circle class="g-sello" cx="130" cy="160" r="9"/><path class="g-check" d="M126 160l3 3 5-6"/>
+      <circle class="g-director" cx="392" cy="160" r="28"/>
+      <text class="g-letra" x="392" y="168" text-anchor="middle">D</text>
+      <line class="g-sigue" x1="422" y1="160" x2="468" y2="160" marker-end="url(#punta-stl)"/>
+      <circle class="g-mision" cx="490" cy="160" r="15"/>
+      <text class="g-num" x="490" y="165" text-anchor="middle">1</text>
+      <line class="g-futuro" x1="506" y1="160" x2="738" y2="160"/>
+      <line class="g-puerta" x1="580" y1="142" x2="580" y2="178"/><line class="g-puerta" x1="660" y1="142" x2="660" y2="178"/>
+      <line class="g-asta" x1="742" y1="112" x2="742" y2="178"/><path class="g-bandera" d="M742 112h40l-10 12 10 12h-40z"/>
+      <text class="g-etiqueta g-dorada" x="262" y="56" text-anchor="middle">idea</text><text class="g-etiqueta g-dorada" x="280" y="106" text-anchor="middle">comentario</text><text class="g-etiqueta g-dorada" x="280" y="224" text-anchor="middle">pregunta</text><text class="g-etiqueta g-dorada" x="262" y="280" text-anchor="middle">ajuste</text>
+      <text class="g-etiqueta g-titulo" x="408" y="112" text-anchor="middle">El director</text>
+      <text class="g-etiqueta" x="428" y="216" text-anchor="middle">las recoge y decide</text>
+      <text class="g-etiqueta g-azul g-fuerte" x="478" y="128" text-anchor="middle">Qué sigue</text>
+      <text class="g-etiqueta g-azul" x="490" y="248" text-anchor="middle">tu misión</text>
+      <line class="g-guia" x1="490" y1="178" x2="490" y2="228"/>
+      <text class="g-etiqueta" x="660" y="214" text-anchor="middle">fase por fase,</text>
+      <text class="g-etiqueta" x="660" y="233" text-anchor="middle">con sus puertas</text>
+      <text class="g-etiqueta g-fuerte" x="762" y="100" text-anchor="middle">La meta</text>
+      <text class="g-etiqueta" x="90" y="196" text-anchor="middle">lo decidido, sellado:</text>
+      <text class="g-etiqueta g-suave" x="90" y="214" text-anchor="middle">nunca se vuelve atrás</text>
+    </svg></div>
+    <figcaption>Creas con libertad: cada idea, comentario, ajuste o pregunta bifurca la línea. El director los recoge, decide qué hace con cada uno y te devuelve una sola cosa: <b>qué sigue</b>. Paso a paso, la línea llega a la meta sin volver nunca atrás.</figcaption>
+  </figure>
+    </section>
+
+    <section class="seccion-stl">
+      <h2>El problema: con IA, el proyecto se bifurca</h2>
+      <p>Con IA, cada idea se vuelve código en minutos. Y el modelo te sigue a donde vayas, sin cuestionar: si hoy pides una función nueva, mañana un refactor y pasado otra idea, las hace todas. El proyecto arranca con la meta clara y se bifurca más rápido que nunca. Dirigirlo así, conversación tras conversación, trae seis problemas:</p>
+      <div class="tarjetas-stl"><div class="tarjeta-stl"><span class="num-stl">1</span><b>Lo que envías se ejecuta al instante</b><p>Si a los tres segundos ves que dijiste algo que no era, el modelo ya arrancó.</p></div><div class="tarjeta-stl"><span class="num-stl">2</span><b>Corregir contamina</b><p>La corrección es otro mensaje; el equivocado sigue ahí y a veces se mezclan las dos versiones.</p></div><div class="tarjeta-stl"><span class="num-stl">3</span><b>Cada mensaje cuesta la conversación entera</b><p>Diez ideas en diez mensajes son diez turnos, cada uno más largo.</p></div><div class="tarjeta-stl"><span class="num-stl">4</span><b>No se puede comentar un párrafo</b><p>Para hablar de «la tercera parte del documento» hay que explicar cuál es.</p></div><div class="tarjeta-stl"><span class="num-stl">5</span><b>Lo revisado vuelve</b><p>El modelo reescribe lo que ya aprobaste y tienes que releerlo para ver qué cambió.</p></div><div class="tarjeta-stl"><span class="num-stl">6</span><b>Nadie decide qué sigue</b><p>El chat responde lo que preguntas: si trabajas en todo a la vez, te acompaña en la dispersión.</p></div></div>
+    </section>
+
+    <section class="seccion-stl">
+      <h2>Dos actores nuevos: el Studio y el director</h2>
+      <p>Tu agente (Claude Code, Codex, Cursor…) sigue ejecutando: STL no lo reemplaza. Le suma lo que hoy los agentes no traen como parte de su flujo: alguien que <b>detenga y ordene</b> lo que les pides, y alguien que <b>decida qué sigue</b> con la meta a la vista.</p>
+      <div class="actores-stl"><div class="actor-stl"><b>Tú</b><small>el humano</small><p>Tienes la idea y la última palabra. Comentas, decides, fijas la meta y cumples tu misión.</p></div><div class="actor-stl nuevo"><span class="nuevo-stl">NUEVO</span><b>El Studio</b><small>la interfaz entre tú y la IA</small><p>Recibe y detiene en un buzón todo lo que dices: lo relees, lo corriges o lo borras, y muchas ideas se unen en una sola entrega. Cuando vuelve la respuesta, te la muestra en orden: documentos por partes para comentar, una respuesta por nota y tu misión.</p></div><div class="actor-stl nuevo"><span class="nuevo-stl">NUEVO</span><b>El director</b><small>la IA que orquesta al modelo y a ti</small><p>Recibe todo junto y lo ordena contra la meta. Al modelo le dice qué ejecutar y analiza lo que devuelve. A ti te da una sola misión: el paso más estratégico. Lo demás espera su fase.</p></div><div class="actor-stl"><b>El modelo</b><small>tu agente: Claude Code, Codex…</small><p>Ejecuta, como siempre. Pero solo recibe lo que quedó en firme, ya ordenado y enfocado en la meta.</p></div></div>
+      <p><b>Orquestar al modelo ya no basta.</b> Los agentes de hoy orquestan muy bien al modelo: planes, subagentes, herramientas. Pero nadie orquesta al desarrollador, y con IA es él quien abre un frente nuevo en cada prompt. El director de STL orquesta a los dos: al modelo le dice qué ejecutar, y a ti, cuál es tu única misión de ahora.</p>
+      <p>Así hay <b>un guardrail para los dos</b>: tú piensas antes de enviar, y el modelo no sigue cada impulso. Si hay equipo, cada persona tiene su misión y su vista, y todos le hablan al mismo director.</p>
+      <p class="como">El director y el modelo son dos papeles, el que dirige y el que ejecuta, y pueden ser la misma sesión de tu agente: por ejemplo, Claude Code abierto en la carpeta del Studio.</p>
+    </section>
+
+    <section class="seccion-stl">
+      <h2>Cómo funciona, paso a paso</h2>
+      <h3>El arranque: del proyecto a la meta</h3>
+      <ol class="pasos-stl"><li><b>Entregas el proyecto</b><small class="quien-stl">Tú → Studio</small><span>Su repositorio, si existe; si es nuevo, qué es, qué quieres lograr y cuándo estará completo.</span></li><li><b>El director lo diagnostica</b><small class="quien-stl">Director → Studio</small><span>Lee el código, la historia y la documentación, y dice con franqueza qué está listo, qué falta y qué riesgos ve, en un documento por partes.</span></li><li><b>Fijas tu meta</b><small class="quien-stl">Tú → Studio</small><span>Comentas el diagnóstico y eliges entre las dos o tres metas que propone, o escribes la tuya, con cómo se sabe que llegaste.</span></li><li><b>El director traza la ruta</b><small class="quien-stl">Director → Studio</small><span>Fases con su puerta y sus criterios, lo que hace cada frente en cada una y tu primera misión.</span></li></ol>
+      <h3>El ciclo: quién le entrega a quién</h3>
+      <ol class="pasos-stl ciclo"><li><b>Tu misión</b><small class="quien-stl">Studio → tú</small><span>Un paso concreto: qué hacer, por qué importa y qué entregar. Cada paso trae su botón al lugar exacto.</span></li><li><b>Comentas y entregas</b><small class="quien-stl">Tú → Studio</small><span>Cada parte de un documento, cada paso, cada propuesta, escrito o en voz y sin pulir. Al terminar, «Lo hice».</span></li><li><b>El buzón detiene</b><small class="quien-stl">Studio</small><span>Nada llega todavía a la IA. Relees, corriges o borras, y muchas ideas se unen en una sola entrega.</span></li><li><b>«Revisa»</b><small class="quien-stl">Studio → director</small><span>Cuando lo pides, el director recibe todo junto y lo ordena contra la meta.</span></li><li><b>El director habla con el modelo</b><small class="quien-stl">Director ⇄ modelo</small><span>Le envía solo lo aprobado y enfocado; recibe el resultado y lo analiza.</span></li><li><b>Te lo devuelve en orden</b><small class="quien-stl">Director → Studio → tú</small><span>Una respuesta por cada nota y documentos nuevos por partes, con su orden de lectura. Si falta ajustar algo, lo comentas y vuelve al buzón: es el bucle de revisión.</span></li><li class="avance"><b>Una sola misión: el proyecto avanza</b><small class="quien-stl">Director → tú</small><span>Cuando lo revisado está en firme, el director sale del bucle y te da una sola misión: el paso más estratégico, con su porqué y su entrega. La cumples, cruzas la puerta de la fase y la línea avanza hacia la meta.</span></li></ol>
+    </section>
+
+    <section class="seccion-stl">
+      <h2>Frente a Scrum y SDD</h2>
+      <p>Scrum y el desarrollo guiado por especificaciones (SDD) siguen sirviendo para organizar el trabajo, pero ninguno se pensó para un modelo que ejecuta al instante lo que le pidas. En el gráfico, cada método va en carriles: dónde trabaja el humano, dónde la IA y quién le entrega a quién.</p>
+      <figure class="grafico-stl">
+        <div class="lienzo-stl"><img src="grafico-comparativo.svg" alt="Scrum, SDD y STL trabajando con IA, en carriles. En Scrum la IA sigue el último prompt y entre sprints nadie decide qué sigue; en SDD lo nuevo choca con la spec y obliga a volver al principio; en STL nada llega directo al modelo: el Studio detiene y ordena lo que dices, y el director orquesta a los dos, al modelo le dice qué ejecutar y a ti te da una sola misión, el paso más estratégico, con la que se sale del bucle de revisión y el proyecto avanza hasta la meta." loading="lazy"></div>
+        <figcaption>En <b>Scrum</b>, la IA sigue el último prompt y entre sprints nadie decide qué sigue. En <b>SDD</b>, lo nuevo choca con la spec y obliga a volver al principio. En <b>STL</b>, el Studio detiene y ordena, y el director orquesta a los dos: revisa con el modelo hasta que todo está en firme y entonces te da una sola misión, el paso más estratégico, con la que el proyecto avanza. <a href="grafico-comparativo.svg" target="_blank" rel="noopener noreferrer">Abrir en grande ↗</a></figcaption>
+      </figure>
+    </section>
+
+    <section class="seccion-stl">
+      <h2>Por qué STL</h2>
+      <h3>Las ventajas</h3>
+      <ul class="ventajas-stl">
+        <li><b>Menos vueltas y menos tokens.</b> Muchas ideas llegan en una sola revisión, y lo que borraste antes nunca se procesa.</li>
+        <li><b>Un contexto limpio.</b> Al modelo solo le llega lo que quedó en firme, nunca la versión equivocada.</li>
+        <li><b>Mejor razonamiento.</b> El director ve todas tus observaciones juntas y cómo se relacionan, en vez de una por turno.</li>
+        <li><b>Cero regresión.</b> Lo aprobado no se reescribe en silencio; nadie relee lo superado.</li>
+        <li><b>Te orquesta a ti, no solo al modelo.</b> Cada revisión termina en una sola misión con su porqué: sabes qué hacer ahora, y lo demás espera su fase.</li>
+        <li><b>Foco.</b> El director decide el orden y dice «todavía no» a lo que no sirve al objetivo, con razones.</li>
+        <li><b>Una sola conversación</b> para todos tus proyectos: el Studio lleva los temas, las personas y los documentos.</li>
+      </ul>
+      <h3>Frente a otras herramientas de IA</h3>
+      <p>STL no inventa la planificación ni la memoria del proyecto: los asistentes del editor (GitHub Copilot, Cursor, Windsurf), los agentes de terminal (Claude Code, Codex), <a href="https://github.com/github/spec-kit" target="_blank" rel="noopener noreferrer">Spec Kit</a> y <a href="https://docs.bmad-method.org/" target="_blank" rel="noopener noreferrer">BMad</a> ya lo hacen bien, y STL se usa junto con ellos: el director trabaja con tu agente. Lo que STL agrega son sus dos actores, el Studio y el director, y con ellos la experiencia de quien dirige: comentar donde estás leyendo, corregir antes de enviar, recibir una respuesta por cada observación y salir de cada revisión con un solo paso siguiente.</p>
+      <p class="leyenda-stl"><span class="nivel-stl si">Sí</span> parte central de su flujo <span class="nivel-stl parte">En parte</span> en parte o de otra forma <span class="nivel-stl no">No</span> no es parte de su flujo</p>
+      <div class="tabla-stl"><table>
+        <thead><tr><th scope="col">Lo que necesitas para dirigir un proyecto</th><th scope="col" class="stl"><b>STL</b><small>esta metodología</small></th><th scope="col"><b>Chat directo</b><small>ChatGPT, Claude, Gemini</small></th><th scope="col"><b>Asistentes del editor</b><small>GitHub Copilot, Cursor, Windsurf</small></th><th scope="col"><b>Agentes de terminal</b><small>Claude Code, Codex</small></th><th scope="col"><b>Spec Kit</b><small>especificación → plan → tareas</small></th><th scope="col"><b>BMad</b><small>agentes por rol</small></th></tr></thead>
+        <tbody><tr><th scope="row">Planear antes de ejecutar</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td></tr><tr><th scope="row">Memoria del proyecto entre sesiones</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl si">Sí</span></td></tr><tr><th scope="row">Fases con puertas y criterios para cruzarlas</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td></tr><tr><th scope="row">Comentar el párrafo o el paso exacto</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td></tr><tr><th scope="row">Un buzón que se corrige antes de enviar</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td></tr><tr><th scope="row">Revisión agrupada que responde cada observación</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td></tr><tr><th scope="row">Una sola misión siguiente, con su porqué</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td></tr><tr><th scope="row">Lo aprobado no se reescribe en silencio</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td><td><span class="nivel-stl parte">En parte</span></td></tr><tr><th scope="row">Varios proyectos dirigidos desde un solo lugar</th><td class="stl"><span class="nivel-stl si">Sí</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td><td><span class="nivel-stl no">No</span></td></tr></tbody>
+      </table></div>
+      <p class="como">Según la documentación pública de cada herramienta, en octubre de 2026. «No» quiere decir que no es parte de su flujo, no que sea imposible con extensiones o disciplina. Es una comparación de diseño, no un experimento: el ahorro de tiempo y de tokens se medirá con pruebas reales antes de prometer cifras.</p>
+    </section>
+
+    <section class="seccion-stl">
+      <h2>Los ocho principios</h2>
+      <div class="tarjetas-stl principios"><div class="tarjeta-stl"><span class="num-stl">1</span><b>Un solo director, una sola memoria</b><p>El estado del proyecto vive en archivos, no en un chat: la sesión se reinicia sin perder nada.</p></div><div class="tarjeta-stl"><span class="num-stl">2</span><b>Piensa, corrige y luego envía</b><p>Lo que se borra antes de la revisión nunca llega al modelo.</p></div><div class="tarjeta-stl"><span class="num-stl">3</span><b>Se comenta el párrafo exacto</b><p>El comentario sabe de qué habla: de esta parte, de este paso, de esta decisión.</p></div><div class="tarjeta-stl"><span class="num-stl">4</span><b>Siempre hacia adelante</b><p>Lo revisado queda sellado. Si algo cambia, llega un documento nuevo, corto, con solo lo que cambió.</p></div><div class="tarjeta-stl"><span class="num-stl">5</span><b>Una ruta con puertas</b><p>Cada fase tiene criterios al 100 % para cruzar. Lo que está en espera, espera, salvo una excepción con su razón.</p></div><div class="tarjeta-stl"><span class="num-stl">6</span><b>Una misión a la vez</b><p>El siguiente paso siempre está a la vista y es uno solo, llevado de la mano.</p></div><div class="tarjeta-stl"><span class="num-stl">7</span><b>El director propone, tú decides</b><p>Cada recomendación trae sus razones y sus riesgos; la última palabra es humana.</p></div><div class="tarjeta-stl"><span class="num-stl">8</span><b>Avanzar se siente bien</b><p>Experiencia, niveles y un boletín que califica el foco, no la cantidad.</p></div></div>
+    </section>
+
+    <section class="seccion-stl">
+      <h2>Guardrails también para ti</h2>
+      <p>Les ponemos límites a los agentes, pero quien más los necesita es quien los dirige. Con la IA parece que se puede avanzar en mil cosas a la vez, y esa sensación cansa. STL está diseñado contra lo que se sabe que desgasta: <b>un proyecto a la vez, una misión a la vez, y las ideas en un buzón que se revisa en lote</b>, en vez de diez conversaciones abiertas esperando respuesta.</p>
+      <ul class="evidencia-stl">
+        <li><b>Las interrupciones suben el estrés.</b> En un experimento, quien era interrumpido terminaba igual de rápido, pero con más estrés, frustración y esfuerzo (<a href="https://ics.uci.edu/~gmark/chi08-mark.pdf" target="_blank" rel="noopener noreferrer">Mark, Gudith y Klocke, 2008</a>). Hoy, una persona que trabaja en computador recibe una interrupción cada dos minutos, y casi la mitad siente su trabajo caótico y fragmentado (<a href="https://www.microsoft.com/en-us/worklab/work-trend-index/breaking-down-infinite-workday" target="_blank" rel="noopener noreferrer">Microsoft, 2025</a>).</li>
+        <li><b>Supervisar mucha IA a la vez cansa.</b> Quienes supervisan mucha IA reportan más esfuerzo mental, fatiga y sobrecarga de información, y lo que rinden deja de subir pasadas unas pocas herramientas a la vez (<a href="https://hbr.org/2026/03/when-using-ai-leads-to-brain-fry" target="_blank" rel="noopener noreferrer">Bedard y otros, Harvard Business Review, 2026</a>).</li>
+        <li><b>La sensación de avanzar engaña.</b> Desarrolladores con experiencia tardaron un 19 % más con IA, y aun así creían haber ido un 20 % más rápido (<a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/" target="_blank" rel="noopener noreferrer">METR, 2025</a>).</li>
+        <li><b>Agrupar ayuda.</b> Recibir las notificaciones en tres lotes al día dio menos estrés, más concentración y más sensación de control; no recibir ninguna salió peor (<a href="https://doi.org/10.1016/j.chb.2019.07.016" target="_blank" rel="noopener noreferrer">Fitz y otros, 2019</a>). Es la idea del buzón: anotar en el momento y revisar en lote.</li>
+      </ul>
+      <p class="como">Lo honesto: el problema no es la IA en sí. El estudio más grande no encontró relación entre adoptar IA y el agotamiento (<a href="https://cloud.google.com/blog/products/ai-machine-learning/announcing-the-2025-dora-report" target="_blank" rel="noopener noreferrer">DORA, 2025</a>); lo que pesa es la forma de usarla. Y STL todavía no ha medido su efecto sobre la fatiga: lo hará con un cuestionario breve antes y después de usarlo, junto con las demás métricas.</p>
+    </section>
+
+    <section class="seccion-stl">
+      <h2>Cuándo no usarlo</h2>
+      <p>STL se paga con el tiempo: montar el Studio, entregarle el proyecto y revisar en lote cuesta un poco al principio, y ese costo se reparte entre todas las tareas del proyecto. Por eso lo que importa no es si la tarea es corta, sino si pertenece a un proyecto:</p>
+      <ul class="cuando-stl">
+        <li class="si"><b>Sí: muchas tareas cortas dentro de un proyecto largo.</b> Es justo donde el chat se dispersa: cada tarea llega con su contexto, su orden y su historia, y ninguna se pierde ni se repite.</li>
+        <li class="no"><b>No: una tarea corta, de una sola vez, que no pertenece a ningún proyecto</b> (un script suelto, una consulta puntual). El arranque no se alcanza a pagar: ahí el chat o tu agente, directo, es más rápido.</li>
+        <li class="no"><b>Tampoco una urgencia que pide ir y venir al instante</b>, aunque sea de un proyecto (un error en producción, depurar en vivo): aquí no hay respuesta inmediata, porque lo que dices espera a la revisión. Resuélvela directo con tu agente y después cuéntaselo al director, para que quede en la historia y en la ruta.</li>
+      </ul>
+      <p>La regla práctica: <b>STL para dirigir el proyecto; el agente directo para lo inmediato.</b></p>
+    </section>
+
+    <section class="seccion-stl" id="como-se-usa">
+      <h2>Cómo se usa el Studio</h2>
+      <ol class="guia-stl">
+        <li><b>Un proyecto activo a la vez.</b> Arriba de la barra lateral cambias de proyecto o entregas nuevos. Cada uno guarda su buzón, su ruta y su historial; al volver a uno, el director te dice dónde quedaron.</li>
+        <li><b>Hoy, primero.</b> Al entrar ves lo que dijo el director, lo último que se completó, lo que sigue y tu misión de ahora, completa. Las demás esperan en cola.</li>
+        <li><b>Sigue los pasos.</b> Cada paso que te manda a alguna parte tiene un botón azul que te lleva ahí (→ dentro del Studio, ↗ en una pestaña nueva). La cara del director, abajo a la derecha, te lleva a tu siguiente pendiente.</li>
+        <li><b>Opina donde estés.</b> Cada <span class="al-director-chip">✉ Comentar al director</span> y el atajo de comentario, junto a la cara del director, dejan lo que digas, escrito o grabado, en el Buzón; tus audios se transcriben en cuanto terminas de grabar. Ahí lo corriges o lo borras hasta que el director lo lea.</li>
+        <li><b>Entrega.</b> Al terminar una misión, oprime <b>«Lo hice»</b>. Lo entregado queda sellado y no vuelve.</li>
+        <li><b>Pide la revisión.</b> En Claude Code, en la sesión del director (abierta en la carpeta del Studio), escribe <b>«revisa estudio»</b>. El director lee todo junto, responde cada nota, aprueba o pide rehacer cada entrega y deja la misión siguiente.</li>
+        <li><b>Pregunta sin cortar tu trabajo.</b> Con el atajo de preguntas, junto a la cara del director, las anotas cuando se te ocurren, escritas o grabadas. El director las responde juntas, como un informe, y las lees en «Preguntas», aparte de los comentarios.</li>
+      </ol>
+    </section>
+
+    <section class="seccion-stl">
+      <details class="glosario-stl"><summary><h2>Glosario</h2></summary>
+        <dl><div><dt>Titular</dt><dd>quien dirige el proyecto y decide.</dd></div><div><dt>Studio</dt><dd>la interfaz entre tú y la IA: detiene lo que dices hasta que lo das por bueno y te muestra lo que vuelve, en orden.</dd></div><div><dt>Director asistente</dt><dd>la IA que dirige con el plan y la meta, a través del Studio: orquesta al modelo y te orquesta a ti, con una sola misión a la vez.</dd></div><div><dt>Modelo</dt><dd>tu agente de IA (Claude Code, Codex…): ejecuta lo que el director le envía.</dd></div><div><dt>Objetivo firmado</dt><dd>qué se logra y cómo se sabe que se logró.</dd></div><div><dt>Fase y puerta</dt><dd>un tramo de la ruta y el paso al siguiente, con sus criterios al 100 %.</dd></div><div><dt>Frente</dt><dd>un área de trabajo del proyecto; en cada fase está en foco, de apoyo o en espera.</dd></div><div><dt>Misión</dt><dd>un paso concreto con su porqué y su entrega. Una a la vez.</dd></div><div><dt>Buzón</dt><dd>donde esperan tus comentarios hasta la revisión.</dd></div><div><dt>Revisión</dt><dd>el momento en que el director recibe lo que quedó en firme y responde todo junto.</dd></div><div><dt>Sello</dt><dd>la marca de lo ya revisado, que no vuelve.</dd></div><div><dt>Validación</dt><dd>gente de afuera usando lo hecho, o una prueba técnica, como evidencia.</dd></div></dl>
+      </details>
+      <p class="como"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg> La versión larga, para leer y comentar parte por parte, está en Documentos › Del Studio › «El Estudio con director asistente».</p>
+    </section>
+  </article>
+    <footer class="pie-publico">
+      <p>Versión pública de la página «Qué es STL» del STL Studio, publicada para que ingenieros y modelos de IA revisen si lo que dice es cierto y si la metodología cumple lo que promete. Versión del 2026-10-17.</p>
+      <p>El gráfico comparativo, en grande: <a href="grafico-comparativo.svg">SVG</a> · <a href="grafico-comparativo.png">PNG</a>.</p>
+    </footer>
+  </main>
+</body>
+</html>
