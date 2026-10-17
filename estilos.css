@@ -3,12 +3,7 @@
 :root {
   /* el papel y la tinta */
   --fondo: #f6f4ef;
-  /* la barra lateral, en verdes suaves */
-  --lateral-fondo: #e7efe5;
-  --lateral-borde: #cddbcc;
-  --lateral-verde: #2f7a49;
-  --lateral-verde-texto: #1f5233;
-  --lateral-suave: #5a7a60;
+  --lateral-fondo: #efece4;
   --panel: #ffffff;
   --panel-suave: #fbfaf7;
   --borde: #e2ded4;
@@ -115,10 +110,10 @@ button.insignia { border: 0; min-height: 30px; padding: 4px 10px; font-size: 13p
 .app { display: grid; grid-template-columns: var(--lateral) minmax(0, 1fr); min-height: 100vh; }
 .lateral {
   position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
-  padding: 16px 12px 14px; overflow-x: hidden; background: var(--lateral-fondo); border-right: 1px solid var(--lateral-borde);
+  padding: 16px 12px 14px; overflow-x: hidden; background: var(--lateral-fondo); border-right: 1px solid var(--borde);
 }
 .marca { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
-.logo { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--lateral-verde-texto); color: #e3f3d6; font-weight: 800; font-size: 12px; letter-spacing: 0.06em; }
+.logo { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--tinta); color: #f6e7b4; font-weight: 800; font-size: 12px; letter-spacing: 0.06em; }
 .nombre-marca { display: grid; grid-template-columns: minmax(0, 1fr); line-height: 1.25; }
 .nombre-marca b { font-size: 15px; }
 .nombre-marca small { font-size: 12.5px; color: var(--suave); }
@@ -157,19 +152,19 @@ button.insignia { border: 0; min-height: 30px; padding: 4px 10px; font-size: 13p
 /* las secciones */
 .navegacion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .grupo-nav { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
-.titulo-grupo { margin: 0 0 4px; padding: 0 10px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--lateral-suave); }
+.titulo-grupo { margin: 0 0 4px; padding: 0 10px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--tenue); }
 .item-nav {
   width: 100%; justify-content: flex-start; gap: 10px; min-height: 36px; padding: 6px 10px; text-align: left;
   border: 0; border-radius: 8px; background: transparent; font-size: 14.5px; color: var(--texto);
 }
 .item-nav > span:not(.cifra) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.item-nav .icono { color: var(--lateral-suave); }
-.item-nav:hover { background: rgba(47, 122, 73, 0.09); border: 0; }
-.item-nav.sel { background: #fff; box-shadow: var(--sombra), inset 3px 0 0 var(--lateral-verde); font-weight: 650; color: var(--lateral-verde-texto); }
-.item-nav.sel .icono { color: var(--lateral-verde); }
-.cifra { flex: none; display: inline-grid; place-items: center; min-width: 22px; height: 21px; padding: 0 7px; border-radius: 999px; background: #d4e3d4; color: var(--lateral-verde-texto); font-size: 12px; font-weight: 700; font-style: normal; }
+.item-nav .icono { color: var(--suave); }
+.item-nav:hover { background: rgba(40, 36, 28, 0.06); border: 0; }
+.item-nav.sel { background: #fff; box-shadow: var(--sombra); font-weight: 650; color: var(--acento-texto); }
+.item-nav.sel .icono { color: var(--acento); }
+.cifra { flex: none; display: inline-grid; place-items: center; min-width: 22px; height: 21px; padding: 0 7px; border-radius: 999px; background: #e1ddd2; color: var(--suave); font-size: 12px; font-weight: 700; font-style: normal; }
 .cifra.accion { background: var(--acento); color: #fff; }
-.pie-lateral { margin-top: auto; position: sticky; bottom: -14px; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-inline: -12px; padding: 12px 12px 14px; background: var(--lateral-fondo); border-top: 1px solid var(--lateral-borde); }
+.pie-lateral { margin-top: auto; position: sticky; bottom: -14px; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-inline: -12px; padding: 12px 12px 14px; background: var(--lateral-fondo); border-top: 1px solid var(--borde); }
 .identidad { display: flex; flex-wrap: wrap; gap: 6px; }
 .identidad.con-vista #quien:not(.sin) { display: none; }
 .fila-pie { display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap; }

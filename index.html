@@ -267,7 +267,7 @@
             <li><b>Plan:</b> Pro, Max, Team o Enterprise; el gratuito no incluye Claude Code.</li>
             <li><b>Sesión:</b> ejecuta <code>claude</code> en la carpeta del Studio, o abre la pestaña Code de la app de escritorio, e inicia con tu cuenta. Si tienes <code>ANTHROPIC_API_KEY</code> en el entorno, se cobra como API: quítala y revisa con <code>/status</code>.</li>
             <li><b>Reglas:</b> lee el <code>CLAUDE.md</code> del Studio, donde están las del director.</li>
-            <li><b>Revisión automática:</b> deja corriendo <code>/loop 5m /vigila</code> y el botón «Pedir revisión» basta. El ciclo vive mientras la sesión esté abierta (hasta 7 días).</li>
+            <li><b>Revisión al instante:</b> inicia sesión una vez en su CLI (<code>claude auth login</code>) y el botón «Pedir revisión» basta: el Studio llama al director en ese momento, sin pantalla. Mientras no pidas nada, no se gasta nada.</li>
           </ul>
           <p class="como"><a href="https://support.claude.com/en/articles/11145838-using-claude-code-with-your-pro-or-max-plan" target="_blank" rel="noopener noreferrer">Claude Code con tu plan ↗</a></p>
         </article>
@@ -287,10 +287,23 @@
         <li>Baja STL Studio y abre su carpeta con tu agente.</li>
         <li>Pídele <b>«inicializa STL Studio»</b>: revisa tu equipo, te dice qué falta y te pide permiso antes de instalar cada cosa.</li>
         <li><code>npm run estudio</code> abre el Studio. Entrega tu proyecto: eliges su carpeta y listo. Su memoria queda en su propio repositorio.</li>
-        <li>Con Claude Code, deja corriendo <code>/loop 5m /vigila</code>. Desde ahí, todo pasa en el Studio.</li>
+        <li>Con Claude Code, inicia sesión una vez en su CLI (<code>claude auth login</code>): desde ahí, «Pedir revisión» llama al director al instante, y todo pasa en el Studio.</li>
       </ol>
       <p><b>¿Por qué la suscripción y no la API?</b> Por API se paga cada token, sin techo. Anthropic calcula que, así, Claude Code cuesta en promedio unos 13 USD por desarrollador y día activo, entre 150 y 250 USD al mes (<a href="https://code.claude.com/docs/en/costs" target="_blank" rel="noopener noreferrer">Anthropic</a>). La suscripción es una cuota fija con límites de uso, desde 20 USD al mes. Para dirigir un proyecto todos los días, suele salir mucho más barata.</p>
       <p class="como">Siempre con tu propio agente oficial y tu propia cuenta: el Studio nunca toca tus credenciales ni ejecuta el modelo por ti.</p>
+    </section>
+
+    <section class="seccion-stl" id="la-revision">
+      <h2>La revisión: al instante, y sin gastar mientras no haya nada</h2>
+      <p>El director no está corriendo todo el tiempo. Trabaja cuando se lo pides, con el botón <b>«Pedir revisión»</b>, y solo entonces se usa un modelo.</p>
+      <ol class="guia-stl">
+        <li><b>Pides la revisión.</b> El Studio deja una marca en tu computador.</li>
+        <li><b>El Studio la ve y llama al director.</b> Mirar la marca es leer un archivo cada pocos segundos, sin ningún modelo. Al verla, el Studio abre tu agente sin pantalla (Claude Code, con <code>claude -p</code>), con el contexto limpio.</li>
+        <li><b>El director revisa.</b> Lee todo lo pendiente junto, responde cada nota, aprueba o pide rehacer cada entrega y deja tu misión siguiente. Al cerrar, el Studio te lo muestra.</li>
+        <li><b>Mientras revisa, lees.</b> Te puedes mover por todo el Studio y leer. Lo único que espera es agregar algo nuevo (comentarios, audios, preguntas, entregas, decisiones), para que el director no lo lea a medias.</li>
+      </ol>
+      <p><b>Por qué no gasta:</b> si nadie pide nada, ningún modelo corre. Y cada revisión cuesta solo lo suyo, porque empieza sin arrastrar conversaciones viejas. La forma anterior, una sesión abierta que miraba cada cinco minutos (<code>/loop 5m /vigila</code>), releía la conversación entera en cada vuelta aunque no hubiera nada: con una sesión larga, cientos de miles de tokens por vuelta. Sigue sirviendo de respaldo, y con Codex.</p>
+      <p><b>Con permisos acotados:</b> el director que llama el Studio solo puede leer, correr sus herramientas y escribir en la memoria del proyecto. No toca el código ni sube nada. Lo que tú apruebes sobre el código lo hace la sesión del director, con tu agente abierto.</p>
     </section>
 
     <section class="seccion-stl" id="como-se-usa">
@@ -301,7 +314,7 @@
         <li><b>Sigue los pasos.</b> Cada paso que te manda a alguna parte tiene un botón azul que te lleva ahí (→ dentro del Studio, ↗ en una pestaña nueva). La cara del director, abajo a la derecha, te lleva a tu siguiente pendiente.</li>
         <li><b>Opina donde estés.</b> Cada <span class="al-director-chip">✉ Comentar al director</span> y el atajo de comentario, junto a la cara del director, dejan lo que digas, escrito o grabado, en el Buzón; tus audios se transcriben en cuanto terminas de grabar. Ahí lo corriges o lo borras hasta que el director lo lea.</li>
         <li><b>Entrega.</b> Al terminar una misión, oprime <b>«Lo hice»</b>. Lo entregado queda sellado y no vuelve.</li>
-        <li><b>Pide la revisión.</b> Con el botón <b>«Pedir revisión»</b> (arriba, o junto a la cara del director). La sesión del director, abierta en la carpeta del Studio con <code>/loop 5m /vigila</code>, la toma sola; también puedes escribirle «revisa estudio». El director lee todo junto, responde cada nota, aprueba o pide rehacer cada entrega y deja la misión siguiente.</li>
+        <li><b>Pide la revisión.</b> Con el botón <b>«Pedir revisión»</b> (arriba, o junto a la cara del director), el Studio llama al director en ese momento. Si no puede (sin Claude Code, o sin su sesión iniciada), te lo dice, y la toma la sesión del director con <code>/loop 5m /vigila</code>, o cuando le escribes «revisa estudio». El director lee todo junto, responde cada nota, aprueba o pide rehacer cada entrega y deja la misión siguiente. Mientras revisa, te mueves y lees; lo nuevo espera a que termine.</li>
         <li><b>Pregunta sin cortar tu trabajo.</b> Con el atajo de preguntas, junto a la cara del director, las anotas cuando se te ocurren, escritas o grabadas. El director las responde juntas, como un informe, y las lees en «Preguntas», aparte de los comentarios.</li>
       </ol>
     </section>
