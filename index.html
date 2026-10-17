@@ -34,7 +34,7 @@
     <section class="seccion-stl">
       <h2>La idea, en un gráfico</h2>
       <figure class="grafico-stl">
-    <div class="lienzo-stl"><svg viewBox="0 0 800 300" role="img" aria-labelledby="titulo-grafico-stl">
+    <div class="lienzo-stl solo-ancho"><svg viewBox="0 0 800 300" role="img" aria-labelledby="titulo-grafico-stl">
       <title id="titulo-grafico-stl">La metodología STL: las ideas, los comentarios, los ajustes y las preguntas se bifurcan de la línea del proyecto; el director los recoge y devuelve un solo paso siguiente, fase por fase, hasta la meta. Lo decidido queda sellado atrás.</title>
       <defs><marker id="punta-stl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="g-punta"/></marker></defs>
       <line class="g-pasado" x1="24" y1="160" x2="362" y2="160"/>
@@ -60,6 +60,32 @@
       <text class="g-etiqueta g-fuerte" x="762" y="100" text-anchor="middle">La meta</text>
       <text class="g-etiqueta" x="90" y="196" text-anchor="middle">lo decidido, sellado:</text>
       <text class="g-etiqueta g-suave" x="90" y="214" text-anchor="middle">nunca se vuelve atrás</text>
+    </svg></div>
+    <div class="lienzo-stl solo-movil"><svg viewBox="0 0 360 640" role="img" aria-labelledby="titulo-grafico-stl-m">
+      <title id="titulo-grafico-stl-m">La metodología STL, de arriba abajo: lo decidido queda sellado; las ideas, los comentarios, las preguntas y los ajustes se bifurcan; el director los recoge y devuelve un solo paso siguiente, fase por fase, hasta la meta.</title>
+      <defs><marker id="punta-stl-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="g-punta"/></marker></defs>
+      <line class="g-pasado" x1="180" y1="16" x2="180" y2="258"/>
+      <path class="g-rama" d="M174 138 C 40 160, 50 250, 166 268"/><path class="g-rama" d="M176 168 C 118 190, 128 246, 170 272"/><path class="g-rama" d="M184 168 C 242 190, 232 246, 190 272"/><path class="g-rama" d="M186 138 C 320 160, 310 250, 194 268"/>
+      <circle class="g-brote" cx="180" cy="138" r="5"/><circle class="g-brote" cx="180" cy="168" r="5"/>
+      <circle class="g-sello" cx="180" cy="36" r="9"/><path class="g-check" d="M176 36l3 3 5-6"/><circle class="g-sello" cx="180" cy="72" r="9"/><path class="g-check" d="M176 72l3 3 5-6"/><circle class="g-sello" cx="180" cy="108" r="9"/><path class="g-check" d="M176 108l3 3 5-6"/>
+      <text class="g-etiqueta" x="198" y="66">lo decidido, sellado:</text>
+      <text class="g-etiqueta g-suave" x="198" y="84">nunca se vuelve atrás</text>
+      <text class="g-etiqueta g-dorada g-halo" x="30" y="214" text-anchor="start">idea</text><text class="g-etiqueta g-dorada g-halo" x="116" y="236" text-anchor="end">comentario</text><text class="g-etiqueta g-dorada g-halo" x="244" y="236" text-anchor="start">pregunta</text><text class="g-etiqueta g-dorada g-halo" x="330" y="214" text-anchor="end">ajuste</text>
+      <circle class="g-director" cx="180" cy="298" r="28"/>
+      <text class="g-letra" x="180" y="306" text-anchor="middle">D</text>
+      <text class="g-etiqueta g-titulo" x="218" y="292">El director</text>
+      <text class="g-etiqueta" x="218" y="310">las recoge y decide</text>
+      <line class="g-sigue" x1="180" y1="328" x2="180" y2="368" marker-end="url(#punta-stl-m)"/>
+      <text class="g-etiqueta g-azul g-fuerte" x="196" y="354">Qué sigue</text>
+      <circle class="g-mision" cx="180" cy="390" r="15"/>
+      <text class="g-num" x="180" y="395" text-anchor="middle">1</text>
+      <text class="g-etiqueta g-azul" x="204" y="395">tu misión</text>
+      <line class="g-futuro" x1="180" y1="406" x2="180" y2="560"/>
+      <line class="g-puerta" x1="160" y1="450" x2="200" y2="450"/><line class="g-puerta" x1="160" y1="510" x2="200" y2="510"/>
+      <text class="g-etiqueta" x="212" y="476">fase por fase,</text>
+      <text class="g-etiqueta" x="212" y="494">con sus puertas</text>
+      <line class="g-asta" x1="180" y1="562" x2="180" y2="626"/><path class="g-bandera" d="M180 562h40l-10 12 10 12h-40z"/>
+      <text class="g-etiqueta g-fuerte" x="232" y="580">La meta</text>
     </svg></div>
     <figcaption>Creas con libertad: cada idea, comentario, ajuste o pregunta bifurca la línea. El director los recoge, decide qué hace con cada uno y te devuelve una sola cosa: <b>qué sigue</b>. Paso a paso, la línea llega a la meta sin volver nunca atrás.</figcaption>
   </figure>
@@ -89,6 +115,52 @@
       <h3>El arranque: del proyecto a la meta</h3>
       <ol class="pasos-stl"><li><b>Entregas el proyecto</b><small class="quien-stl">Tú → Studio</small><span>Su repositorio, si existe; si es nuevo, qué es, qué quieres lograr y cuándo estará completo.</span></li><li><b>El director lo diagnostica</b><small class="quien-stl">Director → Studio</small><span>Lee el código, la historia y la documentación, y dice con franqueza qué está listo, qué falta y qué riesgos ve, en un documento por partes.</span></li><li><b>Fijas tu meta</b><small class="quien-stl">Tú → Studio</small><span>Comentas el diagnóstico y eliges entre las dos o tres metas que propone, o escribes la tuya, con cómo se sabe que llegaste.</span></li><li><b>El director traza la ruta</b><small class="quien-stl">Director → Studio</small><span>Fases con su puerta y sus criterios, lo que hace cada frente en cada una y tu primera misión.</span></li></ol>
       <h3>El ciclo: quién le entrega a quién</h3>
+      <figure class="grafico-stl grafico-ciclo"><div class="lienzo-stl solo-ancho"><svg viewBox="0 0 900 460" role="img" aria-labelledby="titulo-ciclo">
+      <title id="titulo-ciclo">El ciclo de STL: 1, el Studio te da tu misión; 2, comentas y entregas; 3, el buzón lo detiene; 4, «revisa» se lo entrega al director; 5, el director habla con el modelo; 6, te lo devuelve en orden. El bucle se repite hasta que lo revisado queda en firme; entonces el director te da una sola misión y el proyecto avanza.</title>
+      <defs><marker id="punta-ciclo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a9a59b"/></marker>
+        <marker id="punta-salida" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3b7d2a"/></marker></defs>
+      <ellipse cx="430" cy="228" rx="200" ry="150" class="c-pista"/>
+      <path class="c-tramo" d="M477.5 82.3A200 150 0 0 1 574.5 124.3" marker-end="url(#punta-ciclo)"/><path class="c-tramo" d="M622.0 186.0A200 150 0 0 1 622.0 270.0" marker-end="url(#punta-ciclo)"/><path class="c-tramo" d="M574.5 331.7A200 150 0 0 1 477.5 373.7" marker-end="url(#punta-ciclo)"/><path class="c-tramo" d="M382.5 373.7A200 150 0 0 1 285.5 331.7" marker-end="url(#punta-ciclo)"/><path class="c-tramo" d="M238.0 270.0A200 150 0 0 1 238.0 186.0" marker-end="url(#punta-ciclo)"/><path class="c-tramo" d="M285.5 124.3A200 150 0 0 1 382.5 82.3" marker-end="url(#punta-ciclo)"/>
+      <text class="c-centro" x="430" y="220" text-anchor="middle">El bucle de revisión</text>
+      <text class="c-centro-sub" x="430" y="242" text-anchor="middle">se repite hasta que quede en firme</text>
+      <line class="c-salida" x1="542" y1="228" x2="702" y2="228" marker-end="url(#punta-salida)"/>
+      <rect class="c-meta" x="708" y="188" width="186" height="80" rx="14"/>
+      <text class="c-meta-t" x="801" y="216" text-anchor="middle">Una sola misión</text>
+      <text class="c-meta-s" x="801" y="236" text-anchor="middle">el proyecto avanza</text>
+      <text class="c-quien" x="801" y="255" text-anchor="middle">director → tú</text>
+      <circle cx="430.0" cy="78.0" r="22" fill="#b5862a"/><text class="c-num" x="430.0" y="84.0" text-anchor="middle">1</text>
+      <text class="c-titulo" x="430.0" y="32.0" text-anchor="middle">Tu misión</text><text class="c-quien" x="430.0" y="50.0" text-anchor="middle">Studio → tú</text><circle cx="603.2" cy="153.0" r="22" fill="#2f5fb3"/><text class="c-num" x="603.2" y="159.0" text-anchor="middle">2</text>
+      <text class="c-titulo" x="635.2" y="151.0" text-anchor="start">Comentas y entregas</text><text class="c-quien" x="635.2" y="169.0" text-anchor="start">tú → Studio</text><circle cx="603.2" cy="303.0" r="22" fill="#b5862a"/><text class="c-num" x="603.2" y="309.0" text-anchor="middle">3</text>
+      <text class="c-titulo" x="635.2" y="301.0" text-anchor="start">El buzón detiene</text><text class="c-quien" x="635.2" y="319.0" text-anchor="start">nada llega aún a la IA</text><circle cx="430.0" cy="378.0" r="22" fill="#b5862a"/><text class="c-num" x="430.0" y="384.0" text-anchor="middle">4</text>
+      <text class="c-titulo" x="430.0" y="420.0" text-anchor="middle">«Revisa»</text><text class="c-quien" x="430.0" y="438.0" text-anchor="middle">Studio → director</text><circle cx="256.8" cy="303.0" r="22" fill="#2c2c2a"/><text class="c-num" x="256.8" y="309.0" text-anchor="middle">5</text>
+      <text class="c-titulo" x="224.8" y="301.0" text-anchor="end">El director y el modelo</text><text class="c-quien" x="224.8" y="319.0" text-anchor="end">director ⇄ modelo</text><circle cx="256.8" cy="153.0" r="22" fill="#2c2c2a"/><text class="c-num" x="256.8" y="159.0" text-anchor="middle">6</text>
+      <text class="c-titulo" x="224.8" y="151.0" text-anchor="end">Te lo devuelve en orden</text><text class="c-quien" x="224.8" y="169.0" text-anchor="end">director → Studio → tú</text>
+    </svg></div><div class="lienzo-stl solo-movil"><svg viewBox="0 0 360 696" role="img" aria-labelledby="titulo-ciclo-m">
+      <title id="titulo-ciclo-m">El ciclo de STL, de arriba abajo: tu misión, comentas y entregas, el buzón detiene, «revisa», el director y el modelo, y te lo devuelve en orden. Si falta ajustar, el bucle vuelve; cuando queda en firme, una sola misión y el proyecto avanza.</title>
+      <defs><marker id="punta-ciclo-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a9a59b"/></marker>
+        <marker id="punta-salida-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3b7d2a"/></marker></defs>
+      <path class="c-bucle" d="M34 506C16 506 16 138 32 138" marker-end="url(#punta-ciclo-m)"/>
+      <text class="c-quien" x="13" y="322" transform="rotate(-90 13 322)" text-anchor="middle">si falta ajustar, vuelve</text>
+      
+      <circle cx="56" cy="46" r="22" fill="#b5862a"/><text class="c-num" x="56" y="52" text-anchor="middle">1</text>
+      <text class="c-titulo" x="92" y="44">Tu misión</text><text class="c-quien" x="92" y="62">Studio → tú</text><line class="c-tramo-m" x1="56" y1="72" x2="56" y2="110" marker-end="url(#punta-ciclo-m)"/>
+      <circle cx="56" cy="138" r="22" fill="#2f5fb3"/><text class="c-num" x="56" y="144" text-anchor="middle">2</text>
+      <text class="c-titulo" x="92" y="136">Comentas y entregas</text><text class="c-quien" x="92" y="154">tú → Studio</text><line class="c-tramo-m" x1="56" y1="164" x2="56" y2="202" marker-end="url(#punta-ciclo-m)"/>
+      <circle cx="56" cy="230" r="22" fill="#b5862a"/><text class="c-num" x="56" y="236" text-anchor="middle">3</text>
+      <text class="c-titulo" x="92" y="228">El buzón detiene</text><text class="c-quien" x="92" y="246">nada llega aún a la IA</text><line class="c-tramo-m" x1="56" y1="256" x2="56" y2="294" marker-end="url(#punta-ciclo-m)"/>
+      <circle cx="56" cy="322" r="22" fill="#b5862a"/><text class="c-num" x="56" y="328" text-anchor="middle">4</text>
+      <text class="c-titulo" x="92" y="320">«Revisa»</text><text class="c-quien" x="92" y="338">Studio → director</text><line class="c-tramo-m" x1="56" y1="348" x2="56" y2="386" marker-end="url(#punta-ciclo-m)"/>
+      <circle cx="56" cy="414" r="22" fill="#2c2c2a"/><text class="c-num" x="56" y="420" text-anchor="middle">5</text>
+      <text class="c-titulo" x="92" y="412">El director y el modelo</text><text class="c-quien" x="92" y="430">director ⇄ modelo</text><line class="c-tramo-m" x1="56" y1="440" x2="56" y2="478" marker-end="url(#punta-ciclo-m)"/>
+      <circle cx="56" cy="506" r="22" fill="#2c2c2a"/><text class="c-num" x="56" y="512" text-anchor="middle">6</text>
+      <text class="c-titulo" x="92" y="504">Te lo devuelve en orden</text><text class="c-quien" x="92" y="522">director → Studio → tú</text>
+      <line class="c-salida" x1="56" y1="532" x2="56" y2="580" marker-end="url(#punta-salida-m)"/>
+      <rect class="c-meta" x="30" y="586" width="300" height="62" rx="14"/>
+      <text class="c-meta-t" x="180" y="612" text-anchor="middle">Una sola misión: el proyecto avanza</text>
+      <text class="c-quien" x="180" y="632" text-anchor="middle">cuando queda en firme · director → tú</text>
+    </svg></div>
+    <figcaption>El color de cada paso dice quién lo da: <b class="c-tu">tú</b>, <b class="c-studio">el Studio</b>, <b class="c-director">el director</b>. El bucle se repite hasta que lo revisado queda en firme; entonces el director sale del bucle con <b>una sola misión</b>.</figcaption>
+  </figure>
       <ol class="pasos-stl ciclo"><li><b>Tu misión</b><small class="quien-stl">Studio → tú</small><span>Un paso concreto: qué hacer, por qué importa y qué entregar. Cada paso trae su botón al lugar exacto.</span></li><li><b>Comentas y entregas</b><small class="quien-stl">Tú → Studio</small><span>Cada parte de un documento, cada paso, cada propuesta, escrito o en voz y sin pulir. Al terminar, «Lo hice».</span></li><li><b>El buzón detiene</b><small class="quien-stl">Studio</small><span>Nada llega todavía a la IA. Relees, corriges o borras, y muchas ideas se unen en una sola entrega.</span></li><li><b>«Revisa»</b><small class="quien-stl">Studio → director</small><span>Cuando lo pides, el director recibe todo junto y lo ordena contra la meta.</span></li><li><b>El director habla con el modelo</b><small class="quien-stl">Director ⇄ modelo</small><span>Le envía solo lo aprobado y enfocado; recibe el resultado y lo analiza.</span></li><li><b>Te lo devuelve en orden</b><small class="quien-stl">Director → Studio → tú</small><span>Una respuesta por cada nota y documentos nuevos por partes, con su orden de lectura. Si falta ajustar algo, lo comentas y vuelve al buzón: es el bucle de revisión.</span></li><li class="avance"><b>Una sola misión: el proyecto avanza</b><small class="quien-stl">Director → tú</small><span>Cuando lo revisado está en firme, el director sale del bucle y te da una sola misión: el paso más estratégico, con su porqué y su entrega. La cumples, cruzas la puerta de la fase y la línea avanza hacia la meta.</span></li></ol>
     </section>
 
@@ -105,7 +177,7 @@
       <h2>El humano en el ciclo</h2>
       <p>Con IA, la pregunta no es solo qué hace el modelo, sino qué le queda al ingeniero: cuándo decide, con qué información y cuánto control conserva. Cada método lo resuelve distinto, y ninguno es gratis. Scrum le da autonomía inmediata, pero lo deja decidiendo solo, prompt a prompt. SDD le pide decidir bien al inicio, en la spec, y lo aleja de la implementación. STL le pide decidir en cada revisión, con un director que propone y con la última palabra.</p>
       <figure class="grafico-stl">
-        <div class="lienzo-stl"><a class="ampliar-stl" href="grafico-humano.svg" target="_blank" rel="noopener noreferrer" title="Abrir en grande"><img src="grafico-humano.svg" alt="El humano en el ciclo: Scrum, SDD y STL trabajando con IA, con el mismo peso. En Scrum el ingeniero decide cada prompt con el sprint como marco: gana autonomía inmediata y contacto con el código, arriesga decidir solo, la fatiga de supervisar mucha IA y notar tarde el desvío. En SDD decide la spec al inicio y revisa al final: gana decisiones escritas y de alto nivel, arriesga aprobar sin leer a fondo, alejarse del código y reabrir la spec en cada cambio. En STL decide en cada revisión con un director que propone: gana pensar antes de enviar, leer en orden con una respuesta por observación y una sola misión a la vez, arriesga menos inmediatez, delegar de más en el director y tocar menos el código." loading="lazy"></a></div>
+        <div class="lienzo-stl"><a class="ampliar-stl" href="grafico-humano.svg" target="_blank" rel="noopener noreferrer" title="Abrir en grande"><picture><source media="(max-width: 760px)" srcset="grafico-humano-movil.svg"><img src="grafico-humano.svg" alt="El humano en el ciclo: Scrum, SDD y STL trabajando con IA, con el mismo peso. En Scrum el ingeniero decide cada prompt con el sprint como marco: gana autonomía inmediata y contacto con el código, arriesga decidir solo, la fatiga de supervisar mucha IA y notar tarde el desvío. En SDD decide la spec al inicio y revisa al final: gana decisiones escritas y de alto nivel, arriesga aprobar sin leer a fondo, alejarse del código y reabrir la spec en cada cambio. En STL decide en cada revisión con un director que propone: gana pensar antes de enviar, leer en orden con una respuesta por observación y una sola misión a la vez, arriesga menos inmediatez, delegar de más en el director y tocar menos el código." loading="lazy"></picture></a></div>
         <figcaption>Las tres tarjetas tienen el mismo peso: cada método le da algo al ingeniero y le cobra algo. STL no le da más autonomía inmediata que Scrum: le cambia cuándo y con qué decide. <a href="grafico-humano.svg" target="_blank" rel="noopener noreferrer">Abrir en grande ↗</a></figcaption>
       </figure>
       <h3>Lo que STL le devuelve al ingeniero</h3>
@@ -246,5 +318,27 @@
       <p>Los gráficos, en grande: Scrum, SDD y STL trabajando con IA, en carriles (<a href="grafico-comparativo.svg">SVG</a> · <a href="grafico-comparativo.png">PNG</a>); el humano en el ciclo: qué decide el ingeniero en cada método (<a href="grafico-humano.svg">SVG</a> · <a href="grafico-humano.png">PNG</a>).</p>
     </footer>
   </main>
+  <script>(function activarAmpliar() {
+	document.addEventListener("click", (e) => {
+		const a = e.target?.closest?.("a.ampliar-stl");
+		if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
+		e.preventDefault();
+		const dlg = document.createElement("dialog");
+		dlg.className = "ampliado-stl";
+		dlg.innerHTML = "<div class=\"ampliado-barra\"><span class=\"ampliado-ayuda\">Clic en el gráfico para acercarlo</span><a class=\"ampliado-aparte\" target=\"_blank\" rel=\"noopener noreferrer\">Abrir aparte ↗</a><button type=\"button\" class=\"ampliado-cerrar\">✕ Cerrar</button></div><div class=\"ampliado-lienzo\"><img></div>";
+		const grande = dlg.querySelector(".ampliado-lienzo img");
+		grande.src = a.querySelector("img")?.currentSrc || a.href;
+		grande.alt = a.querySelector("img")?.alt ?? "";
+		dlg.querySelector(".ampliado-aparte").href = a.href;
+		grande.addEventListener("click", () => dlg.classList.toggle("cerca"));
+		dlg.querySelector(".ampliado-cerrar").addEventListener("click", () => dlg.close());
+		dlg.addEventListener("click", (ev) => {
+			if (ev.target === dlg || ev.target.classList.contains("ampliado-lienzo")) dlg.close();
+		});
+		dlg.addEventListener("close", () => dlg.remove());
+		document.body.append(dlg);
+		dlg.showModal();
+	});
+})();</script>
 </body>
 </html>
