@@ -6,6 +6,7 @@ Versión pública de la página «Qué es STL» del STL Studio. La publicamos pa
 que dice es cierto y si la metodología cumple lo que promete.
 
 - `index.html`: la página completa. Es estática: se lee entera sin ejecutar JavaScript.
+- `demo/`: el Studio de demostración, con un proyecto de ejemplo y un recorrido guiado. Nada se guarda.
 - `grafico-comparativo.svg` y `grafico-comparativo.png`: Scrum, SDD y STL trabajando con IA, en carriles.
 - `grafico-humano.svg` y `grafico-humano.png`: el humano en el ciclo: qué decide el ingeniero en cada método.
 

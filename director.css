@@ -663,6 +663,17 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 .portada-stl .entrada { font-size: 17.5px; }
 .portada-stl b { color: #fff; }
 .portada-stl .como { color: #cfc9b8; font-size: 14px; margin: 0; }
+/* Con tu agente: Claude Code y Codex, lado a lado */
+.agentes-stl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 10px 0 6px; }
+@media (max-width: 760px) { .agentes-stl { grid-template-columns: minmax(0, 1fr); } }
+.agente-stl { padding: 16px 18px 12px; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); }
+.agente-stl h3 { margin: 0 0 8px !important; font-size: 17px; }
+.agente-stl ul { margin: 0 0 8px; padding-left: 18px; display: grid; gap: 6px; font-size: 14.5px; line-height: 1.55; }
+.agente-stl code { overflow-wrap: anywhere; }
+/* La invitación a probar el Studio de demostración */
+.cta-demo { margin: 4px 0 16px !important; }
+.boton-demo { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 12px; background: #f6e7b4; color: var(--tinta) !important; font-weight: 700; font-size: 15.5px; text-decoration: none; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
+.boton-demo:hover { background: #fff3c9; }
 .seccion-stl { padding: 24px 0 8px; border-bottom: 1px solid var(--borde); }
 .seccion-stl:last-child { border-bottom: 0; }
 .seccion-stl > h2 { font-size: 22px; margin: 0 0 10px; }
@@ -678,6 +689,25 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 .tarjeta-stl p { margin: 4px 0 0; font-size: 14px; color: var(--suave); line-height: 1.5; }
 .num-stl { position: absolute; left: 14px; top: 14px; width: 26px; height: 26px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-size: 13px; font-weight: 700; background: var(--tinta); color: #f6e7b4; }
 .tarjetas-stl.principios .num-stl { background: var(--acento); color: #fff; }
+/* Los ocho principios: el corazón del método, cada uno con su ícono y su color */
+.principios-stl { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; counter-reset: principio; }
+@media (max-width: 1000px) { .principios-stl { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .principios-stl { grid-template-columns: minmax(0, 1fr); } }
+.principio-stl { --c: var(--acento); --f: var(--acento-fondo); counter-increment: principio; position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; align-content: start; padding: 18px 18px 16px; background: var(--panel); border: 1px solid var(--borde); border-top: 4px solid var(--c); border-radius: var(--radio-g); box-shadow: var(--sombra); }
+.principio-stl::after { content: counter(principio); position: absolute; right: 14px; top: 10px; font-size: 28px; font-weight: 800; color: var(--f); line-height: 1; }
+.icono-principio { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--f); color: var(--c); }
+.icono-principio .icono { width: 24px; height: 24px; }
+.principio-stl b { font-size: 15.5px; line-height: 1.35; }
+.principio-stl p { margin: 0; font-size: 14px; color: var(--suave); line-height: 1.5; }
+.principio-stl.c1 { --c: #2f5fb3; --f: #e7effb; }
+.principio-stl.c2 { --c: #a8650b; --f: #faeeda; }
+.principio-stl.c3 { --c: #0f7b6c; --f: #e1f3ef; }
+.principio-stl.c4 { --c: #6b4fb3; --f: #efe9fa; }
+.principio-stl.c5 { --c: #3b7d2a; --f: #eaf4e3; }
+.principio-stl.c6 { --c: #b3362f; --f: #fbeae8; }
+.principio-stl.c7 { --c: #2c2c2a; --f: #ecebe6; }
+.principio-stl.c8 { --c: #b0861a; --f: #fbf3dc; }
+.intro-principios { font-size: 16px; }
 .ventajas-stl, .guia-stl { margin: 0; padding-left: 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 15.5px; max-width: var(--lectura); }
 /* los cuatro actores en fila (la cadena tú → Studio → director → modelo), o de a dos; nunca uno suelto */
 .actores-stl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 4px 0 14px; }
@@ -721,13 +751,15 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 .tabla-stl th:first-child { position: sticky; left: 0; z-index: 1; background: var(--panel); box-shadow: 1px 0 0 var(--borde); }
 .tabla-stl th, .tabla-stl td { padding: 10px 12px; border-bottom: 1px solid var(--borde); text-align: center; }
 .tabla-stl tbody tr:last-child th, .tabla-stl tbody tr:last-child td { border-bottom: 0; }
-.tabla-stl thead th { font-size: 13px; color: var(--suave); font-weight: 700; vertical-align: top; }
-.tabla-stl thead th b { display: block; font-size: 14px; color: var(--texto); }
-.tabla-stl thead th small { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--tenue); line-height: 1.35; }
-.tabla-stl thead th:first-child { text-align: left; }
-.tabla-stl tbody th { text-align: left; font-weight: 500; }
+/* El encabezado, oscuro: se distingue de un vistazo de lo que se evalúa en cada fila */
+.tabla-stl thead th { font-size: 13px; color: #cfc9b8; font-weight: 700; vertical-align: top; background: var(--tinta); border-bottom: 0; }
+.tabla-stl thead th b { display: block; font-size: 14px; color: #fff; }
+.tabla-stl thead th small { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: #cfc9b8; line-height: 1.35; }
+.tabla-stl thead th:first-child { text-align: left; background: var(--tinta); color: #f6e7b4; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+.tabla-stl tbody th { text-align: left; font-weight: 600; background: var(--panel-suave); }
 .tabla-stl .stl { background: var(--acento-fondo); }
-.tabla-stl thead th.stl b, .tabla-stl thead th.stl small { color: var(--acento-texto); }
+.tabla-stl thead th.stl { background: var(--acento); }
+.tabla-stl thead th.stl b, .tabla-stl thead th.stl small { color: #fff; }
 /* Sí / En parte / No: con palabras y color, no con símbolos que hay que descifrar */
 .nivel-stl { display: inline-block; min-width: 4.6em; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
 .nivel-stl.si { background: var(--ok-fondo); color: var(--ok-texto); }
@@ -740,6 +772,9 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 .lienzo-stl { overflow-x: auto; }
 .lienzo-stl svg { display: block; width: 100%; min-width: 620px; height: auto; }
 .lienzo-stl img { display: block; width: 100%; min-width: 880px; height: auto; border-radius: var(--radio); }
+/* Un clic en el gráfico lo abre en grande: es lo primero que hace quien no alcanza a leerlo */
+.ampliar-stl { display: block; cursor: zoom-in; border-radius: var(--radio); }
+.ampliar-stl:hover img, .ampliar-stl:focus-visible img { outline: 2px solid var(--acento-borde); outline-offset: 2px; }
 .grafico-stl figcaption { margin-top: 8px; max-width: var(--lectura); font-size: 14.5px; line-height: 1.6; color: var(--suave); }
 .g-pasado { stroke: var(--tinta); stroke-width: 4; stroke-linecap: round; }
 .g-rama { fill: none; stroke: #d6b65c; stroke-width: 2.5; stroke-linecap: round; }
@@ -766,6 +801,7 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 /* Lo que se sabe del desgaste, con sus fuentes */
 .evidencia-stl { margin: 0 0 12px; padding-left: 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; max-width: var(--lectura); font-size: 15px; }
 .evidencia-stl li::marker { color: var(--acento); }
+.datos-stl { margin: 6px 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; color: var(--suave); }
 /* Cuándo sí y cuándo no */
 .cuando-stl { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; max-width: var(--lectura); }
 .cuando-stl li { position: relative; padding: 10px 14px 10px 44px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel); font-size: 15px; }

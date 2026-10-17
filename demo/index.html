@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>STL Studio · Director asistente</title>
+    <script type="module" crossorigin src="./assets/index-CAwMeov_.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/preload-helper-CRzLMJPS.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-Dgg7cZ8U.css">
+  </head>
+  <body>
+    <div class="app">
+      <!-- La barra lateral: el proyecto activo, sus secciones (las pinta director.ts) y quién usa el Studio -->
+      <aside class="lateral" id="lateral" aria-label="El Studio">
+        <div class="marca">
+          <span class="logo" aria-hidden="true">STL</span>
+          <span class="nombre-marca"><b>STL Studio</b><small>Director asistente</small></span>
+          <button type="button" class="cerrar-menu" id="cerrar-menu" aria-label="Cerrar el menú">✕</button>
+        </div>
+        <div class="selector-proyecto" id="selector-proyecto" hidden>
+          <button type="button" id="proyecto-activo" class="boton-proyecto" aria-haspopup="true" aria-expanded="false" aria-controls="menu-proyectos"></button>
+          <div class="menu-proyectos" id="menu-proyectos" hidden></div>
+        </div>
+        <nav class="navegacion" id="navegacion" aria-label="Las secciones del proyecto"></nav>
+        <div class="pie-lateral">
+          <div class="identidad" id="identidad"><span id="quien" class="insignia quien">…</span></div>
+          <div class="fila-pie">
+            <button type="button" id="sincronizacion" class="insignia sync">↻ …</button>
+            <button type="button" class="enlace-stl" data-vista="stl">Qué es STL</button>
+          </div>
+        </div>
+      </aside>
+      <div class="velo-menu" id="velo-menu" hidden></div>
+      <div class="principal">
+        <header class="barra-movil">
+          <button type="button" id="abrir-menu" aria-controls="lateral" aria-expanded="false">☰ Menú</button>
+          <b id="titulo-movil">STL Studio</b>
+        </header>
+        <header class="cabeza-proyecto" id="mando" aria-live="polite"></header>
+        <main class="tablero" id="vista"></main>
+      </div>
+    </div>
+    <!-- Junto a la cara del director: una pregunta (se acumula en tu lote) o un comentario (va al Buzón), sin salir de lo que haces -->
+    <div class="segundo-plano" id="segundo-plano" role="status" aria-live="polite" hidden></div>
+    <div class="atajos-director" id="atajos-director">
+      <button type="button" class="atajo" data-revision="atajo" data-etiqueta="Pedir revisión" title="Pedir la revisión del director, o ver en qué va" aria-label="Pedir la revisión del director"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg></button>
+      <button type="button" class="atajo" data-preguntas data-etiqueta="Preguntas" title="Preguntas: acumúlalas y envíalas juntas" aria-label="Preguntas para el director"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.6c0 1.7-2.5 2.2-2.5 3.9"/><path d="M12 17.2h.01"/></svg></button>
+      <button type="button" class="atajo" data-escribir data-etiqueta="Comentario" title="Un comentario o una idea para el director" aria-label="Un comentario para el director"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg></button>
+    </div>
+    <div class="aviso-flotante" id="error" role="status" aria-live="polite" hidden></div>
+    <dialog id="dialogo" class="dialogo-director"></dialog>
+    <!-- El Studio, o su demostración (con ?demo, o en la versión pública armada por tools/publicar-stl.ts) -->
+  </body>
+</html>
