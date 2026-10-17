@@ -328,7 +328,7 @@ Please report this to https://github.com/markedjs/marked.`,e){let e=`<p>An error
       </ul>
       <h3>Lo que STL le cobra, y cómo se cuida</h3>
       <ul class="ventajas-stl">
-        <li><b>Menos inmediatez.</b> Lo que dice espera a la revisión. Para una urgencia, el agente directo sigue siendo lo indicado (ver «Cuándo no usarlo»).</li>
+        <li><b>Menos inmediatez, pero no para lo urgente.</b> Lo que dice espera a que pida la revisión, y pedirla es inmediato: el Studio llama al director en ese momento. Una urgencia se deja en el Buzón y se pide la revisión, sin esperar a nadie. Lo único que sigue pidiendo el agente directo es depurar en vivo, con ida y vuelta al instante (ver «Cuándo no usarlo»).</li>
         <li><b>El riesgo de delegar de más.</b> Si acepta las propuestas del director sin leerlas, cambia un modelo que lo sigue sin cuestionar por un director al que él sigue sin cuestionar. Por eso cada documento empieza con «Lo que entendí», cada decisión trae la recomendación con sus razones y sus riesgos, y nada se decide en su nombre.</li>
         <li><b>Menos contacto con el código.</b> Si el director ejecuta el trabajo técnico, el ingeniero toca menos código. Puede tomar él una misión técnica cuando quiera entender a fondo una parte.</li>
       </ul>
@@ -391,9 +391,10 @@ Please report this to https://github.com/markedjs/marked.`,e){let e=`<p>An error
             <li>Y con IA hay una razón más: los modelos no garantizan la misma salida para la misma entrada, ni siquiera con temperatura 0 (<a href="https://platform.claude.com/docs/en/about-claude/glossary" target="_blank" rel="noopener noreferrer">Anthropic lo advierte</a>). Un estudio publicado en ACM TOSEM encontró que, con temperatura 0, entre el 18 % y el 44 % de los problemas de programación dieron código con comportamiento distinto en cinco corridas idénticas (<a href="https://arxiv.org/abs/2308.02828" target="_blank" rel="noopener noreferrer">Ouyang y otros, 2025</a>, con modelos de 2023).</li>
           </ul>
           Así, aun con una spec que no cambia, lo que entrega el agente puede pedir ajustes, y en SDD cada ajuste reabre la spec y regenera el plan. STL se paga justo ahí: cuando el camino cambia, por ideas nuevas, por fallos, por lo que no se previó o por el propio modelo.</li>
-        <li class="no"><b>Tampoco una urgencia que pide ir y venir al instante</b>, aunque sea de un proyecto (un error en producción, depurar en vivo): aquí no hay respuesta inmediata, porque lo que dices espera a la revisión. Resuélvela directo con tu agente y después cuéntaselo al director, para que quede en la historia y en la ruta.</li>
+        <li class="si"><b>Sí, también una urgencia del proyecto.</b> Déjala en el Buzón y oprime <b>«Pedir revisión»</b>: el Studio llama al director en ese momento, sin esperar ningún ciclo. Él la lee con todo el contexto del proyecto, la ordena contra la meta, te responde y la deja en la historia y en la ruta, en minutos. Un matiz: el director que llama el Studio escribe solo en la memoria del proyecto. Si la urgencia es un arreglo del código, lo deja listo y lo ejecuta tu sesión del director (tu agente, abierto en la carpeta del Studio) en cuanto le escribes «revisa estudio».</li>
+        <li class="no"><b>No: depurar en vivo</b>, cuando hay que ir y venir al instante con el código (un error en producción que se sigue paso a paso). Ahí cada respuesta pide la siguiente, y la revisión en lote estorba. Hazlo directo con tu agente y después cuéntaselo al director, para que quede en la historia y en la ruta.</li>
       </ul>
-      <p>La regla práctica: <b>STL para dirigir el proyecto; el agente directo para lo inmediato.</b></p>
+      <p>La regla práctica: <b>STL para dirigir el proyecto, también en lo urgente: pides la revisión y el director la toma al instante. El agente directo, solo para depurar en vivo.</b></p>
     </section>
 
     <section class="seccion-stl" id="con-tu-agente">
