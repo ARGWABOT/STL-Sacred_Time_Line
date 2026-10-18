@@ -35,7 +35,7 @@
 .vacio-m { font-size: 15px; color: var(--suave); margin: 4px 0; padding: 18px 20px; border: 1px dashed var(--borde-fuerte); border-radius: var(--radio-g); background: var(--panel-suave); }
 
 /* Las tarjetas en cuadrícula no se ensanchan por un contenido largo (una ruta, una tabla, un audio) */
-.director-hoy, .mision-c, .columna-persona, .tarjeta-proyecto, .nota-d, .lista-validaciones li, .candidato, .objetivo-firmado, .redactar { grid-template-columns: minmax(0, 1fr); }
+.mision-c, .columna-persona, .tarjeta-proyecto, .nota-d, .lista-validaciones li, .candidato, .objetivo-firmado, .redactar { grid-template-columns: minmax(0, 1fr); }
 
 /* Llevar de la mano: cada paso con su botón; lo que se abre, se resalta */
 .ir-paso {
@@ -56,28 +56,8 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 .al-director-chip { display: inline-block; font-size: 13px; padding: 0 9px; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); white-space: nowrap; }
 
 /* ── Hoy: el director, lo último, lo que sigue y la misión de ahora ── */
-.consejo { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 10px 10px 10px 16px; border-radius: 12px; background: var(--acento-fondo); border: 1px solid var(--acento-borde); color: var(--acento-texto); }
-.consejo > .icono { width: 22px; height: 22px; }
-.consejo p { flex: 1; margin: 0; font-size: 14.5px; }
-.consejo button { flex: none; }
-.consejo .cerrar-consejo { width: 36px; padding: 0; background: transparent; border-color: transparent; color: var(--acento-texto); }
-.director-hoy { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 20px; padding: 20px 22px; border-radius: var(--radio-g); background: var(--sobre); border: 1px solid var(--sobre-borde); box-shadow: var(--sombra); }
 .cabeza-director { display: flex; gap: 14px; align-items: flex-start; }
 .cabeza-director .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
-.mensaje-texto { margin: 4px 0 0; font-size: 16px; line-height: 1.6; max-width: var(--lectura); }
-.hoy-persona { margin: 0; padding: 10px 14px; border-radius: var(--radio); background: #fff; border: 1px solid var(--borde); font-size: 15px; line-height: 1.55; }
-.ultimo-sigue { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.caja-us { padding: 14px 16px; border-radius: var(--radio); background: #fff; border: 1px solid var(--borde); }
-.caja-us h3 { margin: 0 0 8px !important; }
-.caja-us ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.caja-us li { display: flex; gap: 8px; align-items: baseline; font-size: 14.5px; line-height: 1.5; flex-wrap: wrap; }
-.caja-us li > .icono { width: 16px; height: 16px; color: var(--ok); align-self: center; }
-.caja-us li > span { flex: 1; min-width: 12em; }
-.caja-us li small { color: var(--tenue); font-size: 12.5px; }
-.caja-us.sigue { border-color: var(--acento-borde); }
-.caja-us.sigue li { display: block; }
-.caja-us p { margin: 0; }
-.por-revisar { margin: 0; display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--espera); }
 .hoy-columnas { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
 .hoy-columnas .trabajo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
 .hoy-columnas .ficha { position: sticky; top: 16px; }
@@ -623,6 +603,14 @@ body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas],
 .dq-chispas i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--h), 62%, 45%); animation: dq-chispa 0.45s ease-out forwards; }
 .dq-chispas.especial i { left: -6px; top: -9px; width: auto; height: auto; background: none; color: #e0a92a; font-size: 13px; font-style: normal; }
 @keyframes dq-chispa { from { transform: rotate(var(--a)) translateX(4px) scale(1); opacity: 1; } to { transform: rotate(var(--a)) translateX(var(--d)) scale(0.4); opacity: 0; } }
+/* El botón «¿Dónde quedamos?»: cuántas líneas faltan por leer, y late cuando el director dejó algo nuevo */
+[data-donde-quedamos] .cifra { margin-left: 6px; }
+[data-donde-quedamos].hay-novedades { border-color: var(--acento); color: var(--acento-texto); animation: latido 1.8s ease-in-out 4; }
+/* Lo que se explica una vez y después estorba, plegado: el Buzón y la guía de validaciones */
+details.explica-buzon > summary, .guia-plegada > summary { cursor: pointer; font-weight: 650; color: var(--suave); }
+details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto); }
+.guia-plegada { max-width: var(--lectura); margin: -4px 0 12px; font-size: 14.5px; }
+.guia-plegada p { margin: 6px 0 0; }
 .dq-al-dia { margin: 4px 0 0; padding: 8px 12px; border-radius: var(--radio); background: var(--ok-fondo); color: var(--ok-texto); font-weight: 650; }
 .dq-al-dia[hidden] { display: none; }
 .dq-leidas[hidden] { display: none; }
@@ -630,11 +618,14 @@ body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas],
 .dq-leidas .dq-item { color: var(--suave); font-size: 14px; }
 .dq-leidas .dq-texto { text-decoration: line-through; text-decoration-color: rgba(59, 125, 42, 0.5); }
 .botones .primario.dq-llamada { animation: latido 1.6s ease-in-out 3; }
+/* Con todos los pasos marcados, «Lo hice» es lo que sigue: late unas veces */
+.acciones-m .primario.llamada { animation: latido 1.6s ease-in-out 3; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 @media (prefers-reduced-motion: reduce) {
   .dq-texto, .dq-check, .dq-barra i { transition: none; }
   .dq-chispas { display: none; }
   .botones .primario.dq-llamada { animation: none; outline: 3px solid var(--ok); }
+  .acciones-m .primario.llamada { animation: none; outline: 3px solid var(--acento); }
 }
 .mision-a { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; background: var(--acento-fondo); border-radius: var(--radio); padding: 10px 14px; margin-top: 6px; }
 .mision-a b { font-size: 16px; }
@@ -958,7 +949,6 @@ dialog.ampliado-stl.cerca .ampliado-lienzo img { max-width: none; max-height: no
   .dos-columnas { grid-template-columns: minmax(0, 1fr); }
   .pasos-arranque { grid-template-columns: 1fr 1fr; }
   .ruta { grid-template-columns: repeat(var(--fases, 7), 120px); }
-  .ultimo-sigue { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 700px) {
   .tipos-proyecto, .tipos-proyecto.tres { grid-template-columns: minmax(0, 1fr); }
@@ -968,7 +958,6 @@ dialog.ampliado-stl.cerca .ampliado-lienzo img { max-width: none; max-height: no
   .bitacora li { grid-template-columns: 80px minmax(0, 1fr); }
   .bitacora li .q { display: none; }
   .tarjeta-frente .listas { grid-template-columns: minmax(0, 1fr); }
-  .director-hoy { padding: 16px; }
   .mision-c { padding: 14px; }
   .cabeza-proyecto h1 { font-size: 22px; }
 }

@@ -111,6 +111,8 @@ button.insignia { border: 0; min-height: 30px; padding: 4px 10px; font-size: 13p
 .lateral {
   position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
   padding: 16px 12px 14px; overflow-x: hidden; background: var(--lateral-fondo); border-right: 1px solid var(--borde);
+  /* Por encima de la cabecera fija del contenido (z 8), para que el menú de proyectos no quede debajo */
+  z-index: 9;
 }
 .marca { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
 .logo { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--tinta); color: #f6e7b4; font-weight: 800; font-size: 12px; letter-spacing: 0.06em; }
@@ -153,6 +155,22 @@ button.insignia { border: 0; min-height: 30px; padding: 4px 10px; font-size: 13p
 .navegacion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .grupo-nav { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .titulo-grupo { margin: 0 0 4px; padding: 0 10px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--tenue); }
+/* El grupo plegable (Seguimiento): cerrado por defecto; si algo de adentro pide algo, un punto lo marca */
+details.grupo-nav > summary { display: flex; align-items: center; gap: 6px; min-height: 30px; cursor: pointer; list-style: none; border-radius: 6px; }
+details.grupo-nav > summary::-webkit-details-marker { display: none; }
+details.grupo-nav > summary::after { content: ''; width: 6px; height: 6px; margin-left: auto; margin-right: 6px; border: solid currentColor; border-width: 0 1.6px 1.6px 0; transform: rotate(-45deg); transition: transform 0.15s; }
+details.grupo-nav[open] > summary::after { transform: rotate(45deg); }
+details.grupo-nav > summary:hover { color: var(--texto); }
+details.grupo-nav > summary:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.punto-pide { width: 7px; height: 7px; border-radius: 50%; background: var(--acento); }
+/* Cada proyecto del selector, con su engranaje: la configuración (repositorio, contexto, meta y equipo) */
+.fila-proyecto { display: flex; align-items: center; gap: 2px; }
+.fila-proyecto .opcion-proyecto { flex: 1; min-width: 0; }
+.fila-proyecto .texto-p { flex: 1; min-width: 0; overflow: hidden; }
+.fila-proyecto .texto-p > * { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.engrane-p { flex: none; display: grid; place-items: center; width: 36px; height: 36px; min-height: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--suave); }
+.engrane-p:hover { background: var(--fondo); color: var(--texto); border: 0; }
+.engrane-p .icono { width: 18px; height: 18px; }
 .item-nav {
   width: 100%; justify-content: flex-start; gap: 10px; min-height: 36px; padding: 6px 10px; text-align: left;
   border: 0; border-radius: 8px; background: transparent; font-size: 14.5px; color: var(--texto);
