@@ -443,8 +443,11 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 /* Una urgencia se ve, pero sin alarma: la decide el director */
 .urgente-n { display: flex; gap: 6px; align-items: flex-start; margin: 0; padding: 6px 10px; border-radius: var(--radio); background: var(--espera-fondo); color: var(--espera); font-size: 14px; }
 .urgente-n .icono, .urgente-campo .icono { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--espera); }
-.urgente-campo .etiqueta-campo { font-weight: 400; font-size: 13.5px; color: var(--suave); }
-.urgente-campo .icono { display: inline-block; vertical-align: -3px; margin: 0 2px 0 0; }
+/* ¿Es urgente?: la etiqueta en rojo, lo que hace debajo, y el campo se tiñe cuando tiene una razón */
+.urgente-campo .etiqueta-campo { font-weight: 700; font-size: 14px; color: var(--peligro); }
+.urgente-campo .icono { display: inline-block; vertical-align: -3px; margin: 0 4px 0 0; color: var(--peligro); }
+.urgente-campo .ayuda-campo { display: block; margin: 1px 0 4px; font-size: 13px; line-height: 1.45; color: var(--suave); }
+.urgente-campo input:not(:placeholder-shown) { border-color: var(--peligro); background: #fff7f6; }
 .nota-d p { margin: 0; line-height: 1.55; }
 .nota-d .esperando { color: var(--espera); font-size: 13.5px; }
 .respuesta-dir { background: var(--tinta); color: #f6f1e0; border-radius: var(--radio); padding: 10px 12px; line-height: 1.55; }
