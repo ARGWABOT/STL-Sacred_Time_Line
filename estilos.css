@@ -36,7 +36,8 @@
   --radio-g: 14px;
   --sombra: 0 1px 2px rgba(30, 28, 24, 0.06), 0 2px 8px rgba(30, 28, 24, 0.04);
   --sombra-alta: 0 16px 40px rgba(30, 28, 24, 0.2);
-  --lectura: 72ch;
+  /* Los textos explicativos usan todo el ancho que tienen (pedido del titular): el contenido ya tiene su tope (--contenido) */
+  --lectura: none;
   --contenido: 1180px;
   --lateral: 252px;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -205,6 +206,7 @@ details.grupo-nav > summary:focus-visible { outline: 2px solid var(--acento); ou
 .atajo { position: relative; width: 44px; height: 44px; min-height: 0; padding: 0; border-radius: 50%; border: 0; background: var(--tinta); color: #f6e7b4; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
 .atajo:hover, .atajo:focus-visible { background: #45443f; }
 .atajo .icono { width: 20px; height: 20px; }
+.atajo[hidden] { display: none; }
 /* su nombre aparece al lado al pasar el ratón */
 .atajo::before { content: attr(data-etiqueta); position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); padding: 4px 10px; border-radius: 8px; background: var(--tinta); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
 .atajo:hover::before, .atajo:focus-visible::before { opacity: 1; }
@@ -218,10 +220,26 @@ body.sin-proyectos .atajos-director, body.sin-proyectos .selector-proyecto, body
 /* Lo que pasa en segundo plano (transcripciones, la revisión): una pastilla sobre los atajos, siempre a la vista */
 .segundo-plano { position: fixed; right: 24px; bottom: 258px; z-index: 6; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
 .segundo-plano[hidden] { display: none; }
+/* mientras el director revisa hay un atajo más (lo que va haciendo): la pastilla sube */
+body.director-trabajando .segundo-plano { bottom: 310px; }
 .sp-linea { pointer-events: auto; display: inline-flex; align-items: baseline; gap: 0; padding: 5px 12px; border-radius: 999px; background: var(--tinta); color: #f6f2e6; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2); }
 button.sp-linea { width: auto; min-height: 0; border: 0; font-weight: 600; cursor: pointer; }
 .sp-linea.alerta { background: var(--peligro); color: #fff; }
 body.sin-proyectos .segundo-plano { display: none !important; }
+/* Lo que va haciendo el director mientras revisa: un panel junto a sus atajos, que avanza en vivo */
+.progreso-director { position: fixed; right: 90px; bottom: 99px; z-index: 7; width: min(440px, calc(100vw - var(--lateral) - 130px)); max-height: min(60vh, 520px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--borde-fuerte); border-radius: var(--radio-g); box-shadow: var(--sombra-alta); font-size: 14px; }
+.progreso-director[hidden] { display: none; }
+.progreso-director header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--borde); }
+.progreso-director header button { min-height: 0; padding: 4px; }
+.progreso-director header .icono { width: 16px; height: 16px; }
+.progreso-director > p { margin: 0; padding: 12px 14px; line-height: 1.5; }
+.pasos-progreso { list-style: none; margin: 0; padding: 10px 14px 12px; overflow-y: auto; display: grid; gap: 6px; line-height: 1.45; }
+.pasos-progreso li { overflow-wrap: anywhere; }
+.pasos-progreso li.hace { padding-left: 14px; position: relative; font-size: 13px; }
+.pasos-progreso li.hace::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 5px; height: 5px; border-radius: 50%; background: var(--borde-fuerte); }
+.pasos-progreso li.dice { padding: 6px 10px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); }
+.pasos-progreso li.ultimo.hace::before { background: var(--acento); }
+body.sin-proyectos .progreso-director { display: none !important; }
 
 /* ── Los avisos: abajo, sin mover la página ── */
 .aviso-flotante {
@@ -282,7 +300,9 @@ body.sin-servidor .cabeza-proyecto::before { content: '⚠ El servidor del Studi
   body.menu-abierto .atajos-director { display: none; }
   .atajos-director { right: 26px; bottom: 84px; }
   .segundo-plano { right: 18px; bottom: 243px; }
-  body.menu-abierto .segundo-plano { display: none; }
+  body.director-trabajando .segundo-plano { bottom: 291px; }
+  body.menu-abierto .segundo-plano, body.menu-abierto .progreso-director { display: none; }
+  .progreso-director { left: 12px; right: 76px; bottom: 84px; width: auto; max-height: 55vh; }
   .atajo { width: 40px; height: 40px; }
   .aviso-flotante { left: 12px; right: 96px; transform: none; width: auto; max-width: none; bottom: 16px; }
   .dialogo-director form { padding: 20px 18px 0; }
