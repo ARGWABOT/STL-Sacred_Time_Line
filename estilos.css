@@ -48,6 +48,8 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+/* Todo salto a un lugar (un ancla, una parte, «Ir a…») deja libre el alto de la cabecera fija: nada queda tapado */
+html { scroll-padding-top: calc(var(--alto-cabeza, 0px) + 12px); }
 body { min-height: 100vh; }
 h1, h2, h3, h4 { line-height: 1.25; }
 a { color: var(--acento); }

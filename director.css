@@ -116,6 +116,13 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 .mision-c .pasos li > span { margin-right: 6px; }
 .mision-c .pasos li.hecho { background: var(--ok-fondo); border-color: #d6e8c8; }
 .mision-c .pasos li.hecho > span { color: var(--suave); text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, 0.3); }
+/* Al final de un documento que una misión pide leer: «Lo leí» marca ese paso */
+.leido-doc { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 18px 0 4px; padding: 12px 14px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 14px; }
+.leido-doc .icono { width: 16px; height: 16px; vertical-align: -3px; }
+.leido-doc.hecho { background: var(--ok-fondo); color: var(--ok); font-weight: 600; }
+/* Lo ya marcado baja a «Completado», plegado: la tarjeta muestra solo lo que falta */
+.pasos-completados > summary { cursor: pointer; width: fit-content; margin: 2px 0 6px; font-size: 14px; font-weight: 600; color: var(--ok); }
+.pasos-completados > summary .cifra { margin-left: 4px; }
 .casilla-paso { position: absolute; left: 10px; top: 10px; display: inline-flex; cursor: pointer; }
 .casilla-paso input { width: 20px; height: 20px; accent-color: var(--ok); }
 .comentar-paso { min-height: 24px; margin-left: 4px; padding: 0 8px; font-size: 12px; line-height: 20px; border-radius: 999px; background: var(--sobre); border-color: var(--sobre-borde); color: var(--sobre-texto); opacity: 0.6; vertical-align: baseline; }
@@ -423,8 +430,13 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 /* Una urgencia se ve, pero sin alarma: la decide el director */
 .urgente-n { display: flex; gap: 6px; align-items: flex-start; margin: 0; padding: 6px 10px; border-radius: var(--radio); background: var(--espera-fondo); color: var(--espera); font-size: 14px; }
 .urgente-n .icono, .urgente-campo .icono { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--espera); }
-/* ¿Es urgente?: la etiqueta en rojo, lo que hace debajo, y el campo se tiñe cuando tiene una razón */
+/* ¿Es urgente?: plegado, solo el aviso en rojo; al tocarlo, lo que hace y el campo, que se tiñe cuando tiene una razón */
 .urgente-campo .etiqueta-campo { font-weight: 700; font-size: 14px; color: var(--peligro); }
+details.urgente-campo > summary { cursor: pointer; width: fit-content; list-style: none; padding: 2px 0; }
+details.urgente-campo > summary::-webkit-details-marker { display: none; }
+details.urgente-campo > summary::after { content: ' ▸'; font-weight: 400; }
+details.urgente-campo[open] > summary::after { content: ' ▾'; }
+details.urgente-campo > label { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
 .urgente-campo .icono { display: inline-block; vertical-align: -3px; margin: 0 4px 0 0; color: var(--peligro); }
 .urgente-campo .ayuda-campo { display: block; margin: 1px 0 4px; font-size: 13px; line-height: 1.45; color: var(--suave); }
 .urgente-campo input:not(:placeholder-shown) { border-color: var(--peligro); background: #fff7f6; }
