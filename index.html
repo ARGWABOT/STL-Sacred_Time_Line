@@ -8,9 +8,9 @@
   <meta property="og:title" content="Qué es STL · La metodología STL (Sacred Time Line)" />
   <meta property="og:description" content="STL es una forma de dirigir proyectos con IA. Entre tú y tu agente de código suma dos actores nuevos: el Studio, que detiene y ordena lo que dices, y el director, que orquesta al modelo y a ti con una sola misión a la vez." />
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://incocrea.github.io/stl-metodologia/" />
-  <meta property="og:image" content="https://incocrea.github.io/stl-metodologia/grafico-comparativo.png" />
-  <link rel="canonical" href="https://incocrea.github.io/stl-metodologia/" />
+  <meta property="og:url" content="https://argwabot.github.io/stl-metodologia/" />
+  <meta property="og:image" content="https://argwabot.github.io/stl-metodologia/grafico-comparativo.png" />
+  <link rel="canonical" href="https://argwabot.github.io/stl-metodologia/" />
   <link rel="stylesheet" href="estilos.css" />
   <link rel="stylesheet" href="director.css" />
   <style>
@@ -28,7 +28,7 @@
       <p><b>Sacred Time Line</b>, tres palabras: una <b>línea</b> de <b>tiempo</b> <b>sagrada</b>. El proyecto avanza por una sola línea principal, y tus ideas, comentarios, ajustes y preguntas la bifurcan todo el tiempo: así se crea. El director las recoge, decide qué hace con cada una (la integra, la aplaza o la descarta, con su razón) y devuelve la línea a su cauce con una sola respuesta: <b>qué sigue</b>. Lo decidido queda en la historia y nunca se vuelve atrás.</p>
       <p><b>STL no es otra metodología de gestión de proyectos</b>: se usa junto con la que ya tengas, Scrum, SDD u otra. Es una metodología para trabajar con modelos de IA: ordena qué le pides al modelo, qué le llega y qué sigue.</p>
       <p class="cta-demo"><a class="boton-demo" href="demo/" target="_blank" rel="noopener noreferrer">▶ Pruébalo sin instalar nada: el Studio de demostración, con recorrido guiado</a></p>
-      <p class="como">Metodología creada por Harold Vélez. El STL Studio es su aplicación base: la interfaz del director con sus secciones, gratuita para desarrolladores.</p>
+      <p class="como">Metodología creada por ARGWABOT (A Regular Guy With A Bunch Of Tokens). El STL Studio es su aplicación base: la interfaz del director con sus secciones, gratuita para desarrolladores.</p>
     </header>
 
     <section class="seccion-stl">
@@ -177,7 +177,7 @@
       <h2>El humano en el ciclo</h2>
       <p>Con IA, la pregunta no es solo qué hace el modelo, sino qué le queda al ingeniero: cuándo decide, con qué información y cuánto control conserva. Cada método lo resuelve distinto, y ninguno es gratis. Scrum le da autonomía inmediata, pero lo deja decidiendo solo, prompt a prompt. SDD le pide decidir bien al inicio, en la spec, y lo aleja de la implementación. STL le pide decidir en cada revisión, con un director que propone y con la última palabra.</p>
       <figure class="grafico-stl">
-        <div class="lienzo-stl"><a class="ampliar-stl" href="grafico-humano.svg" target="_blank" rel="noopener noreferrer" title="Abrir en grande"><picture><source media="(max-width: 760px)" srcset="grafico-humano-movil.svg"><img src="grafico-humano.svg" alt="El humano en el ciclo: Scrum, SDD y STL trabajando con IA, con el mismo peso. En Scrum el ingeniero decide cada prompt con el sprint como marco: gana autonomía inmediata y contacto con el código, arriesga decidir solo, la fatiga de supervisar mucha IA y notar tarde el desvío. En SDD decide la spec al inicio y revisa al final: gana decisiones escritas y de alto nivel, arriesga aprobar sin leer a fondo, alejarse del código y reabrir la spec en cada cambio. En STL decide en cada revisión con un director que propone: gana pensar antes de enviar, leer en orden con una respuesta por observación y una sola misión a la vez, arriesga menos inmediatez, delegar de más en el director y tocar menos el código." loading="lazy"></picture></a></div>
+        <div class="lienzo-stl"><a class="ampliar-stl" href="grafico-humano.svg" target="_blank" rel="noopener noreferrer" title="Abrir en grande"><picture><source media="(max-width: 760px)" srcset="grafico-humano-movil.svg"><img src="grafico-humano.svg" alt="El humano en el ciclo: Scrum, SDD y STL trabajando con IA, con el mismo peso. En Scrum el ingeniero decide cada prompt con el sprint como marco: gana autonomía inmediata y contacto con el código, arriesga decidir solo, la fatiga de supervisar mucha IA y notar tarde el desvío. En SDD decide la spec al inicio y revisa al final: gana decisiones escritas y de alto nivel, arriesga aprobar sin leer a fondo, alejarse del código y reabrir la spec en cada cambio. En STL decide en cada revisión con un director que propone: gana pensar antes de enviar, leer en orden con una respuesta por observación y una sola misión a la vez, arriesga esperar unos minutos cada revisión, delegar de más en el director y tocar menos el código." loading="lazy"></picture></a></div>
         <figcaption>Las tres tarjetas tienen el mismo peso: cada método le da algo al ingeniero y le cobra algo. STL no le da más autonomía inmediata que Scrum: le cambia cuándo y con qué decide. <a href="grafico-humano.svg" target="_blank" rel="noopener noreferrer">Abrir en grande ↗</a></figcaption>
       </figure>
       <h3>Lo que STL le devuelve al ingeniero</h3>
@@ -189,7 +189,7 @@
       </ul>
       <h3>Lo que STL le cobra, y cómo se cuida</h3>
       <ul class="ventajas-stl">
-        <li><b>Menos inmediatez, pero no para lo urgente.</b> Lo que dice espera a que pida la revisión, y pedirla es inmediato: el Studio llama al director en ese momento. Una urgencia se deja en el Buzón y se pide la revisión, sin esperar a nadie. Lo único que sigue pidiendo el agente directo es depurar en vivo, con ida y vuelta al instante (ver «Cuándo no usarlo»).</li>
+        <li><b>La respuesta tarda minutos, no segundos.</b> Lo urgente no espera ningún ciclo: se deja en el Buzón, se pide la revisión y el Studio llama al director en ese momento. Pero el director lee el contexto completo del proyecto antes de responder, así que lo único que sigue pidiendo el agente directo es depurar en vivo, con ida y vuelta al instante (ver «Cuándo usarlo y cuándo no»).</li>
         <li><b>El riesgo de delegar de más.</b> Si acepta las propuestas del director sin leerlas, cambia un modelo que lo sigue sin cuestionar por un director al que él sigue sin cuestionar. Por eso cada documento empieza con «Lo que entendí», cada decisión trae la recomendación con sus razones y sus riesgos, y nada se decide en su nombre.</li>
         <li><b>Menos contacto con el código.</b> Si el director ejecuta el trabajo técnico, el ingeniero toca menos código. Puede tomar él una misión técnica cuando quiera entender a fondo una parte.</li>
       </ul>
@@ -240,20 +240,24 @@
     </section>
 
     <section class="seccion-stl">
-      <h2>Cuándo no usarlo</h2>
-      <p>STL se paga con el tiempo: montar el Studio, entregarle el proyecto y revisar en lote cuesta un poco al principio, y ese costo se reparte entre todas las tareas del proyecto. Por eso lo que importa no es si la tarea es corta, sino si pertenece a un proyecto:</p>
+      <h2>Cuándo usarlo y cuándo no</h2>
+      <p>STL se paga con el tiempo: montar el Studio, entregarle el proyecto y revisar en lote cuesta un poco al principio, y ese costo se reparte entre todas las tareas del proyecto. Por eso lo que importa no es si la tarea es corta, sino si pertenece a un proyecto.</p>
+      <h3>Úsalo</h3>
       <ul class="cuando-stl">
-        <li class="si"><b>Sí: muchas tareas cortas dentro de un proyecto largo.</b> Es justo donde el chat se dispersa: cada tarea llega con su contexto, su orden y su historia, y ninguna se pierde ni se repite.</li>
-        <li class="no"><b>No: una tarea corta, de una sola vez, que no pertenece a ningún proyecto</b> (un script suelto, una consulta puntual). El arranque no se alcanza a pagar: ahí el chat o tu agente, directo, es más rápido.</li>
-        <li class="no"><b>Tampoco cuando todo está especificado y nada va a cambiar.</b> Si la spec está completa y estable, SDD (o tu agente con un plan) llega más directo: la IA ejecuta el plan de una. Pero eso es la excepción, no la regla:
+        <li class="si"><b>Para muchas tareas cortas dentro de un proyecto largo.</b> Es justo donde el chat se dispersa: cada tarea llega con su contexto, su orden y su historia, y ninguna se pierde ni se repite.</li>
+        <li class="si"><b>También para una urgencia del proyecto.</b> Déjala en el Buzón marcada <b>urgente</b>, con por qué no puede esperar: el Studio pide la revisión y llama al director en ese momento, sin esperar ningún ciclo. Él la atiende primero, con todo el contexto del proyecto, y la ordena contra la meta: si de verdad va antes, la arregla (con sus pruebas y un commit local) o la vuelve tu misión siguiente; si algo debe ir antes, te dice qué y por qué. Te responde en minutos. Lo que pida subir o desplegar lo deja listo para ti.</li>
+      </ul>
+      <h3>Mejor sin STL</h3>
+      <ul class="cuando-stl">
+        <li class="no"><b>Una tarea corta, de una sola vez, que no pertenece a ningún proyecto</b> (un script suelto, una consulta puntual). El arranque no se alcanza a pagar: ahí el chat o tu agente, directo, es más rápido.</li>
+        <li class="no"><b>Depurar en vivo</b>, cuando hay que ir y venir al instante con el código (un error en producción que se sigue paso a paso). Ahí cada respuesta pide la siguiente, y la revisión en lote estorba. Hazlo directo con tu agente y después cuéntaselo al director, para que quede en la historia y en la ruta.</li>
+        <li class="no"><b>Cuando todo está especificado y nada va a cambiar.</b> Si la spec está completa y estable, SDD (o tu agente con un plan) llega más directo: la IA ejecuta el plan de una. Pero eso es la excepción, no la regla:
           <ul class="datos-stl">
             <li>Cerca de la mitad de los proyectos (52 %) sufre cambios de alcance no controlados, y eso sin contar los cambios aprobados (<a href="https://www.pmi.org/-/media/pmi/documents/public/pdf/learning/thought-leadership/pulse/pulse-of-the-profession-2018.pdf" target="_blank" rel="noopener noreferrer">PMI, 2018</a>).</li>
             <li>Durante el desarrollo, los requisitos crecen entre menos del 1 % y más del 10 % al mes (<a href="https://www.ifpug.org/wp-content/uploads/2017/04/IYSM.-Thirty-years-of-IFPUG.-Software-Economics-and-Function-Point-Metrics-Capers-Jones.pdf" target="_blank" rel="noopener noreferrer">Capers Jones, 2017</a>).</li>
             <li>Y con IA hay una razón más: los modelos no garantizan la misma salida para la misma entrada, ni siquiera con temperatura 0 (<a href="https://platform.claude.com/docs/en/about-claude/glossary" target="_blank" rel="noopener noreferrer">Anthropic lo advierte</a>). Un estudio publicado en ACM TOSEM encontró que, con temperatura 0, entre el 18 % y el 44 % de los problemas de programación dieron código con comportamiento distinto en cinco corridas idénticas (<a href="https://arxiv.org/abs/2308.02828" target="_blank" rel="noopener noreferrer">Ouyang y otros, 2025</a>, con modelos de 2023).</li>
           </ul>
           Así, aun con una spec que no cambia, lo que entrega el agente puede pedir ajustes, y en SDD cada ajuste reabre la spec y regenera el plan. STL se paga justo ahí: cuando el camino cambia, por ideas nuevas, por fallos, por lo que no se previó o por el propio modelo.</li>
-        <li class="si"><b>Sí, también una urgencia del proyecto.</b> Déjala en el Buzón y oprime <b>«Pedir revisión»</b>: el Studio llama al director en ese momento, sin esperar ningún ciclo. Él la lee con todo el contexto del proyecto, la ordena contra la meta, la arregla si es del código (con sus pruebas y un commit local) y te responde, en minutos. Lo que pida subir o desplegar lo deja listo para ti.</li>
-        <li class="no"><b>No: depurar en vivo</b>, cuando hay que ir y venir al instante con el código (un error en producción que se sigue paso a paso). Ahí cada respuesta pide la siguiente, y la revisión en lote estorba. Hazlo directo con tu agente y después cuéntaselo al director, para que quede en la historia y en la ruta.</li>
       </ul>
       <p>La regla práctica: <b>STL para dirigir el proyecto, también en lo urgente: pides la revisión y el director la toma al instante. El agente directo, solo para depurar en vivo.</b></p>
     </section>
@@ -286,9 +290,9 @@
       <h3>De cero a tu primera misión</h3>
       <ol class="guia-stl">
         <li>Baja STL Studio y abre su carpeta con tu agente.</li>
-        <li>Pídele <b>«inicializa STL Studio»</b>: revisa tu equipo, te dice qué falta y te pide permiso antes de instalar cada cosa.</li>
-        <li><code>npm run estudio</code> abre el Studio. Entrega tu proyecto: eliges su carpeta y listo. Su memoria queda en su propio repositorio.</li>
-        <li>Con Claude Code, inicia sesión una vez en su CLI (<code>claude auth login</code>): desde ahí, «Pedir revisión» llama al director al instante, y todo pasa en el Studio.</li>
+        <li>Pídele <b>«inicializa STL Studio»</b>. Tu agente lleva la instalación de principio a fin: revisa tu computador, te dice qué falta, te pide permiso antes de instalar cada cosa y te guía para iniciar sesión una vez en la CLI de Claude Code (así «Pedir revisión» llama al director al instante). Tú solo dices «sí» y le das tu identidad de git.</li>
+        <li>Al terminar, tu agente enciende el Studio y lo abre en tu navegador, en <code>http://localhost:5180/</code>. Queda encendido aunque cierres el agente, y si su servidor se cae se levanta solo.</li>
+        <li>Desde ahí, todo pasa en el Studio: entrega tu proyecto (eliges su carpeta y listo; su memoria queda en su propio repositorio) y recibe su diagnóstico.</li>
       </ol>
       <p><b>¿Por qué la suscripción y no la API?</b> Por API se paga cada token, sin techo. Anthropic calcula que, así, Claude Code cuesta en promedio unos 13 USD por desarrollador y día activo, entre 150 y 250 USD al mes (<a href="https://code.claude.com/docs/en/costs" target="_blank" rel="noopener noreferrer">Anthropic</a>). La suscripción es una cuota fija con límites de uso, desde 20 USD al mes. Para dirigir un proyecto todos los días, suele salir mucho más barata.</p>
       <p class="como">Siempre con tu propio agente oficial y tu propia cuenta: el Studio nunca toca tus credenciales ni ejecuta el modelo por ti.</p>
@@ -328,7 +332,7 @@
     </section>
   </article>
     <footer class="pie-publico">
-      <p>Versión pública de la página «Qué es STL» del STL Studio, publicada para que ingenieros y modelos de IA revisen si lo que dice es cierto y si la metodología cumple lo que promete. Versión del 2026-10-17.</p>
+      <p>Versión pública de la página «Qué es STL» del STL Studio, publicada para que ingenieros y modelos de IA revisen si lo que dice es cierto y si la metodología cumple lo que promete. Versión del 2026-10-18.</p>
       <p>Los gráficos, en grande: Scrum, SDD y STL trabajando con IA, en carriles (<a href="grafico-comparativo.svg">SVG</a> · <a href="grafico-comparativo.png">PNG</a>); el humano en el ciclo: qué decide el ingeniero en cada método (<a href="grafico-humano.svg">SVG</a> · <a href="grafico-humano.png">PNG</a>).</p>
     </footer>
   </main>

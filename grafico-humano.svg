@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 958" width="1600" height="958" role="img" aria-labelledby="titulo desc">
 <title id="titulo">El humano en el ciclo: qué decide el ingeniero en cada método cuando trabaja con IA</title>
-<desc id="desc">Comparación imparcial de Scrum, SDD y STL trabajando con IA: dónde decide el humano, qué gana y qué arriesga en cada uno, y cuándo le sirve más. Scrum da autonomía inmediata pero deja al ingeniero decidiendo solo prompt a prompt; SDD concentra las decisiones en la spec y lo aleja de la implementación; STL lo hace decidir en cada revisión, con un director que propone, a cambio de menos inmediatez y del riesgo de delegar de más.</desc>
+<desc id="desc">Comparación imparcial de Scrum, SDD y STL trabajando con IA: dónde decide el humano, qué gana y qué arriesga en cada uno, y cuándo le sirve más. Scrum da autonomía inmediata pero deja al ingeniero decidiendo solo prompt a prompt; SDD concentra las decisiones en la spec y lo aleja de la implementación; STL lo hace decidir en cada revisión, con un director que propone, a cambio de esperar unos minutos cada revisión y del riesgo de delegar de más.</desc>
 <style>text { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }</style>
 <rect width="1600" height="958" fill="#f6f4ef"/>
 <text x="800" y="56" font-size="34" font-weight="800" fill="#23221f" text-anchor="middle">El humano en el ciclo: qué decide el ingeniero en cada método</text>
@@ -81,7 +81,7 @@
 <text x="72" y="723" font-size="13.5" font-weight="500" fill="#23221f" text-anchor="start">El desvío se nota tarde, en la Daily o en la Review.</text>
 <rect x="34" y="794" width="478" height="32" rx="16" fill="#f1efe8"/>
 <text x="50" y="815" font-size="13" font-weight="800" fill="#4a4944" text-anchor="start">Le sirve más:</text>
-<text x="142" y="815" font-size="13" font-weight="500" fill="#23221f" text-anchor="start">Equipos disciplinados, trabajo exploratorio y urgencias.</text>
+<text x="142" y="815" font-size="13" font-weight="500" fill="#23221f" text-anchor="start">Equipos disciplinados, exploración y depurar en vivo.</text>
 <rect x="547" y="152" width="506" height="688" rx="16" fill="#fff" stroke="#dcd7cc" stroke-width="1.5"/>
 <path d="M547 168a16 16 0 0 1 16 -16h474a16 16 0 0 1 16 16v48h-506z" fill="#6a4c9c"/>
 <text x="569" y="192" font-size="26" font-weight="800" fill="#fff" text-anchor="start">SDD</text>
@@ -179,7 +179,7 @@
 <text x="1104" y="645" font-size="12.5" font-weight="800" fill="#c77d0a" text-anchor="start">LO QUE ARRIESGA</text>
 <path d="M1110 658l7.5 13h-15z" fill="#c77d0a"/>
 <text x="1110" y="669.5" font-size="10" font-weight="800" fill="#fff" text-anchor="middle">!</text>
-<text x="1126" y="669" font-size="13.5" font-weight="500" fill="#23221f" text-anchor="start">Menos inmediatez: lo que dice espera a la revisión.</text>
+<text x="1126" y="669" font-size="13.5" font-weight="500" fill="#23221f" text-anchor="start">La revisión tarda minutos: depurar en vivo, con el agente.</text>
 <path d="M1110 685l7.5 13h-15z" fill="#c77d0a"/>
 <text x="1110" y="696.5" font-size="10" font-weight="800" fill="#fff" text-anchor="middle">!</text>
 <text x="1126" y="696" font-size="13.5" font-weight="500" fill="#23221f" text-anchor="start">Puede delegar de más en el director y aceptar sus propuestas</text>

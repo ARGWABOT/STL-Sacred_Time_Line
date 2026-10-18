@@ -215,7 +215,7 @@ body.sin-proyectos .segundo-plano { display: none !important; }
 .aviso-flotante button.reintentar { width: auto; padding: 0 12px; font-weight: 700; background: #fff; color: #7a1f1a; border-color: #fff; }
 .aviso-flotante button.reintentar:hover { background: #fbe9e7; }
 /* Sin el servidor del Studio, una franja lo dice arriba, en todas las secciones */
-body.sin-servidor .cabeza-proyecto::before { content: '⚠ El servidor del Studio no responde. Enciéndelo con «npm run estudio»: lo que escribas no se pierde.'; display: block; margin: -4px 0 4px; padding: 8px 12px; border-radius: var(--radio); background: var(--peligro-fondo); color: var(--peligro-texto); font-size: 14px; font-weight: 600; }
+body.sin-servidor .cabeza-proyecto::before { content: '⚠ El servidor del Studio no responde. Enciéndelo con «npm run encender» en la carpeta del Studio: lo que escribas no se pierde.'; display: block; margin: -4px 0 4px; padding: 8px 12px; border-radius: var(--radio); background: var(--peligro-fondo); color: var(--peligro-texto); font-size: 14px; font-weight: 600; }
 .aviso-flotante button { flex: none; min-height: 30px; width: 30px; padding: 0; background: transparent; border-color: rgba(255, 255, 255, 0.35); color: #fff; }
 .aviso-flotante button:hover { background: rgba(255, 255, 255, 0.12); }
 @keyframes aviso-entra { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }

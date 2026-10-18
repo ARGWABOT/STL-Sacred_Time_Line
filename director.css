@@ -440,6 +440,11 @@ dialog.a-un-lado .grabadora button { min-height: 38px; }
 .nota-d header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .nota-d header .como { flex: 1; min-width: 12em; }
 .nota-d header button { min-height: 30px; font-size: 13px; padding: 2px 10px; }
+/* Una urgencia se ve, pero sin alarma: la decide el director */
+.urgente-n { display: flex; gap: 6px; align-items: flex-start; margin: 0; padding: 6px 10px; border-radius: var(--radio); background: var(--espera-fondo); color: var(--espera); font-size: 14px; }
+.urgente-n .icono, .urgente-campo .icono { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--espera); }
+.urgente-campo .etiqueta-campo { font-weight: 400; font-size: 13.5px; color: var(--suave); }
+.urgente-campo .icono { display: inline-block; vertical-align: -3px; margin: 0 2px 0 0; }
 .nota-d p { margin: 0; line-height: 1.55; }
 .nota-d .esperando { color: var(--espera); font-size: 13.5px; }
 .respuesta-dir { background: var(--tinta); color: #f6f1e0; border-radius: var(--radio); padding: 10px 12px; line-height: 1.55; }
@@ -588,6 +593,34 @@ body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas],
 .mision-a { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; background: var(--acento-fondo); border-radius: var(--radio); padding: 10px 14px; margin-top: 6px; }
 .mision-a b { font-size: 16px; }
 .mision-a .etiqueta { font-size: 12px; }
+
+/* ── El juego: logros y la celebración de una misión aprobada (dorado para los logros, verde para lo completado) ── */
+.para-subir { font-size: 12px; color: var(--suave); }
+.logros-p { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.logros-p .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
+.logros-p ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.logro { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 7px; border-radius: 999px; font-size: 12.5px; font-weight: 600; background: #f1efe9; color: var(--suave); border: 1px solid transparent; max-width: 100%; }
+.logro .icono { width: 15px; height: 15px; flex: none; }
+.logro.ganado { background: #fbf3dc; color: #7a5a06; border-color: #ecd690; }
+.logro.ganado .icono { color: var(--oro); fill: #f2c94c; }
+.celebracion { width: min(560px, calc(100vw - 32px)); overflow: hidden; }
+.celebracion form { position: relative; gap: 10px; }
+.celebracion h2 { font-size: 22px; line-height: 1.35; animation: celebra-entra 0.5s ease-out both; }
+.celebracion .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oro); }
+.celebracion .cumplidas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.celebracion .cumplidas li { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radio); background: var(--ok-fondo); font-size: 15px; }
+.celebracion .cumplidas li > span { flex: 1; min-width: 0; }
+.celebracion .cumplidas .icono { width: 18px; height: 18px; color: var(--ok); flex: none; }
+.celebracion .cumplidas b { color: var(--oro); white-space: nowrap; }
+.celebracion .barra-xp > div { animation: celebra-barra 1.2s ease-out both; }
+.sube-nivel, .logros-nuevos { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; color: #7a5a06; }
+.sube-nivel .icono { width: 20px; height: 20px; color: var(--oro); fill: #f2c94c; }
+.confeti { position: absolute; inset: -20px -20px auto; height: 0; pointer-events: none; }
+.confeti i { position: absolute; top: 0; left: calc(var(--i) * 5.6%); width: 8px; height: 12px; border-radius: 2px; background: hsl(calc(var(--i) * 47), 70%, 55%); opacity: 0; animation: confeti 1.8s calc(var(--i) * 45ms) ease-in both; }
+@keyframes confeti { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(260px) rotate(calc(var(--i) * 70deg)); } }
+@keyframes celebra-entra { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes celebra-barra { from { width: 0; } }
+@media (prefers-reduced-motion: reduce) { .confeti { display: none; } .celebracion h2, .celebracion .barra-xp > div { animation: none; } }
 
 /* ── El explorador de carpetas ── */
 .con-explorar { display: flex; gap: 6px; }

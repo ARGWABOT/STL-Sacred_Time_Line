@@ -1,6 +1,6 @@
 # Qué es STL · la metodología STL (Sacred Time Line)
 
-**Léela aquí:** https://incocrea.github.io/stl-metodologia/
+**Léela aquí:** https://argwabot.github.io/stl-metodologia/
 
 Versión pública de la página «Qué es STL» del STL Studio. La publicamos para que ingenieros y modelos de IA revisen si lo
 que dice es cierto y si la metodología cumple lo que promete.
@@ -11,4 +11,4 @@ que dice es cierto y si la metodología cumple lo que promete.
 - `grafico-humano.svg` y `grafico-humano.png`: el humano en el ciclo: qué decide el ingeniero en cada método.
 
 Se genera desde el STL Studio (`node tools/publicar-stl.ts`). No incluye el código del Studio ni datos de ningún proyecto.
-Versión del 2026-10-17.
+Versión del 2026-10-18.
