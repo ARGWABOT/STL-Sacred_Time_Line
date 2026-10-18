@@ -635,6 +635,7 @@ body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas],
 }
 .mision-a { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; background: var(--acento-fondo); border-radius: var(--radio); padding: 10px 14px; margin-top: 6px; }
 .mision-a b { font-size: 16px; }
+.mision-a small { font-size: 13.5px; color: var(--suave); }
 .mision-a .etiqueta { font-size: 12px; }
 
 /* ── El juego: logros y la celebración de una misión aprobada (dorado para los logros, verde para lo completado) ── */
