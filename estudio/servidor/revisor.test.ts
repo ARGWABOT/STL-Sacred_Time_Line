@@ -13,6 +13,8 @@ describe('el director que lanza el Studio', () => {
     expect(permitido('/home/ana/golf/')).toContain('Edit(//home/ana/golf/**)');
     // investiga en internet: buscar y leer páginas
     expect(p).toEqual(expect.arrayContaining(['WebSearch', 'WebFetch']));
+    // reparte la lectura entre ayudantes, que heredan esta misma lista
+    expect(p).toEqual(expect.arrayContaining(['Agent', 'Task']));
     // nada que suba, despliegue o borre, ni escribir fuera del repositorio
     expect(p.some((x) => /push|deploy|rm\b|reset|clean/.test(x))).toBe(false);
     expect(p.filter((x) => /^(Edit|Write)/.test(x)).every((x) => x.includes('//c/repos/golf/'))).toBe(true);

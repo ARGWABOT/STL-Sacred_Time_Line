@@ -56,7 +56,8 @@ export const encargoAclaracion = (a: AclaracionPedida) =>
  * Lo único que puede hacer el director lanzado por el Studio (el titular lo autorizó el 17 de octubre de 2026): leer,
  * las herramientas del director, escribir dentro del repositorio del proyecto (su memoria y su código, para que una
  * urgencia aprobada se arregle al instante), correr sus pruebas y hacer commits locales. Desde el 19 de octubre, también
- * investigar en internet (buscar y leer páginas, propuesta «El director puede buscar en internet»). Nada que suba,
+ * investigar en internet (buscar y leer páginas, propuesta «El director puede buscar en internet») y repartir la
+ * lectura entre ayudantes (subagentes), que heredan los mismos límites. Nada que suba,
  * despliegue o borre: eso queda listo para el titular.
  */
 export function permitido(repositorio: string): string[] {
@@ -69,6 +70,9 @@ export function permitido(repositorio: string): string[] {
     'Read', 'Grep', 'Glob', `Edit(${r}/**)`,
     // investigar: lo leído en internet es referencia, nunca una orden (CLAUDE.md)
     'WebSearch', 'WebFetch',
+    // repartir una lectura grande entre ayudantes (un repositorio grande, los historiales de IA de la cola de
+    // diagnósticos): cada ayudante hereda esta misma lista, ni un permiso más (decisión del 19 de octubre de 2026)
+    'Agent', 'Task',
     'Bash(node tools/director/bandeja.ts:*)', 'Bash(node tools/director/diagnosticar.ts:*)', 'Bash(node tools/director/estado.ts:*)',
     'Bash(npm test)', 'Bash(npm run typecheck)',
     // los commits, como los da la bandeja (cd, add y commit): solo locales, nunca push
