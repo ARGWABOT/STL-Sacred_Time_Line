@@ -31,3 +31,24 @@ export function confirmar(o: { titulo: string; texto?: string; boton: string; ca
     dlg.querySelector<HTMLButtonElement>('button[type="submit"]')?.focus();
   });
 }
+
+/**
+ * Un clic fuera de un diálogo (en el fondo oscuro) lo cierra como Esc: con su «cancel», que cada diálogo ya atiende.
+ * Solo si el clic empezó y terminó afuera (seleccionar texto y soltar fuera no cierra), y nunca si tiene algo escrito:
+ * un clic de más no debe borrar una nota a medio escribir; esa se cierra con su botón o con Esc.
+ */
+export function cerrarConClicFuera() {
+  let abajo: EventTarget | null = null;
+  const fuera = (dlg: HTMLDialogElement, e: MouseEvent) => {
+    const r = dlg.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
+  document.addEventListener('pointerdown', (e) => (abajo = e.target), true);
+  document.addEventListener('click', (e) => {
+    const dlg = e.target;
+    if (!(dlg instanceof HTMLDialogElement) || !dlg.open || abajo !== dlg || !fuera(dlg, e)) return;
+    const escrito = [...dlg.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('textarea, input[type="text"], input:not([type])')].some((x) => x.value.trim() && x.value !== x.defaultValue);
+    if (escrito) return;
+    if (dlg.dispatchEvent(new Event('cancel', { cancelable: true }))) dlg.close();
+  });
+}

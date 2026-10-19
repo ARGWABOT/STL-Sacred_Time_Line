@@ -74,7 +74,7 @@ import { alCambiarVista, darDatosDirector, decir, nombrePersona, nombreVista, pe
 import { elegirCarpeta } from './explorador';
 import { icono, type Icono } from './iconos';
 import { pedirProyectoNuevo } from './nuevo_proyecto';
-import { confirmar } from './modal';
+import { cerrarConClicFuera, confirmar } from './modal';
 import { abrirPreguntas } from './preguntas';
 import { Grabadora } from './grabadora';
 import { Adjuntos } from './adjuntos';
@@ -82,6 +82,8 @@ import { activarRecorrido, paginaSTL, restaurarParada } from './stl';
 import { clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
 import { marcarTrabajando, pantallaTrabajando, sonarTermino, trabajandoGuardado, tituloTermino } from './trabajando';
 import { celebracion, destinoDeMision, logrosDe } from '../../src/director/animo';
+
+cerrarConClicFuera();
 
 type Vista = 'misiones' | 'buzon' | 'documentos' | 'ruta' | 'propuestas' | 'proyectos' | 'proyecto' | 'diagnostico' | 'frentes' | 'validaciones' | 'esfuerzo' | 'metodo' | 'bitacora' | 'stl' | 'preguntas';
 const VISTAS: Vista[] = ['misiones', 'buzon', 'documentos', 'ruta', 'propuestas', 'proyectos', 'proyecto', 'diagnostico', 'frentes', 'validaciones', 'esfuerzo', 'metodo', 'bitacora', 'stl', 'preguntas'];
