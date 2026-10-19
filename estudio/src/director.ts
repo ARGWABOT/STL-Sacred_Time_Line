@@ -1563,7 +1563,7 @@ function listaPasos(m: Mision) {
   const sigue = m.pasos.findIndex((_, i) => !hechos.has(i));
   if (!m.pasos.length) return '';
   return `${sigue >= 0 ? listaDePasos(m, true, [sigue]) : '<p class="pasos-listos">Hiciste todos los pasos: entrégala al director y él la revisa.</p>'}
-    ${hechos.size ? `<details class="pasos-completados"><summary>Completado <span class="cifra">${hechos.size}</span></summary>${listaDePasos(m, true, [...hechos].sort((a, b) => a - b))}</details>` : ''}`;
+    ${hechos.size ? `<details class="pasos-completados"${plegable(`pasos|${m.id}|${hechos.size}`)}><summary>Completado <span class="cifra">${hechos.size}</span></summary>${listaDePasos(m, true, [...hechos].sort((a, b) => a - b))}</details>` : ''}`;
 }
 
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
@@ -1652,6 +1652,13 @@ function tarjetaMision(m: Mision, compacta = false, numero = 0) {
   // pudo hacer (sin servidor, o el director revisando)
   if (['pendiente', 'en_curso', 'rehacer'].includes(e) && (todos || !m.pasos.length)) acciones.push(`<button type="button" class="primario${todos ? ' llamada' : ''}" data-entregar="${esc(m.id)}">Entregar al director</button>`);
   acciones.push(`<button type="button" class="al-director" data-comentar="mision|${esc(m.id)}">✉ Comentar al director</button>`);
+  // Si lo que sigue es leer o decidir en un documento, se continúa de un clic: directo a lo que toca, o en el modo
+  // enfoque. Para cualquier otro paso no aparecen: ese paso trae su propio botón
+  const sigue = m.pasos.findIndex((_, k) => !hechos.has(k));
+  const paso = sigue >= 0 ? m.pasos[sigue] : undefined;
+  if (numero === 1 && mia && typeof paso === 'object' && paso.ir?.doc) {
+    acciones.push(`<span class="continuar-m"><button type="button" data-continuar="${esc(m.id)}|${sigue}|" title="Te lleva a lo que toca leer o decidir">Continuar misión →</button><button type="button" class="primario" data-continuar="${esc(m.id)}|${sigue}|enfoque" title="Lo mismo, con solo la idea de ahora a la vista">${icono('enfoque')} Continuar en modo enfoque</button></span>`);
+  }
   return `<article class="mision-c ${e}${mia ? ' mia' : ''}${numero === 1 ? ' sigue' : ''}" data-ancla="mision-${esc(m.id)}">
     ${numero === 1 ? '<span class="sigue-esta">→ Tu misión ahora</span>' : ''}
     <header>${numero > 1 ? `<span class="num-m">${numero}</span>` : ''}<b>${esc(m.titulo)}</b><span class="xp">+${m.xp} XP</span>${numero === 1 && e === 'pendiente' ? '' : `<span class="chip estado-m ${e}">${NOMBRE_ESTADO_MISION[e]}</span>`}</header>
@@ -1795,6 +1802,19 @@ document.addEventListener('toggle', (e) => {
   if (det.open) notasAbiertas.add(det.dataset.nota);
   else notasAbiertas.delete(det.dataset.nota);
 }, true);
+
+/**
+ * Los plegables que quien mira abrió o cerró a mano («N ideas entendidas», «Ya leído», «Completado»), por su clave
+ * (`data-recuerda`). El Studio se repinta solo cuando algo cambia (una transcripción que termina, una nota que llega), y
+ * sin esto cada repintado los devolvería a como nacen: se cerraban solos a los pocos segundos de abrirlos.
+ */
+const plegadosAMano = new Map<string, boolean>();
+document.addEventListener('toggle', (e) => {
+  const det = e.target as HTMLElement;
+  if (det instanceof HTMLDetailsElement && det.dataset.recuerda) plegadosAMano.set(det.dataset.recuerda, det.open);
+}, true);
+/** El atributo de un plegable que recuerda si quien mira lo abrió: `porDefecto`, mientras no lo haya tocado. */
+const plegable = (clave: string, porDefecto = false) => ` data-recuerda="${esc(clave)}"${plegadosAMano.get(clave) ?? porDefecto ? ' open' : ''}`;
 
 /** Dónde quedó lo que dijo la nota (la misión, la propuesta, la fase o la parte de un documento), con su botón: para comprobarlo de un vistazo. */
 const quedoEn = (r: Respuesta) => (r.destino ? `<p class="quedo-en">Quedó en: ${botonIr(r.destino, 'enlace')}</p>` : '');
@@ -2025,7 +2045,7 @@ function vistaDocumentos() {
       <h2>${esc(s.titulo)}</h2>
       <p class="como">${icono('candado')} Se abre al terminar «${esc(ahora!.titulo)}».</p>
     </section>`;
-  const partes = `${arriba.map((s) => (ahora && s !== ahora && s.titulo && paraLeer.has(s.titulo) && arriba.indexOf(s) > arriba.indexOf(ahora) ? cerrada(s) : parte(s))).join('')}${yaLeidas.length ? `<details class="ya-leido-doc"><summary>${icono('estrella')} Ya leído <span class="cifra">${yaLeidas.length}</span></summary>${yaLeidas.map(parte).join('')}</details>` : ''}`;
+  const partes = `${arriba.map((s) => (ahora && s !== ahora && s.titulo && paraLeer.has(s.titulo) && arriba.indexOf(s) > arriba.indexOf(ahora) ? cerrada(s) : parte(s))).join('')}${yaLeidas.length ? `<details class="ya-leido-doc"${plegable(`leido|${ruta}|${yaLeidas.length}`)}><summary>${icono('estrella')} Ya leído <span class="cifra">${yaLeidas.length}</span></summary>${yaLeidas.map(parte).join('')}</details>` : ''}`;
   return `<div class="docs${listaPlegada() ? ' sin-lista' : ''}">${lista}<article class="lector ${claseLector()}">${ajustesLector(ruta)}${partes}</article></div>`;
 }
 
@@ -2159,7 +2179,8 @@ function porTrozos(s: { titulo: string; md: string }, notas: Nota[]): string {
   const visibles = actual === undefined ? [] : [...(contexto !== undefined ? [contexto] : []), actual];
   const plegadas = ideas.filter((i) => hecha(i) && !visibles.includes(i));
   const entendidas = plegadas.length
-    ? `<details class="ideas-entendidas"${actual === undefined ? ' open' : ''}><summary>${icono('check')} ${plegadas.length === 1 ? '1 idea entendida' : `${plegadas.length} ideas entendidas`}</summary><div class="trozos">${plegadas.flatMap(grupo).map((i) => pintarTrozo(i)).join('')}</div></details>`
+    // La clave lleva cuántas hay: al marcar otra idea el plegable vuelve a nacer cerrado, como siempre
+    ? `<details class="ideas-entendidas"${plegable(`ideas|${ruta}|${s.titulo}|${plegadas.length}`, actual === undefined)}><summary>${icono('check')} ${plegadas.length === 1 ? '1 idea entendida' : `${plegadas.length} ideas entendidas`}</summary><div class="trozos">${plegadas.flatMap(grupo).map((i) => pintarTrozo(i)).join('')}</div></details>`
     : '';
   const ahora = visibles.map((i) => (i === actual ? grupo(i).map((k) => pintarTrozo(k, k === i ? ` actual${recienEntendida ? ' llega' : ''}` : '')).join('') : pintarTrozo(i, ' contexto'))).join('');
   const cuenta = actual !== undefined && ideas.length > 1 ? `<p class="cuenta-ideas">Idea ${ideas.indexOf(actual) + 1} de ${ideas.length}</p>` : '';
@@ -3303,6 +3324,12 @@ async function clicEnVista(b: HTMLButtonElement) {
     irA(ds.ir as Vista);
   } else if (ds.destino !== undefined) {
     await ir(destinos[Number(ds.destino)]);
+  } else if (ds.continuar !== undefined) {
+    const [id, i, modo] = ds.continuar.split('|');
+    const paso = d.plan.misiones.find((x) => x.id === id)?.pasos[Number(i)];
+    if (typeof paso !== 'object' || !paso.ir?.doc) return;
+    await ir(paso.ir);
+    if (modo === 'enfoque' && vista === 'documentos' && doc?.ruta === paso.ir.doc) ponerEnfoque(true);
   } else if (ds.doc !== undefined) {
     await abrirDocumento(ds.doc, ds.seccion || null);
   } else if (ds.cargarDocs !== undefined) {

@@ -171,6 +171,10 @@ button.esperando::after { content: ''; display: inline-block; width: 0.8em; heig
 .mision-c .entrega { margin: 0; padding: 10px 12px; border-radius: var(--radio); background: var(--fondo); line-height: 1.55; }
 .mision-c .acciones-m, .mision-c .docs-m { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .mision-c .acciones-m button.primario { min-height: 40px; padding: 8px 22px; }
+/* «Continuar misión» y «Continuar en modo enfoque», a la derecha: cuando lo que sigue es leer o decidir en un documento */
+.mision-c .continuar-m { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.mision-c .continuar-m button { min-height: 40px; display: inline-flex; gap: 6px; align-items: center; }
+.mision-c .continuar-m .icono { width: 17px; height: 17px; }
 .mision-c.pendiente { border-left-color: var(--acento); }
 .mision-c.en_curso { border-left-color: #5b86c5; }
 .mision-c.entregada { border-left-color: var(--aviso); }
