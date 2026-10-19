@@ -80,6 +80,7 @@ import { Grabadora } from './grabadora';
 import { Adjuntos } from './adjuntos';
 import { activarRecorrido, paginaSTL, restaurarParada } from './stl';
 import { clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
+import { marcarTrabajando, pantallaTrabajando, sonarTermino, trabajandoGuardado, tituloTermino } from './trabajando';
 import { celebracion, destinoDeMision, logrosDe } from '../../src/director/animo';
 
 type Vista = 'misiones' | 'buzon' | 'documentos' | 'ruta' | 'propuestas' | 'proyectos' | 'proyecto' | 'diagnostico' | 'frentes' | 'validaciones' | 'esfuerzo' | 'metodo' | 'bitacora' | 'stl' | 'preguntas';
@@ -299,12 +300,24 @@ async function cargar(fresco = false) {
   const termino = d?.activo === nuevo.activo && !!d.revision && !d.revision.hecha && !!nuevo.revision?.hecha;
   // El paso que se pidió aclarar ya está reescrito (o no se pudo, y queda para la revisión)
   const aclarado = d?.activo === nuevo.activo && !!d.aclaracion && !d.aclaracion.hecha && !d.aclaracion.error && nuevo.aclaracion?.pedida === d.aclaracion.pedida ? nuevo.aclaracion : null;
+  // La señal de que el director trabaja sobrevive a las recargas: si la página se recargó a mitad de la revisión y ya
+  // terminó, aquí es donde se sabe (no hay un estado de antes con que comparar)
+  const rv = nuevo.revision;
+  const enCurso = rv && !rv.hecha && (rv.enCurso || rv.lanzada) ? `${nuevo.activo}:${rv.pedida}` : null;
+  const guardada = trabajandoGuardado();
+  const terminoTrasRecarga = !termino && !d && !!guardada && !enCurso && guardada === `${nuevo.activo}:${rv?.pedida}` && !!rv?.hecha;
+  marcarTrabajando(enCurso);
   d = nuevo;
+  if (terminoTrasRecarga) avisarTermino();
   if (aclarado?.hecha) avisar('El director reescribió el paso con más detalle: está en tu misión.', true, undefined, { etiqueta: 'Ver el paso', hacer: () => void ir({ vista: 'misiones', ancla: `mision-${aclarado.mision}`, etiqueta: '' }) });
   else if (aclarado?.error) avisar(`${aclarado.error} Tu pedido quedó en el Buzón: el director lo responde en la próxima revisión.`);
   // Al terminar, la página se recarga entera: si el director cambió el código del Studio, se ve sin refrescar a mano.
   // Con algo a medio escribir o grabando, espera a que quede libre (el aviso se da después de recargar)
-  if (termino) recargarTrasRevision();
+  if (termino) {
+    // El sonido, antes de recargar: después de la recarga el navegador ya no deja sonar sin un clic
+    if (sonarTermino()) sessionStorage.setItem(CLAVE_SONO, '1');
+    recargarTrasRevision();
+  }
   sincronizarPasos();
   darDatosDirector(d);
   if (cambio) pintar();
@@ -321,6 +334,7 @@ async function cargar(fresco = false) {
 }
 
 const CLAVE_TERMINO = 'estudio.revision_terminada';
+const CLAVE_SONO = 'estudio.revision_terminada.sono';
 let esperaRecarga: ReturnType<typeof setInterval> | null = null;
 function recargarTrasRevision() {
   if (esperaRecarga) return;
@@ -330,7 +344,21 @@ function recargarTrasRevision() {
     location.reload();
     return true;
   };
-  if (!intentar()) esperaRecarga = setInterval(intentar, 2000);
+  // Un momento, para que el sonido alcance a oírse antes de recargar
+  esperaRecarga = setTimeout(() => {
+    if (!intentar()) esperaRecarga = setInterval(intentar, 2000);
+  }, 900);
+}
+
+/** El director terminó: un aviso grande, el sonido (si no sonó ya antes de recargar) y el título de la pestaña. */
+function avisarTermino() {
+  if (!sessionStorage.getItem(CLAVE_SONO)) sonarTermino();
+  sessionStorage.removeItem(CLAVE_SONO);
+  tituloTermino();
+  avisar('El director terminó la revisión: lo nuevo ya está en el Studio.', true);
+  const e = $('error');
+  e.classList.add('termino');
+  setTimeout(() => e.classList.remove('termino'), 12000);
 }
 
 /**
@@ -481,9 +509,11 @@ function marcarSinServidor(si: boolean) {
   document.body.classList.toggle('sin-servidor', si);
   if (si) {
     const el = $('sincronizacion');
-    el.className = 'insignia sync choque';
-    el.textContent = '⚠ Studio apagado';
-    el.title = SIN_SERVIDOR;
+    // Con el director trabajando, casi siempre es él reiniciando el servidor con un cambio suyo: vuelve solo
+    const director = !!trabajandoGuardado();
+    el.className = `insignia sync ${director ? 'subiendo' : 'choque'}`;
+    el.textContent = director ? '↻ El director reinicia el Studio' : '⚠ Studio apagado';
+    el.title = director ? 'El director está trabajando y el servidor del Studio se reinicia con sus cambios. Vuelve solo en unos segundos.' : SIN_SERVIDOR;
   } else if (d) {
     pintarSincronizacion();
     avisar('El servidor del Studio volvió: todo al día.', true);
@@ -2412,7 +2442,7 @@ async function documentoTerminado(ruta: string, conPaso: boolean) {
     <ul class="cumplidas"><li>${icono('estrella')}<span>${esc(tituloDoc(ruta))}</span></li></ul>
     <p class="como">${conPaso ? 'El paso de tu misión que pedía leerlo quedó hecho.' : 'Marcaste todas sus partes como leídas.'} Lo que comentaste le llega al director en su próxima revisión.</p>
     ${mia ? `<div class="mision-a"><span class="etiqueta">Tu misión ahora</span><b>${esc(mia.titulo)}</b></div>` : ''}
-    <div class="botones"><button type="button" data-cerrar>Seguir aquí</button>${sigue ? '<button type="button" class="primario" data-seguir>Ir a mi misión →</button>' : ''}</div>
+    <div class="botones"><button type="button" data-cerrar title="Sale del modo enfoque y muestra el documento entero, para releer lo que quieras">Ver el documento entero</button>${sigue ? '<button type="button" class="primario" data-seguir>Ir a mi misión →</button>' : ''}</div>
   </form>`;
   document.body.append(dlg);
   dlg.addEventListener('click', (e) => {
@@ -2421,7 +2451,12 @@ async function documentoTerminado(ruta: string, conPaso: boolean) {
     dlg.close();
     if (b.dataset.seguir !== undefined && sigue) void ir(sigue);
   });
-  dlg.addEventListener('close', () => dlg.remove());
+  // Leído entero, ya no hay idea que enfocar: el enfoque se apaga y queda el documento completo a la vista
+  dlg.addEventListener('close', () => {
+    dlg.remove();
+    if (enfoque) ponerEnfoque(false);
+    if (vista === 'documentos') window.scrollTo({ top: 0, behavior: quieto() ? 'auto' : 'smooth' });
+  });
   dlg.showModal();
 }
 
@@ -2948,7 +2983,8 @@ function pintar() {
   pintarMando();
   pintarNavegacion();
   const v = $('vista');
-  const errores = d.errores.length ? `<p class="aviso remoto">La ruta o el estado tienen errores (díselo al director): ${d.errores.map(esc).join(' ')}</p>` : '';
+  // Los errores del plan le llegan solos al director (su bandeja los pone primero): aquí solo se avisa, sin pedirte nada
+  const errores = d.errores.length ? `<details class="aviso remoto"><summary>El director tiene algo por corregir en su plan. No tienes que hacer nada: lo ve y lo corrige solo en su próxima revisión.</summary>${d.errores.map((e) => `<p>${esc(e)}</p>`).join('')}</details>` : '';
   const html = {
     misiones: vistaMisiones, buzon: vistaBuzon, documentos: vistaDocumentos, ruta: vistaRuta, propuestas: vistaPropuestas,
     proyectos: vistaProyectos, proyecto: vistaProyecto, diagnostico: vistaDiagnostico, frentes: vistaFrentes, validaciones: vistaValidaciones, esfuerzo: vistaEsfuerzo,
@@ -3564,13 +3600,23 @@ document.addEventListener('click', (e) => {
   if (b) ponerVista(b.dataset.vistaEquipo as 'equipo');
 });
 const pedido = new URLSearchParams(location.search);
-cargar()
+// Si el director estaba trabajando, se dice desde el primer momento: mientras llegan los datos (o el servidor se reinicia
+// con un cambio suyo) la página no se queda en blanco, y se reintenta sola hasta que responda
+if (trabajandoGuardado()) $('vista').innerHTML = pantallaTrabajando();
+// (si en tres minutos no vuelve, ya no es un reinicio: se dice que el servidor no responde)
+const cargarAlArrancar = (intentos = 0): Promise<void> =>
+  cargar().catch((e) => {
+    if (!trabajandoGuardado() || intentos >= 60) throw e;
+    $('vista').innerHTML = pantallaTrabajando();
+    return new Promise<void>((listo) => setTimeout(listo, 3000)).then(() => cargarAlArrancar(intentos + 1));
+  });
+cargarAlArrancar()
   .then(() => {
     if (!d) return; // sin proyectos: la bienvenida
     // Recién recargada porque el director terminó su revisión: se dice
     if (sessionStorage.getItem(CLAVE_TERMINO)) {
       sessionStorage.removeItem(CLAVE_TERMINO);
-      avisar('El director terminó la revisión: lo nuevo ya está en el Studio.', true);
+      avisarTermino();
     }
     // Al volver al Studio después de un rato, lo primero: dónde quedamos en el proyecto activo
     // Y después, si el director aprobó algo tuyo, se celebra

@@ -120,11 +120,18 @@ if (args.includes('--listo')) {
   const rutaPlan = enDiscoDe(raiz, rutasDe(elegido).plan);
   const plan = JSON.parse(readFileSync(rutaPlan, 'utf-8'));
   // El doble check: lo que esta revisión llevó al plan dice dónde quedó; si no, la revisión no se cierra
-  const { estado } = await leerTodo(pedido, false);
+  const { estado, proyecto } = await leerTodo(pedido, false);
   const sinDestino = respuestasSinDestino(plan, estado.notas, plan.revisado ?? '');
   if (sinDestino.length) {
     console.error('No se cerró la revisión: estas respuestas llevan algo al plan pero no dicen dónde quedó (`destino`: la misión, la propuesta, la fase o la parte del documento):');
     for (const id of sinDestino) console.error(`- ${id}`);
+    process.exit(1);
+  }
+  // Un plan con errores no sale de la revisión: el titular nunca debe verlos en el Studio
+  const errores = validarPlan(plan, proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : undefined);
+  if (errores.length) {
+    console.error('No se cerró la revisión: el plan tiene errores. Corrígelos y vuelve a cerrar:');
+    for (const e of errores) console.error(`- ${e}`);
     process.exit(1);
   }
   plan.revisado = new Date().toISOString();
