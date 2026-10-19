@@ -3,6 +3,8 @@ import planPlantilla from '../../plantilla/plan.json';
 import proyectoPlantilla from '../../plantilla/proyecto.json';
 import {
   aclaracionesDe,
+  cumpleComprobacion,
+  ordenDeComprobacion,
   eleccionDe,
   encargoDe,
   pasoHecho,
@@ -667,8 +669,31 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
       { texto: 'Lee', hecho: { que: 'leido', id: 'docs/x.md' } },
       { texto: 'Elige', opciones: ['Sí', 'No'] },
       { texto: 'Firma', hazlo: 'Lo firmo yo.' },
+      { texto: 'Firma el commit', terminal: 'bash firmar.sh', comprobar: { orden: 'git log -1 --format=%ae', espera: 'leonc' } },
     ];
-    expect(pasosPorComprobar({ pasos }, [0, 1, 2, 3, 4, 9])).toEqual([0, 1]);
+    expect(pasosPorComprobar({ pasos }, [0, 1, 2, 3, 4, 5, 9])).toEqual([0, 1]);
     expect(pasosPorComprobar({ pasos }, [])).toEqual([]);
+  });
+
+  it('Un paso de terminal se comprueba con una orden que solo lee', () => {
+    const p = planEjemplo();
+    const con = (paso: Paso) => validarPlan({ ...p, misiones: [...p.misiones, mision([paso])] }, ['titular', 'ana']);
+    const corre = (comprobar: { orden: string; espera?: string; vacia?: boolean }) => con({ texto: 'Corre', terminal: 'bash x.sh', comprobar });
+    expect(corre({ orden: 'git log -1 --format=%ae', espera: 'leonc' })).toEqual([]);
+    expect(corre({ orden: 'git status --porcelain', vacia: true })).toEqual([]);
+    expect(corre({ orden: 'existe LICENSE' })).toEqual([]);
+    expect(corre({ orden: 'git push' })).toHaveLength(1);
+    expect(corre({ orden: 'git log | head' })).toHaveLength(1);
+    expect(corre({ orden: 'rm -rf x' })).toHaveLength(1);
+    expect(corre({ orden: 'git branch nueva' })).toHaveLength(1);
+    expect(corre({ orden: 'git config user.name x' })).toHaveLength(1);
+    expect(corre({ orden: 'git diff --output=x' })).toHaveLength(1);
+    expect(corre({ orden: 'existe ../afuera' })).toHaveLength(1);
+    expect(corre({ orden: 'git status --porcelain', vacia: true, espera: 'x' })).toHaveLength(1);
+    expect(con({ texto: 'Sin orden', comprobar: { orden: 'git status' } })).toHaveLength(1);
+    expect(ordenDeComprobacion('git log -1 "--format=%an %ae"')).toEqual({ programa: 'git', args: ['log', '-1', '--format=%an %ae'] });
+    expect(cumpleComprobacion(' Leonc@x.com\n', { orden: 'git log', espera: 'leonc' })).toBe(true);
+    expect(cumpleComprobacion('M a.ts', { orden: 'git status --porcelain', vacia: true })).toBe(false);
+    expect(cumpleComprobacion('', { orden: 'git status --porcelain', vacia: true })).toBe(true);
   });
 });

@@ -5,7 +5,28 @@ import { execFile, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { chmod, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
+import { cumpleComprobacion, ordenDeComprobacion, type Comprobacion } from '../../src/director/director';
+
+/**
+ * Comprueba un paso de terminal al marcarlo (`comprobar`): corre su orden de solo lectura en la carpeta del proyecto,
+ * sin shell y sin modelo, y dice si su salida es la esperada y qué encontró, para mostrarlo tal cual.
+ */
+export async function comprobarPaso(c: Comprobacion, carpeta: string): Promise<{ cumple: boolean; encontrado: string }> {
+  const o = ordenDeComprobacion(c.orden);
+  if ('error' in o) return { cumple: false, encontrado: `La comprobación no se puede correr: ${o.error}.` };
+  if (o.programa === 'existe') {
+    const ruta = resolve(carpeta, o.args[0]);
+    const dentro = ruta === resolve(carpeta) || ruta.startsWith(resolve(carpeta) + sep);
+    const esta = dentro && existsSync(ruta);
+    return { cumple: esta, encontrado: esta ? `${o.args[0]} está.` : `${o.args[0]} no está en la carpeta del proyecto.` };
+  }
+  return new Promise((ok) => execFile('git', o.args, { cwd: carpeta, windowsHide: true, timeout: 15_000, maxBuffer: 1024 * 1024 }, (e, out, err) => {
+    const salida = String(out ?? '');
+    if (e) return ok({ cumple: false, encontrado: (String(err ?? '').trim() || e.message).slice(0, 400) });
+    ok({ cumple: cumpleComprobacion(salida, c), encontrado: salida.trim().slice(0, 400) || '(no dijo nada)' });
+  }));
+}
 
 /** El guion que corre la ventana: entra a la carpeta, muestra la orden, la corre y espera Enter para cerrar. */
 export function guionDeTerminal(orden: string, carpeta: string): string {

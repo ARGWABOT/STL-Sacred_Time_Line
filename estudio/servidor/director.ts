@@ -74,7 +74,7 @@ import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
 import { progresoDeProyecto, Revisor } from './revisor';
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
-import { abrirTerminal } from './terminal';
+import { abrirTerminal, comprobarPaso } from './terminal';
 
 const DIAS_ESFUERZO = 7;
 const ESPERA_COMMIT_MS = 15_000;
@@ -1176,6 +1176,20 @@ export function servidorDirector(): Plugin {
             if (m.para !== yo.rol) return responder(res, 400, { error: 'Solo quien tiene la misión puede abrir su terminal.' });
             const r = await abrirTerminal(orden, (await leerRutaRepositorio(raiz, id)) ?? homedir());
             return r.ok ? responder(res, 200, {}) : responder(res, 400, { error: r.error });
+          }
+          // Comprobar un paso de terminal al marcarlo: la orden también sale del plan, y solo si es de las que leen
+          if (ruta === '/comprobar' && req.method === 'POST') {
+            const cuerpo = await leerCuerpo(req);
+            const yo = await leerIdentidad(raiz, id);
+            if (!yo.rol) return responder(res, 403, { error: yo.problema ?? 'Este Estudio no sabe quién eres: configura git user.name y user.email.' });
+            const m = (await leerPlan(id)).misiones?.find((x) => x.id === String(cuerpo.mision ?? ''));
+            const p = m?.pasos[Number(cuerpo.paso)];
+            const c = p && typeof p !== 'string' ? p.comprobar : undefined;
+            if (!m || !c) return responder(res, 400, { error: 'Ese paso ya no tiene cómo comprobarse.' });
+            if (m.para !== yo.rol) return responder(res, 400, { error: 'Solo quien tiene la misión puede comprobar su paso.' });
+            const carpeta = await leerRutaRepositorio(raiz, id);
+            if (!carpeta) return responder(res, 400, { error: 'Este computador no tiene la carpeta del proyecto: no hay dónde comprobarlo.' });
+            return responder(res, 200, { ...(await comprobarPaso(c, carpeta)), espera: c.vacia ? 'que no saliera nada' : c.espera ? `que dijera «${c.espera}»` : 'que la orden terminara bien' });
           }
           if (ruta === '/accion' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);

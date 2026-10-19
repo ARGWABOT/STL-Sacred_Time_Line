@@ -1536,7 +1536,7 @@ function listaPasos(m: Mision) {
 
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? botonIr(p.ir) : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p.terminal) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i)) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? botonIr(p.ir) : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p.terminal) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i)) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
 }
 
 /**
@@ -3140,6 +3140,24 @@ $('vista').addEventListener('change', async (e) => {
       casilla.checked = false;
       decir(falta.texto, 'pensativo');
       return void ir(falta.ir);
+    }
+    // Un paso de terminal con su comprobación: el Studio la corre antes de marcarlo; si no se cumple, no se marca
+    const conComprobar = d.plan.misiones.find((x) => x.id === id)?.pasos[Number(i)];
+    if (casilla.checked && typeof conComprobar !== 'string' && conComprobar?.comprobar) {
+      casilla.checked = false;
+      casilla.disabled = true;
+      decir('Déjame comprobar que la orden hizo lo que debía…', 'pensativo');
+      const r = await fetch('/__estudio/director/comprobar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mision: id, paso: Number(i) }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+      casilla.disabled = false;
+      if (r instanceof Error) return avisar('No se pudo comprobar el paso: el Studio no respondió. Vuelve a marcarlo en un momento.');
+      const c = await r.json().catch(() => ({}));
+      if (!r.ok) return avisar(c.error ?? 'No se pudo comprobar el paso.');
+      if (!c.cumple) {
+        decir('Todavía no: la orden no dejó lo que esperaba. Mira el aviso.', 'pensativo');
+        return avisar(`Aún no está: esperaba ${c.espera}, y encontré: «${recortar(String(c.encontrado ?? ''), 160)}». Revisa lo que dijo la terminal y vuelve a marcar el paso.`);
+      }
+      casilla.checked = true;
+      avisar('Hecho: lo comprobé. La orden dejó lo que debía.', true);
     }
     const guardado = marcarPaso(id, Number(i));
     pintar();

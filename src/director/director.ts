@@ -254,8 +254,55 @@ export interface Hecho {
  * persona (y por qué el director no puede hacerlo desde aquí). Lo que se decide, se firma, cuesta o borra nunca es `hazlo`.
  * `terminal`: la orden (una línea de bash) que la persona corre en su terminal. El Studio la muestra con «Copiar» y
  * «Abrir la terminal con esta orden», que abre una ventana nueva y la corre ahí, para no tener que buscar dónde pegarla.
+ * `comprobar`: en un paso de terminal, cómo ve el Studio que salió bien (ver `Comprobacion`): al marcarlo, lo comprueba
+ * en ese momento, sin modelo, y si no se cumple el paso no se marca.
  */
-export type Paso = string | { texto: string; ir?: Destino; hecho?: Hecho; detalle?: string[]; opciones?: string[]; hazlo?: string; soloTu?: string; terminal?: string };
+export type Paso = string | { texto: string; ir?: Destino; hecho?: Hecho; detalle?: string[]; opciones?: string[]; hazlo?: string; soloTu?: string; terminal?: string; comprobar?: Comprobacion };
+
+/**
+ * La comprobación de un paso de terminal: una orden de solo lectura que el Studio corre en la carpeta del proyecto
+ * (`git log -1 --format=%ae`, `git status --porcelain`, o `existe <ruta>` para ver si un archivo está) y lo que su
+ * salida debe contener (`espera`; sin ella, basta con que la orden termine bien). `vacia`: la salida debe salir vacía
+ * (por ejemplo, `git status --porcelain` cuando no debe quedar nada sin guardar).
+ */
+export interface Comprobacion {
+  orden: string;
+  espera?: string;
+  vacia?: boolean;
+}
+
+/** Las órdenes de git que solo leen. `branch` y `config`, solo con la opción que lee (`--show-current`, `--get`). */
+const GIT_QUE_LEE = ['log', 'status', 'rev-parse', 'show', 'rev-list', 'ls-files', 'describe', 'diff', 'branch', 'config'];
+
+/**
+ * La orden de una comprobación, partida en su programa y sus argumentos (sin shell: no hay tuberías ni variables), o
+ * por qué no se acepta. Solo se aceptan órdenes que leen: git con las de `GIT_QUE_LEE` y `existe <ruta>` (dentro del
+ * proyecto). Las comillas simples o dobles agrupan un argumento con espacios.
+ */
+export function ordenDeComprobacion(orden: string): { programa: 'git' | 'existe'; args: string[] } | { error: string } {
+  if (/[|&;<>`\r\n]|\$\(/.test(orden)) return { error: 'la orden no puede encadenar ni redirigir (sin |, &, ;, <, >, ` ni $( )' };
+  const partes = [...orden.trim().matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map((x) => x[1] ?? x[2] ?? x[3]);
+  const [programa, ...args] = partes;
+  if (programa === 'existe') {
+    if (args.length !== 1) return { error: '«existe» lleva una sola ruta' };
+    if (/^([a-z]:|[\\/])/i.test(args[0]) || args[0].split(/[\\/]/).includes('..')) return { error: '«existe» solo mira dentro del proyecto (una ruta relativa, sin ..)' };
+    return { programa, args };
+  }
+  if (programa !== 'git') return { error: 'solo se comprueba con git o con «existe <ruta>»' };
+  const [sub, ...resto] = args;
+  if (!sub || !GIT_QUE_LEE.includes(sub)) return { error: `solo órdenes de git que leen (${GIT_QUE_LEE.join(', ')})` };
+  if (sub === 'branch' && (resto.length !== 1 || resto[0] !== '--show-current')) return { error: '«git branch» solo con --show-current' };
+  if (sub === 'config' && resto[0] !== '--get') return { error: '«git config» solo con --get' };
+  if (resto.some((a) => /^--(output|ext-diff|textconv|exec)/.test(a))) return { error: 'la orden no puede escribir archivos ni correr programas' };
+  return { programa, args };
+}
+
+/** ¿Lo que dijo la orden de una comprobación es lo que se esperaba? Sin distinguir mayúsculas ni espacios de los bordes. */
+export function cumpleComprobacion(salida: string, c: Comprobacion): boolean {
+  const s = salida.trim();
+  if (c.vacia) return s === '';
+  return !c.espera || s.toLowerCase().includes(c.espera.trim().toLowerCase());
+}
 
 export const textoPaso = (p: Paso) => (typeof p === 'string' ? p : p.texto);
 
@@ -648,12 +695,13 @@ export interface PasosMarcados {
 /**
  * Los pasos marcados a mano de algo que pasa fuera del Studio (correr un comando, probar algo): el Studio no ve que se
  * hicieron, así que el director los comprueba con evidencia en su revisión antes de darlos por hechos. Los que el
- * Studio marca solo (`hecho`), una elección (`opciones`) o un encargo al director (`hazlo`) ya traen su prueba.
+ * Studio marca solo (`hecho`), una elección (`opciones`), un encargo al director (`hazlo`) o una orden que el Studio
+ * comprobó al marcarla (`comprobar`) ya traen su prueba.
  */
 export function pasosPorComprobar(m: { pasos: Paso[] }, hechos: number[]): number[] {
   return hechos.filter((i) => {
     const p = m.pasos[i];
-    return p !== undefined && (typeof p === 'string' || (!p.hecho && !p.opciones?.length && p.hazlo === undefined));
+    return p !== undefined && (typeof p === 'string' || (!p.hecho && !p.opciones?.length && p.hazlo === undefined && !p.comprobar));
   });
 }
 
@@ -1389,6 +1437,18 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
       if (p.terminal !== undefined) {
         if (typeof p.terminal !== 'string' || !p.terminal.trim() || /[\r\n]/.test(p.terminal)) errores.push(`${donde} tiene \`terminal\` sin una orden de una sola línea.`);
         if (p.hazlo !== undefined) errores.push(`${donde} tiene \`hazlo\` y \`terminal\`: si la orden la corre la persona, no es «Hazlo tú».`);
+      }
+      if (p.comprobar !== undefined) {
+        const c = p.comprobar;
+        if (!c || typeof c !== 'object' || typeof c.orden !== 'string') errores.push(`${donde} tiene \`comprobar\` sin su orden.`);
+        else {
+          const o = ordenDeComprobacion(c.orden);
+          if ('error' in o) errores.push(`${donde} se comprueba con una orden que no se acepta («${c.orden}»): ${o.error}.`);
+          if (c.espera !== undefined && (typeof c.espera !== 'string' || !c.espera.trim())) errores.push(`${donde} tiene \`comprobar.espera\` vacía: di lo que debe salir, o quítala.`);
+          if (c.vacia && c.espera !== undefined) errores.push(`${donde} pide una salida vacía y a la vez que diga algo: deja \`vacia\` o \`espera\`.`);
+        }
+        if (p.terminal === undefined) errores.push(`${donde} tiene \`comprobar\` sin \`terminal\`: solo se comprueba un paso que corre una orden.`);
+        if (p.hecho || p.opciones !== undefined || p.hazlo !== undefined) errores.push(`${donde} tiene \`comprobar\` junto con \`hecho\`, opciones o \`hazlo\`: ya trae otra prueba; deja una.`);
       }
       const h = p.hecho;
       if (!h) continue;
