@@ -37,6 +37,7 @@ import {
   excepcionesActivas,
   faseActual,
   frenteDeRuta,
+  ideasSueltas,
   marcasAlDia,
   misionesAbiertas,
   partesDeDocumento,
@@ -470,13 +471,16 @@ describe('cada decisión, con su propio comentario', () => {
 });
 
 describe('cada parte, en ideas que se leen de a una', () => {
+  /** Un punto que es una idea completa, no un renglón suelto. */
+  const punto = (s: string) => `- ${s}, con una explicación que la vuelve una idea completa y no un renglón suelto.`;
   it('parte en párrafos, puntos de primer nivel y bloques; los puntos de la lista de decisiones llevan su nombre', () => {
     const md = '## 3. El alcance\n\nUn párrafo\nque sigue.\n\n1. Un paso\n   - con detalle\n2. Otro paso\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n**Para decidir:**\n\n1. **El alcance del MVP.** A, B o C.\n\n   Con un segundo párrafo.\n2. **El primer cliente:** ¿quién?\n';
     const t = trozosDeParte('3. El alcance', md);
-    expect(t.map((x) => x.tipo)).toEqual(['parrafo', 'punto', 'punto', 'bloque', 'rotulo', 'punto', 'punto']);
-    expect(t[1].md).toBe('1. Un paso\n   - con detalle');
-    expect(t[5].md).toContain('Con un segundo párrafo.');
-    expect(t.map((x) => x.decision ?? '')).toEqual(['', '', '', '', '', '1. El alcance del MVP', '2. El primer cliente']);
+    // La lista de pasos cortos se lee de una vez, y el párrafo de una línea va con ella
+    expect(t.map((x) => x.tipo)).toEqual(['punto', 'bloque', 'rotulo', 'punto', 'punto']);
+    expect(t[0].md).toBe('Un párrafo\nque sigue.\n\n1. Un paso\n   - con detalle\n2. Otro paso');
+    expect(t[3].md).toContain('Con un segundo párrafo.');
+    expect(t.map((x) => x.decision ?? '')).toEqual(['', '', '', '1. El alcance del MVP', '2. El primer cliente']);
   });
 
   it('un párrafo de una línea no es una idea aparte: va con el párrafo de antes, o con el de después', () => {
@@ -484,8 +488,31 @@ describe('cada parte, en ideas que se leen de a una', () => {
     const corto = 'Esa decisión ya tiene su lugar: respóndela allí.';
     expect(trozosDeParte('4. El equipo', `${largo}\n\n${corto}`).map((x) => x.md)).toEqual([`${largo}\n\n${corto}`]);
     expect(trozosDeParte('4. El equipo', `${corto}\n\n${largo}`).map((x) => x.md)).toEqual([`${corto}\n\n${largo}`]);
-    // Entre una lista y una tabla no tiene con quién juntarse: queda sola
-    expect(trozosDeParte('4. El equipo', `- Uno\n\n${corto}\n\n| a |\n|---|`).map((x) => x.tipo)).toEqual(['punto', 'parrafo', 'bloque']);
+    // Entre una lista y una tabla, sin párrafos al lado, va con lo que sigue: nunca queda sola
+    expect(trozosDeParte('4. El equipo', `- Uno\n\n${corto}\n\n| a |\n|---|`).map((x) => x.md)).toEqual(['- Uno', `${corto}\n\n| a |\n|---|`]);
+    // Al final, después de un bloque, va con lo de antes
+    expect(trozosDeParte('4. El equipo', `- Uno\n\n${corto}`).map((x) => x.md)).toEqual([`- Uno\n\n${corto}`]);
+  });
+
+  it('un título suelto (en negrilla, sin «:», o con ###) nunca es una idea sola: va con lo que presenta', () => {
+    const P = '4. Pros y contras';
+    const punto = (n: number) => `- ${'Una razón con su explicación completa. '.repeat(n).trimEnd()}`;
+    // Su lista corta, entera; de una larga, el primer punto
+    const md = `**A favor**\n\n${punto(2)}\n${punto(2)}\n\n**En contra**\n\n${punto(8)}\n${punto(8)}\n${punto(8)}`;
+    const t = trozosDeParte(P, md);
+    expect(t.map((x) => x.md)).toEqual([`**A favor**\n\n${punto(2)}\n\n${punto(2)}`, `**En contra**\n\n${punto(8)}`, punto(8), punto(8)]);
+    // Un ### con su párrafo
+    const largo = 'Un párrafo largo que explica algo con suficiente detalle para ser una idea completa, con sus datos y su razón, sin relleno ni repeticiones.';
+    expect(trozosDeParte(P, `### El costo\n\n${largo}`).map((x) => x.md)).toEqual([`### El costo\n\n${largo}`]);
+    // Ninguna idea queda en una línea corta, ni en el caso de la captura
+    for (const x of t) expect(x.md.replace(/[*_`#]/g, '').trim().length).toBeGreaterThan(40);
+    // Lo ya entendido por separado sigue entendido al juntarse
+    const marcas = [claveIdea(P, '**A favor**'), claveIdea(P, punto(2))];
+    expect(estadoIdeas(P, md, marcas).entendida[0]).toBe(true);
+    // La lista de decisiones sigue con su rótulo aparte
+    const dec = trozosDeParte(P, `**Para decidir:**\n\n1. **Uno.** Recomiendo A.`);
+    expect(dec.map((x) => x.tipo)).toEqual(['rotulo', 'punto']);
+    expect(dec[1].decision).toBe('1. Uno');
   });
 
   it('un párrafo que termina en «:» va con lo que anuncia: su lista corta entera, el primer punto de una larga, o su bloque', () => {
@@ -506,36 +533,53 @@ describe('cada parte, en ideas que se leen de a una', () => {
   });
 
   it('sin «Para decidir», ningún punto es una decisión; el código no se parte', () => {
-    const t = trozosDeParte('2. Los pilares', '- Uno\n- Dos\n\n```\nuno\n\ndos\n```\n\nFin.');
-    expect(t.map((x) => x.tipo)).toEqual(['punto', 'punto', 'bloque', 'parrafo']);
+    const t = trozosDeParte('2. Los pilares', `${punto('Uno')}\n${punto('Dos')}\n\n\`\`\`\nuno\n\ndos\n\`\`\`\n\nFin.`);
+    expect(t.map((x) => x.tipo)).toEqual(['punto', 'punto', 'bloque']);
+    expect(t[2].md).toBe('```\nuno\n\ndos\n```\n\nFin.');
     expect(t.some((x) => x.decision)).toBe(false);
   });
 
   it('una idea entendida se reconoce por lo que dice: si el director la reescribe, vuelve a quedar por leer', () => {
     const P = '2. El alcance';
-    const antes = '- Uno\n- Dos\n- Tres';
+    const [uno, dos, tres, cero, cuatro] = ['Uno', 'Dos', 'Tres', 'Cero', 'Cuatro'].map(punto);
+    const antes = `${uno}\n${dos}\n${tres}`;
     const marcas = trozosDeParte(P, antes).map((t) => claveIdea(P, t.md));
     // Se reescribe la segunda: las otras conservan su marca; la segunda está por leer y dice que cambió
-    const despues = estadoIdeas(P, '- Uno\n- Dos, ahora distinta\n- Tres', marcas);
+    const despues = estadoIdeas(P, `${uno}\n${dos}, ahora distinta\n${tres}`, marcas);
     expect(despues.entendida).toEqual([true, false, true]);
     expect(despues.cambio).toEqual([false, true, false]);
     // Una idea nueva al comienzo no corre las marcas de las demás
-    expect(estadoIdeas(P, '- Cero\n- Uno\n- Dos\n- Tres', marcas).entendida).toEqual([false, true, true, true]);
+    expect(estadoIdeas(P, `${cero}\n${antes}`, marcas).entendida).toEqual([false, true, true, true]);
     // Al final de una parte ya leída idea por idea, una nueva también reabre la parte
-    expect(estadoIdeas(P, `${antes}\n- Cuatro`, marcas, true).cambio).toEqual([false, false, false, true]);
+    expect(estadoIdeas(P, `${antes}\n${cuatro}`, marcas, true).cambio).toEqual([false, false, false, true]);
     // Leída entera con su estrella (sin marcas de ideas), no se reabre
-    expect(estadoIdeas(P, `${antes}\n- Cuatro`, [], true).cambio.some(Boolean)).toBe(false);
+    expect(estadoIdeas(P, `${antes}\n${cuatro}`, [], true).cambio.some(Boolean)).toBe(false);
     // Lo que aún no se lee no se marca como cambiado
-    expect(estadoIdeas(P, antes, [claveIdea(P, '- Uno')]).cambio).toEqual([false, false, false]);
+    expect(estadoIdeas(P, antes, [claveIdea(P, uno)]).cambio).toEqual([false, false, false]);
+  });
+
+  it('una lista de puntos de un renglón se lee de una vez', () => {
+    const P = '2. El alcance';
+    const t = trozosDeParte(P, '- Uno\n- Dos\n- Tres');
+    expect(t.map((x) => x.md)).toEqual(['- Uno\n- Dos\n- Tres']);
+    // Lo ya entendido punto por punto sigue entendido
+    expect(estadoIdeas(P, '- Uno\n- Dos\n- Tres', ['- Uno', '- Dos', '- Tres'].map((x) => claveIdea(P, x))).entendida).toEqual([true]);
+  });
+
+  it('el control de los cortes encuentra las ideas que quedarían en un renglón suelto', () => {
+    const largo = 'Un párrafo largo que explica algo con suficiente detalle para ser una idea completa, con sus datos y su razón.';
+    expect(ideasSueltas(`# Doc\n\n## 1. Bien\n\n**A favor**\n\n${punto('Uno')}\n\n### El costo\n\n${largo}`)).toEqual([]);
+    expect(ideasSueltas(`# Doc\n\n## 2. Mal\n\n- Solo esto\n\n| a |\n|---|\n\n${largo}`)).toEqual([{ parte: '2. Mal', idea: '- Solo esto' }]);
   });
 
   it('las marcas de antes, por número, se respetan y pasan a la huella de lo que dicen hoy', () => {
     const P = '2. El alcance';
-    const md = '- Uno\n- Dos\n- Tres';
+    const [uno, dos, tres] = ['Uno', 'Dos', 'Tres'].map(punto);
+    const md = `${uno}\n${dos}\n${tres}`;
     const viejas = [claveTrozo(P, 0), claveTrozo(P, 2), 'Otra parte§1'];
     expect(estadoIdeas(P, md, viejas).entendida).toEqual([true, false, true]);
     const al = marcasAlDia([{ titulo: P, md }], viejas);
-    expect(al.sort()).toEqual([claveIdea(P, '- Uno'), claveIdea(P, '- Tres'), 'Otra parte§1'].sort());
+    expect(al.sort()).toEqual([claveIdea(P, uno), claveIdea(P, tres), 'Otra parte§1'].sort());
     expect(estadoIdeas(P, md, al).entendida).toEqual([true, false, true]);
   });
 });

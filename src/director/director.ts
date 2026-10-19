@@ -784,6 +784,8 @@ export interface Trozo {
 
 /** Hasta cuántos caracteres un párrafo es demasiado corto para ser una idea aparte. */
 const CORTO = 140;
+/** Hasta cuántos caracteres (un renglón) un párrafo sin párrafos al lado va con su lista, tabla o bloque vecino. */
+const SUELTO = 80;
 /** Hasta cuántos caracteres (unos 10 renglones) un párrafo que anuncia una lista se lee junto con la lista entera. */
 const LARGO = 900;
 
@@ -857,14 +859,20 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
   // Las decisiones: los puntos de la última lista numerada, si la parte pide decidir
   const decisiones = decisionesDe(titulo, md);
   const ultima = decisiones.length ? [...trozos].reverse().find((t) => t.ordenada)?.lista : undefined;
+  const plano = (md: string) => md.replace(/[*_`]/g, '').trim();
+  // Un título suelto («### A favor», «**En contra**», «Un boceto:»): solo presenta lo que sigue, no es una idea
+  const titulillo = (t: Trozo) => !t.md.trim().includes('\n') && (/^#{1,6}\s/.test(t.md) || /^(\*\*|__)[^*_]+(\*\*|__)$/.test(t.md.trim()));
   // Un párrafo que termina en «:» anuncia lo que sigue: cortado ahí no se entiende. Va con su lista (entera, si es
-  // corta; si no, con su primer punto) o con su tabla o bloque. La lista de decisiones no: la presenta su rótulo.
-  // Un rótulo («Un boceto:») también: así una lista corta se lee de una vez.
+  // corta; si no, con su primer punto), con su tabla o bloque, o con el párrafo que sigue si juntos no son largos.
+  // Un título suelto también, y con lo que siga, sea lo que sea. La lista de decisiones no: la presenta su rótulo.
   for (let k = 0; k < trozos.length - 1; k++) {
     const t = trozos[k];
     const sig = trozos[k + 1];
-    if ((t.tipo !== 'parrafo' && t.tipo !== 'rotulo') || !/:$/.test(t.md.replace(/[*_`]/g, '').trim()) || sig.tipo === 'rotulo' || sig.tipo === 'parrafo') continue;
+    if (t.tipo !== 'parrafo' && t.tipo !== 'rotulo') continue;
+    const titulo = titulillo(t);
+    if ((!titulo && !/:$/.test(plano(t.md))) || sig.tipo === 'rotulo') continue;
     if (sig.lista !== undefined && sig.lista === ultima) continue;
+    if (sig.tipo === 'parrafo' && !titulo && t.md.length + sig.md.length > LARGO) continue;
     let hasta = k + 1;
     if (sig.lista !== undefined) {
       let fin = k + 1;
@@ -873,17 +881,40 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
       if (largo <= LARGO) hasta = fin;
     }
     const juntos = trozos.slice(k, hasta + 1);
-    trozos.splice(k, juntos.length, { ...sig, md: juntos.map((x) => x.md).join('\n\n'), piezas: juntos.filter((x) => x.tipo !== 'rotulo').map((x) => x.md) });
+    const piezas = juntos.filter((x) => x.tipo !== 'rotulo').flatMap((x) => x.piezas ?? [x.md]);
+    trozos.splice(k, juntos.length, { ...sig, md: juntos.map((x) => x.md).join('\n\n'), piezas });
+    k--; // lo juntado puede anunciar a su vez lo que sigue
   }
-  // Un párrafo de una línea que no dice nada por sí solo (una transición, un aviso) no es una idea aparte: va con el
-  // párrafo de antes o, si no lo hay, con el de después. Detenerse a marcarlo no vale la pena.
+  // Una lista de puntos de un renglón («- Uno», «- Dos») se lee de una vez: un clic por palabra no es leer
+  for (let k = 0; k < trozos.length; k++) {
+    const l = trozos[k].lista;
+    if (l === undefined || l === ultima) continue;
+    let fin = k;
+    while (trozos[fin + 1]?.lista === l) fin++;
+    const juntos = trozos.slice(k, fin + 1);
+    const cortos = juntos.every((x) => !x.piezas && plano(x.md).length <= SUELTO);
+    if (juntos.length > 1 && cortos && juntos.reduce((n, x) => n + x.md.length, 0) <= LARGO) {
+      trozos.splice(k, juntos.length, { ...juntos[0], md: juntos.map((x) => x.md).join('\n'), piezas: juntos.map((x) => x.md) });
+    } else k = fin;
+  }
+  // Un párrafo corto que no dice nada por sí solo (una transición, un aviso, un título) no es una idea aparte: va con
+  // el párrafo de antes; si no lo hay, con el de después; y si tampoco, con lo que tenga al lado (un punto, una tabla).
+  // Detenerse a marcarlo no vale la pena. Lo único con lo que no se junta es una decisión ni un rótulo.
+  const juntable = (x: (typeof trozos)[number] | undefined) => !!x && x.tipo !== 'rotulo' && (ultima === undefined || x.lista !== ultima);
+  const unir = (destino: (typeof trozos)[number], md: string, antes: boolean) => {
+    destino.piezas = [...(destino.piezas ?? [destino.md]), md];
+    destino.md = antes ? `${md}\n\n${destino.md}` : `${destino.md}\n\n${md}`;
+  };
   for (let k = 0; k < trozos.length; k++) {
     const t = trozos[k];
-    if (t.tipo !== 'parrafo' || t.md.replace(/[*_`]/g, '').trim().length > CORTO) continue;
+    if (t.tipo !== 'parrafo' || plano(t.md).length > CORTO) continue;
     const antes = trozos[k - 1];
     const despues = trozos[k + 1];
-    if (antes?.tipo === 'parrafo') antes.md = `${antes.md}\n\n${t.md}`;
-    else if (despues?.tipo === 'parrafo') despues.md = `${t.md}\n\n${despues.md}`;
+    const suelto = plano(t.md).length <= SUELTO;
+    if (antes?.tipo === 'parrafo') unir(antes, t.md, false);
+    else if (despues?.tipo === 'parrafo') unir(despues, t.md, true);
+    else if (suelto && juntable(despues)) unir(despues, t.md, true);
+    else if (suelto && juntable(antes)) unir(antes, t.md, false);
     else continue;
     trozos.splice(k--, 1);
   }
@@ -1226,6 +1257,27 @@ export function partesDeDocumento(texto: string): string[] {
   }
   if (partes.length === 1) return partes[0].cuerpo ? [''] : [];
   return partes.slice(1).filter((p) => p.titulo).map((p) => p.titulo);
+}
+
+/**
+ * El control de los cortes: las ideas de un documento que quedarían en un renglón corto, solas (un título sin nada,
+ * una línea suelta). `trozosDeParte` ya las junta con lo que tienen al lado; si alguna queda, la bandeja lo avisa como
+ * error de redacción, para que el director la reescriba antes de pedir que se lea.
+ */
+export function ideasSueltas(texto: string): { parte: string; idea: string }[] {
+  const partes: { titulo: string; md: string[] }[] = [];
+  let enCodigo = false;
+  for (const linea of texto.split(/\r?\n/)) {
+    if (/^```/.test(linea)) enCodigo = !enCodigo;
+    const h2 = !enCodigo && /^##\s+(.+)$/.exec(linea);
+    if (h2) partes.push({ titulo: h2[1].replace(/[*_`#>\[\]]/g, '').replace(/\(([^)]*)\)/g, '').trim(), md: [] });
+    else partes[partes.length - 1]?.md.push(linea);
+  }
+  return partes.flatMap((p) =>
+    trozosDeParte(p.titulo, p.md.join('\n'))
+      .filter((t) => (t.tipo === 'parrafo' || t.tipo === 'punto') && !t.decision && t.md.replace(/[*_`#]/g, '').trim().length <= SUELTO)
+      .map((t) => ({ parte: p.titulo, idea: t.md.trim() })),
+  );
 }
 
 /**

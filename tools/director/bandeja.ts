@@ -24,6 +24,7 @@ import {
   documentosEnOrden,
   esPregunta,
   hilosDePreguntas,
+  ideasSueltas,
   estadoMision,
   etapaArranque,
   faseActual,
@@ -352,6 +353,14 @@ linea('\n## Documentos por revisar: ponles todo lo nuevo antes de cerrar');
 for (const p of personas) {
   const pendientes = documentosEnOrden(plan, estado, p).filter((d) => d.estado !== 'revisado' && !d.ruta.startsWith('repo:'));
   linea(`- ${nombre(p)}: ${pendientes.map((d) => `${d.ruta} («${d.mision.titulo}»)`).join(', ') || 'ninguno'}`);
+}
+// El control de los cortes: ninguna idea por leer puede quedar en un renglón suelto (un título solo, una línea corta)
+const porLeer = new Set(personas.flatMap((p) => documentosEnOrden(plan, estado, p).filter((d) => d.estado !== 'revisado' && !d.ruta.startsWith('repo:')).map((d) => d.ruta)));
+for (const ruta of porLeer) {
+  const propio = enDisco(`${rutas.base}/${ruta}`);
+  if (!existsSync(propio)) continue;
+  const sueltas = ideasSueltas(readFileSync(propio, 'utf8'));
+  if (sueltas.length) linea(`⚠ ${ruta}: ${sueltas.length} idea(s) quedan en un renglón suelto; júntalas con lo que presentan o complétalas (si esa parte ya se leyó, déjala y evítalo en lo que escribas): ${sueltas.map((s) => `«${s.parte}» › «${s.idea.replace(/\s+/g, ' ')}»`).join('; ')}`);
 }
 linea('Cada nota y cada entrega de esta revisión: ¿cambia algo de esos documentos? Si sí, intégralo donde corresponde (no como parte nueva al final).');
 linea('Y decide de nuevo la misión siguiente de cada uno con lo aprendido: si lo que viene ya no es lo correcto, cámbialo.');
