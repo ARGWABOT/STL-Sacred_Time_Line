@@ -1,3 +1,4 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import planPlantilla from '../../plantilla/plan.json';
 import proyectoPlantilla from '../../plantilla/proyecto.json';
@@ -569,7 +570,82 @@ describe('cada parte, en ideas que se leen de a una', () => {
   it('el control de los cortes encuentra las ideas que quedarían en un renglón suelto', () => {
     const largo = 'Un párrafo largo que explica algo con suficiente detalle para ser una idea completa, con sus datos y su razón.';
     expect(ideasSueltas(`# Doc\n\n## 1. Bien\n\n**A favor**\n\n${punto('Uno')}\n\n### El costo\n\n${largo}`)).toEqual([]);
-    expect(ideasSueltas(`# Doc\n\n## 2. Mal\n\n- Solo esto\n\n| a |\n|---|\n\n${largo}`)).toEqual([{ parte: '2. Mal', idea: '- Solo esto' }]);
+    expect(ideasSueltas(`# Doc\n\n## 2. Mal\n\n- Solo esto\n\n| a |\n|---|\n\n${largo}`)).toEqual([{ parte: '2. Mal', idea: '- Solo esto', motivo: 'un renglón corto, solo' }]);
+    // Un bloque sin cerrar, un título sin nada debajo, una idea demasiado larga
+    expect(ideasSueltas(`# Doc\n\n## 3. Mal\n\n${largo}\n\n\`\`\`\ncódigo sin cerrar`).map((x) => x.motivo)).toEqual(['un bloque de código o de fórmulas sin cerrar']);
+    expect(ideasSueltas(`# Doc\n\n## 4. Mal\n\n${largo}\n\n### Sin nada`).map((x) => x.motivo)).toEqual(['termina en un título sin nada debajo']);
+    expect(ideasSueltas(`# Doc\n\n## 5. Mal\n\n${'Una frase larga con su explicación. '.repeat(50)}`).map((x) => x.motivo)).toEqual([expect.stringContaining('demasiado larga')]);
+  });
+
+  describe('la auditoría de los cortes: cada formato, completo y con lo que le da sentido', () => {
+    const P = '3. Una parte';
+    const largo = 'Un párrafo largo que explica algo con suficiente detalle para ser una idea completa, con sus datos y su razón, sin relleno ni repeticiones, y que se entiende solo.';
+    const otro = 'Otro párrafo distinto, también con suficiente detalle para ser una idea por sí solo, que habla de otra cosa del proyecto y la explica con sus datos clave.';
+    // Lo que tiene contenido, renglón por renglón (los títulos ##, los separadores y los comentarios no se leen)
+    const contenido = (md: string) =>
+      md
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .split('\n')
+        .filter((l) => l.trim() && !/^##\s/.test(l) && !/^ {0,3}([-*_])( *\1){2,}\s*$/.test(l))
+        .map((l) => l.trimEnd());
+    const casos: [string, string, (t: ReturnType<typeof trozosDeParte>) => void][] = [
+      ['un bloque de código con renglones vacíos y «#» adentro', `${largo}\n\n\`\`\`ts\n# no es un título\n\n- ni un punto\n\`\`\`\n\n${otro}`, (t) => expect(t.map((x) => x.tipo)).toEqual(['parrafo', 'bloque', 'parrafo'])],
+      ['un bloque ~~~~ con ``` adentro', `${largo}\n\n~~~~\n\`\`\`\nadentro\n\`\`\`\n~~~~\n\n${otro}`, (t) => expect(t[1].md).toBe('~~~~\n```\nadentro\n```\n~~~~')],
+      ['un bloque de fórmulas', `${largo}\n\n$$\na = b\n\nc = d\n$$\n\n${otro}`, (t) => expect(t[1]).toMatchObject({ tipo: 'bloque', md: '$$\na = b\n\nc = d\n$$' })],
+      ['una tabla con su leyenda pegada', `${largo}\n\n| a | b |\n|---|---|\n| 1 | 2 |\n*Tabla 1: lo medido.*\n\n${otro}`, (t) => expect(t[1].md).toBe('| a | b |\n|---|---|\n| 1 | 2 |\n\n*Tabla 1: lo medido.*')],
+      ['una tabla y su fuente, aparte', `| a | b |\n|---|---|\n\nFuente: la radiografía.\n\n${otro}`, (t) => expect(t[0].md).toContain('Fuente: la radiografía.')],
+      ['una imagen sola después de su párrafo', `${largo}\n\n![El boceto](docs/director/boceto.png)\n\n${otro}`, (t) => expect(t.map((x) => x.md)).toEqual([`${largo}\n\n![El boceto](docs/director/boceto.png)`, otro])],
+      ['una imagen sola al comienzo, con una dirección larga', `![La línea](https://ejemplo.com/${'x'.repeat(200)}.gif)\n\n${largo}`, (t) => expect(t).toHaveLength(1)],
+      ['una imagen después de una tabla', `| a |\n|---|\n\n![Captura](c.png)\n\n${largo}`, (t) => expect(t[0].md).toBe('| a |\n|---|\n\n![Captura](c.png)')],
+      ['«Así se ve:» con su imagen', `Así se ve:\n\n![Captura](c.png)\n\n${largo}`, (t) => expect(t[0].md).toBe('Así se ve:\n\n![Captura](c.png)')],
+      ['una imagen HTML y un video', `${largo}\n\n<img src="a.png" alt="a">\n\n${otro}\n\n<video src="v.mp4" controls></video>`, (t) => expect(t.map((x) => x.md)).toEqual([`${largo}\n\n<img src="a.png" alt="a">`, `${otro}\n\n<video src="v.mp4" controls></video>`])],
+      ['un <details> con renglones vacíos adentro', `${largo}\n\n<details>\n<summary>Ver más</summary>\n\nEl detalle.\n\nY más detalle.\n</details>\n\n${otro}`, (t) => expect(t[1]).toMatchObject({ tipo: 'bloque', md: '<details>\n<summary>Ver más</summary>\n\nEl detalle.\n\nY más detalle.\n</details>' })],
+      ['un comentario de varias líneas', `${largo}\n\n<!--\nnota interna\n-->\n\n${otro}`, (t) => expect(t.map((x) => x.md)).toEqual([largo, otro])],
+      ['un título antes de las decisiones', `${largo}\n\n### Lo que falta\n\n**Para decidir:**\n\n1. **Uno.** Recomiendo A.`, (t) => {
+        expect(t.map((x) => x.tipo)).toEqual(['parrafo', 'rotulo', 'rotulo', 'punto']);
+        expect(t[0].md).toBe(largo);
+        expect(t[3].decision).toBe('1. Uno');
+      }],
+      ['dos títulos seguidos', `${largo}\n\n### Los costos\n\n#### Del modelo\n\n${otro}`, (t) => expect(t.map((x) => x.md)).toEqual([largo, `### Los costos\n\n#### Del modelo\n\n${otro}`])],
+      ['un título con poco texto, y lo que sigue bajo él', `${largo}\n\n### El costo\n\nEs bajo.\n\n${otro}`, (t) => expect(t.map((x) => x.md)).toEqual([largo, `### El costo\n\nEs bajo.\n\n${otro}`])],
+      ['un título pegado al párrafo de antes', `${largo}\n### El costo\n${otro}`, (t) => expect(t.map((x) => x.md)).toEqual([largo, `### El costo\n${otro}`])],
+      ['un título pegado a un punto', `- ${largo}\n### El costo\n\n${otro}`, (t) => expect(t.map((x) => x.md)).toEqual([`- ${largo}`, `### El costo\n\n${otro}`])],
+      ['un punto con su sublista y su código', `- ${largo}\n  - un detalle\n\n  \`\`\`\n  código\n\n  más\n  \`\`\`\n- ${otro}`, (t) => expect(t.map((x) => x.md)).toEqual([`- ${largo}\n  - un detalle\n\n  \`\`\`\n  código\n\n  más\n  \`\`\``, `- ${otro}`])],
+      ['una cita de varios párrafos', `${largo}\n\n> Primero.\n>\n> Después.\n\n${otro}`, (t) => expect(t[1].md).toBe('> Primero.\n>\n> Después.')],
+      ['un enlace largo no hace largo un renglón corto', `${largo}\n\nLo vi [aquí](https://ejemplo.com/${'x'.repeat(200)}).`, (t) => expect(t).toHaveLength(1)],
+    ];
+    for (const [nombre, md, espera] of casos) {
+      it(nombre, () => {
+        const t = trozosDeParte(P, md);
+        espera(t);
+        // Nada se pierde ni se reordena
+        expect(t.flatMap((x) => contenido(x.md))).toEqual(contenido(md));
+        for (const x of t) {
+          const lineas = x.md.trim().split('\n');
+          // Ningún bloque partido: las marcas de código y las etiquetas HTML abren y cierran en la misma idea
+          expect(lineas.filter((l) => /^\s*```/.test(l)).length % 2).toBe(0);
+          expect((x.md.match(/<details/g) ?? []).length).toBe((x.md.match(/<\/details>/g) ?? []).length);
+          if (x.tipo === 'rotulo' || t.length === 1) continue;
+          // Ninguna idea termina en un título, ni es solo una imagen
+          expect(lineas.length > 1 && /^ {0,3}#{1,6}\s/.test(lineas[lineas.length - 1])).toBe(false);
+          expect(/^!\[[^\]]*\]\([^)]*\)$/.test(x.md.trim())).toBe(false);
+        }
+      });
+    }
+
+    it('los documentos de verdad se cortan sin perder nada y sin partir un bloque', () => {
+      // Y, en este computador, los del director del propio Studio (su memoria, si está abierta en .stl/)
+      const carpetas = ['../../docs/metodo/', '../../.stl/docs/director/'].map((c) => new URL(c, import.meta.url)).filter((c) => existsSync(c));
+      for (const [carpeta, f] of carpetas.flatMap((c) => readdirSync(c).filter((x) => x.endsWith('.md')).map((f) => [c, f] as const))) {
+        const texto = readFileSync(new URL(f, carpeta), 'utf8').replace(/\r\n/g, '\n');
+        for (const parte of texto.split(/^(?=## )/m).slice(1)) {
+          if ((parte.match(/^```/gm) ?? []).length % 2) continue; // una parte con un bloque que la cruza no se lee así
+          const t = trozosDeParte(parte.split('\n')[0], parte);
+          expect(t.flatMap((x) => contenido(x.md)), `${f} › ${parte.split('\n')[0]}`).toEqual(contenido(parte));
+          for (const x of t) expect(x.md.trim().split('\n').filter((l) => /^\s*```/.test(l)).length % 2, `${f}: un bloque partido`).toBe(0);
+        }
+      }
+    });
   });
 
   it('las marcas de antes, por número, se respetan y pasan a la huella de lo que dicen hoy', () => {

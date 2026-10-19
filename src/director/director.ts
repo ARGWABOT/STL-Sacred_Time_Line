@@ -782,12 +782,46 @@ export interface Trozo {
   piezas?: string[];
 }
 
+/*
+ * REGLA CRÍTICA DE LOS CORTES. El titular lee cada documento de a una idea: un corte malo (un título solo, una imagen
+ * lejos de su texto, una tabla o un bloque partidos, algo que se pierde) le quita credibilidad a todo el Studio. Por eso:
+ * - Nada se pierde ni se reordena: cada renglón con contenido queda en una sola idea, en su orden.
+ * - Lo que es un elemento completo no se parte nunca: un bloque de código o de fórmulas, una tabla, una cita, un bloque
+ *   HTML (como <details>), un comentario de varias líneas, un punto con lo que lleva adentro.
+ * - Lo que no es una idea por sí solo va con lo que le da sentido: un título con lo que presenta (o, si presenta una
+ *   decisión, como rótulo), un párrafo que termina en «:» con lo que anuncia, una imagen o un video sin texto con lo
+ *   que ilustra, una leyenda con su tabla o su imagen, un renglón corto con su vecino.
+ * Todo formato nuevo que se sume al corte llega con su caso en «la auditoría de los cortes» (director.test.ts) y, si se
+ * puede escribir mal, con su aviso en `ideasSueltas`, que la bandeja corre sobre cada documento por leer.
+ */
+
 /** Hasta cuántos caracteres un párrafo es demasiado corto para ser una idea aparte. */
 const CORTO = 140;
 /** Hasta cuántos caracteres (un renglón) un párrafo sin párrafos al lado va con su lista, tabla o bloque vecino. */
 const SUELTO = 80;
 /** Hasta cuántos caracteres (unos 10 renglones) un párrafo que anuncia una lista se lee junto con la lista entera. */
 const LARGO = 900;
+/** Desde cuántos caracteres (unos 15 renglones) un párrafo o un punto es demasiado largo para leerlo como una idea. */
+const EXTENSO = 1400;
+
+/** Lo que se lee de un texto en Markdown, para medirlo: sin marcas ni comentarios, sin imágenes, y los enlaces en su texto. */
+const visible = (md: string) =>
+  md
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/<\/?[a-zA-Z][^>]*>/g, '')
+    .replace(/[*_`#>|]/g, '')
+    .trim();
+/** Una imagen, un video o un marco sin texto alrededor: no es una idea, ilustra la de al lado. */
+const conMedio = (md: string) => /!\[[^\]]*\]\([^)]*\)|<(img|video|iframe|picture|audio|svg)\b/i.test(md);
+const soloMedio = (md: string) => conMedio(md) && !visible(md);
+/** Un renglón que es solo un título: un `###`, o una frase entera en negrilla sin «:» al final. */
+const lineaTitulo = (l: string) => /^ {0,3}#{1,6}\s+\S/.test(l) || /^(\*\*|__)[^*_]+(\*\*|__)$/.test(l.trim());
+/** Un título suelto (o varios seguidos, «### Costos» y «#### Del modelo»): solo presenta lo que sigue. */
+const esTitulo = (md: string) => md.split(/\n+/).every((l) => lineaTitulo(l)) && !/:\s*(\*\*|__)?$/.test(md.trim());
+/** Las etiquetas HTML que abren un bloque: se toma entero, hasta la que lo cierra. */
+const BLOQUE_HTML = /^ {0,3}<(details|div|figure|table|section|aside|center|picture|video|audio|iframe|svg|dl|ul|ol|pre|p|blockquote)(?=[\s>/])/i;
 
 /**
  * Parte una parte de un documento (sin su título `##`) en ideas, para leerla y asimilarla de a una: cada párrafo, cada
@@ -796,12 +830,19 @@ const LARGO = 900;
  * llevan su nombre.
  */
 export function trozosDeParte(titulo: string, md: string): Trozo[] {
-  const trozos: (Trozo & { lista?: number; ordenada?: boolean })[] = [];
+  // `pegado`: venía sin renglón vacío antes (una leyenda pegada a su tabla o a su imagen)
+  const trozos: (Trozo & { lista?: number; ordenada?: boolean; pegado?: boolean })[] = [];
   const lineas = md.split(/\r?\n/);
   const item = /^ ?([-*+]|\d+[.)])\s+/; // de primer nivel: con más sangría, va dentro del punto anterior
+  const titular = /^ {0,3}#{1,6}\s/;
   let i = 0;
   let listas = 0;
   let enLista: number | null = null; // la lista abierta (para saber cuáles puntos van juntos)
+  const bloque = (desde: number, hasta: number) => {
+    trozos.push({ md: lineas.slice(desde, hasta).join('\n'), tipo: 'bloque', pegado: desde > 0 && !!lineas[desde - 1].trim() });
+    enLista = null;
+    i = hasta;
+  };
   while (i < lineas.length) {
     const l = lineas[i];
     if (!l.trim() || /^##\s/.test(l) || /^\s*<!--.*-->\s*$/.test(l) || /^ {0,3}([-*_])( *\1){2,}\s*$/.test(l)) {
@@ -809,22 +850,43 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
       i++;
       continue;
     }
-    if (/^ {0,3}(```|~~~)/.test(l)) {
-      const cierre = l.trim().slice(0, 3);
+    // Un comentario de varias líneas no se lee: no se muestra
+    if (/^\s*<!--/.test(l) && !l.includes('-->')) {
       let j = i + 1;
-      while (j < lineas.length && !lineas[j].trim().startsWith(cierre)) j++;
-      trozos.push({ md: lineas.slice(i, j + 1).join('\n'), tipo: 'bloque' });
-      enLista = null;
+      while (j < lineas.length && !lineas[j].includes('-->')) j++;
       i = j + 1;
+      continue;
+    }
+    // Un bloque de código (``` o ~~~, cerrado por la misma marca, igual de larga o más) o de fórmulas ($$), entero
+    const cerca = /^ {0,3}(`{3,}|~{3,}|\$\$)/.exec(l);
+    if (cerca) {
+      const marca = cerca[1];
+      const cierra = marca === '$$' ? (s: string) => s.trim().endsWith('$$') : (s: string) => new RegExp(`^ {0,3}\\${marca[0]}{${marca.length},}\\s*$`).test(s);
+      const enUna = marca === '$$' && l.trim().length > 4 && l.trim().endsWith('$$');
+      let j = i + 1;
+      if (!enUna) {
+        while (j < lineas.length && !cierra(lineas[j])) j++;
+        j++;
+      }
+      bloque(i, Math.min(j, lineas.length));
+      continue;
+    }
+    // Un bloque HTML (<details>, <figure>, <div>…), entero hasta la etiqueta que lo cierra; si no la tiene, hasta el renglón vacío
+    const html = BLOQUE_HTML.exec(l);
+    if (html) {
+      const cierre = new RegExp(`</${html[1]}\\s*>`, 'i');
+      let j = i;
+      while (j < lineas.length && !cierre.test(lineas[j])) j++;
+      if (j < lineas.length) j++;
+      else for (j = i + 1; j < lineas.length && lineas[j].trim(); ) j++;
+      bloque(i, j);
       continue;
     }
     if (/^\s*\|/.test(l) || /^ {0,3}>/.test(l)) {
       const tabla = /^\s*\|/.test(l);
       let j = i;
       while (j < lineas.length && (tabla ? /^\s*\|/.test(lineas[j]) : lineas[j].trim() && !/^\s*$/.test(lineas[j]))) j++;
-      trozos.push({ md: lineas.slice(i, j).join('\n'), tipo: 'bloque' });
-      enLista = null;
-      i = j;
+      bloque(i, j);
       continue;
     }
     const m = item.exec(l);
@@ -840,28 +902,28 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
         if (!s.trim()) {
           const prox = lineas.slice(j + 1).find((x) => x.trim());
           if (!prox || !/^\s{2,}/.test(prox)) break;
-        } else if (!/^\s/.test(s) && !lineas[j - 1].trim()) break;
+        } else if (!/^\s/.test(s) && (!lineas[j - 1].trim() || titular.test(s) || /^(```|~~~|\||>)/.test(s))) break;
         j++;
       }
       trozos.push({ md: lineas.slice(i, j).join('\n').trimEnd(), tipo: 'punto', lista: enLista, ordenada });
       i = j;
       continue;
     }
-    // Un párrafo: hasta el renglón vacío o hasta que empiece otra cosa
+    // Un párrafo: hasta el renglón vacío o hasta que empiece otra cosa (un punto, un bloque, una tabla, un título)
     let j = i + 1;
-    while (j < lineas.length && lineas[j].trim() && !item.test(lineas[j]) && !/^ {0,3}(```|~~~|>|\|)/.test(lineas[j]) && !/^##\s/.test(lineas[j])) j++;
+    while (j < lineas.length && lineas[j].trim() && !item.test(lineas[j]) && !/^ {0,3}(```|~~~|>|\||\$\$)/.test(lineas[j]) && !titular.test(lineas[j]) && !BLOQUE_HTML.test(lineas[j])) j++;
     const texto = lineas.slice(i, j).join('\n');
-    const plano = texto.replace(/[*_`]/g, '').trim();
-    trozos.push({ md: texto, tipo: plano.length <= 60 && /:$/.test(plano) ? 'rotulo' : 'parrafo' });
+    const plano = visible(texto);
+    trozos.push({ md: texto, tipo: plano.length <= 60 && /:$/.test(plano) ? 'rotulo' : 'parrafo', pegado: i > 0 && !!lineas[i - 1].trim() });
     enLista = null;
     i = j;
   }
   // Las decisiones: los puntos de la última lista numerada, si la parte pide decidir
   const decisiones = decisionesDe(titulo, md);
   const ultima = decisiones.length ? [...trozos].reverse().find((t) => t.ordenada)?.lista : undefined;
-  const plano = (md: string) => md.replace(/[*_`]/g, '').trim();
-  // Un título suelto («### A favor», «**En contra**», «Un boceto:»): solo presenta lo que sigue, no es una idea
-  const titulillo = (t: Trozo) => !t.md.trim().includes('\n') && (/^#{1,6}\s/.test(t.md) || /^(\*\*|__)[^*_]+(\*\*|__)$/.test(t.md.trim()));
+  const plano = visible;
+  // Un título suelto («### A favor», «**En contra**», o varios seguidos): solo presenta lo que sigue, no es una idea
+  const titulillo = (t: Trozo) => t.tipo === 'parrafo' && esTitulo(t.md);
   // Un párrafo que termina en «:» anuncia lo que sigue: cortado ahí no se entiende. Va con su lista (entera, si es
   // corta; si no, con su primer punto), con su tabla o bloque, o con el párrafo que sigue si juntos no son largos.
   // Un título suelto también, y con lo que siga, sea lo que sea. La lista de decisiones no: la presenta su rótulo.
@@ -870,21 +932,27 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
     const sig = trozos[k + 1];
     if (t.tipo !== 'parrafo' && t.tipo !== 'rotulo') continue;
     const titulo = titulillo(t);
-    if ((!titulo && !/:$/.test(plano(t.md))) || sig.tipo === 'rotulo') continue;
+    // Anuncia si su último renglón termina en «:» (no si ya trae lo anunciado, como una imagen)
+    if ((!titulo && !/:$/.test(plano(t.md.trim().split('\n').pop()!))) || sig.tipo === 'rotulo') continue;
     if (sig.lista !== undefined && sig.lista === ultima) continue;
-    if (sig.tipo === 'parrafo' && !titulo && t.md.length + sig.md.length > LARGO) continue;
+    if (sig.tipo === 'parrafo' && !titulo && plano(t.md).length + plano(sig.md).length > LARGO) continue;
     let hasta = k + 1;
     if (sig.lista !== undefined) {
       let fin = k + 1;
       while (trozos[fin + 1]?.lista === sig.lista) fin++;
-      const largo = trozos.slice(k, fin + 1).reduce((n, x) => n + x.md.length, 0);
+      const largo = trozos.slice(k, fin + 1).reduce((n, x) => n + plano(x.md).length, 0);
       if (largo <= LARGO) hasta = fin;
     }
     const juntos = trozos.slice(k, hasta + 1);
     const piezas = juntos.filter((x) => x.tipo !== 'rotulo').flatMap((x) => x.piezas ?? [x.md]);
-    trozos.splice(k, juntos.length, { ...sig, md: juntos.map((x) => x.md).join('\n\n'), piezas });
+    trozos.splice(k, juntos.length, { ...sig, md: juntos.map((x) => x.md).join('\n\n'), piezas, pegado: t.pegado });
     k--; // lo juntado puede anunciar a su vez lo que sigue
   }
+  // Un título que presenta un rótulo o una decisión («### Lo que falta» antes de «**Para decidir:**») tampoco es una
+  // idea: se muestra como rótulo, junto con lo que presenta. Nunca queda pegado al final de la idea de antes.
+  trozos.forEach((t, k) => {
+    if (titulillo(t) && k < trozos.length - 1) t.tipo = 'rotulo';
+  });
   // Una lista de puntos de un renglón («- Uno», «- Dos») se lee de una vez: un clic por palabra no es leer
   for (let k = 0; k < trozos.length; k++) {
     const l = trozos[k].lista;
@@ -893,7 +961,7 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
     while (trozos[fin + 1]?.lista === l) fin++;
     const juntos = trozos.slice(k, fin + 1);
     const cortos = juntos.every((x) => !x.piezas && plano(x.md).length <= SUELTO);
-    if (juntos.length > 1 && cortos && juntos.reduce((n, x) => n + x.md.length, 0) <= LARGO) {
+    if (juntos.length > 1 && cortos && juntos.reduce((n, x) => n + plano(x.md).length, 0) <= LARGO) {
       trozos.splice(k, juntos.length, { ...juntos[0], md: juntos.map((x) => x.md).join('\n'), piezas: juntos.map((x) => x.md) });
     } else k = fin;
   }
@@ -905,16 +973,38 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
     destino.piezas = [...(destino.piezas ?? [destino.md]), md];
     destino.md = antes ? `${md}\n\n${destino.md}` : `${destino.md}\n\n${md}`;
   };
+  // Una imagen o un video sin texto va con lo que ilustra: lo de antes o, si no se puede, lo de después. Una leyenda
+  // (pegada a su tabla o imagen, en cursiva, o que empieza «Figura», «Tabla», «Fuente»…) va con lo de antes.
+  const leyenda = (t: (typeof trozos)[number], antes: (typeof trozos)[number] | undefined) =>
+    !!antes &&
+    (antes.tipo === 'bloque' || soloMedio(antes.md) || /!\[[^\]]*\]\([^)]*\)\s*$/.test(antes.md)) &&
+    (!!t.pegado || /^(\*[^*].*\*|_[^_].*_)$/s.test(t.md.trim()) || /^(figura|fig\.|tabla|fuente|imagen|captura|gráfico|grafico|foto|video)\b/i.test(plano(t.md)));
   for (let k = 0; k < trozos.length; k++) {
     const t = trozos[k];
-    if (t.tipo !== 'parrafo' || plano(t.md).length > CORTO) continue;
     const antes = trozos[k - 1];
     const despues = trozos[k + 1];
+    if (t.tipo !== 'rotulo' && !t.decision && soloMedio(t.md)) {
+      if (juntable(antes)) unir(antes, t.md, false);
+      else if (juntable(despues)) unir(despues, t.md, true);
+      else continue;
+      trozos.splice(k--, 1);
+      continue;
+    }
+    // Con una imagen adentro ya no es corto: la imagen es su contenido («Así se ve:» y la captura)
+    if (t.tipo !== 'parrafo' || plano(t.md).length > CORTO || conMedio(t.md)) continue;
     const suelto = plano(t.md).length <= SUELTO;
-    if (antes?.tipo === 'parrafo') unir(antes, t.md, false);
-    else if (despues?.tipo === 'parrafo') unir(despues, t.md, true);
-    else if (suelto && juntable(despues)) unir(despues, t.md, true);
-    else if (suelto && juntable(antes)) unir(antes, t.md, false);
+    // Lo que empieza con un título nunca va al final de lo de antes ni en medio de lo de después: bajo un título va lo
+    // que sigue hasta el título siguiente. Un título con poco texto se lee con lo que sigue bajo él; si no hay, solo.
+    const conTitulo = (x: (typeof trozos)[number] | undefined) => !!x && lineaTitulo(x.md.split('\n')[0]);
+    const despuesSirve = juntable(despues) && !conTitulo(despues);
+    if (conTitulo(t) && !esTitulo(t.md)) {
+      if (despuesSirve) unir(despues!, t.md, true);
+      else continue;
+    } else if (leyenda(t, antes) && juntable(antes)) unir(antes, t.md, false);
+    else if (antes?.tipo === 'parrafo') unir(antes, t.md, false);
+    else if (despues?.tipo === 'parrafo' && despuesSirve) unir(despues, t.md, true);
+    else if (suelto && despuesSirve) unir(despues!, t.md, true);
+    else if (suelto && juntable(antes)) unir(antes!, t.md, false);
     else continue;
     trozos.splice(k--, 1);
   }
@@ -1260,23 +1350,44 @@ export function partesDeDocumento(texto: string): string[] {
 }
 
 /**
- * El control de los cortes: las ideas de un documento que quedarían en un renglón corto, solas (un título sin nada,
- * una línea suelta). `trozosDeParte` ya las junta con lo que tienen al lado; si alguna queda, la bandeja lo avisa como
- * error de redacción, para que el director la reescriba antes de pedir que se lea.
+ * El control de los cortes (la auditoría que corre la bandeja sobre cada documento por leer): las ideas que quedarían
+ * mal cortadas aunque `trozosDeParte` haga lo suyo, porque el texto mismo está mal escrito para leerse de a una idea.
+ * El director las reescribe antes de pedir que se lean. Cada una dice su `motivo`:
+ * - un renglón corto, solo (un título sin nada, una línea suelta);
+ * - termina en un título (un título sin nada debajo, al final de la parte);
+ * - una imagen o un video sin texto que lo acompañe;
+ * - demasiado larga para leerla como una idea (más de unos 15 renglones);
+ * - un bloque de código o de fórmulas sin cerrar (se tragaría el resto de la parte).
  */
-export function ideasSueltas(texto: string): { parte: string; idea: string }[] {
+export function ideasSueltas(texto: string): { parte: string; idea: string; motivo: string }[] {
   const partes: { titulo: string; md: string[] }[] = [];
   let enCodigo = false;
   for (const linea of texto.split(/\r?\n/)) {
-    if (/^```/.test(linea)) enCodigo = !enCodigo;
+    if (/^ {0,3}(```|~~~)/.test(linea)) enCodigo = !enCodigo;
     const h2 = !enCodigo && /^##\s+(.+)$/.exec(linea);
     if (h2) partes.push({ titulo: h2[1].replace(/[*_`#>\[\]]/g, '').replace(/\(([^)]*)\)/g, '').trim(), md: [] });
     else partes[partes.length - 1]?.md.push(linea);
   }
+  const motivo = (t: Trozo): string | undefined => {
+    const lineas = t.md.trim().split('\n');
+    if (t.tipo === 'bloque') {
+      const marca = /^ {0,3}(`{3,}|~{3,}|\$\$)/.exec(lineas[0])?.[1];
+      if (marca && (lineas.length === 1 ? !(marca === '$$' && lineas[0].trim().length > 4 && lineas[0].trim().endsWith('$$')) : !lineas.some((l, k) => k > 0 && (marca === '$$' ? l.trim().endsWith('$$') : new RegExp(`^ {0,3}\\${marca[0]}{${marca.length},}\\s*$`).test(l)))))
+        return 'un bloque de código o de fórmulas sin cerrar';
+      return soloMedio(t.md) ? 'una imagen o un video sin texto que lo acompañe' : undefined;
+    }
+    if (t.tipo === 'rotulo' || t.decision) return undefined;
+    if (soloMedio(t.md)) return 'una imagen o un video sin texto que lo acompañe';
+    if (lineas.length > 1 && lineaTitulo(lineas[lineas.length - 1])) return 'termina en un título sin nada debajo';
+    if (visible(t.md).length <= SUELTO && !conMedio(t.md)) return 'un renglón corto, solo';
+    if (visible(t.md).length > EXTENSO) return 'demasiado larga para una idea (más de unos 15 renglones): pártela';
+    return undefined;
+  };
   return partes.flatMap((p) =>
-    trozosDeParte(p.titulo, p.md.join('\n'))
-      .filter((t) => (t.tipo === 'parrafo' || t.tipo === 'punto') && !t.decision && t.md.replace(/[*_`#]/g, '').trim().length <= SUELTO)
-      .map((t) => ({ parte: p.titulo, idea: t.md.trim() })),
+    trozosDeParte(p.titulo, p.md.join('\n')).flatMap((t) => {
+      const m = motivo(t);
+      return m ? [{ parte: p.titulo, idea: t.md.trim(), motivo: m }] : [];
+    }),
   );
 }
 
