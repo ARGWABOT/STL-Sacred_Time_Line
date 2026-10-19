@@ -488,6 +488,23 @@ describe('cada parte, en ideas que se leen de a una', () => {
     expect(trozosDeParte('4. El equipo', `- Uno\n\n${corto}\n\n| a |\n|---|`).map((x) => x.tipo)).toEqual(['punto', 'parrafo', 'bloque']);
   });
 
+  it('un párrafo que termina en «:» va con lo que anuncia: su lista corta entera, el primer punto de una larga, o su bloque', () => {
+    const P = '3. El diagnóstico';
+    const intro = 'Hoy Proyecto, Diagnóstico y la meta son tres lugares, y la meta muestra sus candidatas aunque ya hayas elegido. Recomiendo:';
+    const corta = trozosDeParte(P, `${intro}\n\n- Uno.\n- Dos.\n\nOtro párrafo que sigue y dice algo distinto, con suficiente largo para ser una idea por sí solo, sin juntarse con nadie.`);
+    expect(corta.map((x) => x.md)).toEqual([`${intro}\n\n- Uno.\n\n- Dos.`, expect.stringContaining('Otro párrafo')]);
+    const largo = 'x'.repeat(500);
+    const larga = trozosDeParte(P, `${intro}\n\n- ${largo}\n- ${largo}`);
+    expect(larga.map((x) => x.md)).toEqual([`${intro}\n\n- ${largo}`, `- ${largo}`]);
+    expect(trozosDeParte(P, `Un boceto:\n\n\`\`\`\nuno\n\`\`\``).map((x) => x.tipo)).toEqual(['bloque']);
+    // La lista de decisiones no se junta con lo de antes
+    const dec = trozosDeParte(P, `${intro}\n\n1. **Uno.** Recomiendo A.`.replace('Recomiendo:', 'Para decidir:'));
+    expect(dec.map((x) => x.decision ?? '')).toEqual(['', '1. Uno']);
+    // Lo que ya se había entendido por separado sigue entendido al juntarse
+    const marcas = [claveIdea(P, intro), claveIdea(P, `- ${largo}`)];
+    expect(estadoIdeas(P, `${intro}\n\n- ${largo}\n- ${largo}`, marcas).entendida).toEqual([true, true]);
+  });
+
   it('sin «Para decidir», ningún punto es una decisión; el código no se parte', () => {
     const t = trozosDeParte('2. Los pilares', '- Uno\n- Dos\n\n```\nuno\n\ndos\n```\n\nFin.');
     expect(t.map((x) => x.tipo)).toEqual(['punto', 'punto', 'bloque', 'parrafo']);

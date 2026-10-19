@@ -743,7 +743,10 @@ export function estadoIdeas(parte: string, md: string, marcas: Iterable<string>,
   const hay = new Set(marcas);
   const lista = trozosDeParte(parte, md);
   const idea = (t: Trozo) => t.tipo !== 'rotulo' && !t.decision;
-  const entendida = lista.map((t, i) => idea(t) && (hay.has(claveIdea(parte, t.md)) || hay.has(claveTrozo(parte, i))));
+  // Una idea que antes eran varias (se juntaron) queda entendida si todas sus piezas ya lo estaban
+  const marcada = (t: Trozo, i: number) =>
+    hay.has(claveIdea(parte, t.md)) || hay.has(claveTrozo(parte, i)) || (!!t.piezas && t.piezas.every((p) => hay.has(claveIdea(parte, p))));
+  const entendida = lista.map((t, i) => idea(t) && marcada(t, i));
   // Una parte leída de a una idea deja huellas; leída entera con su estrella (o con marcas de antes), no se reabre
   const conHuellas = [...hay].some((x) => x.startsWith(`${parte}§h:`));
   const cambio = lista.map((t, i) => idea(t) && !entendida[i] && ((leida && conHuellas) || entendida.some((e, j) => e && j > i)));
@@ -775,10 +778,14 @@ export interface Trozo {
   md: string;
   tipo: 'parrafo' | 'punto' | 'bloque' | 'rotulo';
   decision?: string;
+  /** Si se juntó (un párrafo que anuncia una lista o un bloque), lo que eran sus ideas antes: sus marcas se respetan. */
+  piezas?: string[];
 }
 
 /** Hasta cuántos caracteres un párrafo es demasiado corto para ser una idea aparte. */
 const CORTO = 140;
+/** Hasta cuántos caracteres (unos 10 renglones) un párrafo que anuncia una lista se lee junto con la lista entera. */
+const LARGO = 900;
 
 /**
  * Parte una parte de un documento (sin su título `##`) en ideas, para leerla y asimilarla de a una: cada párrafo, cada
@@ -847,6 +854,27 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
     enLista = null;
     i = j;
   }
+  // Las decisiones: los puntos de la última lista numerada, si la parte pide decidir
+  const decisiones = decisionesDe(titulo, md);
+  const ultima = decisiones.length ? [...trozos].reverse().find((t) => t.ordenada)?.lista : undefined;
+  // Un párrafo que termina en «:» anuncia lo que sigue: cortado ahí no se entiende. Va con su lista (entera, si es
+  // corta; si no, con su primer punto) o con su tabla o bloque. La lista de decisiones no: la presenta su rótulo.
+  // Un rótulo («Un boceto:») también: así una lista corta se lee de una vez.
+  for (let k = 0; k < trozos.length - 1; k++) {
+    const t = trozos[k];
+    const sig = trozos[k + 1];
+    if ((t.tipo !== 'parrafo' && t.tipo !== 'rotulo') || !/:$/.test(t.md.replace(/[*_`]/g, '').trim()) || sig.tipo === 'rotulo' || sig.tipo === 'parrafo') continue;
+    if (sig.lista !== undefined && sig.lista === ultima) continue;
+    let hasta = k + 1;
+    if (sig.lista !== undefined) {
+      let fin = k + 1;
+      while (trozos[fin + 1]?.lista === sig.lista) fin++;
+      const largo = trozos.slice(k, fin + 1).reduce((n, x) => n + x.md.length, 0);
+      if (largo <= LARGO) hasta = fin;
+    }
+    const juntos = trozos.slice(k, hasta + 1);
+    trozos.splice(k, juntos.length, { ...sig, md: juntos.map((x) => x.md).join('\n\n'), piezas: juntos.filter((x) => x.tipo !== 'rotulo').map((x) => x.md) });
+  }
   // Un párrafo de una línea que no dice nada por sí solo (una transición, un aviso) no es una idea aparte: va con el
   // párrafo de antes o, si no lo hay, con el de después. Detenerse a marcarlo no vale la pena.
   for (let k = 0; k < trozos.length; k++) {
@@ -859,15 +887,12 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
     else continue;
     trozos.splice(k--, 1);
   }
-  // Las decisiones: los puntos de la última lista numerada, si la parte pide decidir
-  const decisiones = decisionesDe(titulo, md);
-  const ultima = [...trozos].reverse().find((t) => t.ordenada)?.lista;
-  if (decisiones.length && ultima) {
+  if (ultima) {
     trozos.filter((t) => t.lista === ultima).forEach((t, k) => {
       if (decisiones[k]) t.decision = decisiones[k];
     });
   }
-  return trozos.map(({ md, tipo, decision }) => ({ md, tipo, ...(decision ? { decision } : {}) }));
+  return trozos.map(({ md, tipo, decision, piezas }) => ({ md, tipo, ...(decision ? { decision } : {}), ...(piezas ? { piezas } : {}) }));
 }
 
 /**
