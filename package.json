@@ -1,0 +1,40 @@
+{
+  "name": "stl-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "STL Studio: la interfaz de la Metodología STL. Un director asistente de IA diagnostica tu proyecto, firma contigo un objetivo, traza la ruta por fases y te da una misión a la vez.",
+  "keywords": [
+    "stl",
+    "sacred-time-line",
+    "claude-code",
+    "ai-agents",
+    "project-management",
+    "methodology"
+  ],
+  "author": "ARGWABOT",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "iniciar": "node tools/iniciar.ts",
+    "dev": "vite",
+    "estudio": "vite --open /",
+    "encender": "node tools/encender.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "bandeja": "node tools/director/bandeja.ts",
+    "diagnosticar": "node tools/director/diagnosticar.ts",
+    "estado": "node tools/director/estado.ts",
+    "publicar-stl": "node tools/publicar-stl.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "marked": "^18.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3",
+    "vitest": "^5.0.3"
+  }
+}

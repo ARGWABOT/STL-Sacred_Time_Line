@@ -1,0 +1,44 @@
+/* «Ver como» y el director asistente flotante (estudio/src/equipo.ts) */
+
+/* «Ver como»: al pie de la barra lateral. Reemplaza la insignia de quién usa el Studio, que sigue a la vista solo si
+   falta la identidad de git */
+.vista-equipo { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 38px; padding: 4px 6px 4px 10px; background: #e9e6dd; color: var(--suave); cursor: pointer; border-radius: 8px; }
+.vista-equipo .ve-etiqueta { flex: none; font-size: 12.5px; }
+.vista-equipo select { flex: 1; width: 100%; min-width: 0; text-overflow: ellipsis; min-height: 30px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--texto); border: 0; background-color: transparent; padding: 2px 26px 2px 4px; background-position: right 6px center; }
+.vista-equipo.otro { background: var(--aviso-fondo); color: var(--aviso-texto); box-shadow: inset 0 0 0 1.5px #e0b45a; }
+.vista-equipo .ve-solo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 600; color: var(--texto); }
+
+/* El director asistente: su cara y lo que dice */
+.director-flotante { position: fixed; right: 18px; bottom: 18px; z-index: 6; display: flex; align-items: flex-end; gap: 10px; pointer-events: none; }
+.director-flotante > * { pointer-events: auto; }
+.df-cara { width: 70px; height: 73px; min-height: 0; padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.28)); transition: transform 0.15s; animation: df-flota 4s ease-in-out infinite; }
+.df-cara:hover { transform: scale(1.08) rotate(-3deg); background: none; }
+.df-cara svg { width: 100%; height: 100%; display: block; }
+.df-cara .carcasa { fill: #f4f1ea; stroke: #d9d3c6; stroke-width: 1.5; }
+.df-cara .visor { fill: #2b2826; }
+.df-cara .brillo { fill: #fff; opacity: 0.9; }
+.df-cara .luz { fill: none; stroke: #a8f4fb; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }
+.df-cara .rubor, .df-cara .lengua { fill: #ff8aa3; stroke: none; }
+@keyframes df-flota { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+
+.df-globo { position: relative; max-width: 290px; margin-bottom: 24px; padding: 10px 14px; background: var(--tinta); color: #f6f2e6; border-radius: 14px 14px 4px 14px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22); font-size: 14px; line-height: 1.45; }
+.df-globo::after { content: ''; position: absolute; right: -7px; bottom: 6px; border: 7px solid transparent; border-left-color: var(--tinta); border-right: 0; }
+.df-quien { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #a8f4fb; margin-bottom: 3px; padding-right: 22px; }
+.df-texto { margin: 0; cursor: pointer; }
+.df-texto.entra { animation: df-entra 0.35s ease-out; }
+@keyframes df-entra { from { opacity: 0; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }
+.df-ir { display: block; width: 100%; min-height: 32px; margin-top: 8px; padding: 6px 10px; text-align: left; font: inherit; font-size: 13px; font-weight: 600; color: var(--tinta); background: #f6e7b4; border: 0; border-radius: 8px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.df-ir:hover { background: #fff1c4; }
+.df-plegar { position: absolute; top: 4px; right: 6px; width: 24px; height: 24px; min-height: 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #bdb8aa; font-size: 16px; line-height: 1; cursor: pointer; }
+.df-plegar:hover { background: #45443f; color: #fff; }
+/* lo que dice se asoma unos segundos y se recoge solo (equipo.ts › asomar) */
+.director-flotante:not(.asomado) .df-globo { display: none; }
+
+@media (max-width: 759px) {
+  .df-globo { max-width: 210px; font-size: 13px; }
+  .df-cara { width: 56px; height: 58px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .df-cara { animation: none; }
+  .df-texto.entra { animation: none; }
+}

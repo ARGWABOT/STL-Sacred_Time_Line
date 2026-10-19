@@ -1,0 +1,27 @@
+/* El Studio de demostración: el recorrido guiado y las explicaciones (estudio/demo/demo.ts) */
+
+/* El resaltado: un hueco claro en un velo oscuro, con un borde que late */
+.demo-recorrido { position: fixed; inset: 0; z-index: 1000; }
+.demo-recorrido[hidden] { display: none; }
+.demo-recorrido.sin-foco { background: rgba(20, 20, 18, 0.55); }
+.demo-foco { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(20, 20, 18, 0.55); outline: 3px solid #f6e7b4; outline-offset: 2px; pointer-events: none; animation: demo-latido 1.8s ease-in-out infinite; }
+@keyframes demo-latido { 50% { outline-color: #d6b65c; } }
+@media (prefers-reduced-motion: reduce) { .demo-foco { animation: none; transition: none; } }
+.demo-tarjeta { position: fixed; width: min(380px, calc(100vw - 24px)); padding: 16px 18px 14px; border-radius: 16px; background: var(--panel); box-shadow: var(--sombra-alta); border-top: 4px solid var(--acento); }
+.demo-tarjeta h3 { margin: 4px 0 6px; font-size: 18px; }
+.demo-tarjeta p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.55; color: var(--texto); }
+.demo-paso { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--acento-texto); }
+.demo-botones { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.demo-botones button { min-height: 34px; }
+
+/* La cinta de la demostración: abajo a la izquierda, siempre a la vista */
+.demo-cinta { position: fixed; left: calc(var(--lateral) + 20px); bottom: 18px; z-index: 900; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px 8px 14px; border-radius: 14px; background: var(--tinta); color: #f6f2e6; font-size: 13.5px; box-shadow: var(--sombra-alta); max-width: calc(100vw - var(--lateral) - 140px); }
+.demo-cinta b { color: #f6e7b4; letter-spacing: 0.04em; text-transform: uppercase; font-size: 12px; }
+.demo-cinta button { min-height: 32px; }
+@media (max-width: 759px) { .demo-cinta { left: 12px; max-width: calc(100vw - 90px); } }
+
+/* Lo que pasaría en tu Studio, cuando intentas algo que en la demostración no se guarda */
+.demo-explica { width: min(440px, calc(100vw - 32px)); padding: 18px 20px 16px; border: 0; border-radius: 16px; border-top: 4px solid #d6b65c; box-shadow: var(--sombra-alta); }
+.demo-explica::backdrop { background: rgba(20, 20, 18, 0.45); }
+.demo-explica p { margin: 0 0 12px; font-size: 15px; line-height: 1.55; }
+.demo-sobre { font-size: 12px !important; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sobre-texto); margin-bottom: 6px !important; }

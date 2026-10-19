@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.vite/
+.env
+__pycache__/
+
+# Lo de ESTE computador: el proyecto activo y la ruta del repositorio de cada proyecto (cada quien tiene los suyos)
+estudio.local.json
+
+# La memoria de cada proyecto vive en SU repositorio (rama stl, abierta en .stl/), nunca aquí. La de STL Studio
+# también: en la rama stl de este repositorio. proyectos/ era donde vivía antes.
+.stl/
+proyectos/
+.claude/settings.local.json
+
+# La versión pública de «Qué es STL» (node tools/publicar-stl.ts): se publica aparte, no va en este repositorio
+publico/
+
+# Lo que dejan las revisiones que lanza el Studio (estudio/servidor/revisor.ts): su registro, en este computador
+.revisiones/
+
+# El Studio encendido aparte (tools/encender.ts): su registro y el número de su vigilante, en este computador
+.estudio/

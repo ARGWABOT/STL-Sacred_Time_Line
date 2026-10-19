@@ -1,0 +1,187 @@
+{
+  "actualizado": "2026-10-15",
+  "nota": "La ruta del Director asistente. La escribe el director en su sesión («revisa lo que hay para el director»); lo que decide el equipo va en proyectos/<id>/director/equipo/<persona>.json, desde el Estudio, y lo del proyecto (contexto, objetivo firmado y equipo) en proyectos/<id>/proyecto.json. Lógica: src/director/director.ts. Los proyectos nuevos nacen de esta plantilla (plantilla/plan-nuevo.json): solo la fase 0, hasta que el director diagnostique el repositorio y el titular firme el objetivo.",
+  "mision": "Una misión a la vez, siempre hacia adelante, medida contra la meta fijada.",
+  "revisado": "",
+  "mensaje": {
+    "fecha": "2026-10-15",
+    "texto": "Bienvenido al Studio. Soy el director asistente. Este proyecto es nuevo: cuéntame qué es, qué quieres lograr y cuándo lo darás por completo. Con eso te devuelvo un planteamiento (alcance, supuestos, riesgos y preguntas) y objetivos para firmar; después trazo la ruta.",
+    "personas": {
+      "titular": "Hoy: cuéntame el proyecto en Proyecto (o grábalo en el Buzón) y pídeme el planteamiento con «revisa estudio»."
+    }
+  },
+  "frentes": [
+    {
+      "id": "direccion",
+      "nombre": "Dirección del proyecto",
+      "que": "El diagnóstico, la meta, la ruta y las decisiones del titular.",
+      "rutas": []
+    }
+  ],
+  "fases": [
+    {
+      "id": "arranque",
+      "nombre": "Planteamiento y meta",
+      "etapa": "Concepción",
+      "meta": "Entender bien la idea, hacer explícitos sus supuestos y riesgos, y fijar una meta clara con su definición de terminado.",
+      "porQue": "Un proyecto nuevo se tuerce más por lo que no se dijo que por lo que se hizo mal. Antes de construir, el director devuelve lo que entendió y lo que falta decidir.",
+      "duracion": "Hasta fijar la meta",
+      "puerta": {
+        "nombre": "La meta, clara",
+        "prueba": "El titular fija su meta, con cómo se sabe que se llegó, después de leer el planteamiento. Desde ese día, todo trabajo se mide contra ella."
+      },
+      "frentes": {
+        "direccion": {
+          "nivel": "foco",
+          "que": "Contar el proyecto, leer el planteamiento y fijar la meta. Nada más hasta tener la ruta."
+        }
+      },
+      "criterios": [
+        {
+          "id": "a_contexto",
+          "texto": "El proyecto contado: qué es, qué se quiere lograr y cuándo estará completo",
+          "como": "Estudio › Proyecto: la explicación, el objetivo y la definición de terminado."
+        },
+        {
+          "id": "a_diagnostico",
+          "texto": "El planteamiento del director, hecho",
+          "como": "El director devuelve lo que entendió, el alcance, los supuestos, los riesgos y las preguntas abiertas (pestaña Diagnóstico).",
+          "indicador": "diagnostico"
+        },
+        {
+          "id": "a_leido",
+          "texto": "El planteamiento leído y comentado por el titular",
+          "como": "La misión de leer el planteamiento, aprobada por el director."
+        },
+        {
+          "id": "a_objetivo",
+          "texto": "Una meta clara y fijada, con cómo se sabe que se llegó",
+          "como": "Estudio › Proyecto › La meta.",
+          "indicador": "objetivo"
+        }
+      ],
+      "misiones": [
+        "Contar el proyecto: la explicación, el objetivo y cuándo estará completo.",
+        "El director devuelve el planteamiento y propone metas.",
+        "Leer el planteamiento, comentarlo parte por parte y fijar la meta.",
+        "El director traza la ruta: fases, puertas, frentes y la primera misión."
+      ]
+    }
+  ],
+  "misiones": [
+    {
+      "id": "t_contar",
+      "para": "titular",
+      "fase": "arranque",
+      "frente": "direccion",
+      "xp": 20,
+      "titulo": "Cuéntale tu proyecto al director",
+      "porQue": "En un proyecto nuevo no hay repositorio que leer: todo lo que el director sabe es lo que tú le cuentes. Lo más importante es cuándo lo darás por completo, porque de ahí sale el objetivo.",
+      "pasos": [
+        {
+          "texto": "Abre Proyecto y revisa la explicación, el objetivo y cuándo se considera completo. Corrige lo que haga falta, sin pulir.",
+          "ir": {
+            "vista": "proyecto",
+            "ancla": "p-contexto",
+            "etiqueta": "Abrir Proyecto"
+          }
+        },
+        {
+          "texto": "Lo que prefieras decir en voz alta (referentes, miedos, lo que no quieres), grábalo en el Buzón.",
+          "ir": {
+            "vista": "buzon",
+            "ancla": "escribir",
+            "etiqueta": "Abrir el Buzón"
+          }
+        },
+        {
+          "texto": "Si ya tienes una carpeta o un repositorio para el proyecto, conéctalo. Es opcional.",
+          "ir": {
+            "vista": "proyecto",
+            "ancla": "p-repositorio",
+            "etiqueta": "Ir al repositorio"
+          }
+        },
+        "Marca este último paso (la misión queda entregada) y pide la revisión: el director te devuelve el planteamiento."
+      ],
+      "entrega": "El proyecto contado en Proyecto.",
+      "criterios": [
+        "a_contexto"
+      ]
+    }
+  ],
+  "revisiones": {},
+  "respuestas": {},
+  "evaluacion": {},
+  "boletin": [],
+  "documentos": [
+    {
+      "ruta": "docs/metodo/metodologia.md",
+      "titulo": "El Estudio con director asistente",
+      "porQue": "Cómo trabaja el director y por qué: el método completo."
+    }
+  ],
+  "diagnostico": {
+    "fecha": "",
+    "resumen": [],
+    "frentes": {}
+  },
+  "objetivos": [],
+  "propuestas": [],
+  "ritmo": [
+    "Una misión a la vez: cada persona ve su siguiente misión completa; las demás esperan en cola, sin pasos, para no dispersarse.",
+    "Siempre hacia adelante: lo que ya revisaste queda sellado (✓) y no vuelve a la lista. Si algo cambia, el director escribe un documento nuevo con solo lo que cambió y lo pone como el paso siguiente. Nadie relee lo que ya superó.",
+    "Por hitos, no por fechas: se avanza cuando se cumple lo que pide el director, sin plazos de calendario.",
+    "Solo lo de la fase en curso: el director abre las propuestas y las misiones cuando la ruta llega a ellas.",
+    "Piensa, corrige y luego envía: lo que dejas en el Buzón espera allí, editable, hasta que pidas la revisión. Lo que borres antes nunca le llega al modelo.",
+    "Antes de cada tarea en el repositorio, cada sesión de Claude le pregunta al director (node tools/director/estado.ts y las rutas que va a tocar). Si el frente está en espera, lo dice antes de empezar.",
+    "Si dudas entre agregar y pulir, pule.",
+    "Una idea nueva va primero al Buzón. Entra solo si sirve a la meta y a la fase en curso.",
+    "Cada puerta, con una validación: un hito sin evidencia es un hito a ciegas."
+  ],
+  "lecciones": [
+    {
+      "titulo": "Fases separadas por puertas con criterios",
+      "quien": "Robert G. Cooper, el proceso Stage-Gate",
+      "que": "El trabajo avanza por etapas, y entre una y otra hay una puerta: una decisión explícita, con criterios conocidos de antemano, de seguir, corregir o parar.",
+      "fuente": "https://en.wikipedia.org/wiki/Phase-gate_process",
+      "paraElProyecto": "Cada fase de la ruta tiene su puerta y sus criterios al 100 %; la cruza el titular, nunca el calendario."
+    },
+    {
+      "titulo": "Limitar el trabajo en curso",
+      "quien": "El método Kanban (David J. Anderson)",
+      "que": "Empezar menos cosas a la vez hace que se terminen más: el trabajo a medias es inventario que no da valor y esconde los bloqueos.",
+      "fuente": "https://en.wikipedia.org/wiki/Kanban_(development)",
+      "paraElProyecto": "Una misión a la vez por persona, y los frentes en espera no abren trabajo nuevo sin una excepción con su razón."
+    },
+    {
+      "titulo": "Construir, medir, aprender",
+      "quien": "Eric Ries, The Lean Startup",
+      "que": "Lo que importa no es cuánto se construye sino cuánto se aprende de gente real: el producto mínimo existe para validar una suposición lo antes posible.",
+      "fuente": "https://en.wikipedia.org/wiki/Lean_startup",
+      "paraElProyecto": "Las validaciones con usuarios, clientes o expertos son criterios de las puertas, no un adorno al final."
+    },
+    {
+      "titulo": "Un objetivo con resultados medibles",
+      "quien": "Andy Grove (Intel) y John Doerr, los OKR",
+      "que": "Un objetivo dice a dónde se va; sus resultados clave dicen, con números o hechos comprobables, cómo se sabe que se llegó.",
+      "fuente": "https://en.wikipedia.org/wiki/Objectives_and_key_results",
+      "paraElProyecto": "La meta fijada lleva su criterio de éxito: «cómo sabremos que llegamos»."
+    },
+    {
+      "titulo": "Las decisiones no se reescriben: se registran",
+      "quien": "Michael Nygard, los registros de decisiones de arquitectura (ADR)",
+      "que": "Cada decisión importante queda en un documento corto e inmutable; si cambia, se escribe uno nuevo que reemplaza al anterior, y la historia queda a la vista.",
+      "fuente": "https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions",
+      "paraElProyecto": "Siempre hacia adelante: lo revisado queda sellado y lo que cambia llega en un documento nuevo, corto."
+    },
+    {
+      "titulo": "Acotar el alcance para terminar",
+      "quien": "Ryan Singer, Shape Up (Basecamp)",
+      "que": "Antes de construir se da forma al trabajo: qué problema resuelve, qué entra y, sobre todo, qué no. Recortar alcance es parte del oficio, no un fracaso.",
+      "fuente": "https://basecamp.com/shapeup",
+      "paraElProyecto": "Cada fase dice lo que no se hace (frentes en espera) y las ideas nuevas van al Buzón hasta que sirvan a la meta."
+    }
+  ],
+  "adelantado": []
+}
