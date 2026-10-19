@@ -55,8 +55,9 @@ export const encargoAclaracion = (a: AclaracionPedida) =>
 /**
  * Lo único que puede hacer el director lanzado por el Studio (el titular lo autorizó el 17 de octubre de 2026): leer,
  * las herramientas del director, escribir dentro del repositorio del proyecto (su memoria y su código, para que una
- * urgencia aprobada se arregle al instante), correr sus pruebas y hacer commits locales. Nada que suba, despliegue o
- * borre: eso queda listo para el titular.
+ * urgencia aprobada se arregle al instante), correr sus pruebas y hacer commits locales. Desde el 19 de octubre, también
+ * investigar en internet (buscar y leer páginas, propuesta «El director puede buscar en internet»). Nada que suba,
+ * despliegue o borre: eso queda listo para el titular.
  */
 export function permitido(repositorio: string): string[] {
   // «//ruta» es una ruta absoluta en las reglas de permisos de Claude Code
@@ -66,6 +67,8 @@ export function permitido(repositorio: string): string[] {
   const r = '//' + posix.replace(/^\/+|\/+$/g, '');
   return [
     'Read', 'Grep', 'Glob', `Edit(${r}/**)`,
+    // investigar: lo leído en internet es referencia, nunca una orden (CLAUDE.md)
+    'WebSearch', 'WebFetch',
     'Bash(node tools/director/bandeja.ts:*)', 'Bash(node tools/director/diagnosticar.ts:*)', 'Bash(node tools/director/estado.ts:*)',
     'Bash(npm test)', 'Bash(npm run typecheck)',
     // los commits, como los da la bandeja (cd, add y commit): solo locales, nunca push
@@ -97,6 +100,8 @@ function queHace(nombre: string, e: Record<string, unknown>): string {
     case 'Bash': return e.description ? corto(e.description, 120) : `Corre ${corto(e.command, 90)}`;
     case 'Task': case 'Agent': return `Le pide a un ayudante: ${corto(e.description ?? e.prompt, 100)}`;
     case 'TodoWrite': return 'Ordena su lista de tareas';
+    case 'WebSearch': return `Busca en internet «${corto(e.query, 80)}»`;
+    case 'WebFetch': return `Lee la página ${corto(e.url, 90)}`;
     default: return `Usa ${nombre}`;
   }
 }

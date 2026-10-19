@@ -11,6 +11,8 @@ describe('el director que lanza el Studio', () => {
     expect(p).toContain('Bash(node tools/director/bandeja.ts:*)');
     expect(p).toContain('Bash(git commit:*)');
     expect(permitido('/home/ana/golf/')).toContain('Edit(//home/ana/golf/**)');
+    // investiga en internet: buscar y leer páginas
+    expect(p).toEqual(expect.arrayContaining(['WebSearch', 'WebFetch']));
     // nada que suba, despliegue o borre, ni escribir fuera del repositorio
     expect(p.some((x) => /push|deploy|rm\b|reset|clean/.test(x))).toBe(false);
     expect(p.filter((x) => /^(Edit|Write)/.test(x)).every((x) => x.includes('//c/repos/golf/'))).toBe(true);
