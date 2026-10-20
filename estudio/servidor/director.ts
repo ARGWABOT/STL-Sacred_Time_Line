@@ -1191,7 +1191,7 @@ export function servidorDirector(): Plugin {
             if (m.para !== yo.rol) return responder(res, 400, { error: 'Solo quien tiene la misión puede comprobar su paso.' });
             const carpeta = await leerRutaRepositorio(raiz, id);
             if (!carpeta) return responder(res, 400, { error: 'Este computador no tiene la carpeta del proyecto: no hay dónde comprobarlo.' });
-            return responder(res, 200, { ...(await comprobarPaso(c, carpeta)), espera: c.vacia ? 'que no saliera nada' : c.espera ? `que dijera «${c.espera}»` : 'que la orden terminara bien' });
+            return responder(res, 200, { ...(await comprobarPaso(c, carpeta)), espera: /^\s*no\s+existe\s/.test(c.orden) ? 'que ya no estuviera' : /^\s*existe\s/.test(c.orden) ? 'que estuviera' : c.vacia ? 'que no saliera nada' : c.espera ? `que dijera «${c.espera}»` : 'que la orden terminara bien' });
           }
           if (ruta === '/accion' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);

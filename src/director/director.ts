@@ -261,7 +261,8 @@ export type Paso = string | { texto: string; ir?: Destino; hecho?: Hecho; detall
 
 /**
  * La comprobación de un paso de terminal: una orden de solo lectura que el Studio corre en la carpeta del proyecto
- * (`git log -1 --format=%ae`, `git status --porcelain`, o `existe <ruta>` para ver si un archivo está) y lo que su
+ * (`git log -1 --format=%ae`, `git status --porcelain`, `existe <ruta>` para ver si un archivo está o `no existe <ruta>`
+ * para ver que ya no está) y lo que su
  * salida debe contener (`espera`; sin ella, basta con que la orden termine bien). `vacia`: la salida debe salir vacía
  * (por ejemplo, `git status --porcelain` cuando no debe quedar nada sin guardar).
  */
@@ -279,16 +280,18 @@ const GIT_QUE_LEE = ['log', 'status', 'rev-parse', 'show', 'rev-list', 'ls-files
  * por qué no se acepta. Solo se aceptan órdenes que leen: git con las de `GIT_QUE_LEE` y `existe <ruta>` (dentro del
  * proyecto). Las comillas simples o dobles agrupan un argumento con espacios.
  */
-export function ordenDeComprobacion(orden: string): { programa: 'git' | 'existe'; args: string[] } | { error: string } {
+export function ordenDeComprobacion(orden: string): { programa: 'git' | 'existe' | 'no existe'; args: string[] } | { error: string } {
   if (/[|&;<>`\r\n]|\$\(/.test(orden)) return { error: 'la orden no puede encadenar ni redirigir (sin |, &, ;, <, >, ` ni $( )' };
   const partes = [...orden.trim().matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map((x) => x[1] ?? x[2] ?? x[3]);
-  const [programa, ...args] = partes;
-  if (programa === 'existe') {
-    if (args.length !== 1) return { error: '«existe» lleva una sola ruta' };
-    if (/^([a-z]:|[\\/])/i.test(args[0]) || args[0].split(/[\\/]/).includes('..')) return { error: '«existe» solo mira dentro del proyecto (una ruta relativa, sin ..)' };
+  // «no existe <ruta>»: lo contrario de «existe», para un paso que borra o mueve un archivo
+  const niega = partes[0] === 'no' && partes[1] === 'existe';
+  const [programa, ...args] = niega ? ['no existe', ...partes.slice(2)] : partes;
+  if (programa === 'existe' || programa === 'no existe') {
+    if (args.length !== 1) return { error: `«${programa}» lleva una sola ruta` };
+    if (/^([a-z]:|[\\/])/i.test(args[0]) || args[0].split(/[\\/]/).includes('..')) return { error: `«${programa}» solo mira dentro del proyecto (una ruta relativa, sin ..)` };
     return { programa, args };
   }
-  if (programa !== 'git') return { error: 'solo se comprueba con git o con «existe <ruta>»' };
+  if (programa !== 'git') return { error: 'solo se comprueba con git, con «existe <ruta>» o con «no existe <ruta>»' };
   const [sub, ...resto] = args;
   if (!sub || !GIT_QUE_LEE.includes(sub)) return { error: `solo órdenes de git que leen (${GIT_QUE_LEE.join(', ')})` };
   if (sub === 'branch' && (resto.length !== 1 || resto[0] !== '--show-current')) return { error: '«git branch» solo con --show-current' };

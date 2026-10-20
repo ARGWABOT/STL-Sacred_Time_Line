@@ -97,7 +97,7 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 .registro-m .enlace-m small { flex: none; font-size: 12px; color: var(--tenue); white-space: nowrap; }
 .registro-m li.aprobada .titulo-m { color: var(--suave); text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, 0.25); }
 .icono-m { flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 700; background: #e9e6dd; color: var(--suave); }
-.icono-m.aprobada { background: var(--ok); color: #fff; }
+.icono-m.aprobada { background: var(--ok); color: var(--texto-en-color); }
 .icono-m.entregada { background: #faeeda; color: #7a4a06; }
 .icono-m.rehacer { background: #fcdcdc; color: #791f1f; }
 .icono-m.en_curso { background: #5b86c5; color: #fff; }
@@ -152,7 +152,7 @@ body.director-trabajando .boton-opcion { opacity: 0.45; cursor: not-allowed; }
 .eleccion-paso .icono { width: 16px; height: 16px; }
 /* «Hazlo tú»: el director puede hacer el paso con tu permiso; si solo puedes tú, el paso lo dice */
 .hazlo-paso { display: inline-block; margin-top: 10px; min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-weight: 600; }
-.hazlo-paso:hover, .hazlo-paso:focus-visible { filter: brightness(1.15); }
+.hazlo-paso:hover, .hazlo-paso:focus-visible { background: #45443f; border-color: #45443f; color: #f6e7b4; }
 body.director-trabajando .hazlo-paso { opacity: 0.45; cursor: not-allowed; }
 .solo-tu { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--suave); }
 .solo-tu .icono { flex: none; width: 16px; height: 16px; margin-top: 1px; }
@@ -161,7 +161,12 @@ body.director-trabajando .hazlo-paso { opacity: 0.45; cursor: not-allowed; }
 .orden-paso code { display: block; padding: 8px 10px; border-radius: 8px; background: var(--tinta); color: #f6e7b4; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
 .acciones-orden { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .abrir-terminal { min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-weight: 600; }
-.abrir-terminal:hover, .abrir-terminal:focus-visible { filter: brightness(1.15); }
+.abrir-terminal:hover, .abrir-terminal:focus-visible { background: #45443f; border-color: #45443f; color: #f6e7b4; }
+/* «Ya lo hice»: marca el paso (y, si tiene cómo, el Studio comprueba antes que la orden salió bien) */
+.boton-ya-hice { min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--ok-fondo); border: 1px solid var(--ok); color: var(--ok-texto); font-weight: 600; }
+.boton-ya-hice .icono { width: 16px; height: 16px; }
+.boton-ya-hice:hover, .boton-ya-hice:focus-visible { background: var(--ok); border-color: var(--ok); color: var(--texto-en-color); }
+body.director-trabajando .boton-ya-hice { opacity: 0.45; cursor: not-allowed; }
 /* Un botón que hace esperar lo dice en él mismo, hasta que termina */
 button.esperando { cursor: progress; opacity: 0.75; }
 button.esperando::after { content: ''; display: inline-block; width: 0.8em; height: 0.8em; margin-left: 6px; vertical-align: -0.1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: girar 0.8s linear infinite; }
@@ -185,7 +190,7 @@ button.esperando::after { content: ''; display: inline-block; width: 0.8em; heig
 .mision-c.compacta header b { font-size: 15px; }
 .mision-c.plegada { gap: 8px; }
 .mision-c.sigue { border-color: var(--acento-borde); border-left-color: var(--acento); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.1), var(--sombra); }
-.mision-c .num-m { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; font-weight: 700; background: var(--acento); color: #fff; }
+.mision-c .num-m { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; font-weight: 700; background: var(--acento); color: var(--texto-en-color); }
 .sigue-esta { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; background: var(--acento); padding: 3px 12px; border-radius: 999px; }
 .mision-c .estado-texto { margin: 0; font-size: 14px; color: var(--espera); line-height: 1.5; }
 .mision-c .nota-entrega { margin: 0; font-size: 14px; font-style: italic; }
@@ -253,9 +258,9 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .pasos-arranque li .ir-paso { justify-self: start; margin-top: 4px; }
 .pasos-arranque .num-a { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 26px; height: 26px; border-radius: 50%; font-weight: 700; font-size: 13px; background: #e6e2d8; color: var(--suave); }
 .pasos-arranque li.hecho { background: var(--ok-fondo); border-color: #cfe3bd; }
-.pasos-arranque li.hecho .num-a { background: var(--ok); color: #fff; }
+.pasos-arranque li.hecho .num-a { background: var(--ok); color: var(--texto-en-color); }
 .pasos-arranque li.actual { background: #fff; border-color: var(--acento); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.12); color: var(--texto); }
-.pasos-arranque li.actual .num-a { background: var(--acento); color: #fff; }
+.pasos-arranque li.actual .num-a { background: var(--acento); color: var(--texto-en-color); }
 /* compacto: solo el paso de ahora se explica; los demás, su nombre */
 .pasos-arranque li:not(.actual) small { display: none; }
 .pasos-arranque li:not(.actual) { align-items: center; padding: 10px 12px; }
@@ -275,7 +280,7 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .ruta li.superada .estado-fase { background: #eaf3de; color: #27500a; }
 .ruta li.actual .hito { box-shadow: 0 0 0 4px rgba(47, 95, 179, 0.18); animation: latido 2.4s ease-in-out infinite; }
 .ruta li.actual .hito::after { color: var(--acento); }
-.ruta li.actual .estado-fase { background: var(--acento); color: #fff; }
+.ruta li.actual .estado-fase { background: var(--acento); color: var(--texto-en-color); }
 .ruta li.futura .hito, .ruta li.futura .nombre, .ruta li.futura .etapa { filter: blur(0.4px) grayscale(1); opacity: 0.55; }
 .ruta li.futura .hito::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; z-index: 1; background: radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.25) 60%, transparent 70%); }
 .ruta li.vista button { background: rgba(47, 95, 179, 0.07); outline: 1px solid rgba(47, 95, 179, 0.25); }
@@ -572,11 +577,11 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .doc-l .fila-doc { display: flex; align-items: center; gap: 8px; }
 .num-doc { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; font-weight: 700; background: var(--acento-fondo); color: var(--acento-texto); }
 .doc-l.revisado { opacity: 0.75; }
-.doc-l.revisado .num-doc { background: var(--ok); color: #fff; }
+.doc-l.revisado .num-doc { background: var(--ok); color: var(--texto-en-color); }
 .doc-l.revisado b { text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, 0.3); }
 .doc-l.siguiente { border-color: var(--acento); box-shadow: 0 0 0 2px rgba(47, 95, 179, 0.15); }
-.doc-l.siguiente .num-doc { background: var(--acento); color: #fff; }
-.chip.estado-doc.siguiente { background: var(--acento); color: #fff; }
+.doc-l.siguiente .num-doc { background: var(--acento); color: var(--texto-en-color); }
+.chip.estado-doc.siguiente { background: var(--acento); color: var(--texto-en-color); }
 .chip.estado-doc.revisado { background: #d9eecf; color: #27500a; }
 /* El lector usa todo el ancho que tiene (pedido del titular); quien prefiera líneas más cortas agranda la letra */
 .lector { background: var(--panel); color: var(--texto); border: 1px solid var(--borde); border-radius: var(--radio-g); padding: 16px clamp(18px, 3vw, 36px) 28px; font-size: 16px; line-height: 1.7; box-shadow: var(--sombra); }
@@ -624,7 +629,7 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .parte-doc.rompiendo-parte .comentar-parte, .parte-doc.rompiendo-parte :is(table, pre, img) { opacity: 0; transition: opacity 0.5s; }
 .parte-doc.cerrando-parte { overflow: hidden; opacity: 0; padding-bottom: 0; margin-bottom: 0; transition: height 0.35s ease-in, opacity 0.3s, margin 0.35s, padding 0.35s; }
 @media (prefers-reduced-motion: reduce) { .leido-parte .icono { transition: none; } }
-.doc-l.leido .num-doc { background: var(--ok); color: #fff; }
+.doc-l.leido .num-doc { background: var(--ok); color: var(--texto-en-color); }
 .chip.estado-doc.leido { background: #d9eecf; color: #27500a; }
 /* Lo que viene después en el orden de lectura se ve, pero no se abre hasta terminar el que sigue */
 .doc-l.despues:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -784,15 +789,15 @@ body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas],
 .salud li > div { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; }
 .salud li small { color: var(--suave); font-size: 13px; }
 .salud .icono-s { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 24px; height: 24px; border-radius: 50%; font-weight: 700; font-size: 12px; background: #e9e6dd; color: var(--suave); }
-.salud li.ok .icono-s { background: var(--ok); color: #fff; }
-.salud li.falta .icono-s { background: var(--peligro); color: #fff; }
+.salud li.ok .icono-s { background: var(--ok); color: var(--texto-en-color); }
+.salud li.falta .icono-s { background: var(--peligro); color: var(--texto-en-color); }
 
 /* ── La cabecera del proyecto (estilos.css le da el armazón) ── */
 .cabeza-fila { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; }
 .cabeza-fila.segunda { align-items: center; justify-content: flex-start; gap: 10px 18px; }
 .acciones-cabeza { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 /* Pedir revisión y en qué va (estudio/src/director.ts › botonRevision) */
-.pedir-revision .cifra { margin-left: 2px; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--acento); color: #fff; font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
+.pedir-revision .cifra { margin-left: 2px; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--acento); color: var(--texto-en-color); font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
 .estado-revision { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: var(--radio); font-size: 13.5px; border: 1px solid var(--acento-borde); background: var(--acento-fondo); color: var(--acento-texto); }
 .estado-revision.en-curso { gap: 0; }
 .estado-revision .enlace { font-size: 13px; margin-left: 4px; }
@@ -860,9 +865,9 @@ body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas],
 /* El botón «¿Dónde quedamos?»: mientras quede algo por leer se distingue y late suave, sin parar; lo nuevo del director, más */
 [data-donde-quedamos] .cifra { margin-left: 6px; }
 [data-donde-quedamos].por-leer { border-color: var(--acento); background: var(--acento-fondo); color: var(--acento-texto); font-weight: 650; animation: latido 2.6s ease-in-out infinite; }
-[data-donde-quedamos].por-leer .cifra { background: var(--acento); color: #fff; }
-[data-donde-quedamos].por-leer.hay-novedades { background: var(--acento); color: #fff; animation-duration: 1.8s; }
-[data-donde-quedamos].por-leer.hay-novedades .icono { color: #fff; }
+[data-donde-quedamos].por-leer .cifra { background: var(--acento); color: var(--texto-en-color); }
+[data-donde-quedamos].por-leer.hay-novedades { background: var(--acento); color: var(--texto-en-color); animation-duration: 1.8s; }
+[data-donde-quedamos].por-leer.hay-novedades .icono { color: var(--texto-en-color); }
 [data-donde-quedamos].por-leer.hay-novedades .cifra { background: #fff; color: var(--acento-texto); }
 /* Lo que se explica una vez y después estorba, plegado: el Buzón y la guía de validaciones */
 details.explica-buzon > summary, .guia-plegada > summary { cursor: pointer; font-weight: 650; color: var(--suave); }
@@ -1150,7 +1155,7 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .idea-juntos { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; padding: 12px 14px; border: 1px solid #d6d0f5; border-radius: var(--radio-g); background: #f3f0fd; font-size: 13.5px; line-height: 1.45; }
 .idea-icono { display: block; width: 42px; height: 42px; }
 .idea-resultado { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 14px 16px; border: 1px solid #cfe5c4; border-radius: var(--radio-g); background: var(--ok-fondo); }
-.idea-check { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ok); color: #fff; font-weight: 800; font-size: 18px; }
+.idea-check { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ok); color: var(--texto-en-color); font-weight: 800; font-size: 18px; }
 .idea-resultado > div > b { font-size: 16px; }
 .idea-resultado > div > b span { color: var(--ok-texto); }
 .idea-resultado p { margin: 4px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--suave); }
@@ -1268,7 +1273,7 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .qa > li { counter-increment: qa; padding: 16px 0; border-bottom: 1px dashed var(--borde); }
 .qa > li:last-child { border-bottom: 0; padding-bottom: 0; }
 .pregunta-qa { position: relative; padding-left: 36px; }
-.pregunta-qa::before { content: counter(qa); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--acento); color: #fff; }
+.pregunta-qa::before { content: counter(qa); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--acento); color: var(--texto-en-color); }
 .pregunta-qa p { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.45; }
 .pregunta-qa small { display: block; margin-top: 2px; }
 .pregunta-qa .transcripcion { font-size: 15px; font-weight: 550; }

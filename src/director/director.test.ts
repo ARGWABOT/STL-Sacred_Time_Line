@@ -826,6 +826,9 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     expect(corre({ orden: 'git config user.name x' })).toHaveLength(1);
     expect(corre({ orden: 'git diff --output=x' })).toHaveLength(1);
     expect(corre({ orden: 'existe ../afuera' })).toHaveLength(1);
+    expect(corre({ orden: 'no existe docs/.env' })).toEqual([]);
+    expect(corre({ orden: 'no existe ../afuera' })).toHaveLength(1);
+    expect(ordenDeComprobacion('no existe "docs/a b.txt"')).toEqual({ programa: 'no existe', args: ['docs/a b.txt'] });
     expect(corre({ orden: 'git status --porcelain', vacia: true, espera: 'x' })).toHaveLength(1);
     expect(con({ texto: 'Sin orden', comprobar: { orden: 'git status' } })).toHaveLength(1);
     expect(ordenDeComprobacion('git log -1 "--format=%an %ae"')).toEqual({ programa: 'git', args: ['log', '-1', '--format=%an %ae'] });

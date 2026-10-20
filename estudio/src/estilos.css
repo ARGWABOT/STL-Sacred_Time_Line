@@ -27,6 +27,10 @@
   --peligro: #b3362f;
   --peligro-fondo: #fcebeb;
   --peligro-texto: #791f1f;
+  --peligro-hover: #962c26;
+  /* el texto sobre un fondo de color (el acento, el verde, el rojo): blanco aquí; en el tema oscuro esos fondos son
+     claros y el texto va oscuro (blanco sobre ellos no llega al contraste mínimo) */
+  --texto-en-color: #fff;
   /* lo que va al Buzón del director: siempre el mismo sobre dorado */
   --sobre: #fffdf5;
   --sobre-borde: #ecdcae;
@@ -75,6 +79,8 @@ html.oscuro {
   --peligro: #e06a62;
   --peligro-fondo: #3a1f1d;
   --peligro-texto: #f3b2ac;
+  --peligro-hover: #f3b2ac;
+  --texto-en-color: #10151f;
   --sobre: #2e2a1c;
   --sobre-borde: #574d2f;
   --sobre-texto: #f0dfa6;
@@ -99,13 +105,18 @@ button, .boton {
   border: 1px solid var(--borde-fuerte); background: var(--panel); color: var(--texto); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; text-align: center;
 }
-button:hover, .boton:hover { background: var(--panel-suave); border-color: var(--borde-fuerte); }
-button.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+/* El paso del ratón de cualquier botón, con el peso de una sola clase: un botón con su propio fondo (oscuro, de color)
+   lo conserva al pasar por encima, y su texto se sigue leyendo. Antes, este fondo claro tapaba el suyo y dejaba, por
+   ejemplo, el texto amarillo de «Abrir la terminal con esta orden» sobre blanco */
+:where(button, .boton):hover { background: var(--panel-suave); border-color: var(--borde-fuerte); }
+button.primario { background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); font-weight: 600; }
 button.primario:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
 button.primario.grande { min-height: 44px; padding: 10px 20px; font-size: 15px; }
-button.peligro { background: var(--peligro); border-color: var(--peligro); color: #fff; font-weight: 600; }
-button.peligro:hover { background: #962c26; border-color: #962c26; }
-button:disabled, button:disabled:hover { opacity: 0.5; cursor: default; background: var(--panel); }
+button.peligro { background: var(--peligro); border-color: var(--peligro); color: var(--texto-en-color); font-weight: 600; }
+button.peligro:hover { background: var(--peligro-hover); border-color: var(--peligro-hover); }
+/* Deshabilitado, se apaga pero conserva su fondo (con el blanco de antes, un botón oscuro quedaba ilegible) */
+button:disabled { opacity: 0.5; cursor: default; }
+:where(button:disabled):hover { background: var(--panel); }
 button.primario:disabled { background: var(--acento); }
 button.enlace { display: inline; min-height: 0; border: 0; background: none; padding: 0; color: var(--acento); font-size: inherit; text-decoration: underline; text-underline-offset: 2px; }
 button.enlace:hover { background: none; color: var(--acento-oscuro); }
@@ -171,7 +182,7 @@ button.insignia { border: 0; min-height: 30px; padding: 4px 10px; font-size: 13p
 .texto-p b, .texto-p small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .texto-p b { font-size: 15px; }
 .texto-p small { font-size: 12.5px; color: var(--suave); font-weight: 400; }
-.alerta-punto { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--peligro); color: #fff; font-size: 12px; font-weight: 800; }
+.alerta-punto { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--peligro); color: var(--texto-en-color); font-size: 12px; font-weight: 800; }
 .flecha-p { width: 16px; height: 16px; color: var(--suave); }
 .boton-proyecto[aria-expanded='true'] .flecha-p { transform: rotate(180deg); }
 .menu-proyectos {
@@ -220,13 +231,15 @@ details.grupo-nav > summary:focus-visible { outline: 2px solid var(--acento); ou
 .item-nav.sel { background: var(--panel); box-shadow: var(--sombra); font-weight: 650; color: var(--acento-texto); }
 .item-nav.sel .icono { color: var(--acento); }
 .cifra { flex: none; display: inline-grid; place-items: center; min-width: 22px; height: 21px; padding: 0 7px; border-radius: 999px; background: #e1ddd2; color: var(--suave); font-size: 12px; font-weight: 700; font-style: normal; }
-.cifra.accion { background: var(--acento); color: #fff; }
+.cifra.accion { background: var(--acento); color: var(--texto-en-color); }
 .pie-lateral { margin-top: auto; position: sticky; bottom: -14px; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-inline: -12px; padding: 12px 12px 14px; background: var(--lateral-fondo); border-top: 1px solid var(--borde); }
 .identidad { display: flex; flex-wrap: wrap; gap: 6px; }
 .identidad.con-vista #quien:not(.sin) { display: none; }
 .fila-pie { display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.enlace-stl { min-height: 30px; padding: 4px 6px; border: 0; background: none; color: var(--acento); font-size: 13px; text-decoration: underline; text-underline-offset: 2px; }
-.enlace-stl:hover { background: none; color: var(--acento-oscuro); }
+/* «Qué es STL Studio»: todo el ancho del pie, oscuro y con el texto claro; abre la página pública en GitHub */
+.enlace-stl { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 12px; border-radius: 10px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-size: 14px; font-weight: 650; text-decoration: none; box-shadow: var(--sombra); }
+.enlace-stl:hover, .enlace-stl:focus-visible { background: #45443f; border-color: #45443f; color: #f6e7b4; }
+html.oscuro .enlace-stl { border-color: var(--borde-fuerte); }
 
 /* el contenido: la cabecera del proyecto y la sección abierta usan todo el ancho (pedido del titular: nada de márgenes
    vacíos a los lados). A la derecha, el espacio justo para la columna flotante del director y sus atajos */
@@ -259,11 +272,11 @@ html.lateral-plegada :is(.cabeza-proyecto, .tablero) { padding-left: 56px; }
 .atajo::before { content: attr(data-etiqueta); position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); padding: 4px 10px; border-radius: 8px; background: var(--tinta); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
 .atajo:hover::before, .atajo:focus-visible::before { opacity: 1; }
 /* cuántas preguntas tienes en tu lote, sin enviar */
-.atajo[data-cifra]:not([data-cifra=''])::after { content: attr(data-cifra); position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; background: var(--acento); color: #fff; font-size: 11.5px; font-weight: 800; box-shadow: 0 0 0 2px var(--fondo); }
+.atajo[data-cifra]:not([data-cifra=''])::after { content: attr(data-cifra); position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; background: var(--acento); color: var(--texto-en-color); font-size: 11.5px; font-weight: 800; box-shadow: 0 0 0 2px var(--fondo); }
 body.sin-proyectos .atajos-director, body.sin-proyectos .selector-proyecto, body.sin-proyectos .navegacion, body.sin-proyectos .identidad { display: none !important; }
 /* el atajo de la revisión: azul mientras está pedida o en curso; rojo si nadie la está mirando */
-.atajo.activo { background: var(--acento); color: #fff; }
-.atajo.alerta { background: var(--peligro); color: #fff; animation: latido-atajo 1.6s ease-in-out infinite; }
+.atajo.activo { background: var(--acento); color: var(--texto-en-color); }
+.atajo.alerta { background: var(--peligro); color: var(--texto-en-color); animation: latido-atajo 1.6s ease-in-out infinite; }
 @keyframes latido-atajo { 50% { box-shadow: 0 0 0 6px rgba(179, 54, 47, 0.25), 0 4px 14px rgba(0, 0, 0, 0.25); } }
 /* Lo que pasa en segundo plano (transcripciones, la revisión): una pastilla sobre los atajos, siempre a la vista */
 .segundo-plano { position: fixed; right: 24px; bottom: 258px; z-index: 6; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
@@ -272,7 +285,7 @@ body.sin-proyectos .atajos-director, body.sin-proyectos .selector-proyecto, body
 body.director-trabajando .segundo-plano { bottom: 310px; }
 .sp-linea { pointer-events: auto; display: inline-flex; align-items: baseline; gap: 0; padding: 5px 12px; border-radius: 999px; background: var(--tinta); color: #f6f2e6; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2); }
 button.sp-linea { width: auto; min-height: 0; border: 0; font-weight: 600; cursor: pointer; }
-.sp-linea.alerta { background: var(--peligro); color: #fff; }
+.sp-linea.alerta { background: var(--peligro); color: var(--texto-en-color); }
 body.sin-proyectos .segundo-plano { display: none !important; }
 /* Lo que va haciendo el director mientras revisa: un panel junto a sus atajos, que avanza en vivo */
 .progreso-director { position: fixed; right: 90px; bottom: 99px; z-index: 7; width: min(440px, calc(100vw - var(--lateral) - 130px)); max-height: min(60vh, 520px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--borde-fuerte); border-radius: var(--radio-g); box-shadow: var(--sombra-alta); font-size: 14px; }

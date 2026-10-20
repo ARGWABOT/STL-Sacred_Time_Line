@@ -15,11 +15,12 @@ import { cumpleComprobacion, ordenDeComprobacion, type Comprobacion } from '../.
 export async function comprobarPaso(c: Comprobacion, carpeta: string): Promise<{ cumple: boolean; encontrado: string }> {
   const o = ordenDeComprobacion(c.orden);
   if ('error' in o) return { cumple: false, encontrado: `La comprobación no se puede correr: ${o.error}.` };
-  if (o.programa === 'existe') {
+  if (o.programa === 'existe' || o.programa === 'no existe') {
     const ruta = resolve(carpeta, o.args[0]);
     const dentro = ruta === resolve(carpeta) || ruta.startsWith(resolve(carpeta) + sep);
-    const esta = dentro && existsSync(ruta);
-    return { cumple: esta, encontrado: esta ? `${o.args[0]} está.` : `${o.args[0]} no está en la carpeta del proyecto.` };
+    if (!dentro) return { cumple: false, encontrado: `${o.args[0]} queda fuera de la carpeta del proyecto.` };
+    const esta = existsSync(ruta);
+    return { cumple: o.programa === 'existe' ? esta : !esta, encontrado: esta ? `${o.args[0]} está.` : `${o.args[0]} no está en la carpeta del proyecto.` };
   }
   return new Promise((ok) => execFile('git', o.args, { cwd: carpeta, windowsHide: true, timeout: 15_000, maxBuffer: 1024 * 1024 }, (e, out, err) => {
     const salida = String(out ?? '');

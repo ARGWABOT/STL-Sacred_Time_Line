@@ -1599,7 +1599,7 @@ function listaPasos(m: Mision) {
 
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? botonIr(p.ir) : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p.terminal) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i)) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? botonIr(p.ir) : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i)) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
 }
 
 /**
@@ -1615,10 +1615,16 @@ function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean):
 
 /**
  * La orden de terminal de un paso: a la vista, con «Copiar» y, para quien tiene la misión, «Abrir la terminal con esta
- * orden», que abre una ventana nueva y la corre ahí (no hay que buscar la terminal ni dónde pegarla).
+ * orden», que abre una ventana nueva y la corre ahí (no hay que buscar la terminal ni dónde pegarla). Mientras el paso
+ * no está hecho, «Ya lo hice» lo marca como la estrella: si el paso tiene `comprobar`, el Studio lo comprueba antes.
  */
-function ordenPaso(m: Mision, i: number, orden: string): string {
-  return `<div class="orden-paso"><code>${esc(orden)}</code><div class="acciones-orden">${d.identidad.rol === m.para ? `<button type="button" class="abrir-terminal" data-terminal="${esc(m.id)}|${i}" title="Abre una ventana de terminal nueva y corre esta orden ahí">Abrir la terminal con esta orden</button>` : ''}<button type="button" class="boton-suave" data-copiar-orden="${esc(orden)}" title="Copia la orden para pegarla en tu terminal">Copiar</button></div></div>`;
+function ordenPaso(m: Mision, i: number, p: Exclude<Paso, string>, pendiente: boolean): string {
+  const orden = p.terminal ?? '';
+  const mia = d.identidad.rol === m.para;
+  const yaHice = mia && pendiente
+    ? `<button type="button" class="boton-ya-hice" data-ya-hice="${esc(m.id)}|${i}" title="${p.comprobar ? 'El Studio comprueba que la orden salió bien y, si es así, marca el paso' : 'Marca el paso como hecho'}">${icono('check')} Ya lo hice</button>`
+    : '';
+  return `<div class="orden-paso"><code>${esc(orden)}</code><div class="acciones-orden">${mia ? `<button type="button" class="abrir-terminal" data-terminal="${esc(m.id)}|${i}" title="Abre una ventana de terminal nueva y corre esta orden ahí">Abrir la terminal con esta orden</button>` : ''}<button type="button" class="boton-suave" data-copiar-orden="${esc(orden)}" title="Copia la orden para pegarla en tu terminal">Copiar</button>${yaHice}</div></div>`;
 }
 
 /**
@@ -3398,7 +3404,15 @@ async function clicEnVista(b: HTMLButtonElement) {
     b.removeAttribute('disabled');
     if (r instanceof Error) return avisar('No se pudo hablar con el servidor del Studio.');
     if (!r.ok) return avisar((await r.json().catch(() => ({}))).error ?? 'No se pudo abrir la terminal.');
-    avisar('Se abrió una ventana de terminal con la orden corriendo: síguela ahí hasta que diga que terminó.', true);
+    const p = d.plan.misiones.find((x) => x.id === mision)?.pasos[Number(i)];
+    avisar(`Se abrió una ventana de terminal con la orden corriendo. Cuando diga que terminó, oprime «Ya lo hice»${typeof p !== 'string' && p?.comprobar ? ': el Studio comprueba que salió bien y marca el paso' : ' y el paso se marca'}.`, true);
+  } else if (ds.yaHice) {
+    // «Ya lo hice»: lo mismo que la estrella del paso (con su comprobación, si la tiene), a la vista junto a la orden
+    const casilla = $('vista').querySelector<HTMLInputElement>(`[data-paso="${CSS.escape(ds.yaHice)}"]`);
+    if (casilla && !casilla.checked) {
+      casilla.checked = true;
+      casilla.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   } else if (ds.aclarar) {
     const [id, i] = ds.aclarar.split('|');
     await pedirAclaracion(id, Number(i));
