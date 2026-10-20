@@ -11,7 +11,7 @@ import { spawn } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join, relative } from 'node:path';
-import { leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, pedirRevision, type AclaracionPedida } from '../../src/director/proyectos';
+import { leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
 
 /** Lo que el Studio muestra del revisor: si revisa solo, o por qué no puede. */
 export interface EstadoRevisor {
@@ -51,6 +51,28 @@ export const encargoAclaracion = (a: AclaracionPedida) =>
   `plan, responde solo esa nota y cierra con node tools/director/bandeja.ts --proyecto ${a.proyecto} --aclarar --listo y ` +
   `el commit en la memoria del proyecto. No toques el código. Tus permisos no aceptan órdenes encadenadas con &&: da cd ` +
   `a la carpeta, luego git add y luego git commit, cada una por separado.`;
+
+/** Una urgencia puede llevar un arreglo con sus pruebas: tiene más tiempo que una aclaración, menos que una revisión. */
+export const MAX_MIN_URGENCIA = 30;
+
+/**
+ * Lo que se le encarga al director cuando alguien marcó una nota como urgente: solo esas notas, al instante, sin el
+ * resto de la revisión. El resultado vuelve como reporte en «Dónde quedamos», no como trabajo nuevo.
+ */
+export const encargoUrgencia = (u: UrgenciaPedida) =>
+  `Urgencia pedida desde el Studio para el proyecto «${u.proyecto}»: ${u.quien} marcó como urgente ` +
+  `${u.notas.length === 1 ? 'una nota' : `${u.notas.length} notas`} del Buzón. Eres el director asistente de STL Studio y te ` +
+  `lanzó el Studio, sin pantalla: nadie lee esta salida, así que todo lo que el titular deba saber va en el Studio. Atiende ` +
+  `SOLO esas notas: NO hagas la revisión completa ni respondas nada más (las demás notas, entregas y documentos esperan la ` +
+  `revisión siguiente). Corre node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente y sigue lo que dice. Puedes ` +
+  `escribir en el repositorio del proyecto, su memoria y su código, solo para lo que el titular aprobó o pidió en el Studio ` +
+  `y con las normas de ese proyecto: pruebas en verde y commits locales. Nunca subas, despliegues ni borres nada: si algo ` +
+  `lo necesita, déjalo listo y dilo en la respuesta. Tus permisos no aceptan órdenes encadenadas con &&: para cada commit ` +
+  `da cd a la carpeta, luego git add y luego git commit, cada una por separado. Cierra con ` +
+  `node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo y el commit en la memoria del proyecto.`;
+
+/** Lo que se lanza aparte de la revisión: una aclaración o una urgencia. */
+type Aparte = { tipo: 'aclaracion'; a: AclaracionPedida } | { tipo: 'urgencia'; u: UrgenciaPedida };
 
 /**
  * Lo único que puede hacer el director lanzado por el Studio (el titular lo autorizó el 17 de octubre de 2026): leer,
@@ -262,8 +284,9 @@ export class Revisor {
   }
 
   /**
-   * Si hay una aclaración o una revisión pedida que nadie tomó, lanza al director. La aclaración va primero: es corta y
-   * alguien está esperando para seguir con su misión. Sin modelo: solo lee estudio.local.json.
+   * Si hay una urgencia, una aclaración o una revisión pedida que nadie tomó, lanza al director. La urgencia va primero
+   * (no puede esperar), luego la aclaración (es corta y alguien espera para seguir con su misión). Las dos esperan a una
+   * revisión en marcha, que también escribe el plan. Sin modelo: solo lee estudio.local.json.
    */
   async mirar(forzar = false): Promise<void> {
     if (this.hijo || this.ocupado) return;
@@ -272,16 +295,29 @@ export class Revisor {
       const local = await leerLocal(this.raiz);
       const r = local.revision;
       const a = local.aclaracion;
+      const u = local.urgencia;
+      const revisando = !!r && !r.hecha && !!(r.enCurso || r.lanzada);
+      if (urgenciaActiva(u)) {
+        if (u.lanzada) {
+          // Lanzada por un servidor del Studio que ya no está: pasado el límite, queda para la revisión
+          if (Date.now() - Date.parse(u.lanzada) > (MAX_MIN_URGENCIA + 5) * 60_000) await this.falloUrgencia(u, `La urgencia no terminó en ${MAX_MIN_URGENCIA} minutos.`);
+        } else if (!revisando) {
+          await this.preparar(forzar);
+          const repositorio = await leerRutaRepositorio(this.raiz, u.proyecto);
+          if (!this.programa || this.problema || !repositorio) return void (await this.falloUrgencia(u, 'El Studio no puede llamar al director en este computador.'));
+          return void (await this.lanzar(u.proyecto, this.programa, repositorio, { tipo: 'urgencia', u }));
+        }
+      }
       if (a && !a.hecha && !a.error) {
         if (a.lanzada) {
           // Lanzada por un servidor del Studio que ya no está: pasado el límite, queda para la revisión
           if (Date.now() - Date.parse(a.lanzada) > (MAX_MIN_ACLARAR + 5) * 60_000) await this.fallo(a, `La aclaración no terminó en ${MAX_MIN_ACLARAR} minutos.`);
-        } else if (!(r && !r.hecha && (r.enCurso || r.lanzada))) {
+        } else if (!revisando) {
           // Una revisión en marcha también escribe el plan: la aclaración espera a que termine
           await this.preparar(forzar);
           const repositorio = await leerRutaRepositorio(this.raiz, a.proyecto);
           if (!this.programa || this.problema || !repositorio) return void (await this.fallo(a, 'El Studio no puede llamar al director en este computador.'));
-          return void (await this.lanzar(a.proyecto, this.programa, repositorio, a));
+          return void (await this.lanzar(a.proyecto, this.programa, repositorio, { tipo: 'aclaracion', a }));
         }
       }
       if (!r || r.hecha || r.error) return;
@@ -305,21 +341,29 @@ export class Revisor {
     if (!r || r.hecha || r.proyecto !== a.proyecto) await pedirRevision(this.raiz, a.proyecto, a.quien);
   }
 
-  private async lanzar(proyecto: string, programa: string, repositorio: string, aclaracion?: AclaracionPedida): Promise<void> {
+  /** La urgencia no se pudo: lo dice, y las notas (que ya están en el Buzón) quedan para la revisión, que se pide. */
+  private async falloUrgencia(u: UrgenciaPedida, problema: string): Promise<void> {
+    await marcarUrgencia(this.raiz, u.pedida, { error: problema });
+    const r = (await leerLocal(this.raiz)).revision;
+    if (!r || r.hecha || r.proyecto !== u.proyecto) await pedirRevision(this.raiz, u.proyecto, u.quien);
+  }
+
+  private async lanzar(proyecto: string, programa: string, repositorio: string, aparte?: Aparte): Promise<void> {
     const carpeta = join(this.raiz, '.revisiones');
     mkdirSync(carpeta, { recursive: true });
-    // La de una aclaración lleva su nombre: así no se confunde con el registro de la revisión (progresoDeProyecto)
-    const archivo = join(carpeta, `${proyecto}-${aclaracion ? 'aclaracion-' : ''}${new Date().toISOString().replace(/[:.]/g, '-')}.log`);
+    // La de una aclaración o una urgencia lleva su nombre: así no se confunde con el registro de la revisión (progresoDeProyecto)
+    const archivo = join(carpeta, `${proyecto}-${aparte ? `${aparte.tipo}-` : ''}${new Date().toISOString().replace(/[:.]/g, '-')}.log`);
     const registro = openSync(archivo, 'a');
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
     const args = ['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
     this.hijo = proyecto;
-    if (aclaracion) await marcarAclaracion(this.raiz, aclaracion.nota, 'lanzada');
+    if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
+    else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
     else await marcarLanzada(this.raiz, proyecto);
     const p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] });
-    p.stdin?.end(aclaracion ? encargoAclaracion(aclaracion) : encargo(proyecto));
-    const limite = setTimeout(() => p.kill(), (aclaracion ? MAX_MIN_ACLARAR : MAX_MIN) * 60_000);
+    p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u) : encargo(proyecto));
+    const limite = setTimeout(() => p.kill(), (aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : MAX_MIN) * 60_000);
     let cerrado = false;
     const fin = async (problema: string) => {
       if (cerrado) return;
@@ -327,12 +371,15 @@ export class Revisor {
       clearTimeout(limite);
       closeSync(registro);
       this.hijo = null;
-      if (aclaracion) {
+      if (aparte?.tipo === 'aclaracion') {
         const a = (await leerLocal(this.raiz)).aclaracion;
-        if (a?.nota === aclaracion.nota && !a.hecha) await this.fallo(a, problema.replace('La revisión', 'La aclaración'));
-        // Lo que esperaba (una revisión pedida mientras tanto) se lanza ya
-        return void this.mirar().catch(() => {});
+        if (a?.nota === aparte.a.nota && !a.hecha) await this.fallo(a, problema.replace('La revisión', 'La aclaración'));
+      } else if (aparte?.tipo === 'urgencia') {
+        const u = (await leerLocal(this.raiz)).urgencia;
+        if (u?.pedida === aparte.u.pedida && !u.hecha) await this.falloUrgencia(u, problema.replace('La revisión', 'La urgencia'));
       }
+      // Lo que esperaba (otra urgencia, una aclaración o una revisión pedida mientras tanto) se lanza ya
+      if (aparte) return void this.mirar().catch(() => {});
       const r = (await leerLocal(this.raiz)).revision;
       if (r?.proyecto === proyecto && !r.hecha) await marcarLanzada(this.raiz, proyecto, `${problema} Lo que alcanzó a hacer quedó en ${relative(this.raiz, archivo)}.`);
     };

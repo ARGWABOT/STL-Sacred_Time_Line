@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { validarPlan, validarProyecto } from './director';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, memoriaDe, olvidarProyecto, pedirRevision, proyectosLocales, rutasDe, SUBE_SOLO, ubicar } from './proyectos';
+import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -136,5 +136,28 @@ describe('la revisión pedida desde el Studio', () => {
     await marcarRevision(raiz, 'rev', 'hecha');
     await marcarLanzada(raiz, 'rev');
     expect((await leerLocal(raiz)).revision?.lanzada).toBeUndefined();
+  });
+});
+
+describe('lo urgente, solo y al instante', () => {
+  it('se suma a la pedida; con el director ya atendiendo, espera y se lanza al terminar', async () => {
+    const u1 = (await pedirUrgencia(raiz, { proyecto: 'urg', notas: ['n1'], quien: 'Laura' }))!;
+    await pedirUrgencia(raiz, { proyecto: 'urg', notas: ['n1', 'n2'], quien: 'Laura' });
+    expect((await leerLocal(raiz)).urgencia?.notas).toEqual(['n1', 'n2']);
+    await marcarUrgencia(raiz, u1.pedida, 'lanzada');
+    await pedirUrgencia(raiz, { proyecto: 'urg', notas: ['n1', 'n2', 'n3'], quien: 'Laura' });
+    expect((await leerLocal(raiz)).urgencia).toMatchObject({ notas: ['n1', 'n2'], luego: ['n3'], lanzada: expect.any(String) });
+    // Otro proyecto no se mete en la que está en curso
+    expect(await pedirUrgencia(raiz, { proyecto: 'otro', notas: ['x'], quien: 'Laura' })).toBeNull();
+    await marcarUrgencia(raiz, u1.pedida, 'hecha');
+    const u2 = (await leerLocal(raiz)).urgencia!;
+    expect(u2).toMatchObject({ proyecto: 'urg', notas: ['n3'] });
+    expect(u2.lanzada ?? u2.hecha ?? u2.luego).toBeUndefined();
+    expect(urgenciaActiva(u2)).toBe(true);
+    // Lo que ya no es la de ahora no la cambia
+    await marcarUrgencia(raiz, u1.pedida, { error: 'vieja' });
+    expect((await leerLocal(raiz)).urgencia?.error).toBeUndefined();
+    await marcarUrgencia(raiz, u2.pedida, { error: 'Se cortó.' });
+    expect(urgenciaActiva((await leerLocal(raiz)).urgencia)).toBe(false);
   });
 });

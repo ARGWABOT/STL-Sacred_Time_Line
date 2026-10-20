@@ -15,6 +15,8 @@
 //                                                         es lo que mira la sesión del director en su ciclo (/vigila).
 //      node tools/director/bandeja.ts --aclarar        → el paso que alguien no entendió («No lo entiendo»): solo eso,
 //                                                         sin el resto de la revisión; con --listo, la cierra.
+//      node tools/director/bandeja.ts --urgente        → las notas urgentes que el Studio lanzó solas, al instante: solo
+//                                                         eso; con --listo, la cierra.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -38,7 +40,7 @@ import {
   validarProyecto,
 } from '../../src/director/director.ts';
 import { fechaDeCambio, leerFresco } from '../../src/director/fresco.ts';
-import { enDisco as enDiscoDe, leerLocal, marcarAclaracion, marcarRevision, marcarVigilia, rutasDe } from '../../src/director/proyectos.ts';
+import { enDisco as enDiscoDe, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { comandoTranscripcion } from '../../src/director/transcripcion.ts';
 import { argumentos, colaDeDiagnosticos, leerTodo, memoria, nombreDe, otrosProyectos, POR_REVISION, proyectoElegido, raiz } from './comun.ts';
 
@@ -113,6 +115,70 @@ if (args.includes('--aclarar')) {
   l(`2. En \`respuestas\`, la de la nota ${a.nota}: \`{ "cuando": "<ISO ahora>", "tratamiento": "integrada", "texto": "<qué no estaba claro y cómo quedó, en una o dos frases>", "destino": { "vista": "misiones", "ancla": "mision-${m.id}", "etiqueta": "Ver el paso" } }\`. El Studio la muestra debajo del paso.`);
   l('3. No toques el mensaje, el resumen ni nada más: eso es de la revisión.');
   l(`4. Cierra: \`node tools/director/bandeja.ts --proyecto ${elegido} --aclarar --listo\` y el commit en la memoria: cd "${memoria(elegido)}", luego git add director/plan.json, luego git commit -m "Director (${elegido}): aclara el paso ${a.paso + 1} de ${m.id}" -- director/plan.json.`);
+  process.exit(0);
+}
+
+// Lo urgente: solo esas notas, al instante, sin el resto de la revisión. El resultado vuelve como reporte en «Dónde
+// quedamos»; si el titular tiene que comprobarlo, una sola misión: revisar el resultado
+if (args.includes('--urgente')) {
+  const elegido = await proyectoElegido(pedido);
+  const local = await leerLocal(raiz);
+  const u = local.urgencia?.proyecto === elegido && urgenciaActiva(local.urgencia) ? local.urgencia : undefined;
+  if (!u) {
+    console.error(local.urgencia?.error ? `Esa urgencia ya no se hace aquí (${local.urgencia.error}): las notas esperan la revisión.` : 'No hay ninguna urgencia pedida para este proyecto.');
+    process.exit(1);
+  }
+  if (args.includes('--listo')) {
+    const { plan, estado, proyecto } = await leerTodo(pedido, false);
+    const errores = validarPlan(plan, proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : undefined);
+    const sinRespuesta = u.notas.filter((n) => !plan.respuestas?.[n]);
+    const sinDestino = respuestasSinDestino(plan, estado.notas.filter((n) => u.notas.includes(n.id)), u.pedida).filter((n) => u.notas.includes(n));
+    if (sinRespuesta.length || sinDestino.length || errores.length) {
+      for (const n of sinRespuesta) console.error(`No se cerró la urgencia: falta la respuesta a la nota ${n}.`);
+      for (const n of sinDestino) console.error(`No se cerró la urgencia: la respuesta a ${n} no dice dónde quedó (\`destino\`).`);
+      for (const e of errores) console.error(`- ${e}`);
+      process.exit(1);
+    }
+    await marcarUrgencia(raiz, u.pedida, 'hecha');
+    console.log(`Urgencia atendida: ${u.notas.join(', ')}`);
+    process.exit(0);
+  }
+  // Un audio recién grabado: el Studio lo está transcribiendo; se espera un rato y, si no llega, se transcribe aquí
+  const leido = await leerTodo(pedido, false);
+  const urgentes = leido.estado.notas.filter((n) => u.notas.includes(n.id));
+  const txt = (audio: string) => enDiscoDe(raiz, audio.replace(/\.[a-z0-9]+$/, '.txt'));
+  const faltan = () => urgentes.map((n) => n.audio).filter((a): a is string => !!a && existsSync(enDiscoDe(raiz, a)) && !existsSync(txt(a)));
+  for (let i = 0; i < 40 && faltan().length; i++) await new Promise((ok) => setTimeout(ok, 3000));
+  if (faltan().length) {
+    const { cmd, args: argumentosT } = comandoTranscripcion(raiz, faltan().map((a) => enDiscoDe(raiz, a)), `Notas para el director del proyecto ${leido.proyecto.nombre || elegido}.`);
+    try {
+      execFileSync(cmd, argumentosT, { stdio: 'inherit', shell: false });
+    } catch (e) {
+      console.error(`No se pudo transcribir: ${(e as Error).message}`);
+    }
+  }
+  const { plan, proyecto } = leido;
+  const l = (s = '') => console.log(s);
+  l(`# Urgencia · ${proyecto.nombre} (${elegido})`);
+  l(`${u.quien} marcó ${urgentes.length === 1 ? 'esta nota' : 'estas notas'} como urgente${urgentes.length === 1 ? '' : 's'}, y el Studio te lanzó solo para ${urgentes.length === 1 ? 'ella' : 'ellas'}, al instante. Atiende SOLO esto: las demás notas, entregas y documentos esperan la revisión completa; no los respondas ni cambies nada más del plan.`);
+  for (const n of urgentes) {
+    const s = n.sobre;
+    l(`\n## [${n.id}] ${n.quien}, ${n.cuando}, sobre ${s.tipo}${s.id ? ` ${s.id}` : ''}${s.seccion ? ` › ${s.seccion}` : ''}`);
+    if (typeof n.urgente === 'string') l(`Por qué no puede esperar: ${n.urgente.replace(/\s+/g, ' ')}`);
+    if (n.texto) l(n.texto);
+    if (n.audio) l(`Audio (${n.audio}): ${existsSync(txt(n.audio)) ? readFileSync(txt(n.audio), 'utf-8').trim() : '(sin transcribir)'}`);
+    for (const a of n.adjuntos ?? []) l(`Adjunto «${a.nombre}»: ${enDiscoDe(raiz, a.ruta)}`);
+  }
+  l('\n## Las misiones abiertas (la primera de cada uno es la que ve: no la dupliques ni la rompas)');
+  for (const p of proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : ['titular'])
+    for (const m of misionesAbiertas(plan, leido.estado, p)) l(`- ${m.id} (${nombreDe(proyecto, m.para)}): «${m.titulo}»`);
+  l(`\n## Qué hacer (en ${enDiscoDe(raiz, rutasDe(elegido).plan)})`);
+  l('1. Decide si de verdad es urgente. Si lo es y es un arreglo que el titular pidió o aprobó en el Studio, hazlo ya, con las normas del proyecto (pruebas en verde y commit local; nunca subas, despliegues ni borres). Si no es urgente, o no está aprobado, no lo hagas: explica en la respuesta qué va antes y por qué (la nota sigue su curso en la revisión siguiente, como cualquier otra).');
+  l('2. El resultado es un REPORTE, no trabajo nuevo: agrégalo como primera línea de `resumen.avanzamos` (qué se resolvió y cómo se comprobó), sin tocar las demás líneas, y pon `resumen.fecha` en ahora. El Studio se lo muestra al titular en «¿Dónde quedamos?» como lo nuevo.');
+  l('3. Una misión solo si el titular tiene que comprobar el resultado: «Revisa lo urgente», corta (uno o dos pasos, con su botón al lugar exacto y lo que debe ver), y ponla en `misiones` ANTES de su misión de ahora, para que sea la que ve. Nada más: lo que la urgencia revele por hacer va como propuesta o espera la revisión.');
+  l(`4. En \`respuestas\`, la de ${urgentes.length === 1 ? 'la nota' : 'cada nota'}: \`{ "cuando": "<ISO ahora>", "tratamiento": "integrada" | "rechazada" | "aplazada", "texto": "<primero si de verdad era urgente; luego lo que hiciste y el resultado, o por qué no>", "destino": <si es integrada o aplazada: la misión «Revisa lo urgente» u otro lugar del plan> }\`.`);
+  l('5. No toques el mensaje, las revisiones de misiones, la evaluación ni nada más: eso es de la revisión.');
+  l(`6. Cierra: \`node tools/director/bandeja.ts --proyecto ${elegido} --urgente --listo\` y el commit en la memoria: cd "${memoria(elegido)}", luego git add director/plan.json, luego git commit -m "Director (${elegido}): atiende lo urgente" -- director/plan.json.`);
   process.exit(0);
 }
 

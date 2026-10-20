@@ -65,6 +65,8 @@ export interface Local {
   revision?: RevisionPedida;
   /** «No lo entiendo, explícamelo mejor» de un paso: la lanza el Studio aparte, sin el resto de la revisión. */
   aclaracion?: AclaracionPedida;
+  /** Una nota urgente: la lanza el Studio sola y al instante, sin el resto de la revisión. */
+  urgencia?: UrgenciaPedida;
   /**
    * La última vez que la sesión del director miró si había una revisión pedida (/vigila › bandeja --pedida). Así el
    * Studio sabe si alguien está mirando: un ciclo (/loop) vive solo mientras su sesión está abierta.
@@ -111,12 +113,32 @@ export interface AclaracionPedida {
   error?: string;
 }
 
+/**
+ * Una o varias notas urgentes: el Studio lanza al director solo para ellas (`lanzada`), al instante, y lo demás del Buzón
+ * espera la revisión completa. Al cerrar con `bandeja.ts --urgente --listo` queda `hecha`; el resultado llega como
+ * reporte en «Dónde quedamos». Las urgentes que llegan mientras el director atiende otras esperan en `luego` y se lanzan
+ * al terminar. Si no se pudo, `error` dice por qué y las notas esperan la revisión, que se pide.
+ */
+export interface UrgenciaPedida {
+  proyecto: string;
+  /** Las notas urgentes del Buzón que se atienden en este lanzamiento. */
+  notas: string[];
+  /** Las que llegaron mientras tanto: van en el lanzamiento siguiente. */
+  luego?: string[];
+  quien: string;
+  pedida: string;
+  lanzada?: string;
+  hecha?: string;
+  error?: string;
+}
+
 const vacio = (): Local => ({ activo: null, repositorios: {} });
 const normal = (x: any): Local => ({
   activo: typeof x?.activo === 'string' ? x.activo : null,
   repositorios: x?.repositorios && typeof x.repositorios === 'object' ? x.repositorios : {},
   ...(x?.revision && typeof x.revision.proyecto === 'string' && typeof x.revision.pedida === 'string' ? { revision: x.revision as RevisionPedida } : {}),
   ...(x?.aclaracion && typeof x.aclaracion.proyecto === 'string' && typeof x.aclaracion.nota === 'string' && typeof x.aclaracion.paso === 'number' ? { aclaracion: x.aclaracion as AclaracionPedida } : {}),
+  ...(x?.urgencia && typeof x.urgencia.proyecto === 'string' && Array.isArray(x.urgencia.notas) && typeof x.urgencia.pedida === 'string' ? { urgencia: x.urgencia as UrgenciaPedida } : {}),
   ...(typeof x?.vigilia === 'string' ? { vigilia: x.vigilia } : {}),
   ...(x?.agente === false ? { agente: false as const } : {}),
 });
@@ -221,6 +243,45 @@ export async function marcarAclaracion(raiz: string, nota: string, paso: 'lanzad
   if (!a || a.nota !== nota || a.hecha || a.error) return;
   const ahora = new Date().toISOString();
   await guardarLocal(raiz, { ...l, aclaracion: paso === 'lanzada' ? { ...a, lanzada: ahora } : paso === 'hecha' ? { ...a, hecha: ahora } : { ...a, error: paso.error } });
+}
+
+/** Una urgencia en curso: pedida o lanzada, sin cerrar ni fallar. */
+export const urgenciaActiva = (u: UrgenciaPedida | undefined | null): u is UrgenciaPedida => !!u && !u.hecha && !u.error;
+
+/**
+ * Pide que el director atienda notas urgentes, aparte de la revisión. Si ya hay una pedida y aún no lanzada del mismo
+ * proyecto, se suman a ella; si el director ya está atendiendo una, esperan en `luego` y van en el lanzamiento siguiente.
+ */
+export async function pedirUrgencia(raiz: string, u: { proyecto: string; notas: string[]; quien: string }): Promise<UrgenciaPedida | null> {
+  const l = await leerLocal(raiz);
+  const a = urgenciaActiva(l.urgencia) ? l.urgencia : null;
+  if (a && a.proyecto !== u.proyecto) return null;
+  const ya = new Set([...(a?.notas ?? []), ...(a?.luego ?? [])]);
+  const nuevas = u.notas.filter((n) => !ya.has(n));
+  if (a && !nuevas.length) return a;
+  const urgencia: UrgenciaPedida = !a ? { ...u, notas: nuevas, pedida: new Date().toISOString() }
+    : a.lanzada ? { ...a, luego: [...(a.luego ?? []), ...nuevas] }
+    : { ...a, notas: [...a.notas, ...nuevas] };
+  await guardarLocal(raiz, { ...l, urgencia });
+  return urgencia;
+}
+
+/**
+ * La urgencia se lanzó, terminó (`hecha`) o falló (`error`). Al terminar, las que esperaban en `luego` quedan pedidas
+ * para el lanzamiento siguiente.
+ */
+export async function marcarUrgencia(raiz: string, pedida: string, paso: 'lanzada' | 'hecha' | { error: string }): Promise<void> {
+  const l = await leerLocal(raiz);
+  const u = l.urgencia;
+  if (!u || u.pedida !== pedida || u.hecha || u.error) return;
+  const ahora = new Date().toISOString();
+  // La siguiente se reconoce por su fecha: nunca la misma que la que termina
+  const siguiente = ahora > u.pedida ? ahora : new Date(Date.parse(u.pedida) + 1).toISOString();
+  const urgencia: UrgenciaPedida = paso === 'lanzada' ? { ...u, lanzada: ahora }
+    : paso === 'hecha' && u.luego?.length ? { proyecto: u.proyecto, notas: u.luego, quien: u.quien, pedida: siguiente }
+    : paso === 'hecha' ? { ...u, hecha: ahora }
+    : { ...u, error: paso.error };
+  await guardarLocal(raiz, { ...l, urgencia });
 }
 
 export async function leerRutaRepositorio(raiz: string, id: string): Promise<string | null> {

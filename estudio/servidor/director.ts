@@ -68,7 +68,7 @@ import {
   type Validacion,
 } from '../../src/director/director';
 import { leerFresco, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, memoriaDe, pedirAclaracion, pedirRevision, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
+import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
@@ -977,6 +977,8 @@ export function servidorDirector(): Plugin {
               revision: ((r) => (r?.proyecto === id ? r : null))((await leerLocal(raiz)).revision),
               // El paso que alguien pidió aclarar («No lo entiendo»), si es de este proyecto
               aclaracion: ((a) => (a?.proyecto === id ? a : null))((await leerLocal(raiz)).aclaracion),
+              // Las notas urgentes que el director atiende aparte, al instante, si son de este proyecto
+              urgencia: ((u) => (u?.proyecto === id ? u : null))((await leerLocal(raiz)).urgencia),
               // La última vuelta de la sesión del director (/vigila): si es vieja, nadie está mirando las revisiones pedidas
               vigilia: (await leerLocal(raiz)).vigilia ?? null,
               // Si el Studio lanza solo al director, o por qué no puede
@@ -1198,6 +1200,21 @@ export function servidorDirector(): Plugin {
             const { estado, proyecto, que, archivos } = await enFila(() => decidir(id, cuerpo, yo as Identidad & { rol: Persona }));
             programarCommit(id, yo.nombre, que, archivos);
             transcribirLuego(id, archivos.filter((a) => /\.(webm|ogg|m4a|mp3)$/.test(a)), `Notas para el director del proyecto ${proyecto.nombre || id}.`);
+            // Lo urgente va solo y al instante: el Studio llama al director para esas notas, sin el resto de la revisión.
+            // Sin quién lo llame, las notas esperan la revisión, que se pide
+            if (cuerpo.tipo === 'comentar' && que === 'deja una nota urgente para el director') {
+              const respondidas = (await leerPlan(id)).respuestas ?? {};
+              const notas = estado.notas.filter((n) => n.urgente && !respondidas[n.id]).map((n) => n.id);
+              const urgencia = notas.length ? await pedirUrgencia(raiz, { proyecto: id, notas, quien: yo.nombre }) : null;
+              if (urgencia && revisor) await revisor.mirar(true).catch(() => {});
+              else {
+                if (urgencia) await marcarUrgencia(raiz, urgencia.pedida, { error: 'El Studio no puede llamar al director en este computador.' });
+                const r = (await leerLocal(raiz)).revision;
+                if (!r || r.hecha || r.proyecto !== id) await pedirYLanzar(id, yo.nombre);
+              }
+              const local = await leerLocal(raiz);
+              return responder(res, 200, { estado, proyecto, urgencia: local.urgencia?.proyecto === id ? local.urgencia : null, revision: local.revision?.proyecto === id ? local.revision : null });
+            }
             return responder(res, 200, { estado, proyecto });
           }
           responder(res, 404, { error: 'No existe esa ruta del Director.' });

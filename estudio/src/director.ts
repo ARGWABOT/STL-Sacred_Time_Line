@@ -133,6 +133,8 @@ interface Datos {
   progreso?: { tipo: 'dice' | 'hace'; texto: string }[] | null;
   /** «No lo entiendo, explícamelo mejor» de un paso: el director lo aclara al instante, sin el resto de la revisión. */
   aclaracion?: { mision: string; paso: number; nota: string; pedida: string; lanzada?: string; hecha?: string; error?: string } | null;
+  /** Las notas urgentes: el director las atiende solas, al instante, y el resultado vuelve en «¿Dónde quedamos?». */
+  urgencia?: { notas: string[]; luego?: string[]; pedida: string; lanzada?: string; hecha?: string; error?: string } | null;
 }
 /** Sin proyectos todavía: solo la bienvenida. */
 interface SinProyectos { sinProyectos: true; proyectos: ResumenProyecto[]; identidad: Identidad; sincronizacion: Sincronizacion; hoy: string }
@@ -295,13 +297,17 @@ async function cargar(fresco = false) {
     celda = null;
   }
   // Si no llegó nada nuevo, no se repinta (no se pierde la lectura ni lo que suena): solo la hora de la sincronización
-  const huella = (x: Datos) => JSON.stringify([x.activo, x.proyectos, x.plan, x.estado, x.transcripciones, x.transcribiendo, x.sinTranscribir, x.identidad, x.errores, x.proyecto, x.repositorio, x.arranque, x.revision, x.aclaracion]);
+  const huella = (x: Datos) => JSON.stringify([x.activo, x.proyectos, x.plan, x.estado, x.transcripciones, x.transcribiendo, x.sinTranscribir, x.identidad, x.errores, x.proyecto, x.repositorio, x.arranque, x.revision, x.aclaracion, x.urgencia]);
   const cambio = !d || huella(nuevo) !== huella(d);
   const antes = d?.activo === nuevo.activo ? d.transcribiendo ?? [] : [];
   // La revisión que se pidió desde aquí acaba de terminar: se dice, y lo nuevo ya está pintado
   const termino = d?.activo === nuevo.activo && !!d.revision && !d.revision.hecha && !!nuevo.revision?.hecha;
   // El paso que se pidió aclarar ya está reescrito (o no se pudo, y queda para la revisión)
   const aclarado = d?.activo === nuevo.activo && !!d.aclaracion && !d.aclaracion.hecha && !d.aclaracion.error && nuevo.aclaracion?.pedida === d.aclaracion.pedida ? nuevo.aclaracion : null;
+  // Lo urgente ya está atendido (o siguió con las que llegaron mientras tanto), o no se pudo y queda para la revisión
+  const urgenciaAntes = d?.activo === nuevo.activo && urgenciaEnCurso(d.urgencia) ? d.urgencia : null;
+  const urgenciaLista = !!urgenciaAntes && (nuevo.urgencia?.pedida !== urgenciaAntes.pedida || !!nuevo.urgencia?.hecha);
+  const urgenciaFallo = !!urgenciaAntes && nuevo.urgencia?.pedida === urgenciaAntes.pedida && nuevo.urgencia.error ? nuevo.urgencia.error : null;
   // La señal de que el director trabaja sobrevive a las recargas: si la página se recargó a mitad de la revisión y ya
   // terminó, aquí es donde se sabe (no hay un estado de antes con que comparar)
   const rv = nuevo.revision;
@@ -313,6 +319,8 @@ async function cargar(fresco = false) {
   if (terminoTrasRecarga) avisarTermino();
   if (aclarado?.hecha) avisar('El director reescribió el paso con más detalle: está en tu misión.', true, undefined, { etiqueta: 'Ver el paso', hacer: () => void ir({ vista: 'misiones', ancla: `mision-${aclarado.mision}`, etiqueta: '' }) });
   else if (aclarado?.error) avisar(`${aclarado.error} Tu pedido quedó en el Buzón: el director lo responde en la próxima revisión.`);
+  if (urgenciaFallo) avisar(`${urgenciaFallo} Lo urgente quedó en el Buzón y la revisión quedó pedida: el director lo atiende primero.`);
+  else if (urgenciaLista) avisar('El director atendió lo urgente: el resultado está en «¿Dónde quedamos?».', true, undefined, { etiqueta: 'Ver el resultado', hacer: () => void mostrarDondeQuedamos() });
   // Al terminar, la página se recarga entera: si el director cambió el código del Studio, se ve sin refrescar a mano.
   // Con algo a medio escribir o grabando, espera a que quede libre (el aviso se da después de recargar)
   if (termino) {
@@ -363,6 +371,11 @@ function avisarTermino() {
   setTimeout(() => e.classList.remove('termino'), 12000);
 }
 
+/** Lo urgente que el director todavía atiende (pedido o lanzado, sin cerrar ni fallar). */
+function urgenciaEnCurso(u: Datos['urgencia']): u is NonNullable<Datos['urgencia']> {
+  return !!u && !u.hecha && !u.error;
+}
+
 /**
  * Lo que pasa en segundo plano, siempre a la vista junto a la cara del director: los audios que se están transcribiendo
  * y la revisión pedida (en curso, esperando su vuelta o sin nadie que la mire). Así nunca hay que adivinar.
@@ -373,8 +386,11 @@ function pintarSegundoPlano() {
   const procesando = [...d.estado.notas.map((n) => n.audio), ...Object.values(d.estado.entregas).map((x) => x.audio)]
     .filter((a): a is string => !!a && d.transcripciones[a] === undefined && !d.sinTranscribir?.includes(a)).length;
   const r = estadoRevision();
+  const u = urgenciaEnCurso(d.urgencia) ? d.urgencia : null;
   const lineas = [
     ...(procesando ? [`<span class="sp-linea">Transcribiendo ${procesando === 1 ? 'tu audio' : `${procesando} audios`}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
+    // Lo urgente va solo y se distingue: el director lo atiende aparte, mientras sigues con lo tuyo
+    ...(u ? [`<span class="sp-linea alerta">${u.lanzada ? 'El director atiende lo urgente' : 'Lo urgente va al director'}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     ...(r.estado === 'en_curso' ? [`<button type="button" class="sp-linea" data-progreso title="Ver lo que va haciendo">El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></button>`] : []),
     ...(r.estado === 'pedida' ? [`<span class="sp-linea">Revisión pedida · ${hora(d.revision!.pedida)}</span>`] : []),
     ...(r.estado === 'sin_vigilia' ? ['<button type="button" class="sp-linea alerta" data-revision="explicar">⚠ Revisión pedida, sin tomar</button>'] : []),
@@ -464,8 +480,10 @@ function vigilarTranscripciones(antes: string[]) {
   const esperandoRevision = !!d.revision && !d.revision.hecha;
   // Un paso que se está aclarando se espera de cerca: es una ida y vuelta corta
   const esperandoAclaracion = !!d.aclaracion && !d.aclaracion.hecha && !d.aclaracion.error;
+  // Lo urgente también se espera de cerca: el resultado se avisa en cuanto llega
+  const esperandoUrgencia = urgenciaEnCurso(d.urgencia);
   // Con lo que va haciendo el director a la vista, cada pocos segundos (leer su registro no gasta nada)
-  const cada = d.transcribiendo?.length || sinTexto || (esperandoRevision && progresoAbierto) || esperandoAclaracion ? 3000 : esperandoRevision ? 10_000 : 0;
+  const cada = d.transcribiendo?.length || sinTexto || (esperandoRevision && progresoAbierto) || esperandoAclaracion || esperandoUrgencia ? 3000 : esperandoRevision ? 10_000 : 0;
   sondeo = cada ? setTimeout(() => (escribiendoEnVista() ? vigilarTranscripciones([]) : void cargar().catch(() => undefined)), cada) : null;
 }
 
@@ -549,6 +567,9 @@ async function accion(cuerpo: Record<string, unknown>, hecho = 'Guardado.') {
     // Si después se mandó otra cosa, su respuesta trae el estado completo: esta ya quedó vieja
     const ultima = turno === cambiosLocales;
     if (ultima) d.estado = j.estado;
+    // Una nota urgente: el Studio ya llamó al director para ella (o pidió la revisión, si no puede llamarlo)
+    if (j.urgencia !== undefined) d.urgencia = j.urgencia;
+    if (j.revision !== undefined) d.revision = j.revision;
     // Lo del proyecto cambia la identidad, el arranque y las señales: se recarga todo
     if (j.proyecto && JSON.stringify(j.proyecto) !== JSON.stringify(d.proyecto)) await cargar(true);
     else if (ultima) {
@@ -640,8 +661,9 @@ function resaltar(el: HTMLElement | null | undefined) {
 interface Campo { id: string; etiqueta: string; tipo: 'area' | 'texto' | 'select'; opciones?: [string, string][]; requerido?: boolean; valor?: string; explorar?: boolean; clase?: string; ayuda?: string; pista?: string }
 
 /**
- * «Es urgente»: una casilla, sin explicación aparte (el porqué ya está en lo que se pide). Al marcarla, la revisión se
- * pide enseguida y el director lee la nota para decidir si va ya o qué debe ir antes. Es a propósito poco directa, en
+ * «Es urgente»: una casilla, sin explicación aparte (el porqué ya está en lo que se pide). Al marcarla, el Studio se la
+ * lleva sola al director, al instante, y el director lee la nota para decidir si va ya o qué debe ir antes; el resultado
+ * vuelve en «¿Dónde quedamos?» y lo demás del Buzón espera la revisión. Es a propósito poco directa, en
  * dos pasos, para que no se vuelva costumbre: un símbolo discreto junto al título abre el panel, y ahí está la casilla.
  */
 function botonUrgente() {
@@ -653,18 +675,27 @@ function campoUrgente() {
   const semana = urgenciasDeLaSemana(d.estado.notas).length;
   return `<div class="panel-urgente" id="panel-urgente" hidden><label class="urgente-campo"><input name="urgente" type="checkbox" value="1" />
     <span class="interruptor" aria-hidden="true"></span><span>${icono('urgente')}<b>Marcar como urgente</b>
-    <span class="ayuda-campo">Úsalo solo si de verdad no puede esperar. Al dejarlo se pide la revisión enseguida (te lo confirmo antes), y el director decide, por lo que pides, si va ya o qué debe ir antes.${semana ? ` Esta semana: ${semana} ${semana === 1 ? 'urgencia' : 'urgencias'}.` : ''}</span></span></label></div>`;
+    <span class="ayuda-campo">Úsalo solo si de verdad no puede esperar. Al dejarlo, el Studio se lo lleva solo al director, al instante (te lo confirmo antes), y el director decide, por lo que pides, si va ya o qué debe ir antes. El resultado te llega en «¿Dónde quedamos?».${semana ? ` Esta semana: ${semana} ${semana === 1 ? 'urgencia' : 'urgencias'}.` : ''}</span></span></label></div>`;
 }
 
-/** Marcar urgente pide la revisión de todo lo pendiente al dejar la nota: se confirma antes, diciendo qué va a pasar. */
+/** Marcar urgente llama al director al dejar la nota: se confirma antes, diciendo qué va a pasar. */
 function confirmarUrgencia() {
-  const pedida = !!d.revision && !d.revision.hecha;
+  // Sin quién llame al director desde aquí, lo urgente cae a la revisión de siempre
+  if (!automatica()) {
+    const pedida = !!d.revision && !d.revision.hecha;
+    return confirmar({
+      titulo: 'Lo marcaste como urgente',
+      texto: pedida
+        ? 'Ya hay una revisión pedida: esto entra en ella, y el director lo atiende primero. Él decide si de verdad va ya o qué debe ir antes.'
+        : 'Al dejarlo en el Buzón, el Studio pide la revisión ahora mismo, y el director revisa todo lo que está pendiente, empezando por esto. Él decide si de verdad va ya o qué debe ir antes.\n\n¿De acuerdo?',
+      boton: pedida ? 'Sí, dejarlo' : 'Sí, dejarlo y pedir la revisión',
+      cancelar: 'No, volver',
+    });
+  }
   return confirmar({
     titulo: 'Lo marcaste como urgente',
-    texto: pedida
-      ? 'Ya hay una revisión pedida: esto entra en ella, y el director lo atiende primero. Él decide si de verdad va ya o qué debe ir antes.'
-      : 'Al dejarlo en el Buzón, el Studio pide la revisión ahora mismo, y el director revisa todo lo que está pendiente, empezando por esto. Él decide si de verdad va ya o qué debe ir antes.\n\n¿De acuerdo?',
-    boton: pedida ? 'Sí, dejarlo' : 'Sí, dejarlo y pedir la revisión',
+    texto: 'Al dejarlo, el Studio se lo lleva solo al director, ahora mismo: él atiende solo esto, decide si de verdad va ya y, si es un arreglo que pediste, lo hace. Tú sigues con lo tuyo.\n\nEl resultado te llega como reporte en «¿Dónde quedamos?» y, si hay que comprobarlo, con una sola misión: revisarlo. Lo demás del Buzón no se toca: espera la revisión.\n\n¿De acuerdo?',
+    boton: 'Sí, llevárselo al director',
     cancelar: 'No, volver',
   });
 }
@@ -3181,11 +3212,19 @@ async function anexar(r: Dicho, sobre: { tipo: string; id?: string }, rotulo: st
   await accion({ tipo: 'comentar', sobre, texto: rotulo, ...(audio ? { audio } : {}), ...(r.adjuntos?.length ? { adjuntos: r.adjuntos } : {}) }, 'Lo que dijiste o adjuntaste quedó también en el Buzón, para el director.');
 }
 
-/** Deja una nota en el Buzón. Si es urgente, pide la revisión enseguida; el director decide si lo es. */
+/**
+ * Deja una nota en el Buzón. Si es urgente, el servidor se la lleva sola al director, al instante, sin el resto de la
+ * revisión (si no puede llamarlo, pide la revisión); el director decide si de verdad lo es.
+ */
 async function dejarNota(sobre: { tipo: string; id?: string; seccion?: string; decision?: string; fragmento?: string; postura?: string },texto: string | undefined, audio: string | null | undefined, urgente = false, adjuntos?: { nombre: string; datos: string }[]) {
-  const ok = await accion({ tipo: 'comentar', sobre, texto, audio, urgente, ...(adjuntos?.length ? { adjuntos } : {}) }, urgente ? 'Quedó en el Buzón, marcada urgente. El director la atiende primero y decide si va ya o qué debe ir antes.' : 'Quedó en el Buzón del director. Te responde cuando revise.');
-  // Una urgencia no espera a que alguien pida la revisión: se pide sola (si ya hay una pedida, entra en esa)
-  if (ok && urgente && (!d.revision || d.revision.hecha)) await pedirLaRevision(true);
+  const ok = await accion({ tipo: 'comentar', sobre, texto, audio, urgente, ...(adjuntos?.length ? { adjuntos } : {}) },
+    !urgente ? 'Quedó en el Buzón del director. Te responde cuando revise.'
+    : automatica() ? 'Lo urgente va solo al director, ahora mismo, y tú sigues con lo tuyo. Te trae el resultado en «¿Dónde quedamos?»; lo demás del Buzón espera la revisión.'
+    : 'Quedó en el Buzón, marcada urgente, y la revisión quedó pedida: el director la atiende primero.');
+  if (ok && urgente) {
+    pintarSegundoPlano();
+    vigilarTranscripciones([]);
+  }
   return ok;
 }
 
