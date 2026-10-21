@@ -4498,7 +4498,16 @@ const cargarAlArrancar = (intentos = 0): Promise<void> =>
     $('vista').innerHTML = pantallaTrabajando();
     return new Promise<void>((listo) => setTimeout(listo, 3000)).then(() => cargarAlArrancar(intentos + 1));
   });
+// Si la primera carga tarda, la cubierta lo dice: nunca un «cargando» mudo (el 21 de octubre tardaba más de 20 s y no
+// decía nada). Pasados 8 s, cuánto lleva; pasado un minuto, dónde mirar
+const inicioCarga = Date.now();
+const relojCarga = setInterval(() => {
+  const s = Math.round((Date.now() - inicioCarga) / 1000);
+  if (d || s < 8) return;
+  ponerTextoCubierta(`El servidor del Studio está tardando en responder (lleva ${s} s). Sigue esperando${s >= 60 ? '; si no avanza, su registro está en .estudio/servidor.log' : ''}.`);
+}, 1000);
 cargarAlArrancar()
+  .finally(() => clearInterval(relojCarga))
   .then(() => {
     if (!d) return; // sin proyectos: la bienvenida
     // Recién recargada porque el director terminó su revisión: se dice

@@ -121,6 +121,38 @@ export async function leerFrescoTexto(raiz: string, ruta: string): Promise<strin
   return (await leerFresco(raiz, ruta))?.toString('utf-8') ?? null;
 }
 
+/**
+ * Muchos textos de una vez (las transcripciones de todas las notas de voz), con el mismo resultado que leerFrescoTexto
+ * uno por uno, pero sin dos o tres procesos de git por archivo: con cientos de notas, eso eran más de 20 segundos en
+ * cada carga del Studio. Un solo `git diff` dice qué archivos difieren de GitHub; los demás se leen de la carpeta (o
+ * son iguales a GitHub, o tienen cambios propios sin commit, que también mandan). Sin la rama en GitHub, todo es de
+ * aquí. Solo lo que difiere, o lo que falta en la carpeta, pasa por leerFresco.
+ */
+export async function leerFrescosTexto(raizEstudio: string, rutasEstudio: string[]): Promise<Map<string, string | null>> {
+  const salida = new Map<string, string | null>();
+  const grupos = new Map<string, { remota: string; rutas: [string, string][] }>();
+  for (const r of new Set(rutasEstudio)) {
+    const { cwd, ruta, remota } = donde(raizEstudio, r);
+    const g = grupos.get(cwd) ?? { remota, rutas: [] };
+    g.rutas.push([r, ruta]);
+    grupos.set(cwd, g);
+  }
+  for (const [cwd, g] of grupos) {
+    // Lo que hay que leer de a uno: lo que difiere de GitHub (null = no se pudo saber, así que todo)
+    let distintos: Set<string> | null = new Set();
+    if (existsSync(cwd) && (await git(cwd, ['rev-parse', '--verify', '--quiet', g.remota])).ok) {
+      const d = await git(cwd, ['diff', '--name-only', 'HEAD', g.remota, '--']);
+      distintos = d.ok ? new Set(d.out.toString().split('\n').map((l) => l.trim()).filter(Boolean)) : null;
+    }
+    for (const [estudio, ruta] of g.rutas) {
+      const archivo = join(cwd, ...ruta.split('/'));
+      if (distintos && !distintos.has(ruta) && existsSync(archivo)) salida.set(estudio, await readFile(archivo, 'utf-8'));
+      else salida.set(estudio, await leerFrescoTexto(raizEstudio, estudio));
+    }
+  }
+  return salida;
+}
+
 /** Los archivos de una carpeta en GitHub (rutas del Estudio, con «/»), para conocer lo que otra persona agregó. */
 export async function listarRemoto(raizEstudio: string, carpetaEstudio: string): Promise<string[]> {
   const { cwd, ruta, remota } = donde(raizEstudio, carpetaEstudio);

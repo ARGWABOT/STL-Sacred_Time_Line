@@ -69,7 +69,7 @@ import {
   type TipoValidacion,
   type Validacion,
 } from '../../src/director/director';
-import { leerFresco, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
+import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
 import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarEsfuerzoMaximo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
@@ -961,6 +961,11 @@ export function servidorDirector(): Plugin {
         }
         try {
           if (ruta === '/' && req.method === 'GET') {
+            // Lo que tarda cada parte de la carga: si pasa de 3 s, queda en el registro del servidor (.estudio/servidor.log),
+            // para ver qué crece antes de que la página parezca colgada (así se encontraron las transcripciones, el 21 de octubre)
+            const t0 = Date.now();
+            const tiempos: string[] = [];
+            const marcar = (que: string, desde: number) => tiempos.push(`${que} ${((Date.now() - desde) / 1000).toFixed(1)} s`);
             const fresco = url.searchParams.has('fresco');
             if (fresco) caches.clear();
             const id = await activo();
@@ -969,18 +974,28 @@ export function servidorDirector(): Plugin {
             const proyectos = await resumenProyectos();
             const sincronizacion = id ? { ...traedorDe(id).estado, subida: syncDe(id).estado() } : { traido: null, error: null, local: true, subida: null };
             await revisor?.preparar();
+            marcar('GitHub, identidad y proyectos', t0);
             if (!id) return responder(res, 200, { sinProyectos: true, proyectos, identidad, sincronizacion, hoy: hoy() });
+            const tPlan = Date.now();
             const [plan, proyecto, r] = await Promise.all([leerPlan(id), leerProyecto(id), repositorio(id, fresco)]);
             const { estado } = await leerEstado(id, identidad.rol, proyecto);
+            marcar('plan, proyecto y equipo', tPlan);
             // La transcripción de cada audio (la deja tools/director/transcribir.py junto al audio, como .txt)
             const transcripciones: Record<string, string> = {};
             const audios = [...estado.notas.map((n) => n.audio), ...Object.values(estado.entregas).map((e) => e.audio)].filter(Boolean) as string[];
+            // Todas de una vez: una por una eran dos o tres procesos de git por audio (más de 20 s con cientos de notas)
+            const tTextos = Date.now();
+            const txt = (a: string) => a.replace(/\.[a-z0-9]+$/, '.txt');
+            const textos = await leerFrescosTexto(raiz, audios.map(txt));
             for (const a of audios) {
-              const t = await leerFrescoTexto(raiz, a.replace(/\.[a-z0-9]+$/, '.txt'));
-              if (t !== null) transcripciones[a] = t.trim(); // vacía: el audio no tenía voz
+              const t = textos.get(txt(a));
+              if (t != null) transcripciones[a] = t.trim(); // vacía: el audio no tenía voz
             }
+            marcar(`${audios.length} transcripciones`, tTextos);
             transcribirLuego(id, audios.filter((a) => !transcripciones[a]), `Notas para el director del proyecto ${proyecto.nombre || id}.`);
             const personas = proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : [TITULAR];
+            const total = Date.now() - t0;
+            if (total > 3000) console.warn(`[estudio] La carga de «${id}» tardó ${(total / 1000).toFixed(1)} s: ${tiempos.join('; ')}.`);
             return responder(res, 200, {
               activo: id,
               proyectos,
