@@ -2,7 +2,7 @@
 // con la animación de la línea del proyecto (index.html, docs/difusion/linea-del-proyecto.html: un solo archivo, sin
 // librerías), y desde ella se llega a la página completa de la metodología (metodologia.html), para que ingenieros y
 // modelos de IA la lean y la verifiquen: su HTML sale ya armado (se lee sin ejecutar JavaScript), con sus estilos y sus
-// gráficos dentro. Escribe en publico/ (fuera del git del Studio: es el clon del repositorio del sitio,
+// gráficos dentro. Escribe en publico/ (fuera del git del Studio: es el clon de la rama de la página del repositorio
 // ARGWABOT/STL-Sacred_Time_Line, que GitHub Pages publica).
 // Uso: node tools/publicar-stl.ts            (solo la arma, para revisarla)
 //      node tools/publicar-stl.ts --subir    (la arma y, si cambió, la sube: commit y push al repositorio del sitio)
@@ -165,8 +165,12 @@ if (subir) {
     git('commit', '-q', '-m', `Qué es STL: versión del ${hoy}`);
     const token = EN_GH.map((u) => spawnSync('gh', ['auth', 'token', '--user', u], { encoding: 'utf8' })).find((r) => r.status === 0)?.stdout.trim();
     if (!token) throw new Error(`gh no tiene la sesión de ${CUENTA}: corre gh auth login con esa cuenta y vuelve a correr esto.`);
-    execFileSync('git', ['-c', 'credential.helper=', '-c', 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f', 'push', 'origin', 'main'],
-      { cwd: salida, env: { ...process.env, GH_TOKEN: token }, stdio: 'inherit' });
+    const conToken = ['-c', 'credential.helper=', '-c', 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f'];
+    const env = { ...process.env, GH_TOKEN: token };
+    // El Studio y la página comparten repositorio: el código en main y la página en gh-pages, que es lo que publica
+    // GitHub Pages. Mientras el repositorio no tenga gh-pages, la página sigue en main, como antes de unirlos
+    const conPaginas = execFileSync('git', [...conToken, 'ls-remote', '--heads', 'origin', 'gh-pages'], { cwd: salida, env, encoding: 'utf8' }).trim() !== '';
+    execFileSync('git', [...conToken, 'push', 'origin', `HEAD:${conPaginas ? 'gh-pages' : 'main'}`], { cwd: salida, env, stdio: 'inherit' });
     console.log(`Subida: ${URL_PUBLICA} (GitHub Pages tarda uno o dos minutos en mostrarla).`);
   }
 } else {
