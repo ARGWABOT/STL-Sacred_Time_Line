@@ -1,11 +1,13 @@
-// Arma la versión pública de la página «Qué es STL»: un sitio estático, sin el resto del Studio ni datos de ningún
-// proyecto, para que ingenieros y modelos de IA la lean y la verifiquen. El HTML sale ya armado (se lee sin ejecutar
-// JavaScript), con sus estilos; sus gráficos van dentro de la página. Escribe en publico/ (fuera del git del Studio: es
-// el clon del repositorio del sitio, ARGWABOT/STL-Sacred_Time_Line, que GitHub Pages publica).
+// Arma la versión pública de «Qué es STL»: un sitio estático, sin el resto del Studio ni datos de ningún proyecto. Abre
+// con la animación de la línea del proyecto (index.html, docs/difusion/linea-del-proyecto.html: un solo archivo, sin
+// librerías), y desde ella se llega a la página completa de la metodología (metodologia.html), para que ingenieros y
+// modelos de IA la lean y la verifiquen: su HTML sale ya armado (se lee sin ejecutar JavaScript), con sus estilos y sus
+// gráficos dentro. Escribe en publico/ (fuera del git del Studio: es el clon del repositorio del sitio,
+// ARGWABOT/STL-Sacred_Time_Line, que GitHub Pages publica).
 // Uso: node tools/publicar-stl.ts            (solo la arma, para revisarla)
 //      node tools/publicar-stl.ts --subir    (la arma y, si cambió, la sube: commit y push al repositorio del sitio)
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { build, createServer } from 'vite';
 
@@ -34,21 +36,40 @@ try {
   await vite.close();
 }
 
-const hoy = new Date().toISOString().slice(0, 10);
+// La fecha de este computador, no la de Londres (toISOString): la que ve quien la publica al pie de la página
+const hoy = new Date().toLocaleDateString('sv-SE');
 const descripcion = 'STL es una metodología para usar mejor los modelos de IA, en cualquier tipo de proyecto. Entre tú y tu agente suma dos actores nuevos: el Studio, que detiene y ordena lo que dices, y el director, que pone cada idea en su lugar de la línea y te deja ver solo lo que sigue.';
+const metas = (titulo: string, url: string) => `<meta name="description" content="${descripcion}" />
+  <meta property="og:title" content="${titulo}" />
+  <meta property="og:description" content="${descripcion}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:image" content="${URL_PUBLICA}${IMAGEN_COMPARTIR}.png" />
+  <link rel="canonical" href="${url}" />`;
+
+// La portada: la animación, sin su comentario de versiones (es la historia del boceto, no de la página), con su título
+// y, abajo a la izquierda, el paso a la metodología completa
+const ANIMACION = 'docs/difusion/linea-del-proyecto.html';
+const TITULO = '¿Qué es STL? · El guardrail donde más hacía falta, en el Dev';
+if (!existsSync(join(raiz, ANIMACION))) throw new Error(`Falta la animación de la portada: ${ANIMACION}.`);
+const portada = readFileSync(join(raiz, ANIMACION), 'utf8')
+  .replace(/<!--[\s\S]*?-->\s*/, '')
+  .replace(/<title>[^<]*<\/title>/, `<title>${TITULO}</title>\n${metas(TITULO, URL_PUBLICA)}`)
+  .replace('</body>', `<style>
+  #seguir { position: fixed; left: 14px; bottom: 10px; z-index: 9; margin: 0; font-size: 12.5px; color: #8f8a7d; }
+  #seguir a { color: #f5d27a; text-decoration: none; font-weight: 600; }
+  #seguir a:hover, #seguir a:focus-visible { text-decoration: underline; }
+</style>
+<p id="seguir"><a href="metodologia.html">La metodología completa →</a> · Versión del ${hoy}</p>
+</body>`);
+
 const html = `<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Qué es STL · La metodología STL (Sacred Time Line)</title>
-  <meta name="description" content="${descripcion}" />
-  <meta property="og:title" content="Qué es STL · La metodología STL (Sacred Time Line)" />
-  <meta property="og:description" content="${descripcion}" />
-  <meta property="og:type" content="article" />
-  <meta property="og:url" content="${URL_PUBLICA}" />
-  <meta property="og:image" content="${URL_PUBLICA}${IMAGEN_COMPARTIR}.png" />
-  <link rel="canonical" href="${URL_PUBLICA}" />
+  ${metas('Qué es STL · La metodología STL (Sacred Time Line)', `${URL_PUBLICA}metodologia.html`)}
   <link rel="stylesheet" href="estilos.css" />
   <link rel="stylesheet" href="director.css" />
   <style>
@@ -60,7 +81,7 @@ const html = `<!doctype html>
   <main class="publica">
 ${pagina}
     <footer class="pie-publico">
-      <p>Versión pública de la página «Qué es STL» del STL Studio, publicada para que ingenieros y modelos de IA revisen si lo que dice es cierto y si la metodología cumple lo que promete. Versión del ${hoy}.</p>
+      <p>Versión pública de la página «Qué es STL» del STL Studio, publicada para que ingenieros y modelos de IA revisen si lo que dice es cierto y si la metodología cumple lo que promete. <a href="./">Ver la animación</a>. Versión del ${hoy}.</p>
     </footer>
   </main>
   <script>${recorrido}</script>
@@ -70,7 +91,8 @@ ${pagina}
 
 // Sin borrar la carpeta: si ya tiene el git del sitio publicado, se conserva y solo se reemplazan los archivos
 mkdirSync(salida, { recursive: true });
-writeFileSync(join(salida, 'index.html'), html);
+writeFileSync(join(salida, 'index.html'), portada);
+writeFileSync(join(salida, 'metodologia.html'), html);
 copyFileSync(join(raiz, 'estudio/src/estilos.css'), join(salida, 'estilos.css'));
 copyFileSync(join(raiz, 'estudio/src/director.css'), join(salida, 'director.css'));
 copyFileSync(join(raiz, `docs/difusion/${IMAGEN_COMPARTIR}.png`), join(salida, `${IMAGEN_COMPARTIR}.png`));
@@ -87,14 +109,16 @@ writeFileSync(join(salida, 'README.md'), `# Qué es STL · la metodología STL (
 Versión pública de la página «Qué es STL» del STL Studio. La publicamos para que ingenieros y modelos de IA revisen si lo
 que dice es cierto y si la metodología cumple lo que promete.
 
-- \`index.html\`: la página completa, un recorrido por paradas con sus gráficos dentro. Es estática: se lee entera sin
-  ejecutar JavaScript.
+- \`index.html\`: la portada, una animación que muestra el mismo proyecto sin STL y con STL. Un solo archivo, sin
+  librerías.
+- \`metodologia.html\`: la página completa, un recorrido por paradas con sus gráficos dentro. Es estática: se lee entera
+  sin ejecutar JavaScript.
 - \`demo/\`: el Studio de demostración, con un proyecto de ejemplo y un recorrido guiado. Nada se guarda.
 
 Se genera desde el STL Studio (\`node tools/publicar-stl.ts\`). No incluye el código del Studio ni datos de ningún proyecto.
 Versión del ${hoy}.
 `);
-console.log(`Listo: ${salida}\\index.html (versión del ${hoy}).`);
+console.log(`Listo: ${salida}\\index.html (la animación) y metodologia.html (versión del ${hoy}).`);
 
 if (subir) {
   const git = (...a: string[]) => execFileSync('git', a, { cwd: salida, encoding: 'utf8' }).trim();
