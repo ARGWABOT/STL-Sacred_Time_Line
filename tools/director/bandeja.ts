@@ -389,7 +389,7 @@ for (const n of comentarios) {
     : s.tipo === 'propuesta' ? `propuesta «${plan.propuestas.find((p) => p.id === s.id)?.titulo ?? s.id}»`
     : s.tipo === 'diagnostico' ? `el diagnóstico${s.seccion ? ` › frente «${s.seccion}»` : ''}`
     : s.tipo === 'objetivo' ? `el objetivo${s.id ? ` (candidato ${s.id})` : ''}`
-    : s.tipo === 'general' ? 'general' : `${s.tipo} ${s.id ?? ''}`;
+    : s.tipo === 'general' ? `general${s.seccion ? ` › ${s.seccion}` : ''}${s.fragmento ? ` › la línea que empieza «${s.fragmento}»` : ''}` : `${s.tipo} ${s.id ?? ''}`;
   linea(`\n- [${n.id}] ${n.urgente ? 'URGENTE · ' : ''}${n.quien}, ${n.cuando}, sobre ${sobre}:`);
   // Las notas viejas traían su razón aparte; las nuevas la dicen en la nota misma: léela para decidir si de verdad urge
   if (typeof n.urgente === 'string') linea(`  Por qué no puede esperar: ${n.urgente.replace(/\s+/g, ' ')}`);

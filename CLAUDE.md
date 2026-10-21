@@ -33,7 +33,7 @@ El titular entrega cada proyecto eligiendo su carpeta en el Studio; su ruta qued
   - `director/notas/`: los audios y sus transcripciones (`.txt`). `director/radiografia.md`: la última radiografía.
   - `docs/`: los documentos que escribe el director para ese proyecto. **En el plan se nombran sin el prefijo** (`docs/director/diagnostico.md` es `<repositorio>/.stl/docs/director/diagnostico.md`).
 - `docs/metodo/metodologia.md`: el método, común a todos los proyectos.
-- `tools/director/`: `bandeja.ts` (la revisión), `diagnosticar.ts` (la radiografía del repositorio), `estado.ts` (antes de cada tarea), `transcribir.py` (los audios, en local; el Studio y la bandeja lo llaman con `src/director/transcripcion.ts`). Todas trabajan sobre el proyecto activo; con `--proyecto <id>`, sobre otro.
+- `tools/director/`: `bandeja.ts` (la revisión), `diagnosticar.ts` (la radiografía del repositorio), `estado.ts` (antes de cada tarea), `mirar.ts` (ver una página en un navegador sin pantalla, en tres anchos), `transcribir.py` (los audios, en local; el Studio y la bandeja lo llaman con `src/director/transcripcion.ts`). Todas trabajan sobre el proyecto activo; con `--proyecto <id>`, sobre otro.
 - Pruebas: `npm test`. Tipos: `npm run typecheck`. Ambos sin errores antes de cerrar un cambio de código del Estudio.
 
 ## La sesión del director
@@ -70,7 +70,7 @@ STL Studio también es un proyecto del Studio («STL Studio»): su repositorio e
 - **Lo que el titular pida en esta sesión sobre el Studio** vale como si lo hubiera dejado en el Buzón: el director lo ejecuta, y en la revisión siguiente del proyecto STL lo deja en su historia (`resumen.avanzamos` y, si cuenta para una fase futura, `adelantado`), para que el progreso del producto se vea en el Studio y no solo en el chat.
 - **Los frentes** nombran solo el código y los documentos del producto: sus `rutas` nunca incluyen `.stl/` ni `proyectos/` (la memoria de los proyectos no es trabajo del Studio, y así no ensucia el esfuerzo).
 - **El diagnóstico** parte de lo ya escrito sobre el producto: `docs/metodo/evaluacion-studio.md` (las prioridades hacia un producto publicable y replicable), `docs/metodo/diseno-studio.md` (el diseño y sus decisiones pendientes) y la Metodología STL. El titular quiere publicarlo como producto gratuito para desarrolladores: clonarlo en otro computador, entregarle proyectos y trabajar con el método.
-- **Cuidado con el núcleo**: un cambio del Studio afecta a todos los proyectos. Antes de cerrar un trabajo del producto, corre la auditoría de lo que tocó (pruebas, tipos y, si es de la interfaz, revisarlo en el navegador en varios anchos).
+- **Cuidado con el núcleo**: un cambio del Studio afecta a todos los proyectos. Antes de cerrar un trabajo del producto, corre la auditoría de lo que tocó (pruebas, tipos y, si es de la interfaz, revisarlo en el navegador en varios anchos: `node tools/director/mirar.ts [url]` lo abre sin pantalla en teléfono, tableta y escritorio con el Edge o el Chrome del computador, guarda las capturas en la memoria y dice los errores de la consola; abre las capturas y di qué viste).
 
 ### Proyecto existente o nuevo
 Cada proyecto llega de una de dos formas (`proyecto.json` › `tipo`), y el director lo maneja distinto:

@@ -1039,6 +1039,7 @@ async function mostrarDondeQuedamos() {
       if (!b) return;
       if (b.classList.contains('dq-item')) return tocarDq(dlg, b, est);
       if (b.classList.contains('dq-mas')) return masDq(dlg, est);
+      if (b.dataset.dqComentar) return void comentarDq(b.dataset.dqComentar, est);
       // Siempre a la tarjeta de la misión (no al documento del paso): el resumen da contexto y la misión dice el paso
       if (b.dataset.aMision !== undefined && mia) void terminar(tarjetaDe(mia));
       else if (b.dataset.aPropuestas !== undefined) void terminar({ vista: 'propuestas', etiqueta: '' });
@@ -1157,8 +1158,16 @@ function pendientesDq(est: EstadoDq, seccion: string): LineaDq[] {
 /** Lo leído, lo último primero. */
 const leidasDq = (est: EstadoDq) => est.archivo.filter((l) => l.leida).sort((a, b) => b.leida!.localeCompare(a.leida!));
 
+// Cada línea trae su ✉: preguntar o comentar justo eso al director, sin tener que citarlo en el Buzón
 const itemDq = (l: LineaDq, orden: number, leida: boolean) =>
-  `<li><button type="button" class="dq-item${leida ? ' leida' : ''}" data-huella="${l.h}" data-seccion="${esc(l.s)}" data-orden="${orden}" title="${leida ? 'Volver a ponerla entre lo que falta' : 'Tócala cuando la leas'}"><span class="dq-check" aria-hidden="true"></span><span class="dq-cuerpo"><span class="dq-texto">${esc(l.t)}</span></span><span class="sr-only">${leida ? ' (leída)' : ''}</span></button></li>`;
+  `<li><button type="button" class="dq-item${leida ? ' leida' : ''}" data-huella="${l.h}" data-seccion="${esc(l.s)}" data-orden="${orden}" title="${leida ? 'Volver a ponerla entre lo que falta' : 'Tócala cuando la leas'}"><span class="dq-check" aria-hidden="true"></span><span class="dq-cuerpo"><span class="dq-texto">${esc(l.t)}</span></span><span class="sr-only">${leida ? ' (leída)' : ''}</span></button><button type="button" class="dq-comentar" data-dq-comentar="${l.h}" title="Comentar o preguntar sobre esto al director" aria-label="Comentar esto al director">✉</button></li>`;
+
+/** El ✉ de una línea: una nota general que cita la línea (su sección y su comienzo), para que el director sepa a qué responde. */
+async function comentarDq(h: string, est: EstadoDq) {
+  const l = est.archivo.find((x) => x.h === h);
+  if (!l) return;
+  await comentar({ tipo: 'general', seccion: `Dónde quedamos › ${TITULOS_DQ[l.s] ?? l.s}`, fragmento: recortar(l.t, 200) }, `Comentar «${recortar(l.t, 70)}»`);
+}
 
 /** Las secciones con lo que falta por leer, la barra de lo leído y, al final, lo ya leído (plegado, de a 20). */
 function lecturaDq(est: EstadoDq): string {
@@ -2017,6 +2026,7 @@ function sobreDe(n: Nota) {
   if (s.tipo === 'diagnostico') return `el diagnóstico${s.seccion ? ` › ${esc(nombreFrente(s.seccion))}` : ''}`;
   if (s.tipo === 'pregunta') return 'una pregunta';
   if (s.tipo === 'objetivo') return s.id ? `el objetivo candidato «${esc(d.plan.objetivos.find((o) => o.id === s.id)?.texto ?? s.id)}»` : 'el objetivo';
+  if (s.seccion || s.fragmento) return `${s.seccion ? esc(s.seccion) : 'el proyecto'}${s.fragmento ? ` › «${esc(recortar(s.fragmento, 60))}»` : ''}`;
   return 'el proyecto en general';
 }
 

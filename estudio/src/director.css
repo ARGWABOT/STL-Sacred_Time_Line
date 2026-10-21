@@ -308,7 +308,8 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 @keyframes latido { 0%, 100% { box-shadow: 0 0 0 4px rgba(47, 95, 179, 0.18); } 50% { box-shadow: 0 0 0 9px rgba(47, 95, 179, 0.06); } }
 @media (prefers-reduced-motion: reduce) { .ruta li.actual .hito { animation: none; } }
 
-.marcador { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+/* auto-fit: las cifras que haya se reparten todo el ancho (con auto-fill quedaban columnas vacías a la derecha) */
+.marcador { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
 .marcador .kpi { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; text-align: left; font: inherit; box-shadow: var(--sombra); }
 .marcador .kpi:hover { border-color: var(--acento); background: var(--panel); }
 .marcador .kpi b { font-size: 24px; line-height: 1.2; }
@@ -900,6 +901,10 @@ body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas],
 .dq-barra i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--ok); transition: width 0.35s ease-out; }
 .dq-seccion[hidden] { display: none; }
 .donde-quedamos ul.dq-lista { list-style: none; padding-left: 0; gap: 2px; }
+.dq-lista > li { display: flex; align-items: flex-start; gap: 2px; }
+/* El ✉ de cada línea: comentarla o preguntar sobre ella al director */
+.dq-comentar { flex: none; min-height: 0; margin: 2px 0 0; padding: 3px 7px; font-size: 14px; line-height: 1.4; color: var(--suave); background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.dq-comentar:hover, .dq-comentar:focus-visible { color: var(--acento); border-color: var(--borde); background: var(--panel); }
 .dq-item { position: relative; display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 0; margin: 0; padding: 5px 8px; text-align: left; font: inherit; font-size: 15px; line-height: 1.5; color: var(--texto); background: transparent; border: 0; border-radius: 8px; cursor: pointer; }
 .dq-item:hover { background: var(--ok-fondo); }
 .dq-item:focus-visible { outline: 2px solid var(--ok); outline-offset: 1px; }

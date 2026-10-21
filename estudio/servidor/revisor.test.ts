@@ -15,6 +15,8 @@ describe('el director que lanza el Studio', () => {
     expect(p).toEqual(expect.arrayContaining(['WebSearch', 'WebFetch']));
     // reparte la lectura entre ayudantes, que heredan esta misma lista
     expect(p).toEqual(expect.arrayContaining(['Agent', 'Task']));
+    // mira la interfaz en un navegador sin pantalla, solo con su herramienta
+    expect(p).toContain('Bash(node tools/director/mirar.ts:*)');
     // nada que suba, despliegue o borre, ni escribir fuera del repositorio
     expect(p.some((x) => /push|deploy|rm\b|reset|clean/.test(x))).toBe(false);
     expect(p.filter((x) => /^(Edit|Write)/.test(x)).every((x) => x.includes('//c/repos/golf/'))).toBe(true);

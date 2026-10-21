@@ -97,6 +97,9 @@ export function permitido(repositorio: string): string[] {
     'Agent', 'Task',
     'Bash(node tools/director/bandeja.ts:*)', 'Bash(node tools/director/diagnosticar.ts:*)', 'Bash(node tools/director/estado.ts:*)',
     'Bash(npm test)', 'Bash(npm run typecheck)',
+    // mirar en un navegador sin pantalla lo que cambió de la interfaz (propuesta aceptada el 20 de octubre de 2026):
+    // solo esta herramienta, que abre páginas https o de este computador y guarda las capturas en la memoria
+    'Bash(node tools/director/mirar.ts:*)',
     // los commits, como los da la bandeja (cd, add y commit): solo locales, nunca push
     'Bash(cd:*)', 'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)',
   ];
