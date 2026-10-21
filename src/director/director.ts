@@ -604,6 +604,25 @@ export function mensajeRepiteAnterior(mensaje: string, anterior: string): { fras
 }
 
 /**
+ * Los temas de los comentarios del director: una viñeta por tema, que empieza por el tema en negrilla
+ * («- **Sobre los sonidos:** …»), como lo aceptó el titular el 21 de octubre de 2026 («Cada nota con su tipo», parte 4).
+ * «Dónde quedamos» muestra cada tema como una línea aparte, que se lee y se comenta sola. Una línea que no empieza con
+ * viñeta sigue a la anterior; un comentario sin viñetas es un solo tema.
+ */
+export function temasDelMensaje(texto: string): string[] {
+  const temas: string[] = [];
+  for (const linea of texto.split(/\r?\n/)) {
+    const l = linea.trim();
+    if (!l) continue;
+    const vineta = /^[-*•]\s+(.+)$/.exec(l);
+    if (vineta) temas.push(vineta[1].trim());
+    else if (temas.length) temas[temas.length - 1] += ` ${l}`;
+    else temas.push(l);
+  }
+  return temas;
+}
+
+/**
  * Dos versiones de lo mismo: una línea reescrita con otras palabras o alargada (al menos cuatro palabras con peso en
  * común, y tres de cada cinco de la más corta). «Dónde quedamos» muestra solo la nueva.
  */

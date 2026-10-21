@@ -9,6 +9,7 @@ import {
   mensajeRepite,
   mensajeRepiteAnterior,
   mismaIdea,
+  temasDelMensaje,
   coincideBusqueda,
   palabrasDeBusqueda,
   misionesPorVigilar,
@@ -468,6 +469,18 @@ describe('el plan no pesa: lo cerrado sale a su archivo', () => {
       'El tema oscuro, legible en todas partes: el resalte de una zona ya no tapa el texto.',
     )).toBe(false);
     expect(mismaIdea('Bien.', 'Bien.')).toBe(false);
+  });
+
+  it('los comentarios del director, un tema por viñeta (cada uno, una línea de «Dónde quedamos»)', () => {
+    expect(temasDelMensaje('- **Sobre el candado:** ya no se pierde nada.\n- **Sobre la cola:** es corta a propósito,\n  porque lo que sigue depende de esto.')).toEqual([
+      '**Sobre el candado:** ya no se pierde nada.',
+      '**Sobre la cola:** es corta a propósito, porque lo que sigue depende de esto.',
+    ]);
+    // sin viñetas, un solo tema, como antes (su línea no vuelve a aparecer como nueva)
+    expect(temasDelMensaje('  Una frase basta.  ')).toEqual(['Una frase basta.']);
+    // lo de antes de la primera viñeta es su propio tema; la negrilla del comienzo no es una viñeta
+    expect(temasDelMensaje('Para empezar.\n\n* Uno.\n**Sobre dos:** dos.')).toEqual(['Para empezar.', 'Uno. **Sobre dos:** dos.']);
+    expect(temasDelMensaje('')).toEqual([]);
   });
 
   it('la búsqueda del Buzón: todas las palabras, sin tildes ni mayúsculas, en lo dicho o en la respuesta', () => {
