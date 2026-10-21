@@ -4,6 +4,7 @@
 // identidad del titular: el Studio lo reconoce por ella. Es la manera de subir el Studio: nunca con un «git push» a mano.
 // Uso: node tools/subir-studio.ts            (dice qué haría, sin cambiar nada)
 //      node tools/subir-studio.ts --subir    (firma lo que falte y sube)
+//      node tools/subir-studio.ts --permiso  (le da a la sesión de ARGWABOT en gh el permiso «workflow»)
 import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { FIRMA, FORMATO_LOG, faltaWorkflow, filtroDeFirma, porFirmar, rangoPorSubir } from './firma.ts';
@@ -15,8 +16,30 @@ const EN_GH = [CUENTA, 'incocrea']; // cómo la conoce gh en este computador (in
 const URL = `https://github.com/${CUENTA}/STL-Sacred_Time_Line.git`;
 const subir = process.argv.includes('--subir');
 
-const token = EN_GH.map((u) => spawnSync('gh', ['auth', 'token', '--user', u], { encoding: 'utf8' })).find((r) => r.status === 0)?.stdout.trim();
-if (!token) throw new Error(`gh no tiene la sesión de ${CUENTA}: corre gh auth login con esa cuenta y vuelve a correr esto.`);
+const tokenDe = (u: string) => spawnSync('gh', ['auth', 'token', '--user', u], { encoding: 'utf8' });
+const usuario = EN_GH.find((u) => tokenDe(u).status === 0);
+if (!usuario) throw new Error(`gh no tiene la sesión de ${CUENTA}: corre gh auth login con esa cuenta y vuelve a correr esto.`);
+const sinWorkflow = (t: string) => {
+  const r = spawnSync('gh', ['api', '-i', 'user'], { env: { ...process.env, GH_TOKEN: t }, encoding: 'utf8' });
+  return r.status === 0 && faltaWorkflow(r.stdout);
+};
+
+// --permiso: gh auth refresh solo renueva la cuenta activa de gh, que puede no ser ARGWABOT. Esto la activa, le pide el
+// permiso «workflow» (abre el navegador) y deja activa la que estaba
+if (process.argv.includes('--permiso')) {
+  const gh = (...a: string[]) => spawnSync('gh', a, { stdio: 'inherit' }).status === 0;
+  const { GH_TOKEN: _, ...sinToken } = process.env;
+  const activa = spawnSync('gh', ['api', 'user', '--jq', '.login'], { env: sinToken, encoding: 'utf8' }).stdout.trim();
+  const cambia = activa.toLowerCase() !== usuario.toLowerCase();
+  if (cambia && !gh('auth', 'switch', '-h', 'github.com', '-u', usuario)) throw new Error(`No pude activar la sesión de ${usuario} en gh.`);
+  const ok = gh('auth', 'refresh', '-h', 'github.com', '-s', 'workflow');
+  if (cambia && activa) gh('auth', 'switch', '-h', 'github.com', '-u', activa);
+  if (!ok || sinWorkflow(tokenDe(usuario).stdout.trim())) throw new Error(`La sesión de ${CUENTA} en gh sigue sin el permiso «workflow». Vuelve a correr esto y, en el navegador, acepta con ${CUENTA}.`);
+  console.log(`Listo: la sesión de ${CUENTA} en gh ya tiene el permiso «workflow»${cambia && activa ? ` (y ${activa} sigue siendo tu cuenta activa)` : ''}.`);
+  process.exit(0);
+}
+
+const token = tokenDe(usuario).stdout.trim();
 const conToken = ['-c', 'credential.helper=', '-c', 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f'];
 const env = { ...process.env, GH_TOKEN: token, FILTER_BRANCH_SQUELCH_WARNING: '1' };
 const git = (...a: string[]) => execFileSync('git', a, { cwd: raiz, env, encoding: 'utf8' }).trim();
@@ -49,9 +72,8 @@ if (!subir) {
 }
 
 // Sin el permiso «workflow», GitHub rechaza la subida por .github/workflows/: se dice antes de firmar nada
-const quien = spawnSync('gh', ['api', '-i', 'user'], { env, encoding: 'utf8' });
-if (quien.status === 0 && faltaWorkflow(quien.stdout) && git('ls-files', '.github/workflows')) {
-  throw new Error(`A la sesión de ${CUENTA} en gh le falta el permiso «workflow», y sin él GitHub no deja subir la integración continua (.github/workflows). Corre gh auth refresh -h github.com -s workflow, acepta en el navegador con ${CUENTA}, y vuelve a correr esto.`);
+if (sinWorkflow(token) && git('ls-files', '.github/workflows')) {
+  throw new Error(`A la sesión de ${CUENTA} en gh le falta el permiso «workflow», y sin él GitHub no deja subir la integración continua (.github/workflows). Corre node tools/subir-studio.ts --permiso, acepta en el navegador con ${CUENTA}, y vuelve a correr esto.`);
 }
 
 if (faltan.length) {
