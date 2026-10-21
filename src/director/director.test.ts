@@ -14,6 +14,7 @@ import {
   eleccionDe,
   MAX_ESPERAR,
   opcionConDetalle,
+  destinoDelPaso,
   encargoDe,
   pasoHecho,
   pasosPorComprobar,
@@ -427,6 +428,15 @@ describe('llevar de la mano', () => {
     const p = planEjemplo();
     p.misiones[0] = { ...p.misiones[0], pasos: [{ texto: 'Abre esto', ir: { etiqueta: 'Ir' } }, { texto: 'Mira', ir: { url: 'http://ejemplo.co', etiqueta: 'Ver' } }, { texto: 'Prueba local', ir: { url: 'http://localhost:3000/', etiqueta: 'Abrir' } }] };
     expect(validarPlan(p)).toHaveLength(2);
+  });
+
+  it('un paso que se cumple al cruzar una puerta lleva a esa puerta, en su fase de la Ruta, aunque su botón no lo diga', () => {
+    expect(destinoDelPaso({ texto: 'Cruza la puerta', ir: { vista: 'ruta', fase: 'limpio', etiqueta: 'Ir a la puerta' }, hecho: { que: 'puerta', id: 'limpio' } }))
+      .toEqual({ vista: 'ruta', fase: 'limpio', ancla: 'puerta', etiqueta: 'Ir a la puerta' });
+    expect(destinoDelPaso({ texto: 'Cruza la puerta', hecho: { que: 'puerta', id: 'mvp' } })).toEqual({ vista: 'ruta', fase: 'mvp', ancla: 'puerta', etiqueta: 'Ir a la puerta' });
+    const otro = { vista: 'proyecto' as const, ancla: 'p-objetivo', etiqueta: 'Ir' };
+    expect(destinoDelPaso({ texto: 'Fija la meta', ir: otro })).toBe(otro);
+    expect(destinoDelPaso('Un paso sin botón')).toBeUndefined();
   });
 });
 

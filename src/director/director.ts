@@ -268,6 +268,17 @@ export const MAX_ESPERAR = 900;
 export const opcionConDetalle = (opcion: string) => /✉|te cuento|te copio|te explico/i.test(opcion);
 
 /**
+ * Adónde lleva el botón de un paso. Un paso que se cumple al cruzar una puerta lleva siempre a esa puerta, en su fase de
+ * la Ruta, y la resalta: quien aún no conoce la interfaz ve en qué vista está y dónde queda «Cruzar la puerta», abajo de
+ * la fase (pedido del titular). Los demás pasos llevan a su `ir` tal cual.
+ */
+export function destinoDelPaso(p: Paso): Destino | undefined {
+  if (typeof p === 'string') return undefined;
+  if (p.hecho?.que !== 'puerta' || !p.hecho.id) return p.ir;
+  return { vista: 'ruta', fase: p.hecho.id, ancla: 'puerta', etiqueta: p.ir?.etiqueta ?? 'Ir a la puerta' };
+}
+
+/**
  * La comprobación de un paso de terminal: una orden de solo lectura que el Studio corre en la carpeta del proyecto
  * (`git log -1 --format=%ae`, `git status --porcelain`, `existe <ruta>` para ver si un archivo está o `no existe <ruta>`
  * para ver que ya no está) y lo que su
