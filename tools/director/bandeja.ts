@@ -37,6 +37,7 @@ import {
   esPregunta,
   hilosDePreguntas,
   ideasSueltas,
+  loQueDejo,
   estadoMision,
   etapaArranque,
   faseActual,
@@ -320,7 +321,8 @@ const desdeDia = desde.slice(0, 10);
 const pendientes = pendientesDelDirector(plan, estado);
 // Lo que llega después de empezar la revisión (mientras el director trabaja se puede comentar, grabar, preguntar y avanzar
 // en las misiones: elegir, encargar, entregar) no entra en ella: espera la siguiente
-const corte = corteDeRevision(await leerLocal(raiz), id) ?? new Date().toISOString();
+const local = await leerLocal(raiz);
+const corte = corteDeRevision(local, id) ?? new Date().toISOString();
 const notas = pendientes.notas.filter((n) => n.cuando <= corte);
 const despues = pendientes.notas.length - notas.length;
 const entregas = pendientes.entregas.filter((m) => estado.entregas[m.id].cuando <= corte);
@@ -329,6 +331,29 @@ const entregadasDespues = pendientes.entregas.length - entregas.length;
 linea(`# Bandeja del director · ${proyecto.nombre || '(proyecto sin nombre)'} (${id}) · ${new Date().toLocaleString('es-CO')}`);
 linea(`Solo este proyecto. Su memoria está en su repositorio: ${memoria(id)} (rama stl). Ahí escribes: el plan en director/plan.json y los documentos en docs/ (el plan los nombra docs/…).`);
 linea(`Fase en curso: ${plan.fases.indexOf(fase)}. ${fase.nombre}. Última revisión: ${desde || 'nunca'}.`);
+
+// ── Pedida de nuevo después de una que no se cerró: lo que esa dejó está hecho; esta solo termina lo que falta ──
+const reintento = local.revision?.proyecto === id && !local.revision.hecha ? local.revision.reintento : undefined;
+if (reintento) {
+  const dejo = loQueDejo(plan, reintento.lanzada);
+  const commitsDeEntonces = commitsDesde(repo?.ruta, reintento.lanzada);
+  linea('\n## La revisión anterior no se cerró: retómala');
+  linea(`La que lanzó el Studio el ${new Date(reintento.lanzada).toLocaleString('es-CO')} no se cerró (${reintento.que})${reintento.registro ? `; su registro: ${reintento.registro}` : ''}. Lo que esa revisión ya dejó está hecho y no se rehace: esta revisión solo termina lo que falta y cierra con --listo. Lo que está abajo como pendiente es lo que falta.`);
+  const lista = (titulo: string, ids: string[]) => {
+    if (ids.length) linea(`- ${titulo} (no las reescribas): ${ids.join(', ')}`);
+  };
+  lista('Respuestas que ya escribió en el plan', dejo.respuestas);
+  lista('Veredictos de misiones que ya dio', dejo.revisiones);
+  lista('Misiones que ya comprobó (vigente)', dejo.misiones);
+  lista('Propuestas que ya ejecutó', dejo.ejecutadas);
+  if (commitsDeEntonces.length) {
+    linea(`- Commits del repositorio desde entonces (ese trabajo ya está hecho: compruébalo, no lo repitas):`);
+    for (const c of commitsDeEntonces.slice(0, 20)) linea(`  - ${c.hash} ${c.cuando.slice(0, 16)} ${c.asunto}`);
+    if (commitsDeEntonces.length > 20) linea(`  - … y ${commitsDeEntonces.length - 20} más (git log --since=${reintento.lanzada})`);
+  }
+  if (!dejo.respuestas.length && !dejo.revisiones.length && !dejo.misiones.length && !dejo.ejecutadas.length && !commitsDeEntonces.length)
+    linea('- No alcanzó a dejar nada en el plan ni en el repositorio: haz la revisión completa.');
+}
 
 const errores = [...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)];
 if (errores.length) {

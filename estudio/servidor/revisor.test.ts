@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, cerroSegunPlan, compararVersion, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -51,6 +51,32 @@ describe('el director que lanza el Studio', () => {
 
   it('le encarga la revisión de un proyecto, con su id en las herramientas', () => {
     expect(encargo('golf')).toContain('--proyecto golf --listo');
+    expect(encargo('golf')).not.toContain('Es un reintento');
+    // Pedida de nuevo después de una que no se cerró: retoma lo que dejó, sin rehacerlo
+    expect(encargo('golf', true)).toContain('Es un reintento: la revisión anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).');
+  });
+
+  it('una revisión que cerró con --listo nunca se marca fallida: manda plan.revisado', () => {
+    // el 21 de octubre de 2026 una revisión cerró a las 21:20:50 y el Studio la mostró como «no terminó»
+    const r = { pedida: '2026-10-21T21:11:52.000Z', lanzada: '2026-10-21T21:11:53.437Z' };
+    expect(cerroSegunPlan('2026-10-21T21:20:50.854Z', r)).toBe(true);
+    expect(cerroSegunPlan('2026-10-21T21:11:53.437Z', r)).toBe(true);
+    // el revisado de una revisión anterior no la cierra
+    expect(cerroSegunPlan('2026-10-21T20:00:00.000Z', r)).toBe(false);
+    expect(cerroSegunPlan(null, r)).toBe(false);
+    expect(cerroSegunPlan('no es fecha', r)).toBe(false);
+    // sin lanzar (la tomó la sesión del director), cuenta desde que se pidió
+    expect(cerroSegunPlan('2026-10-21T21:12:00.000Z', { pedida: r.pedida })).toBe(true);
+    // y se lee del plan del proyecto (sin plan, null)
+    const dir = mkdtempSync(join(tmpdir(), 'stl-revisado-'));
+    try {
+      expect(revisadoDelPlan(dir, 'golf')).toBeNull();
+      mkdirSync(join(dir, 'proyectos', 'golf', 'director'), { recursive: true });
+      writeFileSync(join(dir, 'proyectos', 'golf', 'director', 'plan.json'), JSON.stringify({ revisado: '2026-10-21T21:20:50.854Z' }));
+      expect(revisadoDelPlan(dir, 'golf')).toBe('2026-10-21T21:20:50.854Z');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('espera lo que lanza en segundo plano sin esperas programadas, y con el límite de cada encargo', () => {

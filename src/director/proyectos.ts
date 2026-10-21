@@ -17,7 +17,7 @@
 // en tiempo de ejecución: Node lo corre tal cual).
 import { execFile } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import type { Proyecto, TipoProyecto } from './director';
 
@@ -118,6 +118,20 @@ export interface RevisionPedida {
   error?: string;
   /** El reporte de por qué no terminó, para el diálogo «Qué pasó con la revisión» (junto a `error`, que lo resume). */
   falla?: FallaRevision;
+  /** Cuándo se había lanzado la que no terminó (junto a `error`: `lanzada` sale, para que la tome la sesión del director). */
+  fallida?: string;
+  /**
+   * Pedida de nuevo después de una que no se cerró: lo que esa alcanzó a dejar (desde `lanzada`) está hecho y no se
+   * rehace; la bandeja lo lista y esta revisión solo termina lo que falta (nota de voz del titular, 21 de octubre de 2026).
+   */
+  reintento?: Reintento;
+}
+
+/** La revisión que no se cerró y que esta retoma: desde cuándo trabajó, qué pasó y su registro. */
+export interface Reintento {
+  lanzada: string;
+  que: string;
+  registro?: string;
 }
 
 /**
@@ -190,10 +204,16 @@ export interface UrgenciaPedida {
 }
 
 const vacio = (): Local => ({ activo: null, repositorios: {} });
+/** La revisión tal cual, salvo un `reintento` mal formado, que sale. */
+const revisionNormal = (r: any): RevisionPedida => {
+  const { reintento, ...resto } = r;
+  const bien = reintento && typeof reintento.lanzada === 'string' && typeof reintento.que === 'string';
+  return { ...resto, ...(bien ? { reintento: { lanzada: reintento.lanzada, que: reintento.que, ...(typeof reintento.registro === 'string' ? { registro: reintento.registro } : {}) } } : {}) };
+};
 const normal = (x: any): Local => ({
   activo: typeof x?.activo === 'string' ? x.activo : null,
   repositorios: x?.repositorios && typeof x.repositorios === 'object' ? x.repositorios : {},
-  ...(x?.revision && typeof x.revision.proyecto === 'string' && typeof x.revision.pedida === 'string' ? { revision: x.revision as RevisionPedida } : {}),
+  ...(x?.revision && typeof x.revision.proyecto === 'string' && typeof x.revision.pedida === 'string' ? { revision: revisionNormal(x.revision) } : {}),
   ...(x?.aclaracion && typeof x.aclaracion.proyecto === 'string' && typeof x.aclaracion.nota === 'string' && typeof x.aclaracion.paso === 'number' ? { aclaracion: x.aclaracion as AclaracionPedida } : {}),
   ...(x?.urgencia && typeof x.urgencia.proyecto === 'string' && Array.isArray(x.urgencia.notas) && typeof x.urgencia.pedida === 'string' ? { urgencia: x.urgencia as UrgenciaPedida } : {}),
   ...(typeof x?.vigilia === 'string' ? { vigilia: x.vigilia } : {}),
@@ -212,26 +232,43 @@ export async function marcarVigilia(raiz: string): Promise<void> {
   await guardarLocal(raiz, { ...l, vigilia: new Date().toISOString() });
 }
 
+/** Cuántas veces se relee estudio.local.json si no se entiende, y cuánto se espera entre una y otra (ms). */
+const RELEER = 3;
+const RELEER_MS = 50;
+const noEsta = (e: unknown) => (e as NodeJS.ErrnoException)?.code === 'ENOENT';
+
+/**
+ * Lo de este computador. Lo escriben dos procesos (el servidor del Studio y la bandeja): un JSON que no se entiende
+ * (a medio escribir, o con el archivo tomado un instante en Windows) se relee unas veces antes de darlo por vacío, porque
+ * leerlo vacío y guardar encima borraría lo escrito (una revisión cerrada que se vio fallida, 21 de octubre de 2026).
+ */
 export async function leerLocal(raiz: string): Promise<Local> {
-  try {
-    return normal(JSON.parse(await readFile(join(raiz, ARCHIVO_LOCAL), 'utf-8')));
-  } catch {
-    return vacio();
+  for (let intento = 1; ; intento++) {
+    try {
+      return normal(JSON.parse(await readFile(join(raiz, ARCHIVO_LOCAL), 'utf-8')));
+    } catch (e) {
+      if (noEsta(e) || intento >= RELEER) return vacio();
+      await new Promise((listo) => setTimeout(listo, RELEER_MS));
+    }
   }
 }
 
-// Lo mismo, sin esperar: para resolver rutas en cualquier parte. Se relee solo si el archivo cambió.
+// Lo mismo, sin esperar: para resolver rutas en cualquier parte. Se relee solo si el archivo cambió. Si no se entiende,
+// se relee al instante y, si sigue sin entenderse, vale lo último que se leyó bien (nunca lo vacío por un instante)
 let enMemoria: { raiz: string; cuando: number; local: Local } | null = null;
 export function leerLocalYa(raiz: string): Local {
   const archivo = join(raiz, ARCHIVO_LOCAL);
-  try {
-    const cuando = statSync(archivo).mtimeMs;
-    if (enMemoria?.raiz === raiz && enMemoria.cuando === cuando) return enMemoria.local;
-    const local = normal(JSON.parse(readFileSync(archivo, 'utf-8')));
-    enMemoria = { raiz, cuando, local };
-    return local;
-  } catch {
-    return vacio();
+  for (let intento = 1; ; intento++) {
+    try {
+      const cuando = statSync(archivo).mtimeMs;
+      if (enMemoria?.raiz === raiz && enMemoria.cuando === cuando) return enMemoria.local;
+      const local = normal(JSON.parse(readFileSync(archivo, 'utf-8')));
+      enMemoria = { raiz, cuando, local };
+      return local;
+    } catch (e) {
+      if (noEsta(e)) return vacio();
+      if (intento >= RELEER) return enMemoria?.raiz === raiz ? enMemoria.local : vacio();
+    }
   }
 }
 
@@ -256,9 +293,30 @@ export function corteDeRevision(l: Local, proyecto: string): string | null {
   return marcas[0] ?? null;
 }
 
+/**
+ * Escribe lo de este computador de una vez: primero a un archivo aparte en la misma carpeta y luego lo pone en su lugar
+ * (rename), así nadie lo lee a medio escribir. En Windows, si el archivo está tomado un instante (EPERM, EBUSY, EACCES),
+ * se reintenta.
+ */
 async function guardarLocal(raiz: string, l: Local): Promise<void> {
   const x = { nota: 'Lo de este computador, fuera de git: el proyecto activo y la carpeta del repositorio de cada proyecto (su memoria está en <repositorio>/.stl, rama stl).', ...l };
-  await writeFile(join(raiz, ARCHIVO_LOCAL), JSON.stringify(x, null, 2) + '\n', 'utf-8');
+  const archivo = join(raiz, ARCHIVO_LOCAL);
+  const temporal = `${archivo}.${process.pid}-${Math.random().toString(36).slice(2, 8)}.tmp`;
+  await writeFile(temporal, JSON.stringify(x, null, 2) + '\n', 'utf-8');
+  try {
+    for (let intento = 1; ; intento++) {
+      try {
+        await rename(temporal, archivo);
+        break;
+      } catch (e) {
+        const tomado = ['EPERM', 'EBUSY', 'EACCES'].includes(String((e as NodeJS.ErrnoException)?.code));
+        if (!tomado || intento >= 4) throw e;
+        await new Promise((listo) => setTimeout(listo, RELEER_MS * intento));
+      }
+    }
+  } finally {
+    await unlink(temporal).catch(() => {}); // ya se movió, o no se pudo: que no quede suelto
+  }
   enMemoria = null;
 }
 
@@ -294,10 +352,28 @@ export async function olvidarProyecto(raiz: string, id: string): Promise<void> {
   await guardarLocal(raiz, { ...l, activo: l.activo === id ? null : l.activo, repositorios: resto });
 }
 
-/** Pide (o cancela, con `quien` null) la revisión del director para un proyecto. */
+/**
+ * Lo que retoma una revisión pedida de nuevo: si la anterior del mismo proyecto no se cerró (`error`), desde cuándo
+ * trabajó esa (o la primera de una seguidilla de fallidas), qué pasó y su registro. Si no, null.
+ */
+export function reintentoDe(antes: RevisionPedida | undefined, proyecto: string): Reintento | null {
+  if (!antes || antes.proyecto !== proyecto || !antes.error || antes.hecha) return null;
+  const registro = antes.falla?.registro ?? antes.reintento?.registro;
+  return {
+    lanzada: antes.reintento?.lanzada ?? antes.fallida ?? antes.pedida,
+    que: antes.falla?.que ?? antes.error,
+    ...(registro ? { registro } : {}),
+  };
+}
+
+/**
+ * Pide (o cancela, con `quien` null) la revisión del director para un proyecto. Si la anterior no se cerró, la nueva
+ * lleva su `reintento`: retoma lo que esa dejó, sin rehacerlo.
+ */
 export async function pedirRevision(raiz: string, proyecto: string, quien: string | null): Promise<RevisionPedida | null> {
   const l = await leerLocal(raiz);
-  const revision = quien ? { proyecto, quien, pedida: new Date().toISOString() } : undefined;
+  const reintento = reintentoDe(l.revision, proyecto);
+  const revision: RevisionPedida | undefined = quien ? { proyecto, quien, pedida: new Date().toISOString(), ...(reintento ? { reintento } : {}) } : undefined;
   await guardarLocal(raiz, { ...l, revision });
   return revision ?? null;
 }
@@ -311,8 +387,11 @@ export async function marcarLanzada(raiz: string, proyecto: string, error?: stri
   const l = await leerLocal(raiz);
   const r = l.revision?.proyecto === proyecto && !l.revision.hecha ? l.revision : null;
   if (!r) return;
-  const base = { proyecto: r.proyecto, quien: r.quien, pedida: r.pedida };
-  await guardarLocal(raiz, { ...l, revision: error ? { ...base, error, ...(falla ? { falla } : {}) } : { ...base, lanzada: new Date().toISOString() } });
+  // El reintento sigue con ella: si esta también falla, la siguiente retoma desde la primera
+  const base = { proyecto: r.proyecto, quien: r.quien, pedida: r.pedida, ...(r.reintento ? { reintento: r.reintento } : {}) };
+  const fallida = r.lanzada ?? r.fallida;
+  const fallo = { ...base, error: error!, ...(falla ? { falla } : {}), ...(fallida ? { fallida } : {}) };
+  await guardarLocal(raiz, { ...l, revision: error ? fallo : { ...base, lanzada: new Date().toISOString() } });
 }
 
 /** La revisión pedida empieza (`en_curso`) o termina (`hecha`). Sin una pedida, `hecha` igual deja la fecha. */

@@ -12,7 +12,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, 
 import { homedir } from 'node:os';
 import { delimiter, join, relative, resolve } from 'node:path';
 import { ajustesDelDirector, archivoAjustesClaude, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
-import { guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
+import { enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, pedirRevision, rutasDe, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
 
 export type { FallaRevision };
 
@@ -39,8 +39,11 @@ const esperar = (minutos: number) =>
   `termina tu turno: el aviso de que terminó te despierta solo (no tienes esperas programadas). Tienes ${minutos} ` +
   `minutos en total.`;
 
-/** Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. */
-export const encargo = (proyecto: string) =>
+/**
+ * Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. Con
+ * `reintento`, la anterior no se cerró: retoma lo que dejó.
+ */
+export const encargo = (proyecto: string, reintento = false) =>
   `Revisión pedida desde el Studio para el proyecto «${proyecto}». Eres el director asistente de STL Studio y te lanzó el ` +
   `Studio, sin pantalla: nadie lee esta salida, así que todo lo que el titular deba saber va en el Studio. Haz «revisa ` +
   `estudio» de ese proyecto según CLAUDE.md (sección «La sesión del director»), con --proyecto ${proyecto} en todas las ` +
@@ -50,6 +53,7 @@ export const encargo = (proyecto: string) =>
   `aceptan órdenes encadenadas con &&: para cada commit da cd a la carpeta, luego git add y luego git commit, cada una ` +
   `por separado. Cierra como siempre: ` +
   `node tools/director/bandeja.ts --proyecto ${proyecto} --listo y el commit en la memoria del proyecto.` +
+  (reintento ? ' Es un reintento: la revisión anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).' : '') +
   esperar(MAX_MIN);
 
 /** Una aclaración es una ida y vuelta corta: si tarda más que esto, se detiene y el pedido queda para la revisión. */
@@ -567,6 +571,27 @@ export function fallaDeProyecto(raiz: string, proyecto: string, f: FinDeRevision
   return diagnosticarFalla(texto, { inicio: inicioDeRegistro(archivo) ?? undefined, fin: Date.now(), ultimaActividad: mtime, registro: relative(raiz, archivo), ...f });
 }
 
+/**
+ * ¿La revisión se cerró, según el plan del proyecto? Lo que manda es `plan.revisado`, que solo escribe
+ * `bandeja.ts --listo`: si es igual o posterior a cuando se lanzó (o, sin lanzar, a cuando se pidió), cerró, aunque
+ * estudio.local.json no lo diga (el 21 de octubre de 2026 una revisión cerrada se mostró como fallida). Pura.
+ */
+export function cerroSegunPlan(revisado: string | null | undefined, r: { pedida: string; lanzada?: string }): boolean {
+  const cerro = revisado ? Date.parse(revisado) : NaN;
+  const desde = Date.parse(r.lanzada ?? r.pedida);
+  return Number.isFinite(cerro) && Number.isFinite(desde) && cerro >= desde;
+}
+
+/** `plan.revisado` del proyecto, leído de su memoria; null si no se puede leer. */
+export function revisadoDelPlan(raiz: string, proyecto: string): string | null {
+  try {
+    const revisado = JSON.parse(readFileSync(enDisco(raiz, rutasDe(proyecto).plan), 'utf-8'))?.revisado;
+    return typeof revisado === 'string' ? revisado : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Ordena versiones «1.2.10» de menor a mayor. */
 export const compararVersion = (a: string, b: string) => {
   const x = a.split('.').map(Number);
@@ -791,6 +816,8 @@ export class Revisor {
    * puede ser ya de otro programa. Sin modelo: solo el turno, el registro y si los procesos existen.
    */
   private async vigilarLanzada(proyecto: string, lanzada: string): Promise<void> {
+    // Si el plan dice que cerró, cerró: nunca se marca fallida una revisión que corrió --listo
+    if (await this.cerrarSiCerro(proyecto, { pedida: lanzada, lanzada })) return;
     const lanzado = estadoDelLanzado(join(this.raiz, '.revisiones', 'lanzando.json'), proyecto);
     if (lanzado.estado === 'muerto') {
       const problema = 'La revisión que lanzó el Studio se detuvo: Claude Code ya no está corriendo y no la cerró.';
@@ -801,6 +828,16 @@ export class Revisor {
     const problema = `La revisión que lanzó el Studio no terminó en ${MAX_MIN} minutos.`;
     const falla = fallaDeProyecto(this.raiz, proyecto, { problema, limite: MAX_MIN });
     await marcarLanzada(this.raiz, proyecto, problema, falla);
+  }
+
+  /**
+   * Si el plan del proyecto dice que la revisión cerró (cerroSegunPlan), la deja `hecha` aunque estudio.local.json no
+   * lo diga, y responde true: entonces no se marca fallida.
+   */
+  private async cerrarSiCerro(proyecto: string, r: { pedida: string; lanzada?: string }): Promise<boolean> {
+    if (!cerroSegunPlan(revisadoDelPlan(this.raiz, proyecto), r)) return false;
+    await marcarRevision(this.raiz, proyecto, 'hecha');
+    return true;
   }
 
   /** La aclaración no se pudo: lo dice, y el pedido (que ya está en el Buzón) queda para la revisión, que se pide. */
@@ -823,7 +860,10 @@ export class Revisor {
     // Un director a la vez en este computador, aunque haya dos servidores del Studio encendidos
     const turno = join(carpeta, 'lanzando.json');
     if (!tomarTurno(turno)) return;
-    if (!sigueSinLanzar(await leerLocal(this.raiz), proyecto, aparte)) return soltarTurno(turno);
+    const antes = await leerLocal(this.raiz);
+    if (!sigueSinLanzar(antes, proyecto, aparte)) return soltarTurno(turno);
+    // Pedida de nuevo después de una que no se cerró: retoma lo que esa dejó (la bandeja lo lista)
+    const reintento = !aparte && !!antes.revision?.reintento;
     // La de una aclaración o una urgencia lleva su nombre: así no se confunde con el registro de la revisión (progresoDeProyecto)
     const archivo = join(carpeta, `${proyecto}-${aparte ? `${aparte.tipo}-` : ''}${new Date().toISOString().replace(/[:.]/g, '-')}.log`);
     const registro = openSync(archivo, 'a');
@@ -851,7 +891,7 @@ export class Revisor {
     const p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] });
     // Quién es el director lanzado: si este servidor se reinicia, el siguiente sabe si sigue vivo (vigilarLanzada)
     anotarHijo(turno, p.pid, proyecto, relative(this.raiz, archivo));
-    p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u) : encargo(proyecto));
+    p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u) : encargo(proyecto, reintento));
     const minutos = aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : MAX_MIN;
     let cortada = false;
     const limite = setTimeout(() => {
@@ -887,6 +927,8 @@ export class Revisor {
       if (aparte) return void this.mirar().catch(() => {});
       const r = (await leerLocal(this.raiz)).revision;
       if (r?.proyecto === proyecto && !r.hecha) {
+        // Si corrió --listo (el plan lo dice), cerró: se deja hecha, aunque estudio.local.json lo haya perdido
+        if (await this.cerrarSiCerro(proyecto, { pedida: r.pedida, lanzada: r.lanzada ?? new Date(inicio).toISOString() })) return;
         // El reporte de qué pasó, leído del registro: lo muestra «¿Por qué?» (nunca una falla en silencio)
         let texto = '';
         let ultimaActividad: number | undefined;

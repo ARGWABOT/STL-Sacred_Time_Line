@@ -12,6 +12,7 @@ import {
   coincideBusqueda,
   palabrasDeBusqueda,
   misionesPorVigilar,
+  loQueDejo,
   unirArchivo,
   cumpleComprobacion,
   ordenDeComprobacion,
@@ -420,6 +421,17 @@ describe('el plan no pesa: lo cerrado sale a su archivo', () => {
     p.misiones = p.misiones.map((m) => ({ ...m, vigente: '2026-10-12T11:00:00Z' }));
     expect(misionesPorVigilar(p, e, desde, commits)).toEqual([]);
     expect(validarPlan({ ...p, misiones: [{ ...p.misiones[0], vigente: 'ayer' }, ...p.misiones.slice(1)] }, ['titular', 'ana'])).toHaveLength(1);
+  });
+
+  it('lo que dejó una revisión que no se cerró: la siguiente lo retoma sin rehacerlo', () => {
+    const p = planEjemplo();
+    const desde = '2026-10-21T21:11:53.437Z';
+    expect(loQueDejo(p, desde)).toEqual({ respuestas: [], revisiones: [], misiones: [], ejecutadas: [] });
+    p.respuestas = { ...p.respuestas, n_antes: { cuando: '2026-10-21T20:00:00Z', texto: 'De antes.' }, n_nueva: { cuando: '2026-10-21T21:15:00Z', texto: 'Ya respondida.' } };
+    p.revisiones = { ...p.revisiones, t_diag: { cuando: '2026-10-21T21:16:00Z', veredicto: 'aprobada', comentario: 'Bien.' } };
+    p.misiones = p.misiones.map((m, i) => (i === 0 ? { ...m, vigente: '2026-10-21T21:17:00Z' } : m));
+    p.ejecutadas = { pr_x: { cuando: '2026-10-21T21:18:00Z', nota: 'Hecha.' } };
+    expect(loQueDejo(p, desde)).toEqual({ respuestas: ['n_nueva'], revisiones: ['t_diag'], misiones: [p.misiones[0].id], ejecutadas: ['pr_x'] });
   });
 
   it('el mensaje no vuelve a contar lo avanzado', () => {

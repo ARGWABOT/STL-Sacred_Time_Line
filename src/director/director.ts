@@ -547,6 +547,28 @@ export function misionesPorVigilar(plan: Plan, estado: EstadoDirector, desde: st
   return salida;
 }
 
+/** Lo que una revisión que no se cerró alcanzó a dejar en el plan desde `desde` (cuando se lanzó): los ids. */
+export interface LoQueDejo {
+  respuestas: string[];
+  revisiones: string[];
+  misiones: string[];
+  ejecutadas: string[];
+}
+
+/**
+ * Lo que dejó en el plan una revisión que no se cerró, para que la siguiente lo retome sin rehacerlo: las respuestas y
+ * los veredictos escritos desde que se lanzó, las misiones que comprobó (`vigente`) y las propuestas que ejecutó.
+ */
+export function loQueDejo(plan: Plan, desde: string): LoQueDejo {
+  const desdeAhi = (x: { cuando?: string } | undefined) => !!x?.cuando && x.cuando >= desde;
+  return {
+    respuestas: Object.entries(plan.respuestas ?? {}).filter(([, r]) => desdeAhi(r)).map(([id]) => id),
+    revisiones: Object.entries(plan.revisiones ?? {}).filter(([, r]) => desdeAhi(r)).map(([id]) => id),
+    misiones: (plan.misiones ?? []).filter((m) => !!m.vigente && m.vigente >= desde).map((m) => m.id),
+    ejecutadas: Object.entries(plan.ejecutadas ?? {}).filter(([, e]) => desdeAhi(e)).map(([id]) => id),
+  };
+}
+
 const PALABRAS_VACIAS = new Set('para como pero porque cuando donde desde hasta sobre entre este esta estos estas tiene tienen hace hacer quedo queda sigue todo toda todos todas cada otra otro otros otras solo tambien ahora antes despues mismo misma sino nada algo ellos ella esto eso aqui alla muy mas menos siempre nunca'.split(' '));
 /** Las palabras con peso de una frase, sin tildes y por su raíz corta (así «publicada» y «publicado» son la misma). */
 function palabrasDe(texto: string): Set<string> {

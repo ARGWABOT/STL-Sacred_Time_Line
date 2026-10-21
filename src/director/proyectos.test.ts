@@ -1,10 +1,10 @@
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { validarPlan, validarProyecto } from './director';
-import { abrirMemoria, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -176,6 +176,50 @@ describe('la revisión pedida desde el Studio', () => {
     expect((await leerLocal(raiz)).revision).toMatchObject({ error: 'Se cortó.', falla });
     await pedirRevision(raiz, 'rev', 'Laura');
     expect((await leerLocal(raiz)).revision?.falla).toBeUndefined();
+  });
+
+  it('pedida de nuevo después de una que no se cerró, retoma lo que esa dejó (reintento)', async () => {
+    const falla = { que: 'Claude Code terminó sin cerrar la revisión', porque: '…', duracion: 9, gasto: null, ultimos: [], usoFlujos: null, negados: [], sugerencia: 'Pídela de nuevo.', accion: 'pedir' as const, cuando: '2026-10-21T21:21:07.000Z', registro: '.revisiones/rev-x.log' };
+    await pedirRevision(raiz, 'rev', 'Laura');
+    await marcarLanzada(raiz, 'rev');
+    const lanzada = (await leerLocal(raiz)).revision!.lanzada!;
+    await marcarLanzada(raiz, 'rev', 'No se cerró.', falla);
+    // la fallida guarda cuándo se lanzó, sin `lanzada` (así la puede tomar la sesión del director)
+    expect((await leerLocal(raiz)).revision).toMatchObject({ error: 'No se cerró.', fallida: lanzada });
+    expect((await leerLocal(raiz)).revision?.lanzada).toBeUndefined();
+    await pedirRevision(raiz, 'rev', 'Laura');
+    const r = (await leerLocal(raiz)).revision!;
+    expect(r.error).toBeUndefined();
+    expect(r.reintento).toEqual({ lanzada, que: 'Claude Code terminó sin cerrar la revisión', registro: '.revisiones/rev-x.log' });
+    // si esta también falla, la siguiente retoma desde la primera
+    await marcarLanzada(raiz, 'rev');
+    await marcarLanzada(raiz, 'rev', 'Otra vez.');
+    await pedirRevision(raiz, 'rev', 'Laura');
+    expect((await leerLocal(raiz)).revision?.reintento).toMatchObject({ lanzada, que: 'Otra vez.' });
+    // una que cerró bien no deja reintento
+    await marcarRevision(raiz, 'rev', 'hecha');
+    await pedirRevision(raiz, 'rev', 'Laura');
+    expect((await leerLocal(raiz)).revision?.reintento).toBeUndefined();
+    expect(reintentoDe({ proyecto: 'otro', quien: 'x', pedida: lanzada, error: 'no' }, 'rev')).toBeNull();
+  });
+
+  it('estudio.local.json se escribe de una vez y no se lee vacío por un instante', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'estudio-local-'));
+    try {
+      await guardarRutaRepositorio(dir, 'golf', '/repos/golf');
+      // sin archivos temporales sueltos
+      expect(readdirSync(dir)).toEqual(['estudio.local.json']);
+      // a medio escribir (otro proceso lo está escribiendo): se relee en vez de darlo por vacío
+      const bien = readFileSync(join(dir, 'estudio.local.json'), 'utf-8');
+      writeFileSync(join(dir, 'estudio.local.json'), bien.slice(0, 20));
+      setTimeout(() => writeFileSync(join(dir, 'estudio.local.json'), bien), 20);
+      expect((await leerLocal(dir)).repositorios).toEqual({ golf: '/repos/golf' });
+      // un reintento mal formado sale al leerlo
+      writeFileSync(join(dir, 'estudio.local.json'), JSON.stringify({ activo: null, repositorios: {}, revision: { proyecto: 'golf', quien: 'x', pedida: 'p', reintento: { que: 1 } } }));
+      expect((await leerLocal(dir)).revision).toEqual({ proyecto: 'golf', quien: 'x', pedida: 'p' });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('una revisión ya hecha no se vuelve a lanzar ni a marcar', async () => {
