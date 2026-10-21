@@ -821,6 +821,8 @@ html.enfoque-mision .progreso-director { z-index: 46; }
 /* El director en este computador: el modelo y lo que gastó */
 .campo-modelo { display: grid; gap: 6px; font-size: 14px; font-weight: 600; margin-top: 10px; max-width: 320px; }
 .campo-modelo select { width: 100%; }
+.abrir-claude { margin-top: 14px; }
+.abrir-claude button { min-height: 36px; }
 .consumo-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
 .consumo-cifras > div { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px; }
 .consumo-cifras .tit { font-size: 12px; color: var(--suave); }

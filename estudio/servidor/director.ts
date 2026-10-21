@@ -70,11 +70,12 @@ import {
   type Validacion,
 } from '../../src/director/director';
 import { leerFresco, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarEsfuerzo, guardarModelo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
+import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
-import { consumoDeRevisiones, progresoDeProyecto, Revisor } from './revisor';
+import { guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor } from './revisor';
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
 import { abrirTerminal, comprobarPaso } from './terminal';
 
@@ -989,9 +990,9 @@ export function servidorDirector(): Plugin {
               vigilia: (await leerLocal(raiz)).vigilia ?? null,
               // Si el Studio lanza solo al director, o por qué no puede
               revisor: revisor?.estado() ?? null,
-              // Con qué modelo lanza el Studio al director en este computador, y lo que gastó cada lanzamiento
-              modelo: (await leerLocal(raiz)).modelo ?? null,
-              esfuerzo: (await leerLocal(raiz)).esfuerzo ?? null,
+              // El modelo y el esfuerzo de Claude Code (los de /model y /effort, con los que el Studio lanza al
+              // director), y lo que gastó cada lanzamiento
+              ...(await leerAjustesClaude()),
               consumo: consumoDeRevisiones(raiz),
               // Lo que va haciendo el director que lanzó el Studio, mientras revisa (el Studio lo muestra en vivo)
               progreso: await (async () => {
@@ -1086,17 +1087,34 @@ export function servidorDirector(): Plugin {
               return responder(res, 400, { error: (e as Error).message });
             }
           }
-          // El modelo con que el Studio lanza al director: es de este computador (estudio.local.json), no va en git
+          // El modelo y el esfuerzo de Claude Code en este computador: elegirlos aquí es lo mismo que /model y /effort
+          // (vale para el director que lanza el Studio y para cualquier sesión de Claude Code), y no va en git
           if (ruta === '/modelo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);
-            await guardarModelo(raiz, textoDe(cuerpo.modelo, 60) || null);
-            return responder(res, 200, { modelo: (await leerLocal(raiz)).modelo ?? null });
+            try {
+              await guardarModeloClaude(textoDe(cuerpo.modelo, 60) || null);
+            } catch (e) {
+              return responder(res, 400, { error: (e as Error).message });
+            }
+            return responder(res, 200, await leerAjustesClaude());
           }
-          // Cuánto piensa el director que lanza el Studio (claude --effort): también de este computador
           if (ruta === '/esfuerzo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);
-            await guardarEsfuerzo(raiz, textoDe(cuerpo.esfuerzo, 10) || null);
-            return responder(res, 200, { esfuerzo: (await leerLocal(raiz)).esfuerzo ?? null });
+            try {
+              await guardarEsfuerzoClaude(textoDe(cuerpo.esfuerzo, 10) || null);
+            } catch (e) {
+              return responder(res, 400, { error: (e as Error).message });
+            }
+            return responder(res, 200, await leerAjustesClaude());
+          }
+          // «Abrir Claude Code»: una terminal nueva con Claude Code como lo lanza el Studio (en su carpeta, con la del
+          // proyecto activo a la vista y la misma configuración). La orden la arma el servidor, nunca la petición
+          if (ruta === '/abrir-claude' && req.method === 'POST') {
+            const programa = buscarClaude();
+            if (!programa) return responder(res, 400, { error: 'No encontré Claude Code en este computador. Instálalo (https://claude.com/claude-code) y vuelve a intentarlo.' });
+            const activoAhora = await activo();
+            const r = await abrirTerminal(ordenAbrirClaude(programa, raiz, activoAhora ? await leerRutaRepositorio(raiz, activoAhora) : null), raiz);
+            return r.ok ? responder(res, 200, {}) : responder(res, 400, { error: r.error });
           }
           if (ruta === '/activo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);

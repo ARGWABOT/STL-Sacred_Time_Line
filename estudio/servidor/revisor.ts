@@ -10,8 +10,9 @@
 import { spawn } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { delimiter, join, relative } from 'node:path';
-import { guardarEsfuerzo, guardarModelo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
+import { delimiter, join, relative, resolve } from 'node:path';
+import { archivoAjustesClaude, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
 
 /** Lo que el Studio muestra del revisor: si revisa solo, o por qué no puede. */
 export interface EstadoRevisor {
@@ -356,6 +357,20 @@ const comoComando = (programa: string) => {
   return process.platform === 'win32' && p.startsWith('"') ? `& ${p}` : p;
 };
 
+/**
+ * La orden que abre Claude Code en una terminal como lo lanza el Studio: en la carpeta del Studio (donde están las reglas
+ * del director), con la del proyecto activo a la vista, y con el modelo y el esfuerzo de su configuración, que son los
+ * que elige Proyecto. Es una sesión de quien la abre: pide permiso para lo que haga. Sin las variables de una sesión de
+ * Claude Code desde la que se haya encendido el Studio, que le harían creer que está dentro de ella.
+ */
+export function ordenAbrirClaude(programa: string, raiz: string, repositorio: string | null): string {
+  const q = (s: string) => `'${s.replace(/\\/g, '/').replace(/'/g, `'\\''`)}'`;
+  // El .cmd de npm no corre en bash: ahí basta su nombre, porque se encontró en el PATH
+  const claude = /\.cmd$/i.test(programa) ? 'claude' : q(programa);
+  const otro = repositorio && resolve(repositorio) !== resolve(raiz) ? ` --add-dir ${q(repositorio)}` : '';
+  return `env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT ${claude}${otro}`;
+}
+
 /** Lanza Claude Code. El .cmd de npm, en Windows, solo corre dentro de una consola. */
 function lanzarClaude(programa: string, args: string[], opciones: Parameters<typeof spawn>[2]) {
   // Lanzado desde otra sesión de Claude Code, heredaría sus variables y creería estar dentro de ella
@@ -394,7 +409,8 @@ export class Revisor {
   private problema: string | null = null;
   private visto = 0;
 
-  constructor(private raiz: string) {}
+  /** `ajustes`: la configuración de Claude Code de donde salen el modelo y el esfuerzo (la de /model y /effort). */
+  constructor(private raiz: string, private ajustes = archivoAjustesClaude()) {}
 
   estado(): EstadoRevisor {
     return { agente: this.programa ? 'Claude Code' : null, problema: this.problema, revisando: this.hijo };
@@ -479,12 +495,13 @@ export class Revisor {
     // La de una aclaración o una urgencia lleva su nombre: así no se confunde con el registro de la revisión (progresoDeProyecto)
     const archivo = join(carpeta, `${proyecto}-${aparte ? `${aparte.tipo}-` : ''}${new Date().toISOString().replace(/[:.]/g, '-')}.log`);
     const registro = openSync(archivo, 'a');
-    const { modelo, esfuerzo } = await leerLocal(this.raiz);
+    // El modelo y el esfuerzo de Claude Code (los de /model y /effort, que también se eligen en Proyecto): se pasan
+    // explícitos para que el registro diga qué se pidió
+    const { modelo, esfuerzo } = await leerAjustesClaude(this.ajustes);
     // Lo pedido va primero en el registro: así el Studio compara con el modelo con que de verdad trabajó
-    writeSync(registro, lineaPedido(modelo ?? null, esfuerzo ?? null));
+    writeSync(registro, lineaPedido(modelo, esfuerzo));
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
-    // El modelo elegido en Proyecto, si hay uno; si no, el de la cuenta de Claude Code
     const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
@@ -500,13 +517,14 @@ export class Revisor {
       clearTimeout(limite);
       closeSync(registro);
       this.hijo = null;
-      // La cuenta no acepta el modelo elegido: vuelve al de siempre, y el aviso lo dice
+      // La cuenta no acepta el modelo elegido: vuelve al de siempre (también en Claude Code, que con él tampoco
+      // arrancaría), y el aviso lo dice
       if (modelo && fallaDelModelo(readFileSync(archivo, 'utf-8'))) {
-        await guardarModelo(this.raiz, null);
-        problema = `Tu cuenta de Claude Code no aceptó el modelo «${modelo}», así que el Studio volvió al de tu cuenta: pide la revisión otra vez. En Proyecto puedes elegir otro.`;
+        await guardarModeloClaude(null, this.ajustes).catch(() => {});
+        problema = `Tu cuenta de Claude Code no aceptó el modelo «${modelo}», así que el Studio lo quitó de la configuración de Claude Code y volvió al de tu cuenta: pide la revisión otra vez. En Proyecto puedes elegir otro.`;
       } else if (esfuerzo && fallaDelEsfuerzo(readFileSync(archivo, 'utf-8'))) {
-        await guardarEsfuerzo(this.raiz, null);
-        problema = `Claude Code no aceptó el esfuerzo «${esfuerzo}» (puede que su versión no lo traiga, o que el modelo no lo use), así que el Studio volvió al de tu cuenta: pide la revisión otra vez.`;
+        await guardarEsfuerzoClaude(null, this.ajustes).catch(() => {});
+        problema = `Claude Code no aceptó el esfuerzo «${esfuerzo}» (puede que su versión no lo traiga, o que el modelo no lo use), así que el Studio lo quitó de la configuración de Claude Code y volvió al de tu cuenta: pide la revisión otra vez.`;
       }
       if (aparte?.tipo === 'aclaracion') {
         const a = (await leerLocal(this.raiz)).aclaracion;

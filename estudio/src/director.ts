@@ -151,9 +151,9 @@ interface Datos {
   vigilia?: string | null;
   /** Si el Studio lanza solo al director al pedir la revisión (estudio/servidor/revisor.ts), o por qué no puede. */
   revisor?: { agente: string | null; problema: string | null; revisando: string | null } | null;
-  /** El modelo con que el Studio lanza al director en este computador (null: el de la cuenta de Claude Code). */
+  /** El modelo de Claude Code en este computador, el de /model, con el que el Studio lanza al director (null: el de la cuenta). */
   modelo?: string | null;
-  /** Cuánto piensa ese director (`claude --effort`; null: el de la cuenta de Claude Code). */
+  /** Cuánto piensa (el esfuerzo de Claude Code, el de /effort; null: el de la cuenta). */
   esfuerzo?: string | null;
   /** Lo que gastó cada lanzamiento del director en este computador (estudio/servidor/revisor.ts › consumoDeRevisiones). */
   consumo?: {
@@ -3098,7 +3098,7 @@ function vistaProyecto() {
  * cada plan: si la cuenta no tiene el elegido, la revisión lo dice y el Studio vuelve al de la cuenta.
  */
 const MODELOS: { id: string; nombre: string; que: string; grupo?: string }[] = [
-  { id: '', nombre: 'El de tu cuenta', que: 'El que Claude Code tenga por defecto en tu cuenta. El Studio no cambia nada.' },
+  { id: '', nombre: 'El de tu cuenta', que: 'Sin un modelo elegido en Claude Code: el que trae tu cuenta por defecto.' },
   { id: 'claude-opus-5-5', nombre: 'Opus 5.5', grupo: 'Por versión', que: 'El más capaz para dirigir y escribir código, y el que más gasta.' },
   { id: 'claude-opus-5-5[1m]', nombre: 'Opus 5.5, contexto de 1 M', grupo: 'Por versión', que: 'Opus 5.5 con un contexto de un millón de tokens: aguanta revisiones muy largas sin resumirse. Gasta como Opus.' },
   { id: 'claude-sonnet-5-5', nombre: 'Sonnet 5.5', grupo: 'Por versión', que: 'Buen equilibrio: dirige bien y gasta bastante menos que Opus.' },
@@ -3139,7 +3139,7 @@ function seccionModelo() {
   const actual = d.modelo ?? '';
   const lista = d.consumo ?? [];
   const elegido = MODELOS.find((m) => m.id === actual);
-  const opciones = [...MODELOS, ...(elegido ? [] : [{ id: actual, nombre: actual, que: 'Un modelo escrito a mano en estudio.local.json.' }])];
+  const opciones = [...MODELOS, ...(elegido ? [] : [{ id: actual, nombre: actual, que: 'El que tiene la configuración de Claude Code (lo eligió /model o se escribió a mano).' }])];
   const hoyLocal = new Date();
   const dia = (x: Date) => `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`;
   const suma = (xs: typeof lista) => ({ n: xs.length, costo: xs.reduce((s, x) => s + x.costo, 0), tokens: xs.reduce((s, x) => s + x.entrada + x.cache + x.salida, 0) });
@@ -3169,12 +3169,14 @@ function seccionModelo() {
     : '<p class="como">Los límites de tu plan (cada cinco horas y semanal) los informa Claude Code en cada lanzamiento: aparecen aquí después del próximo. Mientras tanto, míralos en Claude Code con <code>/usage</code>.</p>';
   return `<section class="panel-d" data-ancla="p-director">
         <h3>El director en este computador</h3>
-        <p class="como">Con qué modelo te revisa el director cuando el Studio lo llama (la revisión, «No lo entiendo» y lo urgente). Es de este computador: no va en git.</p>
+        <p class="como">Con qué modelo te revisa el director cuando el Studio lo llama (la revisión, «No lo entiendo» y lo urgente). Es la configuración de Claude Code en este computador, la misma que cambian <code>/model</code> y <code>/effort</code>: lo que elijas aquí vale también para tus sesiones nuevas de Claude Code, y lo que cambies allá se ve aquí. No va en git.</p>
         <label class="campo-modelo">Modelo<select data-modelo>${opcionesDe(opciones, actual)}</select></label>
-        <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Si tu cuenta no acepta el que elijas, el lanzamiento falla antes de trabajar, el Studio vuelve al de tu cuenta y lo dice.</p>
+        <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Si tu cuenta no acepta el que elijas, el lanzamiento falla antes de trabajar, el Studio lo quita de la configuración de Claude Code, vuelve al de tu cuenta y lo dice.</p>
         ${trabajo}
         <label class="campo-modelo">Esfuerzo<select data-esfuerzo>${opcionesDe(ESFUERZOS, d.esfuerzo ?? '')}</select></label>
         <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta. Claude Code no informa el esfuerzo con que trabajó: si no acepta el elegido, falla al empezar y el Studio vuelve al de tu cuenta.</p>
+        <div class="abrir-claude"><button type="button" class="boton-suave" data-abrir-claude>Abrir Claude Code en una terminal</button>
+          <p class="como">Abre una ventana nueva con Claude Code como lo lanza el Studio: en la carpeta del Studio, con la del proyecto activo a la vista, y con este modelo y este esfuerzo. Sirve para lo que solo se hace allí, como <code>/usage</code> o iniciar sesión. Es una sesión tuya, aparte: te pide permiso para cada cosa, y lo del proyecto sigue yendo por el Buzón.</p></div>
         ${limites}
         <h3>Lo que gastó</h3>
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
@@ -3756,18 +3758,22 @@ $('vista').addEventListener('change', async (e) => {
   const sm = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-modelo]');
   if (sm) {
     const r = await fetch('/__estudio/director/modelo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelo: sm.value }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
-    if (r instanceof Error || !r.ok) return avisar('No se pudo guardar el modelo: el Studio no respondió.');
-    d.modelo = (await r.json()).modelo ?? null;
+    if (r instanceof Error) return avisar('No se pudo guardar el modelo: el Studio no respondió.');
+    const x = await r.json().catch(() => ({}));
+    if (!r.ok) return avisar(x.error ?? 'No se pudo guardar el modelo.');
+    Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null });
     pintar();
-    return avisar(d.modelo ? `Desde la próxima vez, el director trabaja con ${MODELOS.find((m) => m.id === d.modelo)?.nombre ?? d.modelo}.` : 'Desde la próxima vez, el director trabaja con el modelo de tu cuenta.', true);
+    return avisar(d.modelo ? `Claude Code trabaja con ${MODELOS.find((m) => m.id === d.modelo)?.nombre ?? d.modelo}: el director desde su próximo lanzamiento, y tus sesiones nuevas de Claude Code, como con /model.` : 'Claude Code vuelve al modelo de tu cuenta: el director y tus sesiones nuevas.', true);
   }
   const se = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-esfuerzo]');
   if (se) {
     const r = await fetch('/__estudio/director/esfuerzo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ esfuerzo: se.value }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
-    if (r instanceof Error || !r.ok) return avisar('No se pudo guardar el esfuerzo: el Studio no respondió.');
-    d.esfuerzo = (await r.json()).esfuerzo ?? null;
+    if (r instanceof Error) return avisar('No se pudo guardar el esfuerzo: el Studio no respondió.');
+    const x = await r.json().catch(() => ({}));
+    if (!r.ok) return avisar(x.error ?? 'No se pudo guardar el esfuerzo.');
+    Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null });
     pintar();
-    return avisar(d.esfuerzo ? `Desde la próxima vez, el director trabaja con esfuerzo ${ESFUERZOS.find((x) => x.id === d.esfuerzo)?.nombre.toLowerCase() ?? d.esfuerzo}.` : 'Desde la próxima vez, el director trabaja con el esfuerzo de tu cuenta.', true);
+    return avisar(d.esfuerzo ? `Claude Code trabaja con esfuerzo ${ESFUERZOS.find((x) => x.id === d.esfuerzo)?.nombre.toLowerCase() ?? d.esfuerzo}: el director desde su próximo lanzamiento, y tus sesiones nuevas de Claude Code, como con /effort.` : 'Claude Code vuelve al esfuerzo de tu cuenta: el director y tus sesiones nuevas.', true);
   }
   const sync = (e.target as HTMLElement).closest<HTMLInputElement>('[data-sincronizar]');
   if (sync) await accion({ tipo: 'sincronizar', activo: sync.checked }, sync.checked ? 'Desde ahora, lo que decide cada persona sube solo a GitHub.' : 'La subida a GitHub quedó apagada: todo queda en commits locales.');
@@ -3904,6 +3910,14 @@ async function clicEnVista(b: HTMLButtonElement) {
     if (!r.ok) return avisar((await r.json().catch(() => ({}))).error ?? 'No se pudo abrir la terminal.');
     const p = d.plan.misiones.find((x) => x.id === mision)?.pasos[Number(i)];
     avisar(`Se abrió una ventana de terminal con la orden corriendo. Cuando diga que terminó, oprime «Ya lo hice»${typeof p !== 'string' && p?.comprobar ? ': el Studio comprueba que salió bien y marca el paso' : ' y el paso se marca'}.`, true);
+  } else if (ds.abrirClaude !== undefined) {
+    // Claude Code en una terminal nueva, como lo lanza el Studio; es una sesión tuya, aparte del Studio
+    b.setAttribute('disabled', '');
+    const r = await fetch('/__estudio/director/abrir-claude', { method: 'POST', signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    b.removeAttribute('disabled');
+    if (r instanceof Error) return avisar('No se pudo hablar con el servidor del Studio.');
+    if (!r.ok) return avisar((await r.json().catch(() => ({}))).error ?? 'No se pudo abrir la terminal.');
+    avisar('Se abrió una ventana de terminal con Claude Code, con el mismo modelo y el mismo esfuerzo. Lo que hagas ahí es tuyo: te pide permiso para cada cosa.', true);
   } else if (ds.yaHice) {
     // «Ya lo hice»: lo mismo que «Listo, ya lo hice» (con su comprobación, si la tiene), a la vista junto a la orden
     const casilla = $('vista').querySelector<HTMLInputElement>(`[data-paso="${CSS.escape(ds.yaHice)}"]`);
