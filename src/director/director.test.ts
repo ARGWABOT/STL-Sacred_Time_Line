@@ -828,6 +828,8 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     const con = (paso: Paso) => validarPlan({ ...p, misiones: [...p.misiones, mision([paso])] }, ['titular', 'ana']);
     expect(con({ texto: 'Espera y mira', opciones: ['Se ve', 'No se ve'], esperar: 120 })).toEqual([]);
     expect(con({ texto: 'Espera y mira', esperar: 120 })).toHaveLength(1);
+    // Sin opciones, la espera retiene el botón que lleva a verlo
+    expect(con({ texto: 'Espera y ábrelo', ir: { url: 'https://example.com', etiqueta: 'Abrir' }, esperar: 30 })).toEqual([]);
     expect(con({ texto: 'Espera y mira', opciones: ['Se ve', 'No se ve'], esperar: 2 })).toHaveLength(1);
     expect(con({ texto: 'Espera y mira', opciones: ['Se ve', 'No se ve'], esperar: MAX_ESPERAR + 1 })).toHaveLength(1);
     expect(opcionConDetalle('Se ve, pero algo falla (te cuento con ✉)')).toBe(true);

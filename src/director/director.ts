@@ -1737,7 +1737,8 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
       }
       if (p.esperar !== undefined) {
         if (typeof p.esperar !== 'number' || !Number.isInteger(p.esperar) || p.esperar < 5 || p.esperar > MAX_ESPERAR) errores.push(`${donde} pide esperar ${p.esperar} segundos: debe ser un entero de 5 a ${MAX_ESPERAR}.`);
-        if (p.opciones === undefined) errores.push(`${donde} pide esperar sin opciones: la cuenta regresiva bloquea las opciones del paso.`);
+        // La cuenta retiene lo que el paso pide hacer: sus opciones o el botón que lleva a verlo
+        if (p.opciones === undefined && p.ir === undefined) errores.push(`${donde} pide esperar sin opciones ni botón: la cuenta regresiva retiene uno de los dos.`);
       }
       for (const k of ['hazlo', 'soloTu'] as const) {
         const v: unknown = p[k];
