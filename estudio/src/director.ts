@@ -156,14 +156,19 @@ interface Datos {
   modelo?: string | null;
   /** Cuánto piensa (el esfuerzo de Claude Code, el de /effort; null: el de la cuenta). */
   esfuerzo?: string | null;
+  /** Ultracode en las sesiones nuevas de Claude Code de este computador (el director que lanza el Studio sigue sin él). */
+  ultracode?: boolean;
   /** Lo que gastó cada lanzamiento del director en este computador (estudio/servidor/revisor.ts › consumoDeRevisiones). */
   consumo?: {
     cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; costo: number; entrada: number; cache: number; salida: number; minutos: number;
     pedido?: { modelo: string | null; esfuerzo: string | null; cumplido?: boolean | null };
     limites: { cincoHoras: { uso: number; renueva: string | null } | null; semana: { uso: number; renueva: string | null } | null } | null;
   }[];
-  /** Lo que va haciendo el director que lanzó el Studio, mientras revisa (estudio/servidor/revisor.ts › progresoDe). */
-  progreso?: { tipo: 'dice' | 'hace'; texto: string }[] | null;
+  /**
+   * Lo que va haciendo el director que lanzó el Studio, mientras revisa (estudio/servidor/revisor.ts › progresoDe), con
+   * las líneas iguales seguidas en una sola y su cuenta (`veces`, agruparPasos).
+   */
+  progreso?: { tipo: 'dice' | 'hace'; texto: string; veces?: number }[] | null;
   /** «No lo entiendo, explícamelo mejor» de un paso: el director lo aclara al instante, sin el resto de la revisión. */
   aclaracion?: { mision: string; paso: number; nota: string; pedida: string; lanzada?: string; hecha?: string; error?: string } | null;
   /** Las notas urgentes: el director las atiende solas, al instante, y el resultado vuelve en «¿Dónde quedamos?». */
@@ -562,7 +567,7 @@ function pintarProgreso(trabajando: boolean) {
     ${d.progreso === null || d.progreso === undefined
       ? '<p class="como">El director revisa desde su sesión de Claude Code: aquí se ve el avance de las revisiones que lanza el Studio.</p>'
       : pasos.length
-      ? `<ol class="pasos-progreso">${pasos.map((p, i) => `<li class="${p.tipo}${i === pasos.length - 1 ? ' ultimo' : ''}">${p.tipo === 'dice' ? esc(p.texto) : `<span class="como">${esc(p.texto)}</span>`}${i === pasos.length - 1 ? '<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}</li>`).join('')}</ol>`
+      ? `<ol class="pasos-progreso">${pasos.map((p, i) => `<li class="${p.tipo}${i === pasos.length - 1 ? ' ultimo' : ''}">${p.tipo === 'dice' ? esc(p.texto) : `<span class="como">${esc(p.texto)}</span>`}${p.veces ? ` <span class="veces" title="${p.veces} veces seguidas">${p.veces}</span>` : ''}${i === pasos.length - 1 ? '<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}</li>`).join('')}</ol>`
       : '<p class="como">Arrancando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></p>'}`;
   // Sigue lo más nuevo, salvo que estés leyendo más arriba
   const nueva = caja.querySelector<HTMLElement>('.pasos-progreso');
@@ -3200,6 +3205,8 @@ function vistaModelo() {
         ${trabajo}
         <label class="campo-modelo">Esfuerzo<select data-esfuerzo>${opcionesDe(ESFUERZOS, d.esfuerzo ?? '')}</select></label>
         <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta. Claude Code no informa el esfuerzo con que trabajó: si no acepta el elegido, falla al empezar y el Studio vuelve al de tu cuenta.</p>
+        <label class="interruptor-s"><input type="checkbox" data-ultracode${d.ultracode ? ' checked' : ''} /> Ultracode</label>
+        <p class="como">Con ultracode, Claude planea un flujo de varios agentes para cada tarea de peso, en vez de esperar a que se lo pidas, y gasta bastante más. Es la clave <code>ultracode</code> de la configuración de Claude Code: vale para tus sesiones nuevas de este computador (<code>/effort ultracode</code> lo enciende solo en una). El director que lanza el Studio trabaja sin ultracode, porque sus permisos no incluyen esos flujos.</p>
         <div class="abrir-claude"><button type="button" class="boton-suave" data-abrir-claude>Abrir Claude Code en una terminal</button>
           <p class="como">Abre una ventana nueva con Claude Code como lo lanza el Studio: en la carpeta del Studio, con la del proyecto activo a la vista, y con este modelo y este esfuerzo. Sirve para lo que solo se hace allí, como <code>/usage</code> o iniciar sesión. Es una sesión tuya, aparte: te pide permiso para cada cosa, y lo del proyecto sigue yendo por el Buzón.</p></div>
       </section>
@@ -3809,6 +3816,16 @@ $('vista').addEventListener('change', async (e) => {
     Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null });
     pintar();
     return avisar(d.esfuerzo ? `Claude Code trabaja con esfuerzo ${ESFUERZOS.find((x) => x.id === d.esfuerzo)?.nombre.toLowerCase() ?? d.esfuerzo}: el director desde su próximo lanzamiento, y tus sesiones nuevas de Claude Code, como con /effort.` : 'Claude Code vuelve al esfuerzo de tu cuenta: el director y tus sesiones nuevas.', true);
+  }
+  const su = (e.target as HTMLElement).closest<HTMLInputElement>('[data-ultracode]');
+  if (su) {
+    const r = await fetch('/__estudio/director/ultracode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activo: su.checked }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    if (r instanceof Error) return avisar('No se pudo guardar ultracode: el Studio no respondió.');
+    const x = await r.json().catch(() => ({}));
+    if (!r.ok) return avisar(x.error ?? 'No se pudo guardar ultracode.');
+    d.ultracode = x.ultracode === true;
+    pintar();
+    return avisar(d.ultracode ? 'Ultracode encendido para tus sesiones nuevas de Claude Code en este computador. El director que lanza el Studio sigue sin él.' : 'Ultracode apagado para tus sesiones nuevas de Claude Code en este computador.', true);
   }
   const sync = (e.target as HTMLElement).closest<HTMLInputElement>('[data-sincronizar]');
   if (sync) await accion({ tipo: 'sincronizar', activo: sync.checked }, sync.checked ? 'Desde ahora, lo que decide cada persona sube solo a GitHub.' : 'La subida a GitHub quedó apagada: todo queda en commits locales.');

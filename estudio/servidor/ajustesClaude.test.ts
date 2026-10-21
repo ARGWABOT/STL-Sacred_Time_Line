@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { archivoAjustesClaude, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { AJUSTES_DEL_DIRECTOR, archivoAjustesClaude, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
 import { ordenAbrirClaude } from './revisor';
 
 let carpeta: string;
@@ -22,16 +22,16 @@ describe('la configuración de Claude Code (lo mismo que /model y /effort)', () 
   });
 
   it('sin archivo, o con uno que no es JSON, es el de la cuenta', async () => {
-    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: null, esfuerzo: null });
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: null, esfuerzo: null, ultracode: false });
     await writeFile(archivo, '{ esto no es json');
-    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: null, esfuerzo: null });
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: null, esfuerzo: null, ultracode: false });
   });
 
   it('lee el modelo y el esfuerzo, y el esfuerzo propio del modelo si Claude Code lo guarda aparte', async () => {
     await writeFile(archivo, JSON.stringify({ model: 'opus', effortLevel: 'xhigh', modelSettings: { 'claude-opus-4-1': { effortLevel: 'low' }, 'claude-opus-5-5': { effortLevel: 'high' } } }));
-    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'opus', esfuerzo: 'high' });
-    await writeFile(archivo, JSON.stringify({ model: 'claude-sonnet-5-5', effortLevel: 'medium', modelSettings: { 'claude-opus-5-5': { effortLevel: 'high' } } }));
-    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'claude-sonnet-5-5', esfuerzo: 'medium' });
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'opus', esfuerzo: 'high', ultracode: false });
+    await writeFile(archivo, JSON.stringify({ model: 'claude-sonnet-5-5', effortLevel: 'medium', ultracode: true, modelSettings: { 'claude-opus-5-5': { effortLevel: 'high' } } }));
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'claude-sonnet-5-5', esfuerzo: 'medium', ultracode: true });
   });
 
   it('encuentra la entrada de cada modelo: por su id (también con contexto de 1 M) o, si es un alias, la versión más nueva', () => {
@@ -49,11 +49,22 @@ describe('la configuración de Claude Code (lo mismo que /model y /effort)', () 
     await guardarEsfuerzoClaude('max', archivo);
     const despues = await leer();
     expect(despues).toEqual({ ...antes, model: 'claude-opus-5-5[1m]', effortLevel: 'max', modelSettings: { 'claude-opus-5-5': { effortLevel: 'max' } } });
-    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'claude-opus-5-5[1m]', esfuerzo: 'max' });
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'claude-opus-5-5[1m]', esfuerzo: 'max', ultracode: false });
     // «El de tu cuenta» quita la clave
     await guardarEsfuerzoClaude(null, archivo);
     await guardarModeloClaude(null, archivo);
     expect(await leer()).toEqual({ env: antes.env, hooks: antes.hooks, modelSettings: { 'claude-opus-5-5': {} } });
+  });
+
+  it('enciende ultracode con su clave y, al apagarlo, la quita, sin tocar nada más', async () => {
+    await writeFile(archivo, JSON.stringify({ model: 'opus' }));
+    await guardarUltracodeClaude(true, archivo);
+    expect(await leer()).toEqual({ model: 'opus', ultracode: true });
+    expect((await leerAjustesClaude(archivo)).ultracode).toBe(true);
+    await guardarUltracodeClaude(false, archivo);
+    expect(await leer()).toEqual({ model: 'opus' });
+    // el director que lanza el Studio, siempre sin él
+    expect(AJUSTES_DEL_DIRECTOR).toEqual({ ultracode: false });
   });
 
   it('crea el archivo si no está, y no toca uno que no es JSON ni acepta lo que Claude Code no aceptaría', async () => {

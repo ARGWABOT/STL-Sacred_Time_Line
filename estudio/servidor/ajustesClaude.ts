@@ -1,8 +1,8 @@
 // El modelo y el esfuerzo de Claude Code en este computador: los de su configuración (~/.claude/settings.json, o la de
 // CLAUDE_CONFIG_DIR), los mismos que cambian /model y /effort. El Studio los lee y los escribe ahí, así que elegir en
 // «Modelo y consumo» es lo mismo que usar /model o /effort en cualquier sesión de Claude Code, y al revés. Solo toca esas dos
-// claves (y el esfuerzo del modelo elegido en `modelSettings`, si Claude Code ya lo guarda ahí): lo demás queda intacto,
-// y si el archivo no es JSON válido no lo toca.
+// claves (y el esfuerzo del modelo elegido en `modelSettings`, si Claude Code ya lo guarda ahí) y la de ultracode: lo demás
+// queda intacto, y si el archivo no es JSON válido no lo toca.
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -16,6 +16,11 @@ export const archivoAjustesClaude = (env: NodeJS.ProcessEnv = process.env) => jo
 export interface AjustesClaude {
   modelo: string | null;
   esfuerzo: Esfuerzo | null;
+  /**
+   * Ultracode en las sesiones nuevas (la clave `ultracode`: Claude planea un flujo de varios agentes para cada tarea de
+   * peso). Claude Code la lee pero no la escribe: /effort ultracode lo enciende solo para una sesión.
+   */
+  ultracode: boolean;
 }
 
 type Json = Record<string, any>;
@@ -45,13 +50,13 @@ export async function leerAjustesClaude(archivo = archivoAjustesClaude()): Promi
   try {
     j = await leerJson(archivo);
   } catch {
-    return { modelo: null, esfuerzo: null };
+    return { modelo: null, esfuerzo: null, ultracode: false };
   }
   const modelo = typeof j.model === 'string' && MODELO_VALIDO.test(j.model) ? j.model : null;
   const porModelo = objeto(j.modelSettings);
   const entrada = entradaDelModelo(porModelo, modelo);
   const propio = entrada ? objeto(porModelo[entrada]).effortLevel : undefined;
-  return { modelo, esfuerzo: esEsfuerzo(propio) ? propio : esEsfuerzo(j.effortLevel) ? j.effortLevel : null };
+  return { modelo, esfuerzo: esEsfuerzo(propio) ? propio : esEsfuerzo(j.effortLevel) ? j.effortLevel : null, ultracode: j.ultracode === true };
 }
 
 /** Cambia la configuración de Claude Code. Si el archivo no es JSON válido, no lo toca y lo dice. */
@@ -92,3 +97,18 @@ export async function guardarEsfuerzoClaude(esfuerzo: string | null, archivo = a
     else delete porModelo[entrada].effortLevel;
   });
 }
+
+/** Ultracode en las sesiones nuevas de Claude Code de este computador; apagado quita la clave (sin ella, está apagado). */
+export async function guardarUltracodeClaude(activo: boolean, archivo = archivoAjustesClaude()): Promise<void> {
+  await cambiar(archivo, (j) => {
+    if (activo) j.ultracode = true;
+    else delete j.ultracode;
+  });
+}
+
+/**
+ * Lo que el Studio le suma a la configuración del director que lanza (--settings): sin ultracode, aunque tus sesiones lo
+ * tengan, porque sus permisos no incluyen los flujos de varios agentes (Workflow) y nadie está mirando lo que gastan.
+ * Darle ese permiso es una decisión del titular.
+ */
+export const AJUSTES_DEL_DIRECTOR = { ultracode: false } as const;

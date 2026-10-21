@@ -2,7 +2,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, trabajoConElPedido } from './revisor';
+import { agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, trabajoConElPedido } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -42,6 +42,16 @@ describe('el director que lanza el Studio', () => {
       { tipo: 'hace', texto: 'Edita director.ts' },
     ]);
     expect(progresoDe(registro, 2)).toHaveLength(2);
+  });
+
+  it('junta las líneas iguales seguidas en una, con su cuenta, sin cambiar el orden', () => {
+    const hace = (texto: string) => ({ tipo: 'hace' as const, texto });
+    expect(agruparPasos([hace('Edita plan.json'), hace('Edita plan.json'), hace('Edita plan.json'), hace('Lee CLAUDE.md'), hace('Edita plan.json'), { tipo: 'dice', texto: 'Edita plan.json' }])).toEqual([
+      { tipo: 'hace', texto: 'Edita plan.json', veces: 3 },
+      { tipo: 'hace', texto: 'Lee CLAUDE.md' },
+      { tipo: 'hace', texto: 'Edita plan.json' },
+      { tipo: 'dice', texto: 'Edita plan.json' },
+    ]);
   });
 
   it('conserva todo lo que hizo en la revisión, de principio a fin, aunque el registro crezca', () => {

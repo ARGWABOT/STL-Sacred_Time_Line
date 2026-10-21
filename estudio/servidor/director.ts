@@ -74,8 +74,8 @@ import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guar
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
-import { guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
-import { buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor } from './revisor';
+import { guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
+import { agruparPasos, buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor } from './revisor';
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
 import { abrirTerminal, comprobarPaso } from './terminal';
 
@@ -1012,7 +1012,7 @@ export function servidorDirector(): Plugin {
               // Lo que va haciendo el director que lanzó el Studio, mientras revisa (el Studio lo muestra en vivo)
               progreso: await (async () => {
                 const r = (await leerLocal(raiz)).revision;
-                return r?.proyecto === id && r.lanzada && !r.hecha ? progresoDeProyecto(raiz, id) : null;
+                return r?.proyecto === id && r.lanzada && !r.hecha ? agruparPasos(progresoDeProyecto(raiz, id)) : null;
               })(),
               hoy: hoy(),
               errores: [...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)],
@@ -1117,6 +1117,17 @@ export function servidorDirector(): Plugin {
             const cuerpo = await leerCuerpo(req);
             try {
               await guardarEsfuerzoClaude(textoDe(cuerpo.esfuerzo, 10) || null);
+            } catch (e) {
+              return responder(res, 400, { error: (e as Error).message });
+            }
+            return responder(res, 200, await leerAjustesClaude());
+          }
+          // Ultracode en las sesiones nuevas de Claude Code (la clave `ultracode`); el director que lanza el Studio sigue
+          // sin él (AJUSTES_DEL_DIRECTOR)
+          if (ruta === '/ultracode' && req.method === 'POST') {
+            const cuerpo = await leerCuerpo(req);
+            try {
+              await guardarUltracodeClaude(cuerpo.activo === true);
             } catch (e) {
               return responder(res, 400, { error: (e as Error).message });
             }

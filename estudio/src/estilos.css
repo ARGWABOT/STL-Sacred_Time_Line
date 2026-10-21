@@ -303,6 +303,8 @@ body.sin-proyectos .segundo-plano { display: none !important; }
 .pasos-progreso li.hace::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 5px; height: 5px; border-radius: 50%; background: var(--borde-fuerte); }
 .pasos-progreso li.dice { padding: 6px 10px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); }
 .pasos-progreso li.ultimo.hace::before { background: var(--acento); }
+/* Las líneas iguales seguidas van en una, con cuántas veces */
+.pasos-progreso .veces { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px; border-radius: 9px; background: var(--panel-suave); border: 1px solid var(--borde); font-size: 11px; line-height: 16px; text-align: center; color: var(--suave); font-variant-numeric: tabular-nums; }
 body.sin-proyectos .progreso-director { display: none !important; }
 
 /* ── Los avisos: abajo, sin mover la página ── */

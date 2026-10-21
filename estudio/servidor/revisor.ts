@@ -8,10 +8,10 @@
 // Sin Claude Code con su sesión iniciada en este computador, las revisiones pedidas las toma esa sesión con
 // /loop 5m /vigila, como antes.
 import { spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join, relative, resolve } from 'node:path';
-import { archivoAjustesClaude, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { AJUSTES_DEL_DIRECTOR, archivoAjustesClaude, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
 import { leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
 
 /** Lo que el Studio muestra del revisor: si revisa solo, o por qué no puede. */
@@ -110,6 +110,22 @@ export function permitido(repositorio: string): string[] {
 export interface PasoRevision {
   tipo: 'dice' | 'hace';
   texto: string;
+  /** Cuántas veces seguidas lo hizo, si fue más de una (agruparPasos). */
+  veces?: number;
+}
+
+/**
+ * Las líneas iguales seguidas, en una sola con su cuenta («Edita plan.json» y un 5, en vez de cinco líneas), como lo pidió
+ * el titular el 21 de octubre de 2026. El orden se mantiene: al cambiar de cosa, la cuenta vuelve a empezar.
+ */
+export function agruparPasos(pasos: PasoRevision[]): PasoRevision[] {
+  const juntos: PasoRevision[] = [];
+  for (const p of pasos) {
+    const ultimo = juntos.at(-1);
+    if (ultimo && ultimo.tipo === p.tipo && ultimo.texto === p.texto) ultimo.veces = (ultimo.veces ?? 1) + (p.veces ?? 1);
+    else juntos.push({ ...p });
+  }
+  return juntos;
 }
 
 const nombreArchivo = (x: unknown) => String(x ?? '').split(/[\\/]/).pop() || 'un archivo';
@@ -500,9 +516,13 @@ export class Revisor {
     const { modelo, esfuerzo } = await leerAjustesClaude(this.ajustes);
     // Lo pedido va primero en el registro: así el Studio compara con el modelo con que de verdad trabajó
     writeSync(registro, lineaPedido(modelo, esfuerzo));
+    // Sin ultracode aunque tus sesiones lo tengan (AJUSTES_DEL_DIRECTOR): en un archivo y no en el argumento, porque las
+    // comillas del JSON no pasan bien por la consola de Windows
+    const ajustes = join(carpeta, 'ajustes-del-director.json');
+    writeFileSync(ajustes, JSON.stringify(AJUSTES_DEL_DIRECTOR));
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
