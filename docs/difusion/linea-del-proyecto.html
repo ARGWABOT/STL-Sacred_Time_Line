@@ -115,7 +115,8 @@
      del centro latiendo y «Iniciar la presentación» a su lado; la primera vez, una bienvenida la inicia; la rueda del
      ratón sobre la escena la recorre como la perilla (hacia abajo adelanta, hacia arriba devuelve) y el clic de la
      rueda la pausa o la sigue. Y, con su nota de esa noche, los subtítulos no se ven hasta que la animación empieza
-     (al iniciarla, o al moverla con la perilla o la rueda). Dibujado en un canvas que se
+     (al iniciarla, o al moverla con la perilla o la rueda). Con su nota de la noche siguiente: antes de iniciarla, el
+     título hace de portada, centrado y más grande, y al empezar se achica y vuelve a su lugar. Dibujado en un canvas que se
      repinta entero en cada cuadro. No es parte del producto: solo muestra la idea. Un solo archivo, sin librerías:
      se abre con doble clic o desde el Studio encendido. -->
 <style>
@@ -135,6 +136,12 @@
   header { width: var(--ancho); display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
   h1 { justify-self: start; font-size: clamp(15px, calc(var(--ancho) / 50), 22px); line-height: 1.25; margin: 0; font-weight: 600; color: #f5d27a; letter-spacing: .02em; }
   h1 span { font-weight: 500; color: #fff1c4; }
+  /* Antes de iniciarla, el título hace de portada: centrado y más grande (portada() calcula el traslado); al empezar,
+     se achica y vuelve a su lugar */
+  h1 { transform-origin: center; }
+  #todo.portada h1 { text-shadow: 0 2px 18px rgba(0, 0, 0, .85); }
+  h1.vuelve { transition: transform .9s cubic-bezier(.2, .7, .2, 1); }
+  @media (prefers-reduced-motion: reduce) { h1.vuelve { transition: none; } }
   /* El interruptor: el mismo proyecto, sin STL y con STL */
   #modos {
     justify-self: end; display: inline-flex; padding: 3px; border-radius: 999px;
@@ -236,7 +243,7 @@
 </style>
 </head>
 <body>
-<div id="todo">
+<div id="todo" class="portada">
 <header>
   <h1>¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span></h1>
   <div id="modos" role="group" aria-label="Ver el proyecto">
@@ -1958,19 +1965,34 @@
     // Al final del video, seguir es verlo otra vez desde el principio
     if (!reproduce && modo === 'con' && fase === 'meta' && reloj - t0 >= durFase) buscar = 0;
     reproduce = !reproduce;
-    if (reproduce) empezar();
+    if (reproduce) salirDeEspera();
     iconoBoton();
   }
-  // La primera vez que se inicia (o que se mueve con la perilla o la rueda): el botón deja de latir y aparecen los
-  // subtítulos, que hasta entonces no se ven
-  function empezar() {
+  // La primera vez que se inicia (o que se mueve con la perilla o la rueda): el botón deja de latir, aparecen los
+  // subtítulos, que hasta entonces no se ven, y el título deja de ser portada. No se llama empezar(): ese nombre es el
+  // de la función que arranca cada escena, y otra con el mismo nombre la reemplazaba y dejaba la escena sin dibujar
+  function salirDeEspera() {
     if (!espera) return;
     espera = false; mando.classList.remove('llama'); $('estado').classList.remove('espera');
+    $('todo').classList.remove('portada');
+    const h1 = document.querySelector('h1');
+    h1.classList.add('vuelve'); h1.style.transform = '';
+  }
+  // Antes de iniciarla, el título hace de portada: centrado en la pantalla y más grande. Se mide desde su lugar de
+  // siempre, en el encabezado (en el espacio de #todo, que en un teléfono vertical va girado), así que al quitarle el
+  // traslado vuelve solo a él
+  function portada() {
+    if (!espera) return;
+    const h1 = document.querySelector('h1'), todo = $('todo');
+    const s = Math.max(1, Math.min(1.9, (todo.clientWidth * 0.84) / h1.offsetWidth));
+    const dx = todo.clientWidth / 2 - (h1.offsetLeft + h1.offsetWidth / 2);
+    const dy = todo.clientHeight * 0.45 - (h1.offsetTop + h1.offsetHeight / 2);
+    h1.style.transform = `translate(${dx}px, ${dy}px) scale(${s})`;
   }
   // Iniciar (o seguir) sin pausarla si ya corre
   function iniciar() { if (!reproduce) alternar(); }
   // Mover la escena tantos milisegundos (positivos: adelante; negativos: atrás)
-  function mover(ms) { empezar(); buscar = Math.max(0, (buscar ?? antes + pasos) + ms / PASO_ESC); }
+  function mover(ms) { salirDeEspera(); buscar = Math.max(0, (buscar ?? antes + pasos) + ms / PASO_ESC); }
   let arrastre = null, segundo = -1;
   function angulo(e) {
     const b = perilla.getBoundingClientRect();
@@ -2054,6 +2076,7 @@
     const ancho = Math.floor(Math.max(280, Math.min(vw - 16, 1240, ((vh - resto) * W) / H)));
     todo.style.setProperty('--ancho', ancho + 'px');
     ajustar();
+    portada();
   }
   disponer();
   addEventListener('resize', () => { disponer(); dibujar(reloj); });

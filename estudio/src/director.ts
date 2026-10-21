@@ -730,10 +730,20 @@ function botonIr(dest: Destino, clase = 'ir-paso', extra = '') {
 const claveAbierto = (mision: string, i: number) => `estudio.abierto.${d?.activo ?? ''}.${mision}|${i}`;
 const pasoAbierto = (mision: string, i: number) => localStorage.getItem(claveAbierto(mision, i)) === '1';
 
-/** El botón de un paso: en el paso de ahora, mientras no se abre, es lo principal (lo más visible, y late). */
-function irDelPaso(m: Mision, i: number, dest: Destino, deAhora: boolean) {
+/**
+ * El botón de un paso: en el paso de ahora, mientras no se abre, es lo principal (lo más visible, y late). Si el paso
+ * pide esperar (`esperar`: lo que tarda en verse un cambio), el botón queda bloqueado con su cuenta regresiva hasta que
+ * pase: abrirlo antes mostraría lo de antes. La cuenta empieza la primera vez que el paso se ve en este navegador.
+ */
+function irDelPaso(m: Mision, i: number, dest: Destino, deAhora: boolean, esperar?: number) {
   if (!deAhora || d.identidad.rol !== m.para) return botonIr(dest);
-  return botonIr(dest, pasoAbierto(m.id, i) ? 'ir-paso' : 'ir-paso principal', ` data-abre="${esc(m.id)}|${i}"`);
+  const abierto = pasoAbierto(m.id, i);
+  const hasta = esperar && !abierto ? inicioEspera(`${m.id}|${i}`) + esperar * 1000 : 0;
+  if (hasta > Date.now()) {
+    return `${botonIr(dest, 'ir-paso en-espera', ` data-abre="${esc(m.id)}|${i}" data-espera="${esc(m.id)}|${i}" disabled`)}
+      <p class="espera-paso" role="timer" aria-live="off" data-hasta="${hasta}" data-libera="${esc(m.id)}|${i}">${icono('reloj')} <span>Espera <b class="cifra">${mmss(hasta - Date.now())}</b> antes de abrirlo: es lo que tarda en verse el cambio.</span></p>`;
+  }
+  return botonIr(dest, abierto ? 'ir-paso' : 'ir-paso principal', ` data-abre="${esc(m.id)}|${i}"`);
 }
 
 async function ir(dest: Destino) {
@@ -1713,7 +1723,7 @@ function listaPasos(m: Mision) {
 
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? irDelPaso(m, i, p.ir, conCasillas && !hechos.has(i)) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, p.ir) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? irDelPaso(m, i, p.ir, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, p.ir) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
 }
 
 /**
@@ -1726,12 +1736,13 @@ function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean, 
   const elegida = eleccionDe(d.estado.notas, m.id, i, m.para)?.sobre.eleccion;
   if (elegida) return `<p class="eleccion-paso">${icono('check')} Elegiste: <b>${esc(elegida)}</b></p>`;
   if (hecho || d.identidad.rol !== m.para) return '';
-  // Si el paso manda a ver algo, primero se ve: las opciones (y su espera) empiezan cuando se abre su botón
+  // Si el paso manda a ver algo, primero se ve: las opciones se abren cuando se abre su botón (y, si el paso pide
+  // esperar, la espera bloquea ese botón: al abrirlo ya pasó, así que las opciones no esperan otra vez)
   if (ir && !pasoAbierto(m.id, i)) {
     return `<p class="espera-paso por-abrir">${icono('info')} <span>Primero oprime «${esc(ir.etiqueta)}»: cuando lo hayas visto, aquí eliges cómo te fue.</span></p>
       <div class="opciones-paso en-espera" role="group" aria-label="Elige una opción (se abre al ver lo que pide el paso)">${opciones.map((o) => `<button type="button" class="boton-opcion" disabled>${esc(o)}</button>`).join('')}</div>`;
   }
-  const hasta = esperar ? inicioEspera(`${m.id}|${i}`) + esperar * 1000 : 0;
+  const hasta = esperar && !ir ? inicioEspera(`${m.id}|${i}`) + esperar * 1000 : 0;
   const bloqueadas = hasta > Date.now();
   const cuenta = bloqueadas
     ? `<p class="espera-paso" role="timer" aria-live="off" data-hasta="${hasta}">${icono('reloj')} <span>Espera <b class="cifra">${mmss(hasta - Date.now())}</b> antes de responder: es lo que tarda en verse el cambio.</span></p>`
@@ -1755,12 +1766,19 @@ const mmss = (ms: number) => {
 };
 
 // La cuenta regresiva de los pasos que piden esperar: se actualiza en su sitio, sin repintar lo que estás leyendo, y al
-// llegar a cero desbloquea las opciones
+// llegar a cero desbloquea lo que esperaba: el botón que lleva a verlo o, si el paso no tiene botón, las opciones
 setInterval(() => {
   for (const p of document.querySelectorAll<HTMLElement>('.espera-paso[data-hasta]')) {
     const falta = Number(p.dataset.hasta) - Date.now();
     if (falta > 0) {
       p.querySelector('.cifra')!.textContent = mmss(falta);
+      continue;
+    }
+    if (p.dataset.libera) {
+      document.querySelectorAll<HTMLButtonElement>(`[data-espera="${CSS.escape(p.dataset.libera)}"]`).forEach((b) => {
+        b.disabled = false; b.classList.remove('en-espera'); b.classList.add('principal');
+      });
+      p.outerHTML = `<p class="espera-paso lista">${icono('check')} <span>Listo: ya puedes abrirlo.</span></p>`;
       continue;
     }
     const grupo = p.nextElementSibling;
