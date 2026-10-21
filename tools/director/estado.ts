@@ -64,7 +64,7 @@ if (!pedidos.length) {
     else if (t.nivel === 'espera') enEspera = true;
   }
   if (enEspera) {
-    console.log('\nHay trabajo EN ESPERA sin excepción. Antes de empezar, díselo al titular. Si decide seguir, registra la excepción');
-    console.log('con su razón en el Estudio (Director asistente › Frentes › Registrar una excepción).');
+    console.log('\nHay trabajo EN ESPERA sin excepción. Antes de empezar, díselo al titular. Si decide seguir, que lo deje dicho');
+    console.log('con su razón en el Buzón del Studio: el director lo registra en su revisión.');
   }
 }

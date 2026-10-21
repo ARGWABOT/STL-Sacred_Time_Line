@@ -92,17 +92,17 @@ type Vista = 'misiones' | 'buzon' | 'documentos' | 'ruta' | 'propuestas' | 'proy
 const VISTAS: Vista[] = ['misiones', 'buzon', 'documentos', 'ruta', 'propuestas', 'proyectos', 'proyecto', 'diagnostico', 'frentes', 'validaciones', 'esfuerzo', 'metodo', 'bitacora', 'stl', 'preguntas'];
 
 /**
- * La barra lateral, en grupos: a la vista, solo lo de todos los días (Hoy, el Buzón, las preguntas, la ruta, los
- * documentos y las propuestas). El seguimiento y la consulta van plegados, y se abren cuando hacen falta. Proyecto (la
- * configuración) y el diagnóstico están en la barra solo mientras el proyecto arranca; después, Proyecto se abre con
- * el engranaje del selector de proyectos.
+ * La barra lateral, solo con lo de todos los días: Hoy, el Buzón, las preguntas, la ruta, los documentos y las
+ * propuestas. El seguimiento salió (decidido en «Un Studio más simple», 19 de octubre): los frentes viven solo en el
+ * plan del director, las validaciones, el esfuerzo y la bitácora eran reportes, y el método está en «Qué es STL».
+ * Proyecto (la configuración) está en la barra solo mientras el proyecto arranca; después, se abre con el engranaje
+ * del selector de proyectos. El diagnóstico sigue en la barra hasta que pase a Proyecto.
  */
 function gruposNav(): { titulo: string; vistas: Vista[]; plegable?: boolean }[] {
   const arranca = d.arranque !== 'en_marcha';
   return [
     { titulo: '', vistas: ['misiones', 'buzon', 'preguntas'] },
-    { titulo: 'El proyecto', vistas: ['ruta', 'documentos', 'propuestas', ...(arranca ? (['diagnostico', 'proyecto'] as Vista[]) : [])] },
-    { titulo: 'Seguimiento', plegable: true, vistas: [...(arranca ? [] : (['diagnostico'] as Vista[])), 'frentes', 'validaciones', 'esfuerzo', 'bitacora', 'metodo'] },
+    { titulo: 'El proyecto', vistas: ['ruta', 'documentos', 'propuestas', 'diagnostico', ...(arranca ? (['proyecto'] as Vista[]) : [])] },
   ];
 }
 const CLAVE_SEGUIMIENTO = 'estudio.nav.seguimiento';
@@ -1673,16 +1673,12 @@ function rutaHTML() {
 /** El tablero de la fase en curso: las cifras que importan, cada una lleva a su sección. */
 function tableroFase() {
   const { f, av, pend, misiones, porDecidir } = cifras();
-  const foco = d.senales.esfuerzo ? repartoPorNivel(f, d.senales.esfuerzo.commits).foco : null;
-  const personas = d.estado.validaciones.filter((v) => v.fase === f.id).reduce((s, v) => s + v.personas, 0);
   const vistaP = personaVista();
   return `<div class="marcador">
     ${kpi(String(misiones), vistaP ? (vistaP === d.identidad.rol ? 'misiones tuyas por hacer' : `misiones de ${esc(nombrePersona(vistaP))} por hacer`) : 'misiones del equipo por hacer', 'una a la vez', misiones ? 'medio' : 'bien', 'misiones')}
     ${kpi(`${av.cumplidos} de ${av.total}`, 'criterios al 100 %', `para cruzar «${esc(f.puerta.nombre)}»`, av.total && av.cumplidos === av.total ? 'bien' : '', 'ruta')}
     ${kpi(String(pend.entregas.length + pend.notas.length), 'esperando al director', 'entregas y notas sin respuesta', '', 'buzon')}
     ${kpi(String(porDecidir), 'propuestas por decidir', `las decide ${esc(nombreTitular())}`, porDecidir ? 'medio' : 'bien', 'propuestas')}
-    ${kpi(foco === null ? '—' : pct(foco), 'del esfuerzo, en foco', `nota de foco: ${foco === null ? '—' : notaFoco(foco)} · 7 días`, foco === null ? '' : foco >= 60 ? 'bien' : foco >= 40 ? 'medio' : 'mal', 'esfuerzo')}
-    ${kpi(String(personas), 'personas validaron', 'en esta fase', personas >= 5 ? 'bien' : personas ? 'medio' : '', 'validaciones')}
   </div>`;
 }
 
