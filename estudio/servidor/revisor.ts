@@ -8,10 +8,10 @@
 // Sin Claude Code con su sesión iniciada en este computador, las revisiones pedidas las toma esa sesión con
 // /loop 5m /vigila, como antes.
 import { spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readSync, statSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join, relative } from 'node:path';
-import { leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
+import { guardarModelo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
 
 /** Lo que el Studio muestra del revisor: si revisa solo, o por qué no puede. */
 export interface EstadoRevisor {
@@ -196,6 +196,83 @@ export function progresoDeProyecto(raiz: string, proyecto: string): PasoRevision
   }
 }
 
+/**
+ * Lo que gastó un lanzamiento del director, tal como lo devuelve Claude Code al terminar (el evento `result` del
+ * stream-json): nada estimado por el Studio. `costo` es el costo en dólares que calcula Claude Code a precio de API; con
+ * un plan de suscripción no se cobra aparte, pero cuenta para sus límites.
+ */
+export interface Consumo {
+  cuando: string;
+  proyecto: string;
+  tipo: 'revision' | 'aclaracion' | 'urgencia';
+  modelo: string | null;
+  costo: number;
+  /** Tokens de entrada nuevos, los leídos de la caché y los escritos en ella. */
+  entrada: number;
+  cache: number;
+  salida: number;
+  minutos: number;
+}
+
+/** El consumo de un registro en stream-json, o null si el lanzamiento no terminó con su resultado. */
+export function consumoDe(registro: string): Pick<Consumo, 'modelo' | 'costo' | 'entrada' | 'cache' | 'salida' | 'minutos'> | null {
+  let modelo: string | null = null;
+  let resultado: any = null;
+  for (const linea of registro.split('\n')) {
+    if (!linea.startsWith('{')) continue;
+    let ev: any;
+    try { ev = JSON.parse(linea); } catch { continue; }
+    if (!modelo && ev.type === 'system' && ev.subtype === 'init' && typeof ev.model === 'string') modelo = ev.model;
+    if (!modelo && ev.type === 'assistant' && typeof ev.message?.model === 'string') modelo = ev.message.model;
+    if (ev.type === 'result') resultado = ev;
+  }
+  if (!resultado) return null;
+  const u = resultado.usage ?? {};
+  const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+  return {
+    modelo,
+    costo: n(resultado.total_cost_usd),
+    entrada: n(u.input_tokens) + n(u.cache_creation_input_tokens),
+    cache: n(u.cache_read_input_tokens),
+    salida: n(u.output_tokens),
+    minutos: Math.round(n(resultado.duration_ms) / 6000) / 10,
+  };
+}
+
+/** «<proyecto>-[aclaracion-|urgencia-]<fecha>.log», con la fecha sin «:» ni «.». */
+const REGISTRO = /^([a-z0-9][a-z0-9-]*?)-(?:(aclaracion|urgencia)-)?(\d{4}-\d\d-\d\d)T(\d\d)-(\d\d)-(\d\d)-(\d{3})Z\.log$/;
+
+/** Lo leído de cada registro: un registro terminado no cambia, así que se lee una sola vez. */
+const consumos = new Map<string, { tam: number; c: Consumo | null }>();
+
+/** Lo que gastó cada lanzamiento del director en este computador, del más nuevo al más viejo (los últimos `dias`). */
+export function consumoDeRevisiones(raiz: string, dias = 35, ahora = Date.now()): Consumo[] {
+  const carpeta = join(raiz, '.revisiones');
+  if (!existsSync(carpeta)) return [];
+  const lista: Consumo[] = [];
+  for (const a of readdirSync(carpeta)) {
+    const m = REGISTRO.exec(a);
+    if (!m) continue;
+    const cuando = `${m[3]}T${m[4]}:${m[5]}:${m[6]}.${m[7]}Z`;
+    if (ahora - Date.parse(cuando) > dias * 86_400_000) continue;
+    const archivo = join(carpeta, a);
+    const tam = statSync(archivo).size;
+    let leido = consumos.get(archivo);
+    if (!leido || leido.tam !== tam) {
+      const c = consumoDe(readFileSync(archivo, 'utf-8'));
+      leido = { tam, c: c && { cuando, proyecto: m[1], tipo: (m[2] as Consumo['tipo']) ?? 'revision', ...c } };
+      consumos.set(archivo, leido);
+    }
+    if (leido.c) lista.push(leido.c);
+  }
+  return lista.sort((x, y) => y.cuando.localeCompare(x.cuando));
+}
+
+/** Si el lanzamiento no llegó a trabajar porque la cuenta no acepta el modelo elegido. */
+export const fallaDelModelo = (registro: string) =>
+  !/"type":"assistant"/.test(registro) &&
+  registro.split('\n').some((l) => !/"subtype":"init"/.test(l) && /selected model|invalid model|model[^\n]{0,80}(not (exist|found|available)|no access|access to it)/i.test(l));
+
 /** Ordena versiones «1.2.10» de menor a mayor. */
 export const compararVersion = (a: string, b: string) => {
   const x = a.split('.').map(Number);
@@ -359,7 +436,9 @@ export class Revisor {
     const registro = openSync(archivo, 'a');
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
+    // El modelo elegido en Proyecto, si hay uno; si no, el de la cuenta de Claude Code
+    const modelo = (await leerLocal(this.raiz)).modelo;
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
@@ -374,6 +453,11 @@ export class Revisor {
       clearTimeout(limite);
       closeSync(registro);
       this.hijo = null;
+      // La cuenta no acepta el modelo elegido: vuelve al de siempre, y el aviso lo dice
+      if (modelo && fallaDelModelo(readFileSync(archivo, 'utf-8'))) {
+        await guardarModelo(this.raiz, null);
+        problema = `Tu cuenta de Claude Code no aceptó el modelo «${modelo}», así que el Studio volvió al de tu cuenta: pide la revisión otra vez. En Proyecto puedes elegir otro.`;
+      }
       if (aparte?.tipo === 'aclaracion') {
         const a = (await leerLocal(this.raiz)).aclaracion;
         if (a?.nota === aparte.a.nota && !a.hecha) await this.fallo(a, problema.replace('La revisión', 'La aclaración'));

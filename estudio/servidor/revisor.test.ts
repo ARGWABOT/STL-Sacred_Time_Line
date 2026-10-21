@@ -2,7 +2,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { compararVersion, encargo, permitido, progresoDe, progresoDeProyecto } from './revisor';
+import { compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelModelo, permitido, progresoDe, progresoDeProyecto } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -61,6 +61,38 @@ describe('el director que lanza el Studio', () => {
     } finally {
       rmSync(raiz, { recursive: true, force: true });
     }
+  });
+
+  it('guarda lo que gastó cada lanzamiento, tal como lo devuelve Claude Code al terminar', () => {
+    const raiz = mkdtempSync(join(tmpdir(), 'stl-consumo-'));
+    try {
+      mkdirSync(join(raiz, '.revisiones'));
+      const resultado = (costo: number) => JSON.stringify({ duration_ms: 429_896, total_cost_usd: costo, usage: { input_tokens: 94, cache_creation_input_tokens: 1000, cache_read_input_tokens: 50_000, output_tokens: 2000 }, type: 'result', subtype: 'success' });
+      const init = JSON.stringify({ type: 'system', subtype: 'init', model: 'claude-opus-5-5' });
+      writeFileSync(join(raiz, '.revisiones', 'stl-studio-2026-10-21T06-03-39-556Z.log'), `${init}\n${resultado(2.8)}\n`);
+      writeFileSync(join(raiz, '.revisiones', 'stl-studio-aclaracion-2026-10-21T07-00-00-000Z.log'), `${init}\n${resultado(0.3)}\n`);
+      // una que no terminó (o sigue en marcha) no cuenta, ni una de hace dos meses
+      writeFileSync(join(raiz, '.revisiones', 'golf-2026-10-21T08-00-00-000Z.log'), `${init}\n`);
+      writeFileSync(join(raiz, '.revisiones', 'golf-2026-08-01T08-00-00-000Z.log'), `${init}\n${resultado(9)}\n`);
+      const lista = consumoDeRevisiones(raiz, 35, Date.parse('2026-10-21T12:00:00Z'));
+      expect(lista).toEqual([
+        { cuando: '2026-10-21T07:00:00.000Z', proyecto: 'stl-studio', tipo: 'aclaracion', modelo: 'claude-opus-5-5', costo: 0.3, entrada: 1094, cache: 50_000, salida: 2000, minutos: 7.2 },
+        { cuando: '2026-10-21T06:03:39.556Z', proyecto: 'stl-studio', tipo: 'revision', modelo: 'claude-opus-5-5', costo: 2.8, entrada: 1094, cache: 50_000, salida: 2000, minutos: 7.2 },
+      ]);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it('reconoce cuando la cuenta no acepta el modelo elegido, y solo entonces', () => {
+    const init = JSON.stringify({ type: 'system', subtype: 'init', model: 'haiku' });
+    const error = JSON.stringify({ type: 'result', is_error: true, result: "There's an issue with the selected model (haiku). It may not exist or you may not have access to it." });
+    expect(fallaDelModelo(`${init}\n${error}\n`)).toBe(true);
+    // otro error antes de trabajar (la sesión, la red) no es del modelo, aunque el inicio lo nombre
+    expect(fallaDelModelo(`${init}\n${JSON.stringify({ type: 'result', is_error: true, result: 'Invalid API key' })}\n`)).toBe(false);
+    // si llegó a trabajar, el modelo sirvió
+    expect(fallaDelModelo(`${init}\n${JSON.stringify({ type: 'assistant', message: { content: [] } })}\n${error}\n`)).toBe(false);
+    expect(consumoDe(init)).toBeNull();
   });
 
   it('elige la versión más nueva de Claude Code', () => {

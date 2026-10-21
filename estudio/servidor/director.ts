@@ -70,11 +70,11 @@ import {
   type Validacion,
 } from '../../src/director/director';
 import { leerFresco, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
+import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarModelo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
-import { progresoDeProyecto, Revisor } from './revisor';
+import { consumoDeRevisiones, progresoDeProyecto, Revisor } from './revisor';
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
 import { abrirTerminal, comprobarPaso } from './terminal';
 
@@ -989,6 +989,9 @@ export function servidorDirector(): Plugin {
               vigilia: (await leerLocal(raiz)).vigilia ?? null,
               // Si el Studio lanza solo al director, o por qué no puede
               revisor: revisor?.estado() ?? null,
+              // Con qué modelo lanza el Studio al director en este computador, y lo que gastó cada lanzamiento
+              modelo: (await leerLocal(raiz)).modelo ?? null,
+              consumo: consumoDeRevisiones(raiz),
               // Lo que va haciendo el director que lanzó el Studio, mientras revisa (el Studio lo muestra en vivo)
               progreso: await (async () => {
                 const r = (await leerLocal(raiz)).revision;
@@ -1081,6 +1084,12 @@ export function servidorDirector(): Plugin {
             } catch (e) {
               return responder(res, 400, { error: (e as Error).message });
             }
+          }
+          // El modelo con que el Studio lanza al director: es de este computador (estudio.local.json), no va en git
+          if (ruta === '/modelo' && req.method === 'POST') {
+            const cuerpo = await leerCuerpo(req);
+            await guardarModelo(raiz, textoDe(cuerpo.modelo, 60) || null);
+            return responder(res, 200, { modelo: (await leerLocal(raiz)).modelo ?? null });
           }
           if (ruta === '/activo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);

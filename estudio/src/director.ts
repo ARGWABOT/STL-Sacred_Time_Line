@@ -151,6 +151,10 @@ interface Datos {
   vigilia?: string | null;
   /** Si el Studio lanza solo al director al pedir la revisión (estudio/servidor/revisor.ts), o por qué no puede. */
   revisor?: { agente: string | null; problema: string | null; revisando: string | null } | null;
+  /** El modelo con que el Studio lanza al director en este computador (null: el de la cuenta de Claude Code). */
+  modelo?: string | null;
+  /** Lo que gastó cada lanzamiento del director en este computador (estudio/servidor/revisor.ts › consumoDeRevisiones). */
+  consumo?: { cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; costo: number; entrada: number; cache: number; salida: number; minutos: number }[];
   /** Lo que va haciendo el director que lanzó el Studio, mientras revisa (estudio/servidor/revisor.ts › progresoDe). */
   progreso?: { tipo: 'dice' | 'hace'; texto: string }[] | null;
   /** «No lo entiendo, explícamelo mejor» de un paso: el director lo aclara al instante, sin el resto de la revisión. */
@@ -3001,8 +3005,51 @@ function vistaProyecto() {
         <label class="interruptor-s"><input type="checkbox" data-sincronizar${p.sincronizar ? ' checked' : ''}${t ? '' : ' disabled'} /> Subir solo a GitHub lo que decide cada persona</label>
         <p class="como">${esc(d.sincronizacion.subida?.mensaje ?? '')}</p>
       </section>
+      ${seccionModelo()}
     </div>
   </div>`;
+}
+
+/** Los modelos que se pueden elegir para el director, con qué esperar de cada uno. */
+const MODELOS: { id: string; nombre: string; que: string }[] = [
+  { id: '', nombre: 'El de tu cuenta', que: 'El que Claude Code tenga por defecto en tu cuenta. El Studio no cambia nada.' },
+  { id: 'opus', nombre: 'Opus', que: 'El más capaz: el que mejor dirige y escribe código, y el que más gasta.' },
+  { id: 'sonnet', nombre: 'Sonnet', que: 'Buen equilibrio: dirige bien y gasta bastante menos que Opus.' },
+  { id: 'haiku', nombre: 'Haiku', que: 'El más rápido y el que menos gasta. Puede quedarse corto en una revisión larga o con código.' },
+];
+
+const miles = (n: number) => (n >= 1e6 ? `${(n / 1e6).toLocaleString('es', { maximumFractionDigits: 1 })} M` : n >= 1e3 ? `${Math.round(n / 1e3).toLocaleString('es')} mil` : String(n));
+const dolares = (n: number) => `US$ ${n.toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const NOMBRE_LANZAMIENTO = { revision: 'Revisión', aclaracion: '«No lo entiendo»', urgencia: 'Urgencia' } as const;
+
+/**
+ * El director en este computador: con qué modelo lo lanza el Studio y lo que gastó cada vez, por día y por semana.
+ * Solo datos verdaderos: lo que Claude Code devuelve al terminar. Los límites del plan no se pueden consultar desde
+ * fuera, así que se mandan a /usage de Claude Code en vez de inventar un número.
+ */
+function seccionModelo() {
+  const actual = d.modelo ?? '';
+  const lista = d.consumo ?? [];
+  const elegido = MODELOS.find((m) => m.id === actual);
+  const opciones = [...MODELOS, ...(elegido ? [] : [{ id: actual, nombre: actual, que: 'Un modelo escrito a mano en estudio.local.json.' }])];
+  const hoyLocal = new Date();
+  const dia = (x: Date) => `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`;
+  const suma = (xs: typeof lista) => ({ n: xs.length, costo: xs.reduce((s, x) => s + x.costo, 0), tokens: xs.reduce((s, x) => s + x.entrada + x.cache + x.salida, 0) });
+  const deHoy = suma(lista.filter((x) => dia(new Date(x.cuando)) === dia(hoyLocal)));
+  const deSemana = suma(lista.filter((x) => hoyLocal.getTime() - Date.parse(x.cuando) < 7 * 86_400_000));
+  const cifra = (titulo: string, s: ReturnType<typeof suma>) => `<div><span class="tit">${titulo}</span><b>${dolares(s.costo)}</b><small>${s.n} ${s.n === 1 ? 'lanzamiento' : 'lanzamientos'} · ${miles(s.tokens)} tokens</small></div>`;
+  return `<section class="panel-d" data-ancla="p-director">
+        <h3>El director en este computador</h3>
+        <p class="como">Con qué modelo te revisa el director cuando el Studio lo llama (la revisión, «No lo entiendo» y lo urgente). Es de este computador: no va en git.</p>
+        <label class="campo-modelo">Modelo<select data-modelo>${opciones.map((m) => `<option value="${esc(m.id)}"${m.id === actual ? ' selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select></label>
+        <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Si tu cuenta no tiene el que elijas, la revisión lo dice y el Studio vuelve al de tu cuenta.</p>
+        <h3>Lo que gastó</h3>
+        ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
+          <details class="detalles-repo"><summary>Cada lanzamiento (últimos 35 días)</summary>
+            <ul class="consumo-lista">${lista.slice(0, 60).map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]}${x.proyecto !== d.activo ? ` de ${esc(x.proyecto)}` : ''}${x.modelo ? ` · ${esc(x.modelo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min</span></li>`).join('')}</ul>
+          </details>` : '<p class="como">Todavía no hay lanzamientos del director en este computador.</p>'}
+        <p class="como">Son las cifras que Claude Code devuelve al terminar cada lanzamiento. El costo es lo que costaría a precio de API: con un plan de suscripción no se cobra aparte, pero cuenta para sus límites. Esos límites (cada cinco horas y por semana) no se pueden consultar desde el Studio: míralos en Claude Code con <code>/usage</code>.</p>
+      </section>`;
 }
 
 // ───────────────────────────────────────────── diagnóstico
@@ -3570,6 +3617,14 @@ $('vista').addEventListener('change', async (e) => {
     consulta = s.value || null;
     pintar();
     return;
+  }
+  const sm = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-modelo]');
+  if (sm) {
+    const r = await fetch('/__estudio/director/modelo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelo: sm.value }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    if (r instanceof Error || !r.ok) return avisar('No se pudo guardar el modelo: el Studio no respondió.');
+    d.modelo = (await r.json()).modelo ?? null;
+    pintar();
+    return avisar(d.modelo ? `Desde la próxima vez, el director trabaja con ${MODELOS.find((m) => m.id === d.modelo)?.nombre ?? d.modelo}.` : 'Desde la próxima vez, el director trabaja con el modelo de tu cuenta.', true);
   }
   const sync = (e.target as HTMLElement).closest<HTMLInputElement>('[data-sincronizar]');
   if (sync) await accion({ tipo: 'sincronizar', activo: sync.checked }, sync.checked ? 'Desde ahora, lo que decide cada persona sube solo a GitHub.' : 'La subida a GitHub quedó apagada: todo queda en commits locales.');

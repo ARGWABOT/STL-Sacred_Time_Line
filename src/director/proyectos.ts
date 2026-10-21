@@ -80,7 +80,15 @@ export interface Local {
    * hace si encuentra Claude Code con su sesión iniciada; `false` lo apaga y las toma la sesión del director (/vigila).
    */
   agente?: false;
+  /**
+   * El modelo con que el Studio lanza al director en este computador (`claude -p --model`), elegido en Proyecto. Sin
+   * decir nada, el que tenga por defecto la cuenta de Claude Code.
+   */
+  modelo?: string;
 }
+
+/** Un modelo que acepta `claude --model`: un alias (opus, sonnet, haiku) o un id completo. */
+export const MODELO_VALIDO = /^[a-z][a-z0-9.\-[\]]{1,59}$/;
 
 /**
  * Una revisión pedida desde el Studio. La toma el director lanzado por el Studio (`lanzada`) o, sin él, la sesión del
@@ -144,6 +152,7 @@ const normal = (x: any): Local => ({
   ...(x?.urgencia && typeof x.urgencia.proyecto === 'string' && Array.isArray(x.urgencia.notas) && typeof x.urgencia.pedida === 'string' ? { urgencia: x.urgencia as UrgenciaPedida } : {}),
   ...(typeof x?.vigilia === 'string' ? { vigilia: x.vigilia } : {}),
   ...(x?.agente === false ? { agente: false as const } : {}),
+  ...(typeof x?.modelo === 'string' && MODELO_VALIDO.test(x.modelo) ? { modelo: x.modelo } : {}),
 });
 
 /** Cada cuánto mira la sesión del director (/loop 5m /vigila), y desde cuándo se considera que nadie está mirando. */
@@ -209,6 +218,12 @@ async function guardarLocal(raiz: string, l: Local): Promise<void> {
 export async function guardarActivo(raiz: string, id: string): Promise<void> {
   const l = await leerLocal(raiz);
   await guardarLocal(raiz, { ...l, activo: id });
+}
+
+/** El modelo del director en este computador; vacío, vuelve al de la cuenta de Claude Code. */
+export async function guardarModelo(raiz: string, modelo: string | null): Promise<void> {
+  const { modelo: _, ...l } = await leerLocal(raiz);
+  await guardarLocal(raiz, modelo && MODELO_VALIDO.test(modelo) ? { ...l, modelo } : l);
 }
 
 export async function guardarRutaRepositorio(raiz: string, id: string, ruta: string): Promise<void> {
