@@ -297,12 +297,13 @@ const fase = faseActual(plan, estado);
 const desde = plan.revisado ?? '';
 const desdeDia = desde.slice(0, 10);
 const pendientes = pendientesDelDirector(plan, estado);
-const { entregas } = pendientes;
-// Lo que llega después de empezar la revisión (se puede comentar, grabar y preguntar mientras el director trabaja) no
-// entra en ella: espera la siguiente
+// Lo que llega después de empezar la revisión (mientras el director trabaja se puede comentar, grabar, preguntar y avanzar
+// en las misiones: elegir, encargar, entregar) no entra en ella: espera la siguiente
 const corte = corteDeRevision(await leerLocal(raiz), id) ?? new Date().toISOString();
 const notas = pendientes.notas.filter((n) => n.cuando <= corte);
 const despues = pendientes.notas.length - notas.length;
+const entregas = pendientes.entregas.filter((m) => estado.entregas[m.id].cuando <= corte);
+const entregadasDespues = pendientes.entregas.length - entregas.length;
 
 linea(`# Bandeja del director · ${proyecto.nombre || '(proyecto sin nombre)'} (${id}) · ${new Date().toLocaleString('es-CO')}`);
 linea(`Solo este proyecto. Su memoria está en su repositorio: ${memoria(id)} (rama stl). Ahí escribes: el plan en director/plan.json y los documentos en docs/ (el plan los nombra docs/…).`);
@@ -370,6 +371,7 @@ for (const m of entregas) {
   if (e.audio) linea(`- Audio (${e.audio}): ${transcripcion(e.audio) ?? '(sin transcribir)'}`);
   avisarPorComprobar(m);
 }
+if (entregadasDespues) linea(`\n(${entregadasDespues === 1 ? 'Una misión se entregó' : `${entregadasDespues} misiones se entregaron`} después de empezar esta revisión: ${entregadasDespues === 1 ? 'espera' : 'esperan'} la siguiente. No ${entregadasDespues === 1 ? 'la' : 'las'} revises ahora.)`);
 
 /** Lo marcado a mano que pasa fuera del Studio: el director no lo da por hecho sin evidencia (CLAUDE.md › El ciclo de revisión, paso 1). */
 function avisarPorComprobar(m: (typeof plan.misiones)[number]) {

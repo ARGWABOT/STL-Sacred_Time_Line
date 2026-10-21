@@ -671,15 +671,17 @@ function marcarSinServidor(si: boolean) {
 }
 
 /**
- * Mientras el director revisa, se navega, se lee y se le sigue hablando (comentarios, audios y preguntas): lo que llega
- * después de empezar no entra en esa revisión, espera la siguiente (bandeja.ts › corteDeRevision). Lo que cambia lo que
- * él ya está leyendo (entregas, decisiones, elecciones, encargos, o corregir una nota de antes) espera a que termine.
+ * Mientras el director revisa, se navega, se lee, se le sigue hablando (comentarios, audios y preguntas) y se avanza en
+ * las misiones y las decisiones (marcar pasos, elegir, encargar, entregar, aprobar y responder propuestas), como lo pidió
+ * el titular el 21 de octubre de 2026: lo que llega después de empezar no entra en esa revisión, espera la siguiente
+ * (bandeja.ts › corteDeRevision). Solo espera a que termine lo que cambia la ruta o lo que él ya está leyendo (cruzar una
+ * puerta, la meta, el proyecto y su equipo, corregir una nota de antes) y lo que lo llama a él («No lo entiendo»).
  * Dice por qué y devuelve true si hay que esperar.
  */
 const revisando = () => !!d && 'plan' in d && estadoRevision().estado === 'en_curso';
 function esperaAlDirector(): boolean {
   if (!revisando()) return false;
-  avisar('El director está revisando. Mientras termina, puedes leer, comentar, grabar y preguntar (queda para la revisión siguiente), pero no entregar, decidir ni cambiar lo que él ya está leyendo. Al terminar, se habilita solo.', true);
+  avisar('El director está revisando. Mientras termina, puedes leer, hablarle y avanzar en tus misiones y decisiones (todo queda para la revisión siguiente), pero no cambiar la ruta ni lo que él ya está leyendo. Al terminar, se habilita solo.', true);
   return true;
 }
 
@@ -698,9 +700,14 @@ function notaTrasCorte(n: Nota | undefined): boolean {
 const AVISO_REVISANDO = '<b>El director está revisando.</b> Lo que dejes ahora no entra en esta revisión: queda en el Buzón para la siguiente. ';
 const avisoRevisando = () => (revisando() ? AVISO_REVISANDO : '');
 
-/** ¿Esta acción puede hacerse mientras el director revisa? Leer, marcar pasos y hablarle sí; lo demás espera. */
+/**
+ * ¿Esta acción puede hacerse mientras el director revisa? Leer, hablarle y avanzar en las misiones y las decisiones sí
+ * (espera la revisión siguiente); lo que cambia la ruta o lo que él ya está leyendo, no.
+ */
 function libreMientrasRevisa(cuerpo: Record<string, unknown>): boolean {
-  if (cuerpo.tipo === 'paso' || cuerpo.tipo === 'leido' || cuerpo.tipo === 'comentar') return true;
+  if (['paso', 'leido', 'comentar', 'empezar', 'entregar', 'responder'].includes(String(cuerpo.tipo))) return true;
+  // Retirar una entrega que él no está leyendo (llegó después de empezar)
+  if (cuerpo.tipo === 'deshacer_entrega') { const c = corteRevision(); return !!c && (d.estado.entregas[String(cuerpo.mision)]?.cuando ?? '') > c; }
   if (cuerpo.tipo === 'editar_nota' || cuerpo.tipo === 'borrar_nota') return notaTrasCorte(d.estado.notas.find((n) => n.id === cuerpo.id));
   if (cuerpo.tipo === 'corregir_transcripcion') return notaTrasCorte(d.estado.notas.find((n) => n.audio === cuerpo.audio));
   return false;
@@ -710,7 +717,10 @@ async function accion(cuerpo: Record<string, unknown>, hecho = 'Guardado.') {
   if (!libreMientrasRevisa(cuerpo) && esperaAlDirector()) return false;
   if (cuerpo.tipo === 'comentar' && revisando() && hecho) hecho = cuerpo.urgente
     ? 'Lo urgente va solo al director en cuanto termine la revisión que está haciendo (las dos escriben el plan). Lo demás del Buzón espera la siguiente.'
+    : (cuerpo.sobre as { eleccion?: string } | undefined)?.eleccion
+    ? `Elegiste «${(cuerpo.sobre as { eleccion: string }).eleccion}»: queda para la revisión siguiente, porque el director ya empezó esta.`
     : 'Quedó en el Buzón para la revisión siguiente: el director ya empezó esta y no la incluye.';
+  else if ((cuerpo.tipo === 'entregar' || cuerpo.tipo === 'responder') && revisando() && hecho) hecho = `${hecho} Entra en la revisión siguiente: el director ya empezó esta.`;
   const turno = ++cambiosLocales;
   enVuelo++;
   const antes = colaAcciones;
@@ -1473,13 +1483,16 @@ async function completarSiToca(id: string, guardado: Promise<boolean>) {
   if (!m || !m.pasos.length || !m.pasos.every((_, k) => pasosHechos(id).includes(k))) return false;
   if (!['pendiente', 'en_curso', 'rehacer'].includes(estadoMision(m, d.plan, d.estado))) return false;
   if (!(await guardado) || !(await accion({ tipo: 'entregar', mision: m.id }, ''))) return false;
-  // Entregada, la revisión no se pide sola: la pide la persona, aquí o después con «Pedir revisión»
-  const yaPedida = !!d.revision && !d.revision.hecha;
+  // Entregada, la revisión no se pide sola: la pide la persona, aquí o después con «Pedir revisión». Con el director ya
+  // revisando, no entra en esa revisión: se pide cuando termine
+  const enMarcha = revisando();
+  const yaPedida = !enMarcha && !!d.revision && !d.revision.hecha;
   const mia = misionesAbiertas(d.plan, d.estado, d.identidad.rol ?? TITULAR)[0];
+  const ENTREGADA_EN_MARCHA = 'Quedó entregada para la revisión siguiente: el director ya empezó esta y no la incluye. Cuando termine, pide la revisión con «Pedir revisión» junto a su cara';
   // Si ya hay otro diálogo abierto (por ejemplo «Dónde quedamos»), no se le encima: basta el aviso
   if (document.querySelector('dialog[open]')) {
-    avisar(`Misión completada: «${recortar(m.titulo, 70)}». Quedó entregada${yaPedida ? ' y entra en la revisión ya pedida' : mia ? ': el director la revisa cuando pidas la revisión' : '. Era tu última misión por ahora: pide la revisión para que el director defina las siguientes'}.`, true, undefined,
-      yaPedida ? undefined : { etiqueta: 'Pedir la revisión', hacer: () => void pedirLaRevision(true) });
+    avisar(`Misión completada: «${recortar(m.titulo, 70)}». ${enMarcha ? ENTREGADA_EN_MARCHA : `Quedó entregada${yaPedida ? ' y entra en la revisión ya pedida' : mia ? ': el director la revisa cuando pidas la revisión' : '. Era tu última misión por ahora: pide la revisión para que el director defina las siguientes'}`}.`, true, undefined,
+      yaPedida || enMarcha ? undefined : { etiqueta: 'Pedir la revisión', hacer: () => void pedirLaRevision(true) });
     return true;
   }
   const sigue = mia ? tarjetaDe(mia) : null;
@@ -1491,16 +1504,20 @@ async function completarSiToca(id: string, guardado: Promise<boolean>) {
     <h2>${mia ? '¡Bien hecho!' : '¡Felicidades!'}</h2>
     <ul class="cumplidas"><li>${icono('estrella')}<span>${esc(m.titulo)}</span><b>+${m.xp} XP</b></li></ul>
     ${mia
-      ? `<p class="como">${yaPedida
+      ? `<p class="como">${enMarcha
+        ? ENTREGADA_EN_MARCHA
+        : yaPedida
         ? 'Quedó entregada y entra en la revisión que ya pediste'
         : 'Quedó entregada. El director la revisa cuando pidas la revisión: aquí, con «Pedir la revisión», o cuando quieras, con «Pedir revisión» junto a su cara'}. Al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>
     <div class="mision-a"><span class="etiqueta">Tu misión ahora</span><b>${esc(mia.titulo)}</b></div>`
       // Sin otra misión abierta, la revisión es lo que sigue: el director decide la misión siguiente con lo entregado
-      : `<p class="todas-hechas">${yaPedida
+      : `<p class="todas-hechas">${enMarcha
+        ? 'Completaste todas las misiones que tenías por ahora. El director ya empezó una revisión y esta entrega no entra en ella: cuando termine, pide la revisión para que analice el resultado y defina tus misiones siguientes.'
+        : yaPedida
         ? 'Completaste todas las misiones que tenías por ahora. Entra en la revisión que ya pediste: el director analiza el resultado y define tus misiones siguientes.'
         : 'Completaste todas las misiones que tenías por ahora. Pide la revisión para que el director analice el resultado y defina tus misiones siguientes: sin ella, no hay misión nueva.'}</p>
     <p class="como">Al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>`}
-    <div class="botones"><button type="button" data-cerrar>Cerrar</button>${yaPedida ? '' : `<button type="button"${mia ? '' : ' class="primario"'} data-pedir>Pedir la revisión</button>`}${sigue ? '<button type="button" class="primario" data-seguir>Ir a mi misión →</button>' : ''}</div>
+    <div class="botones"><button type="button" data-cerrar>Cerrar</button>${yaPedida || enMarcha ? '' : `<button type="button"${mia ? '' : ' class="primario"'} data-pedir>Pedir la revisión</button>`}${sigue ? '<button type="button" class="primario" data-seguir>Ir a mi misión →</button>' : ''}</div>
   </form>`;
   document.body.append(dlg);
   dlg.addEventListener('click', (e) => {
@@ -3985,7 +4002,7 @@ async function clicEnVista(b: HTMLButtonElement) {
     const [id, i, k] = ds.elegir.split('|');
     const p = d.plan.misiones.find((x) => x.id === id)?.pasos[Number(i)];
     const eleccion = p && typeof p !== 'string' ? p.opciones?.[Number(k)] : undefined;
-    if (!eleccion || esperaAlDirector()) return;
+    if (!eleccion) return;
     // Una opción que promete contar más («te cuento con ✉») abre ahí mismo el comentario: la elección y lo que cuentas
     // van juntos en una sola nota. Si cierras sin escribir, no se elige nada y el paso sigue abierto
     let detalle: Awaited<ReturnType<typeof pedir>> = null;
@@ -4012,10 +4029,10 @@ async function clicEnVista(b: HTMLButtonElement) {
     const [id, i] = ds.hazlo.split('|');
     const p = d.plan.misiones.find((x) => x.id === id)?.pasos[Number(i)];
     const que = p && typeof p !== 'string' ? p.hazlo : undefined;
-    if (!que || esperaAlDirector()) return;
+    if (!que) return;
     const si = await confirmar({
       titulo: '¿Se lo encargas al director?',
-      texto: `Lo que hará: ${que}\n\nNo lo hace ahora: tu encargo queda en el Buzón, firmado, y lo hace en su próxima revisión, con las normas del proyecto. Te cuenta el resultado en su respuesta, aquí mismo en el paso. El paso queda marcado.`,
+      texto: `Lo que hará: ${que}\n\nNo lo hace ahora: tu encargo queda en el Buzón, firmado, y lo hace en su ${revisando() ? 'revisión siguiente (ya empezó la de ahora)' : 'próxima revisión'}, con las normas del proyecto. Te cuenta el resultado en su respuesta, aquí mismo en el paso. El paso queda marcado.`,
       boton: 'Sí, encárgaselo',
       cancelar: 'Mejor lo hago yo',
     });
@@ -4043,7 +4060,6 @@ async function clicEnVista(b: HTMLButtonElement) {
   } else if (ds.aprobar !== undefined) {
     // Aprobar lo que recomienda el director: un clic, sin escribir; queda en el Buzón como tu respuesta, firmada
     const [ruta, seccion, decision] = ds.aprobar.split('|');
-    if (esperaAlDirector()) return;
     b.setAttribute('disabled', '');
     if (await accion({ tipo: 'comentar', sobre: { tipo: 'documento', id: ruta, seccion, decision, postura: 'aprueba' } }, 'Aprobado: quedó en el Buzón como tu respuesta.')) await decisionRespondida(ruta, seccion);
     else b.removeAttribute('disabled');
