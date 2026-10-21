@@ -2,7 +2,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelModelo, permitido, progresoDe, progresoDeProyecto } from './revisor';
+import { compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, permitido, progresoDe, progresoDeProyecto } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -93,6 +93,14 @@ describe('el director que lanza el Studio', () => {
     // si llegó a trabajar, el modelo sirvió
     expect(fallaDelModelo(`${init}\n${JSON.stringify({ type: 'assistant', message: { content: [] } })}\n${error}\n`)).toBe(false);
     expect(consumoDe(init)).toBeNull();
+  });
+
+  it('reconoce cuando Claude Code no acepta el esfuerzo elegido, y solo entonces', () => {
+    expect(fallaDelEsfuerzo("error: unknown option '--effort'\n")).toBe(true);
+    expect(fallaDelEsfuerzo(`${JSON.stringify({ type: 'result', is_error: true, result: 'Invalid effort level: xhigh' })}\n`)).toBe(true);
+    expect(fallaDelEsfuerzo(`${JSON.stringify({ type: 'result', is_error: true, result: 'Invalid API key' })}\n`)).toBe(false);
+    // si llegó a trabajar, el esfuerzo sirvió
+    expect(fallaDelEsfuerzo(`${JSON.stringify({ type: 'assistant', message: { content: [] } })}\nerror: unknown option '--effort'\n`)).toBe(false);
   });
 
   it('elige la versión más nueva de Claude Code', () => {

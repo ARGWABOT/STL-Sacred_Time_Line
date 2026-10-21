@@ -70,7 +70,7 @@ import {
   type Validacion,
 } from '../../src/director/director';
 import { leerFresco, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarModelo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
+import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarEsfuerzo, guardarModelo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
@@ -991,6 +991,7 @@ export function servidorDirector(): Plugin {
               revisor: revisor?.estado() ?? null,
               // Con qué modelo lanza el Studio al director en este computador, y lo que gastó cada lanzamiento
               modelo: (await leerLocal(raiz)).modelo ?? null,
+              esfuerzo: (await leerLocal(raiz)).esfuerzo ?? null,
               consumo: consumoDeRevisiones(raiz),
               // Lo que va haciendo el director que lanzó el Studio, mientras revisa (el Studio lo muestra en vivo)
               progreso: await (async () => {
@@ -1090,6 +1091,12 @@ export function servidorDirector(): Plugin {
             const cuerpo = await leerCuerpo(req);
             await guardarModelo(raiz, textoDe(cuerpo.modelo, 60) || null);
             return responder(res, 200, { modelo: (await leerLocal(raiz)).modelo ?? null });
+          }
+          // Cuánto piensa el director que lanza el Studio (claude --effort): también de este computador
+          if (ruta === '/esfuerzo' && req.method === 'POST') {
+            const cuerpo = await leerCuerpo(req);
+            await guardarEsfuerzo(raiz, textoDe(cuerpo.esfuerzo, 10) || null);
+            return responder(res, 200, { esfuerzo: (await leerLocal(raiz)).esfuerzo ?? null });
           }
           if (ruta === '/activo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);

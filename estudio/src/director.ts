@@ -153,6 +153,8 @@ interface Datos {
   revisor?: { agente: string | null; problema: string | null; revisando: string | null } | null;
   /** El modelo con que el Studio lanza al director en este computador (null: el de la cuenta de Claude Code). */
   modelo?: string | null;
+  /** Cuánto piensa ese director (`claude --effort`; null: el de la cuenta de Claude Code). */
+  esfuerzo?: string | null;
   /** Lo que gastó cada lanzamiento del director en este computador (estudio/servidor/revisor.ts › consumoDeRevisiones). */
   consumo?: { cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; costo: number; entrada: number; cache: number; salida: number; minutos: number }[];
   /** Lo que va haciendo el director que lanzó el Studio, mientras revisa (estudio/servidor/revisor.ts › progresoDe). */
@@ -3010,13 +3012,39 @@ function vistaProyecto() {
   </div>`;
 }
 
-/** Los modelos que se pueden elegir para el director, con qué esperar de cada uno. */
-const MODELOS: { id: string; nombre: string; que: string }[] = [
+/**
+ * Los modelos que se pueden elegir para el director, con qué esperar de cada uno: por versión, y los alias de Claude
+ * Code, que siguen solos a la más nueva de cada familia. Claude Code no tiene cómo listar desde fuera los que acepta
+ * cada plan: si la cuenta no tiene el elegido, la revisión lo dice y el Studio vuelve al de la cuenta.
+ */
+const MODELOS: { id: string; nombre: string; que: string; grupo?: string }[] = [
   { id: '', nombre: 'El de tu cuenta', que: 'El que Claude Code tenga por defecto en tu cuenta. El Studio no cambia nada.' },
-  { id: 'opus', nombre: 'Opus', que: 'El más capaz: el que mejor dirige y escribe código, y el que más gasta.' },
-  { id: 'sonnet', nombre: 'Sonnet', que: 'Buen equilibrio: dirige bien y gasta bastante menos que Opus.' },
-  { id: 'haiku', nombre: 'Haiku', que: 'El más rápido y el que menos gasta. Puede quedarse corto en una revisión larga o con código.' },
+  { id: 'claude-opus-5-5', nombre: 'Opus 5.5', grupo: 'Por versión', que: 'El más capaz para dirigir y escribir código, y el que más gasta.' },
+  { id: 'claude-opus-5-5[1m]', nombre: 'Opus 5.5, contexto de 1 M', grupo: 'Por versión', que: 'Opus 5.5 con un contexto de un millón de tokens: aguanta revisiones muy largas sin resumirse. Gasta como Opus.' },
+  { id: 'claude-sonnet-5-5', nombre: 'Sonnet 5.5', grupo: 'Por versión', que: 'Buen equilibrio: dirige bien y gasta bastante menos que Opus.' },
+  { id: 'claude-haiku-5-5', nombre: 'Haiku 5.5', grupo: 'Por versión', que: 'El más rápido y el que menos gasta. Puede quedarse corto en una revisión larga o con código.' },
+  { id: 'claude-fable-5-1', nombre: 'Fable 5.1', grupo: 'Por versión', que: 'La familia Fable de Claude. Solo si tu plan la incluye.' },
+  { id: 'opus', nombre: 'Opus, el más nuevo', grupo: 'Siempre el más nuevo', que: 'El Opus más nuevo que tenga Claude Code: cambia solo cuando sale una versión.' },
+  { id: 'sonnet', nombre: 'Sonnet, el más nuevo', grupo: 'Siempre el más nuevo', que: 'El Sonnet más nuevo que tenga Claude Code: cambia solo cuando sale una versión.' },
+  { id: 'haiku', nombre: 'Haiku, el más nuevo', grupo: 'Siempre el más nuevo', que: 'El Haiku más nuevo que tenga Claude Code: cambia solo cuando sale una versión.' },
 ];
+
+/** Cuánto piensa el director antes de responder (`claude --effort`). */
+const ESFUERZOS: { id: string; nombre: string; que: string }[] = [
+  { id: '', nombre: 'El de tu cuenta', que: 'El que Claude Code tenga por defecto.' },
+  { id: 'low', nombre: 'Bajo', que: 'Piensa poco: más rápido y gasta menos, para revisiones cortas.' },
+  { id: 'medium', nombre: 'Medio', que: 'Un término medio.' },
+  { id: 'high', nombre: 'Alto', que: 'Piensa más en cada decisión: tarda y gasta más.' },
+  { id: 'xhigh', nombre: 'Muy alto', que: 'Para revisiones con mucho código o decisiones difíciles.' },
+  { id: 'max', nombre: 'Máximo', que: 'Lo más que puede pensar: lo más lento y lo que más gasta.' },
+];
+
+/** Las opciones de un selector, con sus grupos (optgroup) en el orden en que aparecen. */
+function opcionesDe(lista: { id: string; nombre: string; grupo?: string }[], actual: string) {
+  const op = (m: { id: string; nombre: string }) => `<option value="${esc(m.id)}"${m.id === actual ? ' selected' : ''}>${esc(m.nombre)}</option>`;
+  const grupos = [...new Set(lista.map((m) => m.grupo ?? ''))];
+  return grupos.map((g) => (g ? `<optgroup label="${esc(g)}">${lista.filter((m) => m.grupo === g).map(op).join('')}</optgroup>` : lista.filter((m) => !m.grupo).map(op).join(''))).join('');
+}
 
 const miles = (n: number) => (n >= 1e6 ? `${(n / 1e6).toLocaleString('es', { maximumFractionDigits: 1 })} M` : n >= 1e3 ? `${Math.round(n / 1e3).toLocaleString('es')} mil` : String(n));
 const dolares = (n: number) => `US$ ${n.toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -3041,8 +3069,10 @@ function seccionModelo() {
   return `<section class="panel-d" data-ancla="p-director">
         <h3>El director en este computador</h3>
         <p class="como">Con qué modelo te revisa el director cuando el Studio lo llama (la revisión, «No lo entiendo» y lo urgente). Es de este computador: no va en git.</p>
-        <label class="campo-modelo">Modelo<select data-modelo>${opciones.map((m) => `<option value="${esc(m.id)}"${m.id === actual ? ' selected' : ''}>${esc(m.nombre)}</option>`).join('')}</select></label>
-        <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Si tu cuenta no tiene el que elijas, la revisión lo dice y el Studio vuelve al de tu cuenta.</p>
+        <label class="campo-modelo">Modelo<select data-modelo>${opcionesDe(opciones, actual)}</select></label>
+        <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Lo que acepta cada plan no se puede consultar desde el Studio: si tu cuenta no tiene el que elijas, la revisión lo dice y el Studio vuelve al de tu cuenta.</p>
+        <label class="campo-modelo">Esfuerzo<select data-esfuerzo>${opcionesDe(ESFUERZOS, d.esfuerzo ?? '')}</select></label>
+        <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta.</p>
         <h3>Lo que gastó</h3>
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
           <details class="detalles-repo"><summary>Cada lanzamiento (últimos 35 días)</summary>
@@ -3625,6 +3655,14 @@ $('vista').addEventListener('change', async (e) => {
     d.modelo = (await r.json()).modelo ?? null;
     pintar();
     return avisar(d.modelo ? `Desde la próxima vez, el director trabaja con ${MODELOS.find((m) => m.id === d.modelo)?.nombre ?? d.modelo}.` : 'Desde la próxima vez, el director trabaja con el modelo de tu cuenta.', true);
+  }
+  const se = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-esfuerzo]');
+  if (se) {
+    const r = await fetch('/__estudio/director/esfuerzo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ esfuerzo: se.value }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    if (r instanceof Error || !r.ok) return avisar('No se pudo guardar el esfuerzo: el Studio no respondió.');
+    d.esfuerzo = (await r.json()).esfuerzo ?? null;
+    pintar();
+    return avisar(d.esfuerzo ? `Desde la próxima vez, el director trabaja con esfuerzo ${ESFUERZOS.find((x) => x.id === d.esfuerzo)?.nombre.toLowerCase() ?? d.esfuerzo}.` : 'Desde la próxima vez, el director trabaja con el esfuerzo de tu cuenta.', true);
   }
   const sync = (e.target as HTMLElement).closest<HTMLInputElement>('[data-sincronizar]');
   if (sync) await accion({ tipo: 'sincronizar', activo: sync.checked }, sync.checked ? 'Desde ahora, lo que decide cada persona sube solo a GitHub.' : 'La subida a GitHub quedó apagada: todo queda en commits locales.');

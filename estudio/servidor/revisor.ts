@@ -11,7 +11,7 @@ import { spawn } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join, relative } from 'node:path';
-import { guardarModelo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
+import { guardarEsfuerzo, guardarModelo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
 
 /** Lo que el Studio muestra del revisor: si revisa solo, o por qué no puede. */
 export interface EstadoRevisor {
@@ -273,6 +273,11 @@ export const fallaDelModelo = (registro: string) =>
   !/"type":"assistant"/.test(registro) &&
   registro.split('\n').some((l) => !/"subtype":"init"/.test(l) && /selected model|invalid model|model[^\n]{0,80}(not (exist|found|available)|no access|access to it)/i.test(l));
 
+/** Si el lanzamiento no llegó a trabajar porque Claude Code no aceptó el esfuerzo elegido (`--effort`). */
+export const fallaDelEsfuerzo = (registro: string) =>
+  !/"type":"assistant"/.test(registro) &&
+  registro.split('\n').some((l) => !/"subtype":"init"/.test(l) && /unknown option '--effort'|effort[^\n]{0,80}(invalid|not (supported|available|allowed))|invalid[^\n]{0,40}effort/i.test(l));
+
 /** Ordena versiones «1.2.10» de menor a mayor. */
 export const compararVersion = (a: string, b: string) => {
   const x = a.split('.').map(Number);
@@ -437,8 +442,8 @@ export class Revisor {
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
     // El modelo elegido en Proyecto, si hay uno; si no, el de la cuenta de Claude Code
-    const modelo = (await leerLocal(this.raiz)).modelo;
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
+    const { modelo, esfuerzo } = await leerLocal(this.raiz);
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
@@ -457,6 +462,9 @@ export class Revisor {
       if (modelo && fallaDelModelo(readFileSync(archivo, 'utf-8'))) {
         await guardarModelo(this.raiz, null);
         problema = `Tu cuenta de Claude Code no aceptó el modelo «${modelo}», así que el Studio volvió al de tu cuenta: pide la revisión otra vez. En Proyecto puedes elegir otro.`;
+      } else if (esfuerzo && fallaDelEsfuerzo(readFileSync(archivo, 'utf-8'))) {
+        await guardarEsfuerzo(this.raiz, null);
+        problema = `Claude Code no aceptó el esfuerzo «${esfuerzo}» (puede que su versión no lo traiga, o que el modelo no lo use), así que el Studio volvió al de tu cuenta: pide la revisión otra vez.`;
       }
       if (aparte?.tipo === 'aclaracion') {
         const a = (await leerLocal(this.raiz)).aclaracion;

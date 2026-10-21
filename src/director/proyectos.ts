@@ -85,10 +85,20 @@ export interface Local {
    * decir nada, el que tenga por defecto la cuenta de Claude Code.
    */
   modelo?: string;
+  /**
+   * Cuánto piensa el director lanzado por el Studio (`claude -p --effort`), elegido en Proyecto. Sin decir nada, el
+   * que tenga por defecto la cuenta de Claude Code.
+   */
+  esfuerzo?: Esfuerzo;
 }
 
 /** Un modelo que acepta `claude --model`: un alias (opus, sonnet, haiku) o un id completo. */
 export const MODELO_VALIDO = /^[a-z][a-z0-9.\-[\]]{1,59}$/;
+
+/** Los niveles de esfuerzo que acepta `claude --effort`, de menos a más. */
+export const ESFUERZOS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type Esfuerzo = (typeof ESFUERZOS)[number];
+const esEsfuerzo = (x: unknown): x is Esfuerzo => typeof x === 'string' && (ESFUERZOS as readonly string[]).includes(x);
 
 /**
  * Una revisión pedida desde el Studio. La toma el director lanzado por el Studio (`lanzada`) o, sin él, la sesión del
@@ -153,6 +163,7 @@ const normal = (x: any): Local => ({
   ...(typeof x?.vigilia === 'string' ? { vigilia: x.vigilia } : {}),
   ...(x?.agente === false ? { agente: false as const } : {}),
   ...(typeof x?.modelo === 'string' && MODELO_VALIDO.test(x.modelo) ? { modelo: x.modelo } : {}),
+  ...(esEsfuerzo(x?.esfuerzo) ? { esfuerzo: x.esfuerzo } : {}),
 });
 
 /** Cada cuánto mira la sesión del director (/loop 5m /vigila), y desde cuándo se considera que nadie está mirando. */
@@ -224,6 +235,12 @@ export async function guardarActivo(raiz: string, id: string): Promise<void> {
 export async function guardarModelo(raiz: string, modelo: string | null): Promise<void> {
   const { modelo: _, ...l } = await leerLocal(raiz);
   await guardarLocal(raiz, modelo && MODELO_VALIDO.test(modelo) ? { ...l, modelo } : l);
+}
+
+/** El esfuerzo del director en este computador; vacío, vuelve al de la cuenta de Claude Code. */
+export async function guardarEsfuerzo(raiz: string, esfuerzo: string | null): Promise<void> {
+  const { esfuerzo: _, ...l } = await leerLocal(raiz);
+  await guardarLocal(raiz, esEsfuerzo(esfuerzo) ? { ...l, esfuerzo } : l);
 }
 
 export async function guardarRutaRepositorio(raiz: string, id: string, ruta: string): Promise<void> {
