@@ -796,7 +796,9 @@ html.enfoque .trozo.actual { background: transparent; }
 html.enfoque-mision :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral) { filter: blur(3px); opacity: 0.3; pointer-events: none; user-select: none; }
 html.enfoque-mision #vista { pointer-events: none; user-select: none; }
 html.enfoque-mision .velo-zen { opacity: 1; visibility: visible; transition: opacity 0.6s ease; }
-html.enfoque-mision .mision-c.sigue { position: relative; z-index: 40; pointer-events: auto; user-select: auto;box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12); }
+/* La tarjeta se selecciona y se copia (rutas, direcciones, órdenes): «text» y no «auto», que bajo un padre con
+   user-select: none también vale none */
+html.enfoque-mision .mision-c.sigue { position: relative; z-index: 40; pointer-events: auto; -webkit-user-select: text; user-select: text; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12); }
 html.enfoque-mision :is(.director-flotante, .atajos-director, .segundo-plano) { z-index: 45; }
 html.enfoque-mision .progreso-director { z-index: 46; }
 @media (prefers-reduced-motion: reduce) {
