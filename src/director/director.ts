@@ -561,13 +561,35 @@ function palabrasDe(texto: string): Set<string> {
 export function mensajeRepite(mensaje: string, avanzamos: string[]): { frase: string; linea: string }[] {
   const lineas = avanzamos.map((l) => ({ l, p: palabrasDe(l) }));
   const salida: { frase: string; linea: string }[] = [];
-  for (const frase of mensaje.split(/(?<=[.!?:;])\s+/).map((f) => f.trim()).filter(Boolean)) {
+  for (const frase of frasesDe(mensaje)) {
     const p = palabrasDe(frase);
     if (p.size < 4) continue;
     const igual = lineas.find((x) => { const comunes = [...p].filter((w) => x.p.has(w)).length; return comunes >= 4 && comunes / p.size >= 0.5; });
     if (igual) salida.push({ frase, linea: igual.l });
   }
   return salida;
+}
+
+const frasesDe = (texto: string) => texto.split(/(?<=[.!?:;])\s+/).map((f) => f.trim()).filter(Boolean);
+
+/**
+ * El comentario de esta revisión no vuelve a decir lo que ya dijo el anterior: reescrito o alargado, el Studio lo
+ * mostraría otra vez como nuevo (nota del titular del 21 de octubre). Igual al anterior no cuenta: no se vuelve a mostrar.
+ */
+export function mensajeRepiteAnterior(mensaje: string, anterior: string): { frase: string; linea: string }[] {
+  if (!anterior.trim() || mensaje.trim() === anterior.trim()) return [];
+  return mensajeRepite(mensaje, frasesDe(anterior));
+}
+
+/**
+ * Dos versiones de lo mismo: una línea reescrita con otras palabras o alargada (al menos cuatro palabras con peso en
+ * común, y tres de cada cinco de la más corta). «Dónde quedamos» muestra solo la nueva.
+ */
+export function mismaIdea(a: string, b: string): boolean {
+  const pa = palabrasDe(a);
+  const pb = palabrasDe(b);
+  const comunes = [...pa].filter((w) => pb.has(w)).length;
+  return comunes >= 4 && comunes / Math.min(pa.size, pb.size) >= 0.6;
 }
 
 /** Un texto como se compara al buscar: sin tildes, sin mayúsculas y con los espacios seguidos en uno. */

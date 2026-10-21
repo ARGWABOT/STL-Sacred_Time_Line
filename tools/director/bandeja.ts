@@ -26,6 +26,7 @@ import {
   archivoVacio,
   comentarioDe,
   mensajeRepite,
+  mensajeRepiteAnterior,
   misionesPorVigilar,
   unirArchivo,
   type ArchivoPlan,
@@ -51,7 +52,7 @@ import {
   YA_LO_DIJE,
 } from '../../src/director/director.ts';
 import { fechaDeCambio, leerFresco } from '../../src/director/fresco.ts';
-import { corteDeRevision, enDisco as enDiscoDe, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { corteDeRevision, enDisco as enDiscoDe, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { comandoTranscripcion } from '../../src/director/transcripcion.ts';
 import { argumentos, colaDeDiagnosticos, leerTodo, memoria, nombreDe, otrosProyectos, POR_REVISION, proyectoElegido, raiz } from './comun.ts';
 
@@ -230,6 +231,13 @@ if (args.includes('--listo')) {
     for (const r of repetidas) console.error(`- «${r.frase}» repite «${r.linea.slice(0, 120)}»`);
     process.exit(1);
   }
+  // …ni lo que ya dijo el comentario anterior: reescrito o alargado, el titular lo leería dos veces
+  const yaDicho = mensajeRepiteAnterior(plan.mensaje?.texto ?? '', mensajeGuardado(rutasDe(elegido).plan));
+  if (yaDicho.length) {
+    console.error('No se cerró la revisión: el mensaje («Comentarios del director») vuelve a decir lo que ya dijo el comentario anterior, y el Studio lo mostraría otra vez como nuevo. Deja en el mensaje solo lo nuevo (si no hay nada nuevo que comentar, una frase basta):');
+    for (const r of yaDicho) console.error(`- «${r.frase}» repite «${r.linea.slice(0, 120)}»`);
+    process.exit(1);
+  }
   plan.revisado = new Date().toISOString();
   // El plan no crece sin fin: pasado el tope, lo cerrado antes de esta revisión sale solo al archivo
   let final = plan;
@@ -247,6 +255,17 @@ if (args.includes('--listo')) {
   await marcarRevision(raiz, elegido, 'hecha');
   console.log(`Revisión marcada: ${plan.revisado}`);
   process.exit(0);
+}
+
+/** El comentario del director que ya quedó guardado (el del último commit de la memoria): lo que el titular ya vio. */
+function mensajeGuardado(rutaPlan: string): string {
+  const u = ubicar(raiz, rutaPlan);
+  try {
+    const guardado = execFileSync('git', ['show', `HEAD:${u.ruta}`], { cwd: u.cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+    return (JSON.parse(guardado) as Plan).mensaje?.texto ?? '';
+  } catch {
+    return '';
+  }
 }
 
 /** Los commits del repositorio del proyecto desde la última revisión: lo hecho que puede dejar atrás una misión. */

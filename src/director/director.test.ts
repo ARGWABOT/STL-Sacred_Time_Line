@@ -7,6 +7,8 @@ import {
   archivar,
   archivoVacio,
   mensajeRepite,
+  mensajeRepiteAnterior,
+  mismaIdea,
   coincideBusqueda,
   palabrasDeBusqueda,
   misionesPorVigilar,
@@ -425,6 +427,35 @@ describe('el plan no pesa: lo cerrado sale a su archivo', () => {
     expect(mensajeRepite('Publiqué la portada: ya no arranca sola, da la bienvenida y la rueda la adelanta.', avanzamos)).toHaveLength(1);
     expect(mensajeRepite('No pude abrir el navegador en esta revisión; los anchos móviles quedan por mirar.', avanzamos)).toEqual([]);
     expect(mensajeRepite('Bien.', avanzamos)).toEqual([]);
+  });
+
+  // Nota del titular del 21 de octubre: «Comentarios del director» mostraba el mismo comentario dos veces
+  const antes = 'Esta fue la primera revisión con los arreglos de hoy, y la hice sin flujos de varios agentes: tres ayudantes construyeron en paralelo lo que pediste para el código. Los sonidos de AdWi solo pueden sonar en este computador por su licencia, así que el Studio publicado necesitará unos propios.';
+  const alargado = `${antes} Nada de lo de hoy está subido: son commits locales, porque lanzado así no puedo subir.`;
+
+  it('el comentario del director no vuelve a decir lo que dijo el anterior', () => {
+    expect(mensajeRepiteAnterior(alargado, antes).map((r) => r.frase)).toEqual([
+      'Esta fue la primera revisión con los arreglos de hoy, y la hice sin flujos de varios agentes:',
+      'tres ayudantes construyeron en paralelo lo que pediste para el código.',
+      'Los sonidos de AdWi solo pueden sonar en este computador por su licencia, así que el Studio publicado necesitará unos propios.',
+    ]);
+    expect(mensajeRepiteAnterior('Hice la revisión sin ayudantes; las notas eran pocas y cortas.', antes)).toEqual([]);
+    // Igual al anterior no se vuelve a mostrar, y sin anterior no hay con qué comparar
+    expect(mensajeRepiteAnterior(antes, antes)).toEqual([]);
+    expect(mensajeRepiteAnterior(antes, '')).toEqual([]);
+  });
+
+  it('«Dónde quedamos» reconoce otra versión de la misma línea: alargada o con otras palabras, no lo distinto', () => {
+    expect(mismaIdea(antes, alargado)).toBe(true);
+    expect(mismaIdea(
+      'Un solo servidor del Studio, siempre: ninguno arranca si ya hay otro, y el doble clic recarga la página abierta.',
+      'Ya no se enciende un segundo servidor del Studio: si hay otro, ninguno arranca y el doble clic solo recarga la página.',
+    )).toBe(true);
+    expect(mismaIdea(
+      'El Studio suena: los efectos de AdWi en los diez momentos que decidiste, con la música de fondo en la cabecera.',
+      'El tema oscuro, legible en todas partes: el resalte de una zona ya no tapa el texto.',
+    )).toBe(false);
+    expect(mismaIdea('Bien.', 'Bien.')).toBe(false);
   });
 
   it('la búsqueda del Buzón: todas las palabras, sin tildes ni mayúsculas, en lo dicho o en la respuesta', () => {

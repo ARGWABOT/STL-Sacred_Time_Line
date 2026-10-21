@@ -33,6 +33,7 @@ import {
   faseActual,
   marcasAlDia,
   misionesAbiertas,
+  mismaIdea,
   nivelDe,
   NIVELES,
   notaFoco,
@@ -1243,7 +1244,8 @@ async function mostrarDondeQuedamos() {
 // «Ya leído», y la barra dice cuánto llevas. Al volver, solo aparece lo que falta. Lo que se repite es corto y nunca
 // bloquea (se puede tocar la siguiente sin esperar), y lo especial queda para los hitos: la mitad, el final y, de vez en
 // cuando, una chispa distinta. Lo nuevo se acumula: si el director reescribe el resumen antes de que lo leas, lo anterior
-// sigue esperando hasta que lo marques. «Ya leído» muestra las últimas 20 y trae más de a 20, si se piden.
+// sigue esperando hasta que lo marques, salvo que lo nuevo sea otra versión de lo mismo (mismaIdea): entonces la
+// reemplaza. «Ya leído» muestra las últimas 20 y trae más de a 20, si se piden.
 
 interface SeccionDq { id: string; titulo: string; items: string[] }
 /** Una línea guardada en este navegador: espera hasta que la marques; leída, baja a «Ya leído» con su fecha. */
@@ -1298,14 +1300,20 @@ function archivoDq(proyecto: string): LineaDq[] {
   const conocidas = new Set(archivo.map((l) => l.h));
   let viejas: Set<string> | null = null;
   const ahora = new Date().toISOString();
+  const secciones = seccionesDq();
+  const deAhora = new Set(secciones.flatMap((s) => s.items.map((t) => huellaDq(s.id, t))));
   let cambio = false;
-  for (const s of seccionesDq()) {
+  for (const s of secciones) {
     for (const t of s.items) {
       const h = huellaDq(s.id, t);
       if (conocidas.has(h)) continue;
       if (!viejas) {
         try { viejas = new Set(JSON.parse(localStorage.getItem(claveLeidasDq(proyecto)) ?? '[]') as string[]); } catch { viejas = new Set(); }
       }
+      // Otra versión de una línea que esperaba sin leer (el director la reescribió o la alargó, y ya no está en el
+      // resumen): la nueva la reemplaza, para no leer dos veces lo mismo con otras palabras
+      const reemplazadas = archivo.filter((v) => !v.leida && v.s === s.id && !deAhora.has(v.h) && mismaIdea(v.t, t));
+      if (reemplazadas.length) archivo = archivo.filter((v) => !reemplazadas.includes(v));
       archivo.push({ h, s: s.id, t, llego: ahora, ...(viejas.has(h) ? { leida: ahora } : {}) });
       conocidas.add(h);
       cambio = true;
