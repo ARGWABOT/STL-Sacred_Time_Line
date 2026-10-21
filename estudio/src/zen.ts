@@ -53,7 +53,7 @@ const mover = () => {
 /** Fuera de la ventana del documento, la luz va hacia el puntero; dentro, se apaga despacio para no distraer la lectura. */
 function alMover(e: PointerEvent) {
   if (!activo || quieto.matches || e.pointerType === 'touch') return;
-  const dentro = !!(e.target as HTMLElement | null)?.closest?.('.lector, .director-flotante, .atajos-director, dialog');
+  const dentro = !!(e.target as HTMLElement | null)?.closest?.('.lector, .mision-c.sigue, .director-flotante, .atajos-director, dialog');
   ax = e.clientX;
   ay = e.clientY;
   brilloMeta = dentro ? 0 : 1;
@@ -81,9 +81,11 @@ function encender(si: boolean) {
   }
 }
 
-// El enfoque lo pone y lo quita director.ts con la clase «enfoque» del documento: aquí solo se escucha
-new MutationObserver(() => encender(html.classList.contains('enfoque'))).observe(html, { attributes: true, attributeFilter: ['class'] });
-encender(html.classList.contains('enfoque'));
+// El enfoque lo pone y lo quita director.ts con la clase «enfoque» (un documento) o «enfoque-mision» (la tarjeta de la
+// misión) del documento: aquí solo se escucha
+const enfocado = () => html.classList.contains('enfoque') || html.classList.contains('enfoque-mision');
+new MutationObserver(() => encender(enfocado())).observe(html, { attributes: true, attributeFilter: ['class'] });
+encender(enfocado());
 // Con la pestaña oculta no se anima nada; al volver, la luz sigue donde iba
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) mover();

@@ -211,7 +211,8 @@ button.esperando::after { content: ''; display: inline-block; width: 0.8em; heig
 .mision-c.plegada { gap: 8px; }
 .mision-c.sigue { border-color: var(--acento-borde); border-left-color: var(--acento); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.1), var(--sombra); }
 .mision-c .num-m { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; font-weight: 700; background: var(--acento); color: var(--texto-en-color); }
-.sigue-esta { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; background: var(--acento); padding: 3px 12px; border-radius: 999px; }
+.fila-sigue { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.sigue-esta { justify-self: start;font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; background: var(--acento); padding: 3px 12px; border-radius: 999px; }
 .mision-c .estado-texto { margin: 0; font-size: 14px; color: var(--espera); line-height: 1.5; }
 .mision-c .nota-entrega { margin: 0; font-size: 14px; font-style: italic; }
 .mision-c.cola { padding: 10px 14px; background: var(--panel-suave); border-left-color: #cfccc3; box-shadow: none; }
@@ -782,9 +783,19 @@ html.enfoque .lector .parte-doc.por-leer { border-bottom: 0; padding-block: 4px 
    encima del enfoque: así no tapan el texto */
 @media (max-width: 760px) { html.enfoque .docs > .lector { inset: 8px; width: calc(100vw - 84px); max-height: calc(100dvh - 16px); margin-inline: 0 auto; } }
 html.enfoque .trozo.actual { background: transparent; }
+/* El modo enfoque de la misión: el mismo velo, y la tarjeta de ahora donde está, nítida y por encima (la página se
+   sigue desplazando, porque una misión puede ser más alta que la pantalla). Lo demás de Hoy queda bajo el velo */
+.boton-enfoque.en-mision { min-height: 30px; font-size: 13px; }
+html.enfoque-mision :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral) { filter: blur(3px); opacity: 0.3; pointer-events: none; user-select: none; }
+html.enfoque-mision #vista { pointer-events: none; user-select: none; }
+html.enfoque-mision .velo-zen { opacity: 1; visibility: visible; transition: opacity 0.6s ease; }
+html.enfoque-mision .mision-c.sigue { position: relative; z-index: 40; pointer-events: auto; user-select: auto;box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12); }
+html.enfoque-mision :is(.director-flotante, .atajos-director, .segundo-plano) { z-index: 45; }
+html.enfoque-mision .progreso-director { z-index: 46; }
 @media (prefers-reduced-motion: reduce) {
   .trozo.llega { animation: none; }
   :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { transition: none; }
+  html.enfoque-mision .velo-zen { transition: none; }
   .zen-niebla { animation: none; }
   .zen-luz { display: none; }
   .velo-zen, html.enfoque .velo-zen { transition: none; }

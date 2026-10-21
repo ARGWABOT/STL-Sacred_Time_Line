@@ -2002,7 +2002,7 @@ function tarjetaMision(m: Mision, compacta = false, numero = 0) {
     acciones.push(`<span class="continuar-m"><button type="button" data-continuar="${esc(m.id)}|${sigue}|" title="Te lleva a lo que toca leer o decidir">Continuar misión →</button><button type="button" class="primario" data-continuar="${esc(m.id)}|${sigue}|enfoque" title="Lo mismo, con solo la idea de ahora a la vista">${icono('enfoque')} Continuar en modo enfoque</button></span>`);
   }
   return `<article class="mision-c ${e}${mia ? ' mia' : ''}${numero === 1 ? ' sigue' : ''}" data-ancla="mision-${esc(m.id)}">
-    ${numero === 1 ? '<span class="sigue-esta">→ Tu misión ahora</span>' : ''}
+    ${numero === 1 ? `<div class="fila-sigue"><span class="sigue-esta">→ Tu misión ahora</span>${mia ? botonEnfoqueMision(m) : ''}</div>` : ''}
     <header>${numero > 1 ? `<span class="num-m">${numero}</span>` : ''}<b>${esc(m.titulo)}</b><span class="xp">+${m.xp} XP</span>${numero === 1 && e === 'pendiente' ? '' : `<span class="chip estado-m ${e}">${NOMBRE_ESTADO_MISION[e]}</span>`}</header>
     <p class="porque">${esc(m.porQue)}</p>
     ${listaPasos(m)}
@@ -2605,7 +2605,45 @@ function centrarIdea() {
   }
 }
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && enfoque && !document.querySelector('dialog[open]')) ponerEnfoque(false);
+  if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return;
+  if (enfoque) ponerEnfoque(false);
+  else if (enfoqueMision) ponerEnfoqueMision(null);
+});
+
+/**
+ * El modo enfoque de la misión: el mismo velo de los documentos alrededor de la tarjeta de la misión de ahora, que
+ * queda donde está, nítida (no es un diálogo: sus pasos llevan a otras partes del Studio). Se apaga solo cuando un
+ * paso lleva a otro lugar, cuando la misión se entrega y con la recarga del final de una revisión; al volver a Hoy,
+ * el botón se ofrece de nuevo. Esc para salir.
+ */
+let enfoqueMision: string | null = null;
+const tarjetaEnfocada = () =>
+  enfoqueMision && vista === 'misiones' ? document.querySelector<HTMLElement>(`.mision-c.sigue[data-ancla="mision-${CSS.escape(enfoqueMision)}"]`) : null;
+function aplicarEnfoqueMision() {
+  // Si la tarjeta ya no está (otra sección, la misión entregada), el enfoque se apaga
+  if (!tarjetaEnfocada()) enfoqueMision = null;
+  document.documentElement.classList.toggle('enfoque-mision', !!enfoqueMision);
+}
+function ponerEnfoqueMision(id: string | null) {
+  enfoqueMision = id;
+  aplicarEnfoqueMision();
+  document.querySelectorAll<HTMLButtonElement>('[data-enfoque-mision]').forEach((b) => (b.outerHTML = botonEnfoqueMision(b.dataset.enfoqueMision!)));
+  const t = tarjetaEnfocada();
+  if (t) {
+    const r = t.getBoundingClientRect();
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (r.top < 0 || r.top > innerHeight / 3) t.scrollIntoView({ block: 'start', behavior: quieto ? 'auto' : 'smooth' });
+  }
+  document.querySelector<HTMLElement>('[data-enfoque-mision]')?.focus();
+}
+const botonEnfoqueMision = (m: Mision | string) => {
+  const id = typeof m === 'string' ? m : m.id;
+  const si = enfoqueMision === id;
+  return `<button type="button" class="boton-suave boton-enfoque en-mision" data-enfoque-mision="${esc(id)}" aria-pressed="${si}" title="${si ? 'Salir del modo enfoque (Esc)' : 'Solo esta misión a la vista, sin nada alrededor'}">${icono('enfoque')}<span>${si ? 'Salir del enfoque' : 'Enfocarme en la misión'}</span></button>`;
+};
+document.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-enfoque-mision]');
+  if (b) ponerEnfoqueMision(enfoqueMision === b.dataset.enfoqueMision ? null : b.dataset.enfoqueMision!);
 });
 // En todo el documento, como el del tema: el botón de arriba está en la cabecera, fuera de la vista
 document.addEventListener('click', (e) => {
@@ -3472,6 +3510,8 @@ function pintar() {
   // El modo enfoque solo vale en un documento abierto: en otra sección se apaga
   if (enfoque && (vista !== 'documentos' || !doc)) enfoque = false;
   aplicarEnfoque();
+  // Y el de la misión, solo con su tarjeta a la vista
+  aplicarEnfoqueMision();
   if (vista === 'stl') restaurarParada(v);
   if (vista === 'documentos' && irASeccion !== null) {
     const parte = [...v.querySelectorAll<HTMLElement>('[data-parte]')].find((x) => x.dataset.parte === irASeccion);
@@ -4209,7 +4249,10 @@ cargarAlArrancar()
     const v = pedido.get('vista');
     if (v && (VISTAS as string[]).includes(v)) {
       history.replaceState(null, '', location.pathname);
-      void ir({ vista: v as Destino['vista'], ancla: pedido.get('ancla') ?? undefined, etiqueta: '' });
+      void ir({ vista: v as Destino['vista'], ancla: pedido.get('ancla') ?? undefined, etiqueta: '' }).then(() => {
+        // (?mirar&enfoque=mision: el director mira el modo enfoque de la misión sin pantalla)
+        if (pedido.get('enfoque') === 'mision') document.querySelector<HTMLElement>('[data-enfoque-mision]')?.click();
+      });
     } else if (d.arranque === 'conectar' && !localStorage.getItem('estudio.director.pestana')) {
       // La primera vez, directo a conectar el repositorio
       void ir({ vista: 'misiones', ancla: 'guia', etiqueta: '' });
