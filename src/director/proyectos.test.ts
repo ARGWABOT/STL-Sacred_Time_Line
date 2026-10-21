@@ -168,6 +168,16 @@ describe('la revisión pedida desde el Studio', () => {
     expect((await leerLocal(raiz)).revision?.error).toBeUndefined();
   });
 
+  it('guarda el reporte de qué pasó junto al error, y pedirla de nuevo lo limpia', async () => {
+    const falla = { que: 'No arrancó', porque: 'Claude Code se cerró antes de empezar.', duracion: 0.1, gasto: null, ultimos: [], usoFlujos: null, negados: [], sugerencia: 'Pídela de nuevo.', accion: 'pedir' as const, cuando: '2026-10-21T20:00:00.000Z' };
+    await pedirRevision(raiz, 'rev', 'Laura');
+    await marcarLanzada(raiz, 'rev');
+    await marcarLanzada(raiz, 'rev', 'Se cortó.', falla);
+    expect((await leerLocal(raiz)).revision).toMatchObject({ error: 'Se cortó.', falla });
+    await pedirRevision(raiz, 'rev', 'Laura');
+    expect((await leerLocal(raiz)).revision?.falla).toBeUndefined();
+  });
+
   it('una revisión ya hecha no se vuelve a lanzar ni a marcar', async () => {
     await pedirRevision(raiz, 'rev', 'Laura');
     await marcarRevision(raiz, 'rev', 'hecha');

@@ -116,6 +116,39 @@ export interface RevisionPedida {
   enCurso?: string;
   hecha?: string;
   error?: string;
+  /** El reporte de por qué no terminó, para el diálogo «Qué pasó con la revisión» (junto a `error`, que lo resume). */
+  falla?: FallaRevision;
+}
+
+/**
+ * El reporte de una revisión lanzada que no se cerró (estudio/servidor/revisor.ts › diagnosticarFalla), para el diálogo
+ * «Qué pasó con la revisión» (nota de voz del titular, 21 de octubre de 2026: dos revisiones se perdieron sin decir
+ * nada; si algo sale mal, se avisa, y con su porqué). Se lee del registro, sin modelo.
+ */
+export interface FallaRevision {
+  /** Qué pasó, en una frase. */
+  que: string;
+  /** La causa probable, leída del registro. */
+  porque: string;
+  /** Cuánto duró, en minutos; null si no se sabe. */
+  duracion: number | null;
+  /** Lo que gastó, como lo dice Claude Code (dólares a precio de API); null si no alcanzó a decirlo. */
+  gasto: number | null;
+  /** Lo último que alcanzó a hacer (hasta 5 pasos, con las líneas iguales seguidas en una). */
+  ultimos: { tipo: 'dice' | 'hace'; texto: string; veces?: number }[];
+  /** Cuántos flujos de varios agentes (Workflow) y cuántos ayudantes (Agent, Task) lanzó; null si ninguno. */
+  usoFlujos: { flujos: number; ayudantes: number } | null;
+  /** Los permisos que se le negaron (la herramienta y lo que intentó), sin repetir. */
+  negados: string[];
+  /** Qué conviene hacer, en una frase. */
+  sugerencia: string;
+  /** Lo que el diálogo ofrece primero: pedirla igual, pedirla sin ultracode, o arreglar antes la cuenta. */
+  accion: 'pedir' | 'sin_ultracode' | 'cuenta';
+  /** Cuándo se renueva el límite de uso, si fue eso (ISO). */
+  renueva?: string;
+  /** El registro, desde la carpeta del Studio. */
+  registro?: string;
+  cuando: string;
 }
 
 /**
@@ -271,14 +304,15 @@ export async function pedirRevision(raiz: string, proyecto: string, quien: strin
 
 /**
  * El Studio lanzó al director para la revisión pedida, o la lanzada no terminó y `error` dice por qué: entonces vuelve a
- * quedar pedida (sin `enCurso`, para que el Studio no siga esperando), y la puede tomar la sesión del director.
+ * quedar pedida (sin `enCurso`, para que el Studio no siga esperando), y la puede tomar la sesión del director. Con
+ * `falla`, el reporte de qué pasó queda junto al error.
  */
-export async function marcarLanzada(raiz: string, proyecto: string, error?: string): Promise<void> {
+export async function marcarLanzada(raiz: string, proyecto: string, error?: string, falla?: FallaRevision): Promise<void> {
   const l = await leerLocal(raiz);
   const r = l.revision?.proyecto === proyecto && !l.revision.hecha ? l.revision : null;
   if (!r) return;
   const base = { proyecto: r.proyecto, quien: r.quien, pedida: r.pedida };
-  await guardarLocal(raiz, { ...l, revision: error ? { ...base, error } : { ...base, lanzada: new Date().toISOString() } });
+  await guardarLocal(raiz, { ...l, revision: error ? { ...base, error, ...(falla ? { falla } : {}) } : { ...base, lanzada: new Date().toISOString() } });
 }
 
 /** La revisión pedida empieza (`en_curso`) o termina (`hecha`). Sin una pedida, `hecha` igual deja la fecha. */

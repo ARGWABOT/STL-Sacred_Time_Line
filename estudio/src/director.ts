@@ -75,6 +75,7 @@ import {
   type TipoValidacion,
 } from '../../src/director/director';
 import type { InfoRepositorio } from '../../src/director/repositorio';
+import type { FallaRevision } from '../../src/director/proyectos';
 import type { ResumenProyecto } from '../servidor/director';
 import { alCambiarVista, darDatosDirector, decir, nombrePersona, nombreVista, personasEquipo, personaVista, ponerVista, seVe } from './equipo';
 import { elegirCarpeta } from './explorador';
@@ -151,7 +152,9 @@ interface Datos {
   /** Las notas de voz que el Studio está transcribiendo ahora, y las que no pudo (las transcribe el director al revisar). */
   transcribiendo?: string[]; sinTranscribir?: string[];
   /** La revisión pedida desde el Studio para este proyecto: la toma la sesión del director en su ciclo (/vigila). */
-  revision?: { quien: string; pedida: string; lanzada?: string; enCurso?: string; hecha?: string; error?: string } | null;
+  revision?: { quien: string; pedida: string; lanzada?: string; enCurso?: string; hecha?: string; error?: string; falla?: FallaRevision } | null;
+  /** La última vez que creció el registro de la revisión en marcha (revisor.ts › actividadDeProyecto): si es vieja, está parada. */
+  actividad?: string | null;
   /** La última vuelta de la sesión del director mirando si hay revisiones pedidas. */
   vigilia?: string | null;
   /** Si el Studio lanza solo al director al pedir la revisión (estudio/servidor/revisor.ts), o por qué no puede. */
@@ -354,6 +357,8 @@ async function cargar(fresco = false) {
   const antes = d?.activo === nuevo.activo ? d.transcribiendo ?? [] : [];
   // La revisión que se pidió desde aquí acaba de terminar: se dice, y lo nuevo ya está pintado
   const termino = d?.activo === nuevo.activo && !!d.revision && !d.revision.hecha && !!nuevo.revision?.hecha;
+  // La que estaba en marcha acaba de fallar: se avisa en ese momento, con su reporte a un clic (nunca en silencio)
+  const fallo = d?.activo === nuevo.activo && !!d.revision && !d.revision.hecha && !d.revision.error && !!(d.revision.lanzada || d.revision.enCurso) && nuevo.revision?.pedida === d.revision.pedida && !!nuevo.revision.error;
   // El paso que se pidió aclarar ya está reescrito (o no se pudo, y queda para la revisión)
   const aclarado = d?.activo === nuevo.activo && !!d.aclaracion && !d.aclaracion.hecha && !d.aclaracion.error && nuevo.aclaracion?.pedida === d.aclaracion.pedida ? nuevo.aclaracion : null;
   // Lo urgente ya está atendido (o siguió con las que llegaron mientras tanto), o no se pudo y queda para la revisión
@@ -369,6 +374,7 @@ async function cargar(fresco = false) {
   marcarTrabajando(enCurso);
   d = nuevo;
   if (terminoTrasRecarga) avisarTermino();
+  if (fallo) avisar(((q) => (q?.startsWith('La revisión') ? `${q}.` : `La revisión no terminó.${q ? ` ${q}.` : ''}`))(d.revision!.falla?.que), false, undefined, { etiqueta: 'Qué pasó', hacer: () => void mostrarFalla() });
   if (aclarado?.hecha) avisar('El director reescribió el paso con más detalle: está en tu misión.', true, undefined, { etiqueta: 'Ver el paso', hacer: () => void ir({ vista: 'misiones', ancla: `mision-${aclarado.mision}`, etiqueta: '' }) });
   else if (aclarado?.error) avisar(`${aclarado.error} Tu pedido quedó en el Buzón: el director lo responde en la próxima revisión.`);
   if (urgenciaFallo) avisar(`${urgenciaFallo} Lo urgente quedó en el Buzón y la revisión quedó pedida: el director lo atiende primero.`);
@@ -556,13 +562,15 @@ function pintarSegundoPlano() {
     .filter((a): a is string => !!a && d.transcripciones[a] === undefined && !d.sinTranscribir?.includes(a)).length;
   const r = estadoRevision();
   const u = urgenciaEnCurso(d.urgencia) ? d.urgencia : null;
+  const parada = minutosSinActividad();
   const lineas = [
     ...(procesando ? [`<span class="sp-linea">Transcribiendo ${procesando === 1 ? 'tu audio' : `${procesando} audios`}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     // Lo urgente va solo y se distingue: el director lo atiende aparte, mientras sigues con lo tuyo
     ...(u ? [`<span class="sp-linea alerta">${u.lanzada ? 'El director atiende lo urgente' : 'Lo urgente va al director'}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
-    ...(r.estado === 'en_curso' ? [`<button type="button" class="sp-linea" data-progreso title="Ver lo que va haciendo">El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>${d.tokensVivos ? `<span class="sp-tokens" title="Lo que lleva leído y escrito el modelo en esta revisión; el total exacto queda en «Modelo y consumo»">${miles(tokensMostrados ?? d.tokensVivos)} tokens</span>` : ''}</button>`] : []),
+    // Sin nada nuevo en su registro en un buen rato, no parece que avance: lo dice (lo que se ve es verdad)
+    ...(r.estado === 'en_curso' ? [`<button type="button" class="sp-linea${parada ? ' alerta' : ''}" data-progreso title="${parada ? esc(PARADA(parada)) : 'Ver lo que va haciendo'}">${parada ? `Sin actividad desde hace ${parada} min` : 'El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>'}${d.tokensVivos ? `<span class="sp-tokens" title="Lo que lleva leído y escrito el modelo en esta revisión; el total exacto queda en «Modelo y consumo»">${miles(tokensMostrados ?? d.tokensVivos)} tokens</span>` : ''}</button>`] : []),
     ...(r.estado === 'pedida' ? [`<span class="sp-linea">Revisión pedida · ${hora(d.revision!.pedida)}</span>`] : []),
-    ...(r.estado === 'sin_vigilia' ? ['<button type="button" class="sp-linea alerta" data-revision="explicar">⚠ Revisión pedida, sin tomar</button>'] : []),
+    ...(r.estado === 'sin_vigilia' ? [`<button type="button" class="sp-linea alerta" data-revision="explicar">⚠ ${d.revision?.error ? 'La revisión no terminó · ¿Por qué?' : 'Revisión pedida, sin tomar'}</button>`] : []),
   ];
   caja.innerHTML = lineas.join('');
   caja.hidden = !lineas.length;
@@ -1743,14 +1751,107 @@ function estadoRevision(): { estado: 'ninguna' | 'pedida' | 'en_curso' | 'sin_vi
   return { estado: 'ninguna', texto: '' };
 }
 
+/** Cuánto se espera, sin nada nuevo en el registro de la revisión lanzada, para decir que está parada (revisor.ts › SIN_ACTIVIDAD_MIN). */
+const SIN_ACTIVIDAD_MIN = 10;
+/** Los minutos que lleva sin nada nuevo la revisión en marcha, si pasan de SIN_ACTIVIDAD_MIN; si no, 0. */
+function minutosSinActividad(): number {
+  if (!d?.actividad || estadoRevision().estado !== 'en_curso') return 0;
+  const m = Math.floor((Date.now() - Date.parse(d.actividad)) / 60_000);
+  return m >= SIN_ACTIVIDAD_MIN ? m : 0;
+}
+const PARADA = (min: number) =>
+  `El registro del director no cambia desde hace ${min} minutos: puede haberse quedado parado. El Studio lo vigila: si Claude Code se detuvo, la marca como fallida y te dice por qué; si sigue así, la corta al llegar a su límite.`;
+
 function botonRevision() {
   const r = d.revision;
   const e = estadoRevision();
+  const parada = minutosSinActividad();
+  if (e.estado === 'en_curso' && parada) return `<span class="estado-revision en-curso" role="status" title="${esc(PARADA(parada))}">El director está revisando · sin actividad desde hace ${parada} min</span>`;
   if (e.estado === 'en_curso') return `<span class="estado-revision en-curso" role="status">El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`;
-  if (e.estado === 'sin_vigilia') return `<span class="estado-revision sin-vigilia" role="alert" title="${esc(e.texto)}">⚠ Revisión pedida, sin tomar<button type="button" class="enlace" data-revision="explicar">¿Por qué?</button>${r?.error ? '<button type="button" class="enlace" data-revision="pedir">Pedirla de nuevo</button>' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
+  // Lanzada y fallida no es «sin tomar»: se dice lo que pasó, y «¿Por qué?» abre su reporte
+  if (e.estado === 'sin_vigilia') return `<span class="estado-revision sin-vigilia" role="alert" title="${esc(e.texto)}">⚠ ${r?.error ? 'La revisión no terminó' : 'Revisión pedida, sin tomar'}<button type="button" class="enlace" data-revision="explicar">¿Por qué?</button>${r?.error ? '<button type="button" class="enlace" data-revision="pedir">Pedirla de nuevo</button>' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
   if (e.estado === 'pedida') return `<span class="estado-revision pedida" role="status" title="${esc(e.texto)}">Revisión pedida · ${hora(r!.pedida)}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
   const pendientes = cifras().buzon + cifras().preguntas;
   return `<button type="button" class="boton-suave pedir-revision" data-revision="pedir" title="El director revisa todo lo pendiente (notas, preguntas, entregas). ${automatica() ? 'El Studio lo llama en cuanto la pides.' : vigilando() ? `Su sesión mira cada ${VIGILIA_MIN} minutos.` : 'Para que la tome sola, su sesión debe tener corriendo /loop 5m /vigila.'}${r?.hecha ? ` Última revisión: ${hora(r.hecha)}.` : ''}">${icono('revisar')} Pedir revisión${pendientes ? ` <span class="cifra">${pendientes}</span>` : ''}</button>`;
+}
+
+/**
+ * «¿Por qué?» de una revisión lanzada que no se cerró: «Qué pasó con la revisión», con el reporte que el servidor leyó
+ * de su registro (revisor.ts › diagnosticarFalla): qué pasó, por qué, cuánto duró y gastó, lo último que alcanzó a hacer
+ * y qué conviene. Y sus salidas: pedirla de nuevo, pedirla sin ultracode (si se le fue en flujos), decirle algo al
+ * director antes de pedirla, cancelarla o cerrar (nota de voz del titular, 21 de octubre de 2026: si algo sale mal, se
+ * avisa con su porqué, nunca en silencio). Una falla de antes del reporte muestra su texto, como antes.
+ */
+async function mostrarFalla() {
+  const r = d.revision;
+  if (!r?.error) return;
+  const f = r.falla;
+  // Sin ultracode: solo si la revisión usó flujos y el director los tiene hoy (ultracode encendido y su permiso)
+  const sinUltracode = !!f?.usoFlujos?.flujos && !!d.ultracodeDirector && !!d.ultracode;
+  const duro = f?.duracion == null ? '' : f.duracion < 1 ? 'Duró menos de un minuto' : `Duró ${Math.round(f.duracion)} min`;
+  const gasto = f?.gasto ? `gastó ${dolares(f.gasto)} a precio de API (con un plan de suscripción no se cobra aparte, pero cuenta para sus límites)` : '';
+  const usos = f?.usoFlujos ? [f.usoFlujos.flujos ? `${f.usoFlujos.flujos} ${f.usoFlujos.flujos === 1 ? 'flujo' : 'flujos'} de varios agentes` : '', f.usoFlujos.ayudantes ? `${f.usoFlujos.ayudantes} ${f.usoFlujos.ayudantes === 1 ? 'ayudante' : 'ayudantes'}` : ''].filter(Boolean).join(' y ') : '';
+  const cifrasFalla = [duro && gasto ? `${duro} y ${gasto}.` : duro ? `${duro}.` : gasto ? `${gasto[0].toUpperCase()}${gasto.slice(1)}.` : '', usos ? `Lanzó ${usos}.` : ''].filter(Boolean).join(' ');
+  const ultimos = f?.ultimos ?? [];
+  const dlg = document.createElement('dialog');
+  dlg.className = 'dialogo-director falla-revision';
+  dlg.innerHTML = `<form method="dialog">
+    <header class="cabeza-dialogo"><span class="etiqueta">Qué pasó con la revisión</span><h2>${esc(f?.que ?? 'La revisión no terminó')}</h2></header>
+    <p class="alerta-p"><b>Por qué:</b> ${esc(f?.porque ?? r.error)}</p>
+    ${cifrasFalla ? `<p class="como">${esc(cifrasFalla)}</p>` : ''}
+    ${ultimos.length ? `<p class="etiqueta">Lo último que alcanzó a hacer</p>
+    <ol class="pasos-progreso">${ultimos.map((p) => `<li class="${p.tipo}">${p.tipo === 'dice' ? esc(recortar(p.texto, 240)) : `<span class="como">${esc(p.texto)}</span>`}${p.veces ? ` <span class="veces" title="${p.veces} veces seguidas">${p.veces}</span>` : ''}</li>`).join('')}</ol>` : ''}
+    ${f?.negados.length ? `<p class="como"><b>Permisos que se le negaron:</b> ${f.negados.map(esc).join('; ')}.</p>` : ''}
+    <p><b>Qué conviene:</b> ${esc(f?.sugerencia ?? 'Pídela de nuevo, o en la sesión del director escribe «revisa estudio».')}${f?.renueva ? ` Tu límite se renueva el ${esc(momento(f.renueva))}.` : ''}</p>
+    ${f?.registro ? `<p class="como">El detalle completo quedó en ${esc(f.registro)}, en la carpeta del Studio.</p>` : ''}
+    <div class="botones">
+      <button type="button" data-cerrar>Cerrar</button>
+      <button type="button" data-cancelar title="Quita la revisión pedida: lo que dejaste en el Buzón sigue ahí para la próxima">Cancelar la revisión</button>
+      <button type="button" data-nota title="Le dejas una nota en el Buzón (qué atender primero, qué no hacer) y la revisión se pide de nuevo: el director la lee al empezar">Decirle algo y pedirla</button>
+      ${sinUltracode ? `<button type="button"${f?.accion === 'sin_ultracode' ? ' class="primario"' : ''} data-sin-ultracode title="Le quita al director el permiso de ultracode (se lo puedes volver a dar en «Modelo y consumo») y pide la revisión: trabaja sin flujos de varios agentes">Pedirla sin ultracode</button>` : ''}
+      <button type="button"${sinUltracode && f?.accion === 'sin_ultracode' ? '' : ' class="primario"'} data-pedir>Pedirla de nuevo</button>
+    </div>
+  </form>`;
+  document.body.append(dlg);
+  const que = await new Promise<'cerrar' | 'cancelar' | 'nota' | 'sin_ultracode' | 'pedir'>((ok) => {
+    let listo = false;
+    const terminar = (x: 'cerrar' | 'cancelar' | 'nota' | 'sin_ultracode' | 'pedir') => {
+      if (listo) return;
+      listo = true;
+      if (dlg.open) dlg.close();
+      dlg.remove();
+      ok(x);
+    };
+    dlg.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+      if (!b) return;
+      if (b.dataset.pedir !== undefined) terminar('pedir');
+      else if (b.dataset.sinUltracode !== undefined) terminar('sin_ultracode');
+      else if (b.dataset.nota !== undefined) terminar('nota');
+      else if (b.dataset.cancelar !== undefined) terminar('cancelar');
+      else if (b.dataset.cerrar !== undefined) terminar('cerrar');
+    });
+    dlg.addEventListener('cancel', () => terminar('cerrar'));
+    dlg.addEventListener('close', () => terminar('cerrar'));
+    dlg.showModal();
+    dlg.querySelector<HTMLButtonElement>('button.primario')?.focus();
+  });
+  if (que === 'pedir') return void (await pedirLaRevision(true));
+  if (que === 'cancelar') return void (await pedirLaRevision(false));
+  if (que === 'nota') {
+    // Lo que el director debe saber para esta vez: va al Buzón como cualquier nota, y la revisión se pide con ella
+    const dejo = await comentar({ tipo: 'general', seccion: 'La revisión que no terminó', fragmento: recortar(f?.que ?? r.error, 200) }, 'Lo que el director debe saber para la revisión');
+    if (dejo) await pedirLaRevision(true);
+    return;
+  }
+  if (que === 'sin_ultracode') {
+    // La misma acción de «Modelo y consumo» (quitarle el permiso), sin su aviso: el de la revisión pedida basta
+    const q = await fetch('/__estudio/director/ultracode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ director: false }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    const x = q instanceof Error ? null : await q.json().catch(() => ({}));
+    if (q instanceof Error || !q.ok) return avisar(`No se pudo quitar el permiso de ultracode${x?.error ? ` (${x.error})` : ''}: la revisión no se pidió. Puedes quitarlo en «Modelo y consumo».`);
+    d.ultracodeDirector = x?.ultracodeDirector === true;
+    await pedirLaRevision(true);
+  }
 }
 
 /**
@@ -3848,6 +3949,8 @@ document.addEventListener('click', (e) => {
       }).then((si) => si && pedirLaRevision(true));
     }
     if (que === 'cancelar') return void pedirLaRevision(false);
+    // Una revisión lanzada que no se cerró: el reporte de qué pasó, en su diálogo (nunca solo un aviso que se va)
+    if (ahora.estado === 'sin_vigilia' && d.revision?.error) return void mostrarFalla();
     return avisar(ahora.texto, ahora.estado !== 'sin_vigilia');
   }
 });

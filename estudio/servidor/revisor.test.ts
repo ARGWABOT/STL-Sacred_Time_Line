@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -210,6 +210,133 @@ describe('el director que lanza el Studio', () => {
     expect(fallaDelEsfuerzo(`${JSON.stringify({ type: 'result', is_error: true, result: 'Invalid API key' })}\n`)).toBe(false);
     // si llegó a trabajar, el esfuerzo sirvió
     expect(fallaDelEsfuerzo(`${JSON.stringify({ type: 'assistant', message: { content: [] } })}\nerror: unknown option '--effort'\n`)).toBe(false);
+  });
+
+  describe('el reporte de una revisión que no se cerró', () => {
+    const init = JSON.stringify({ type: 'system', subtype: 'init', model: 'claude-opus-5-5' });
+    const dice = (t: string) => JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: t }] } });
+    const usa = (id: string, name: string, input: Record<string, unknown>) => JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', id, name, input }] } });
+    const resultado = (x: Record<string, unknown> = {}) => JSON.stringify({ type: 'result', subtype: 'success', is_error: false, duration_ms: 120_000, total_cost_usd: 3.5, result: 'Listo por ahora.', ...x });
+    const inicio = Date.parse('2026-10-21T18:00:00Z');
+
+    it('el límite de tiempo: cuánto duró y lo último que hacía', () => {
+      const registro = [lineaPedido(null, null).trim(), init, dice('Corro la bandeja.'), usa('t1', 'Read', { file_path: 'C:/x/plan.json' }), usa('t2', 'Edit', { file_path: 'C:/x/plan.json' }), usa('t3', 'Edit', { file_path: 'C:/x/plan.json' })].join('\n');
+      const f = diagnosticarFalla(registro, { limite: 60, inicio, fin: inicio + 60 * 60_000, ultimaActividad: inicio + 59 * 60_000 });
+      expect(f.que).toBe('La revisión se cortó a los 60 minutos');
+      expect(f.porque).toContain('Seguía trabajando');
+      expect(f.duracion).toBe(60);
+      expect(f.accion).toBe('pedir');
+      expect(f.ultimos).toEqual([
+        { tipo: 'hace', texto: 'Empieza la revisión' },
+        { tipo: 'dice', texto: 'Corro la bandeja.' },
+        { tipo: 'hace', texto: 'Lee plan.json' },
+        { tipo: 'hace', texto: 'Edita plan.json', veces: 2 },
+      ]);
+      // sin nada nuevo en su registro desde hace rato, se había quedado parado
+      expect(diagnosticarFalla(registro, { limite: 60, inicio, fin: inicio + 60 * 60_000, ultimaActividad: inicio + 30 * 60_000 }).porque).toContain('30 minutos sin ninguna actividad');
+      // esperando un flujo en segundo plano: conviene pedirla sin ultracode
+      const conFlujo = diagnosticarFalla(`${registro}\n${usa('t4', 'Workflow', { description: 'Investigar' })}\n${JSON.stringify({ type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 'w1', description: 'Evalúa los tipos de nota' }] })}`, { limite: 60 });
+      expect(conFlujo.porque).toContain('Seguía esperando «Evalúa los tipos de nota»');
+      expect(conFlujo).toMatchObject({ accion: 'sin_ultracode', usoFlujos: { flujos: 1, ayudantes: 0 } });
+    });
+
+    it('el turno terminado con un flujo en segundo plano, que Claude Code cortó', () => {
+      // lo que pasó el 21 de octubre de 2026: el director esperó su flujo, terminó el turno y Claude Code lo cortó
+      const registro = [
+        init,
+        usa('t1', 'Workflow', { description: 'Evalúa la idea' }),
+        JSON.stringify({ type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 'w1', task_type: 'local_workflow', description: 'Evalúa la idea del titular' }] }),
+        resultado({ result: 'Espero el resultado del análisis para responder la nota.', total_cost_usd: 14.17 }),
+        'Background tasks still running 10m after the last turn (workflow "Evalúa la idea del titular"); stopping them.',
+        JSON.stringify({ type: 'system', subtype: 'task_updated', task_id: 'w1', patch: { status: 'killed' } }),
+        JSON.stringify({ type: 'system', subtype: 'background_tasks_changed', tasks: [] }),
+      ].join('\n');
+      const f = diagnosticarFalla(registro, { problema: 'La revisión que lanzó el Studio terminó sin cerrarse.' });
+      expect(f.que).toBe('Claude Code terminó sin cerrar la revisión');
+      expect(f.porque).toContain('esperando «Evalúa la idea del titular» en segundo plano');
+      expect(f.porque).toContain('lo cortó');
+      expect(f).toMatchObject({ gasto: 14.17, usoFlujos: { flujos: 1, ayudantes: 0 }, accion: 'sin_ultracode' });
+      expect(f.sugerencia).toContain('sin ultracode');
+    });
+
+    it('un error de la API, y un límite de uso de la cuenta', () => {
+      const api = diagnosticarFalla([init, dice('Leo el plan.'), resultado({ subtype: 'error_during_execution', is_error: true, result: 'API Error: 500 Internal server error' })].join('\n'));
+      expect(api.que).toBe('Se detuvo a mitad de camino');
+      expect(api.porque).toContain('«API Error: 500 Internal server error»');
+      expect(api.accion).toBe('pedir');
+      const limite = diagnosticarFalla([init, dice('Leo el plan.'), JSON.stringify({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', resetsAt: 1792626600 } }), resultado({ is_error: true, result: 'Claude AI usage limit reached' })].join('\n'));
+      expect(limite.porque).toContain('límite de uso');
+      expect(limite).toMatchObject({ accion: 'cuenta', renueva: new Date(1792626600_000).toISOString() });
+      // sin llegar a trabajar, la sesión de la cuenta
+      const sesion = diagnosticarFalla([init, resultado({ is_error: true, result: 'Invalid API key · Please run /login' })].join('\n'));
+      expect(sesion).toMatchObject({ que: 'No arrancó', accion: 'cuenta' });
+      expect(sesion.sugerencia).toContain('claude auth login');
+    });
+
+    it('los permisos negados, con la herramienta y lo que intentó', () => {
+      const registro = [
+        init,
+        usa('t1', 'Bash', { command: 'cd x ; git status', description: 'Ver el estado' }),
+        JSON.stringify({ type: 'system', subtype: 'permission_denied', tool_name: 'Bash', tool_use_id: 't1' }),
+        resultado({ permission_denials: [{ tool_name: 'Bash', tool_use_id: 't1', tool_input: { command: 'cd x ; git status' } }] }),
+      ].join('\n');
+      const f = diagnosticarFalla(registro);
+      expect(f.negados).toEqual(['Bash: «cd x ; git status»']);
+      expect(f.porque).toContain('Se le negó un permiso (Bash: «cd x ; git status»)');
+      expect(f.porque).toContain('«Listo por ahora.»');
+      expect(f.gasto).toBe(3.5);
+    });
+
+    it('un registro vacío: no arrancó, y lo dice', () => {
+      expect(diagnosticarFalla('')).toMatchObject({ que: 'No arrancó', duracion: null, gasto: null, ultimos: [], usoFlujos: null, negados: [] });
+      expect(diagnosticarFalla(lineaPedido('opus', 'high')).porque).toContain('No escribió nada en su registro');
+      expect(diagnosticarFalla('', { problema: 'El Studio no pudo lanzar Claude Code (spawn ENOENT).' }).porque).toMatch(/^El Studio no pudo lanzar Claude Code \(spawn ENOENT\)\./);
+      expect(diagnosticarFalla('error: algo se rompió al empezar\n', { codigo: 1 }).porque).toContain('«error: algo se rompió al empezar»');
+    });
+
+    it('el proceso que murió sin dar su resultado', () => {
+      const f = diagnosticarFalla([init, dice('Leo el plan.')].join('\n'), { muerto: true, fin: inicio + 20 * 60_000, ultimaActividad: inicio + 5 * 60_000 });
+      expect(f.que).toBe('Claude Code se detuvo sin terminar');
+      expect(f.porque).toContain('ya no existe');
+      expect(f.porque).toContain('hace 15 min');
+    });
+
+    it('sabe si el director lanzado por otro servidor sigue vivo', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'stl-lanzado-'));
+      try {
+        const turno = join(dir, 'lanzando.json');
+        expect(estadoDelLanzado(turno, 'golf').estado).toBe('desconocido');
+        writeFileSync(turno, JSON.stringify({ pid: 111, cuando: new Date().toISOString(), hijo: 222, proyecto: 'golf', registro: '.revisiones/golf.log' }));
+        expect(estadoDelLanzado(turno, 'golf', (p) => p === 111 || p === 222).estado).toBe('servidor');
+        expect(estadoDelLanzado(turno, 'golf', (p) => p === 222)).toEqual({ estado: 'director', hijo: 222 });
+        expect(estadoDelLanzado(turno, 'golf', () => false)).toEqual({ estado: 'muerto', hijo: 222 });
+        // el turno de otro proyecto, o uno de antes sin el director anotado, no dice nada
+        expect(estadoDelLanzado(turno, 'otro', () => false).estado).toBe('desconocido');
+        writeFileSync(turno, JSON.stringify({ pid: 111, cuando: new Date().toISOString() }));
+        expect(estadoDelLanzado(turno, 'golf', () => false).estado).toBe('desconocido');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('lee el último registro del proyecto: su inicio, su última actividad y su ruta', () => {
+      const raiz = mkdtempSync(join(tmpdir(), 'stl-falla-'));
+      try {
+        mkdirSync(join(raiz, '.revisiones'));
+        expect(actividadDeProyecto(raiz, 'golf')).toBeNull();
+        writeFileSync(join(raiz, '.revisiones', 'golf-2026-10-21T18-00-00-000Z.log'), `${init}\n${dice('Leo el plan.')}\n`);
+        // el de «golf-dos» o el de una aclaración no se confunden con el de la revisión
+        writeFileSync(join(raiz, '.revisiones', 'golf-aclaracion-2026-10-21T19-00-00-000Z.log'), `${init}\n`);
+        expect(inicioDeRegistro('golf-2026-10-21T18-00-00-000Z.log')).toBe(inicio);
+        expect(actividadDeProyecto(raiz, 'golf')).toEqual(expect.any(String));
+        const f = fallaDeProyecto(raiz, 'golf', { muerto: true });
+        expect(f.registro).toBe(join('.revisiones', 'golf-2026-10-21T18-00-00-000Z.log'));
+        expect(f.ultimos.map((p) => p.texto)).toEqual(['Empieza la revisión', 'Leo el plan.']);
+        expect(f.que).toBe('Claude Code se detuvo sin terminar');
+      } finally {
+        rmSync(raiz, { recursive: true, force: true });
+      }
+    });
   });
 
   it('elige la versión más nueva de Claude Code', () => {

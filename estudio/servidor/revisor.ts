@@ -12,7 +12,9 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, 
 import { homedir } from 'node:os';
 import { delimiter, join, relative, resolve } from 'node:path';
 import { ajustesDelDirector, archivoAjustesClaude, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
-import { guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
+import { guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
+
+export type { FallaRevision };
 
 /** Lo que el Studio muestra del revisor: si revisa solo, o por qué no puede. */
 export interface EstadoRevisor {
@@ -229,12 +231,9 @@ export const MAX_PASOS = 2000;
  * a fin: recargar la página no lo reinicia, solo una revisión nueva.
  */
 export function progresoDeProyecto(raiz: string, proyecto: string): PasoRevision[] {
+  const archivo = ultimoRegistro(raiz, proyecto);
+  if (!archivo) return [];
   const carpeta = join(raiz, '.revisiones');
-  if (!existsSync(carpeta)) return [];
-  // «<proyecto>-<fecha>.log»: con la fecha, «stl» no se confunde con «stl-studio»
-  const ultimo = readdirSync(carpeta).filter((a) => a.startsWith(`${proyecto}-`) && /^\d{4}-\d\d-\d\dT[\d-]+Z\.log$/.test(a.slice(proyecto.length + 1))).sort().at(-1);
-  if (!ultimo) return [];
-  const archivo = join(carpeta, ultimo);
   let leido = leidos.get(archivo);
   if (!leido) {
     // Una revisión nueva de este proyecto: lo de la anterior ya no hace falta
@@ -390,6 +389,183 @@ export const fallaDelModelo = (registro: string) =>
 export const fallaDelEsfuerzo = (registro: string) =>
   !/"type":"assistant"/.test(registro) &&
   registro.split('\n').some((l) => !/"subtype":"init"/.test(l) && /unknown option '--effort'|effort[^\n]{0,80}(invalid|not (supported|available|allowed))|invalid[^\n]{0,40}effort/i.test(l));
+
+/** Lo que se sabe del final de un lanzamiento, además de su registro. */
+export interface FinDeRevision {
+  /** Lo que dijo el Studio al terminar (fin()). */
+  problema?: string;
+  /** Si la cortó el límite de tiempo, y cuál era (minutos). */
+  limite?: number;
+  /** El código con que salió Claude Code, si se sabe. */
+  codigo?: number | null;
+  /** Si el proceso de Claude Code ya no existe y nadie vio cómo terminó (el servidor que lo lanzó ya no estaba). */
+  muerto?: boolean;
+  /** Cuándo empezó, cuándo terminó y la última vez que su registro creció (ms). */
+  inicio?: number;
+  fin?: number;
+  ultimaActividad?: number;
+  registro?: string;
+}
+
+/** Cuánto se espera, sin nada nuevo en el registro, para decir que la revisión está parada. */
+export const SIN_ACTIVIDAD_MIN = 10;
+
+const SUGERENCIA_PEDIR = 'Pídela de nuevo: lo que el director alcanzó a guardar queda, y la revisión nueva retoma lo que falte.';
+const SUGERENCIA_SIN_FLUJOS = 'Pídela sin ultracode: sin flujos de varios agentes, el director hace él mismo ese trabajo y cierra a tiempo. El permiso se le puede volver a dar en «Modelo y consumo».';
+
+/**
+ * Qué pasó con una revisión que no se cerró, leído de su registro en stream-json y de lo que se sabe del final: no
+ * arrancó, la cuenta no aceptó el modelo o el esfuerzo, un error de la API o un límite de uso, el límite de tiempo,
+ * el turno terminado esperando un flujo en segundo plano, permisos negados, o el proceso que murió. Puro: sin archivos.
+ */
+export function diagnosticarFalla(registro: string, f: FinDeRevision = {}): FallaRevision {
+  const eventos: any[] = [];
+  const textos: string[] = [];
+  for (const linea of registro.split('\n')) {
+    const t = linea.trim();
+    if (!t) continue;
+    if (!t.startsWith('{')) { textos.push(t); continue; }
+    try { eventos.push(JSON.parse(t)); } catch { /* la línea que aún se escribía */ }
+  }
+  const arranco = eventos.some((e) => e.type === 'system' && e.subtype === 'init');
+  // Un error de la API también llega como respuesta del modelo: esa no cuenta como trabajo
+  const trabajo = eventos.some((e) => e.type === 'assistant' && !e.error && !e.message?.isApiErrorMessage);
+  const resultados = eventos.filter((e) => e.type === 'result');
+  const ultimo = resultados.at(-1);
+  // Los flujos y los ayudantes que lanzó, y lo de fondo que seguía (o que Claude Code cortó) al terminar
+  const usos = eventos.filter((e) => e.type === 'assistant' && Array.isArray(e.message?.content)).flatMap((e) => e.message.content).filter((b: any) => b?.type === 'tool_use');
+  const flujos = usos.filter((b: any) => b.name === 'Workflow').length;
+  const ayudantes = usos.filter((b: any) => b.name === 'Agent' || b.name === 'Task').length;
+  // Lo de fondo, por su id: su nombre (de cualquier aviso), lo que seguía al final y lo que Claude Code cortó
+  const nombres = new Map<string, string>();
+  for (const e of eventos)
+    if (e.type === 'system' && e.subtype === 'background_tasks_changed' && Array.isArray(e.tasks))
+      for (const x of e.tasks) if (x?.task_id) nombres.set(String(x.task_id), corto(x.description ?? 'un trabajo en segundo plano', 90));
+  const fondo = eventos.filter((e) => e.type === 'system' && e.subtype === 'background_tasks_changed').at(-1);
+  const pendientes: string[] = Array.isArray(fondo?.tasks) ? fondo.tasks.map((x: any) => nombres.get(String(x?.task_id)) ?? 'un trabajo en segundo plano') : [];
+  const idsCortados = eventos
+    .filter((e) => e.type === 'system' && ((e.subtype === 'task_updated' && e.patch?.status === 'killed') || (e.subtype === 'task_notification' && /stopped|killed/.test(String(e.status)))))
+    .map((e) => String(e.task_id));
+  const cortados = idsCortados.length > 0 || textos.some((t) => /Background tasks still running/i.test(t));
+  const esperas = usos.some((b: any) => b.name === 'ScheduleWakeup' || b.name === 'CronCreate');
+  // Los permisos negados, sin repetir: la herramienta y lo que intentó (de su uso, por el id)
+  const porId = new Map<string, any>(usos.map((b: any) => [String(b.id), b]));
+  const idsNegados = [...new Set([
+    ...eventos.filter((e) => e.type === 'system' && e.subtype === 'permission_denied').map((e) => String(e.tool_use_id)),
+    ...resultados.flatMap((r) => (Array.isArray(r.permission_denials) ? r.permission_denials : [])).map((x: any) => String(x?.tool_use_id)),
+  ])];
+  const negados = [...new Set(idsNegados.map((id) => {
+    const b = porId.get(id) ?? resultados.flatMap((r) => r.permission_denials ?? []).find((x: any) => String(x?.tool_use_id) === id);
+    const nombre = b?.name ?? b?.tool_name ?? 'una herramienta';
+    const que = b?.input?.command ?? b?.tool_input?.command ?? b?.input?.file_path ?? b?.tool_input?.file_path;
+    return `${nombre}${que ? `: «${corto(que, 70)}»` : ''}`;
+  }))].slice(0, 5);
+  // Un error de la API, de la sesión o un límite de uso: lo dice el resultado, la respuesta del modelo o un texto de error
+  const tipoError = eventos.filter((e) => e.type === 'assistant' && typeof e.error === 'string').map((e) => e.error as string).at(-1);
+  const errorDicho = [
+    ...textos.filter((t) => /error|limit|login|auth/i.test(t)),
+    ...eventos.filter((e) => e.type === 'assistant' && (e.error || e.message?.isApiErrorMessage)).flatMap((e) => (e.message?.content ?? []).map((b: any) => String(b?.text ?? ''))),
+    ...resultados.filter((r) => r.is_error || /^error/.test(String(r.subtype))).map((r) => String(r.result ?? r.subtype ?? '')),
+  ].map((x) => x.trim()).filter(Boolean).at(-1);
+  const rechazo = eventos.filter((e) => e.type === 'rate_limit_event' && e.rate_limit_info?.status === 'rejected').at(-1);
+  const limiteDeUso = !!rechazo || tipoError === 'rate_limit' || (!!errorDicho && /usage limit|limit reached|rate.?limit|hit your limit|out of (extra )?usage/i.test(errorDicho));
+  const sesion = tipoError === 'authentication_failed' || tipoError === 'billing_error' || (!!errorDicho && /invalid api key|\/login|not logged in|authenticat|oauth|credit balance/i.test(errorDicho));
+
+  const duracion = f.inicio && f.fin && f.fin >= f.inicio ? Math.round((f.fin - f.inicio) / 6000) / 10 : ultimo ? Math.round(n(ultimo.duration_ms) / 6000) / 10 : null;
+  const gasto = ultimo && typeof ultimo.total_cost_usd === 'number' ? ultimo.total_cost_usd : null;
+  const ultimos = agruparPasos(progresoDe(registro, Infinity)).slice(-5);
+  const sinActividad = f.fin && f.ultimaActividad ? Math.floor((f.fin - f.ultimaActividad) / 60_000) : 0;
+  const deFondoLista = pendientes.length ? pendientes : idsCortados.map((id) => nombres.get(id)).filter((x): x is string => !!x);
+  const deFondo = deFondoLista.length ? `«${deFondoLista[0]}»${deFondoLista.length > 1 ? ` y ${deFondoLista.length - 1} más` : ''}` : flujos ? 'un flujo de varios agentes' : 'un ayudante';
+  const conFlujos = flujos > 0;
+  const base = { duracion, gasto, ultimos, usoFlujos: flujos || ayudantes ? { flujos, ayudantes } : null, negados, cuando: new Date(f.fin ?? Date.now()).toISOString(), ...(f.registro ? { registro: f.registro } : {}) };
+  const reporte = (que: string, porque: string, accion: FallaRevision['accion'] = 'pedir', sugerencia = SUGERENCIA_PEDIR, extra: Partial<FallaRevision> = {}): FallaRevision =>
+    ({ que, porque, sugerencia, accion, ...base, ...extra });
+  const salida = f.codigo ? ` (salió con el código ${f.codigo})` : '';
+
+  // 1. No llegó a trabajar
+  if (!trabajo && (fallaDelModelo(registro) || fallaDelEsfuerzo(registro)))
+    return reporte('No arrancó', f.problema ?? `Claude Code no aceptó ${fallaDelModelo(registro) ? 'el modelo' : 'el esfuerzo'} elegido en «Modelo y consumo».`, 'pedir', 'El Studio ya volvió al de tu cuenta: pídela de nuevo.');
+  if (!trabajo && sesion)
+    return reporte('No arrancó', `Claude Code no tiene una sesión válida en este computador${errorDicho ? `: «${corto(errorDicho, 160)}»` : ''}.`, 'cuenta', 'Abre una terminal, corre «claude auth login» y, con la sesión iniciada, pídela de nuevo.');
+  if (!trabajo && limiteDeUso)
+    return reporte('No arrancó', 'Tu plan de Claude llegó a su límite de uso: Claude Code no aceptó más trabajo.', 'cuenta', 'Espera a que se renueve tu límite y pídela de nuevo; lo que llevas usado se ve en «Modelo y consumo».', renovacion(rechazo));
+  if (!arranco && !trabajo)
+    return reporte('No arrancó', `${f.problema && /no pudo lanzar/.test(f.problema) ? f.problema : `Claude Code se cerró antes de empezar${salida}.`}${textos.length ? ` Lo único que dijo: «${corto(textos.at(-1), 160)}».` : ' No escribió nada en su registro.'}`, 'pedir', 'Pídela de nuevo; si vuelve a pasar, abre Claude Code en una terminal (claude) para ver si arranca.');
+  // 2. La cuenta o la API cortaron el trabajo
+  if (limiteDeUso)
+    return reporte('Se detuvo a mitad de camino', 'Tu plan de Claude llegó a su límite de uso mientras el director trabajaba.', 'cuenta', 'Espera a que se renueve tu límite y pídela de nuevo: lo que el director alcanzó a guardar queda; lo que llevas usado se ve en «Modelo y consumo».', renovacion(rechazo));
+  if (sesion || (errorDicho && ultimo?.is_error))
+    return reporte('Se detuvo a mitad de camino', errorDicho ? `Claude Code devolvió un error: «${corto(errorDicho, 200)}».` : 'Claude Code perdió la sesión de tu cuenta mientras el director trabajaba.', sesion ? 'cuenta' : 'pedir', sesion ? 'Abre una terminal, corre «claude auth login» y, con la sesión iniciada, pídela de nuevo.' : 'Pídela de nuevo: suele ser pasajero. Si se repite, abre Claude Code en una terminal para ver el error.');
+  // 3. El límite de tiempo del Studio
+  if (f.limite) {
+    const porque = pendientes.length
+      ? `Seguía esperando ${deFondo}, que trabajaba en segundo plano, cuando llegó el límite de ${f.limite} minutos.`
+      : sinActividad >= SIN_ACTIVIDAD_MIN
+        ? `Llevaba ${sinActividad} minutos sin ninguna actividad en su registro: se había quedado parado.`
+        : `Seguía trabajando cuando llegó el límite de ${f.limite} minutos: la revisión tenía más de lo que cabe en ese tiempo.`;
+    return reporte(`La revisión se cortó a los ${f.limite} minutos`, porque, conFlujos ? 'sin_ultracode' : 'pedir', conFlujos ? SUGERENCIA_SIN_FLUJOS : SUGERENCIA_PEDIR);
+  }
+  // 4. Terminó su turno con trabajo de fondo a medias (o se lo cortaron), sin cerrar
+  if (pendientes.length || cortados || (esperas && (flujos || ayudantes)))
+    return reporte('Claude Code terminó sin cerrar la revisión', `El director terminó su turno esperando ${deFondo} en segundo plano${cortados ? ', y Claude Code lo cortó sin volver a despertarlo' : ', y no volvió a despertar para cerrar'}.`, conFlujos ? 'sin_ultracode' : 'pedir', conFlujos ? SUGERENCIA_SIN_FLUJOS : SUGERENCIA_PEDIR);
+  // 5. El proceso murió sin que nadie viera cómo
+  if (f.muerto && !ultimo)
+    return reporte('Claude Code se detuvo sin terminar', `El proceso de Claude Code ya no existe y su registro no tiene un final: se cerró desde afuera (el computador se suspendió o se apagó, o alguien cerró el proceso)${sinActividad ? `; lo último que escribió fue hace ${sinActividad} min` : ''}.`);
+  if (!ultimo)
+    return reporte('Claude Code se detuvo sin terminar', `Claude Code se cerró a mitad de camino${salida}, sin dar su resultado final.${textos.length ? ` Lo último que dijo: «${corto(textos.at(-1), 160)}».` : ''}`);
+  // 6. Terminó su turno sin cerrar: con permisos negados, o sin más
+  if (idsNegados.length)
+    return reporte('Claude Code terminó sin cerrar la revisión', `Se le ${idsNegados.length === 1 ? 'negó un permiso' : `negaron ${idsNegados.length} permisos`}${negados.length ? ` (${negados.slice(0, 2).join('; ')})` : ''} y terminó su turno sin cerrar con «bandeja.ts --listo».${ultimo.result ? ` Lo último que dijo: «${corto(ultimo.result, 160)}».` : ''}`);
+  return reporte('Claude Code terminó sin cerrar la revisión', `El director terminó su turno sin cerrar con «bandeja.ts --listo».${ultimo.result ? ` Lo último que dijo: «${corto(ultimo.result, 160)}».` : ''}`);
+}
+
+/** Cuándo se renueva el límite de uso, del aviso de límites que lo rechazó (resetsAt, en segundos). */
+function renovacion(rechazo: any): Partial<FallaRevision> {
+  const s = rechazo?.rate_limit_info?.resetsAt;
+  return typeof s === 'number' && Number.isFinite(s) ? { renueva: new Date(s * 1000).toISOString() } : {};
+}
+
+/** El registro de la última revisión que lanzó el Studio para un proyecto («<proyecto>-<fecha>.log»), o null. */
+export function ultimoRegistro(raiz: string, proyecto: string): string | null {
+  const carpeta = join(raiz, '.revisiones');
+  if (!existsSync(carpeta)) return null;
+  // Con la fecha, «stl» no se confunde con «stl-studio»
+  const ultimo = readdirSync(carpeta).filter((a) => a.startsWith(`${proyecto}-`) && /^\d{4}-\d\d-\d\dT[\d-]+Z\.log$/.test(a.slice(proyecto.length + 1))).sort().at(-1);
+  return ultimo ? join(carpeta, ultimo) : null;
+}
+
+/** Cuándo empezó un registro, de su nombre («…-2026-10-21T18-37-34-899Z.log»), en ms; null si no se lee. */
+export function inicioDeRegistro(archivo: string): number | null {
+  const m = /(\d{4}-\d\d-\d\d)T(\d\d)-(\d\d)-(\d\d)-(\d{3})Z\.log$/.exec(archivo);
+  const t = m ? Date.parse(`${m[1]}T${m[2]}:${m[3]}:${m[4]}.${m[5]}Z`) : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+
+/** La última vez que creció el registro de la revisión en marcha de un proyecto (ISO), para ver si está parada. */
+export function actividadDeProyecto(raiz: string, proyecto: string): string | null {
+  const archivo = ultimoRegistro(raiz, proyecto);
+  try {
+    return archivo ? new Date(statSync(archivo).mtimeMs).toISOString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** El reporte de la falla de la última revisión de un proyecto, leyendo su registro (si lo hay). */
+export function fallaDeProyecto(raiz: string, proyecto: string, f: FinDeRevision = {}): FallaRevision {
+  const archivo = ultimoRegistro(raiz, proyecto);
+  if (!archivo) return diagnosticarFalla('', f);
+  let texto = '';
+  let mtime: number | undefined;
+  try {
+    texto = readFileSync(archivo, 'utf-8');
+    mtime = statSync(archivo).mtimeMs;
+  } catch {
+    // se borró mientras tanto: el reporte dice lo que se sabe
+  }
+  return diagnosticarFalla(texto, { inicio: inicioDeRegistro(archivo) ?? undefined, fin: Date.now(), ultimaActividad: mtime, registro: relative(raiz, archivo), ...f });
+}
 
 /** Ordena versiones «1.2.10» de menor a mayor. */
 export const compararVersion = (a: string, b: string) => {
@@ -597,10 +773,8 @@ export class Revisor {
         }
       }
       if (!r || r.hecha || r.error) return;
-      // Lanzada por un servidor del Studio que ya no está (se reinició): pasado el límite, se da por perdida
-      if (r.lanzada && Date.now() - Date.parse(r.lanzada) > (MAX_MIN + 5) * 60_000)
-        return void (await marcarLanzada(this.raiz, r.proyecto, `La revisión que lanzó el Studio no terminó en ${MAX_MIN} minutos.`));
-      if (r.lanzada || r.enCurso) return;
+      if (r.lanzada) return void (await this.vigilarLanzada(r.proyecto, r.lanzada));
+      if (r.enCurso) return;
       await this.preparar(forzar);
       const repositorio = await leerRutaRepositorio(this.raiz, r.proyecto);
       if (!this.programa || this.problema || !repositorio) return;
@@ -608,6 +782,25 @@ export class Revisor {
     } finally {
       this.ocupado = false;
     }
+  }
+
+  /**
+   * Una revisión lanzada que este servidor no está mirando (la lanzó otro, o este antes de reiniciarse). Si Claude Code
+   * ya no existe y nadie la cerró, se marca fallida en ese momento, con su reporte, sin esperar el límite; pasado el
+   * límite, se da por perdida. Nunca detiene un proceso por su número: después de reiniciar el computador, ese número
+   * puede ser ya de otro programa. Sin modelo: solo el turno, el registro y si los procesos existen.
+   */
+  private async vigilarLanzada(proyecto: string, lanzada: string): Promise<void> {
+    const lanzado = estadoDelLanzado(join(this.raiz, '.revisiones', 'lanzando.json'), proyecto);
+    if (lanzado.estado === 'muerto') {
+      const problema = 'La revisión que lanzó el Studio se detuvo: Claude Code ya no está corriendo y no la cerró.';
+      const falla = fallaDeProyecto(this.raiz, proyecto, { problema, muerto: true });
+      return void (await marcarLanzada(this.raiz, proyecto, `${problema}${falla.registro ? ` Lo que alcanzó a hacer quedó en ${falla.registro}.` : ''}`, falla));
+    }
+    if (!(Date.now() - Date.parse(lanzada) > (MAX_MIN + 5) * 60_000)) return;
+    const problema = `La revisión que lanzó el Studio no terminó en ${MAX_MIN} minutos.`;
+    const falla = fallaDeProyecto(this.raiz, proyecto, { problema, limite: MAX_MIN });
+    await marcarLanzada(this.raiz, proyecto, problema, falla);
   }
 
   /** La aclaración no se pudo: lo dice, y el pedido (que ya está en el Buzón) queda para la revisión, que se pide. */
@@ -654,17 +847,26 @@ export class Revisor {
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
     else await marcarLanzada(this.raiz, proyecto);
+    const inicio = Date.now();
     const p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] });
+    // Quién es el director lanzado: si este servidor se reinicia, el siguiente sabe si sigue vivo (vigilarLanzada)
+    anotarHijo(turno, p.pid, proyecto, relative(this.raiz, archivo));
     p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u) : encargo(proyecto));
-    const limite = setTimeout(() => detener(p), (aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : MAX_MIN) * 60_000);
+    const minutos = aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : MAX_MIN;
+    let cortada = false;
+    const limite = setTimeout(() => {
+      cortada = true;
+      detener(p);
+    }, minutos * 60_000);
     let cerrado = false;
-    const fin = async (problema: string) => {
+    const fin = async (problema: string, codigo?: number | null) => {
       if (cerrado) return;
       cerrado = true;
       clearTimeout(limite);
       closeSync(registro);
       this.hijo = null;
       soltarTurno(turno);
+      if (cortada) problema = `La revisión que lanzó el Studio se cortó al llegar a su límite de ${minutos} minutos.`;
       // La cuenta no acepta el modelo elegido: vuelve al de siempre (también en Claude Code, que con él tampoco
       // arrancaría), y el aviso lo dice
       if (modelo && fallaDelModelo(readFileSync(archivo, 'utf-8'))) {
@@ -684,9 +886,58 @@ export class Revisor {
       // Lo que esperaba (otra urgencia, una aclaración o una revisión pedida mientras tanto) se lanza ya
       if (aparte) return void this.mirar().catch(() => {});
       const r = (await leerLocal(this.raiz)).revision;
-      if (r?.proyecto === proyecto && !r.hecha) await marcarLanzada(this.raiz, proyecto, `${problema} Lo que alcanzó a hacer quedó en ${relative(this.raiz, archivo)}.`);
+      if (r?.proyecto === proyecto && !r.hecha) {
+        // El reporte de qué pasó, leído del registro: lo muestra «¿Por qué?» (nunca una falla en silencio)
+        let texto = '';
+        let ultimaActividad: number | undefined;
+        try {
+          texto = readFileSync(archivo, 'utf-8');
+          ultimaActividad = statSync(archivo).mtimeMs;
+        } catch {
+          // sin registro, el reporte dice lo que se sabe
+        }
+        const falla = diagnosticarFalla(texto, { problema, codigo, inicio, fin: Date.now(), ultimaActividad, registro: relative(this.raiz, archivo), ...(cortada ? { limite: minutos } : {}) });
+        await marcarLanzada(this.raiz, proyecto, `${problema} Lo que alcanzó a hacer quedó en ${relative(this.raiz, archivo)}.`, falla);
+      }
     };
     p.on('error', (e) => void fin(`El Studio no pudo lanzar Claude Code (${e.message}).`));
-    p.on('exit', (codigo) => void fin(`La revisión que lanzó el Studio terminó sin cerrarse${codigo ? ` (código ${codigo})` : ''}.`));
+    p.on('exit', (codigo) => void fin(`La revisión que lanzó el Studio terminó sin cerrarse${codigo ? ` (código ${codigo})` : ''}.`, codigo));
+  }
+}
+
+/** Anota en el turno el proceso del director lanzado, su proyecto y su registro, si el turno es de este servidor. */
+function anotarHijo(turno: string, hijo: number | undefined, proyecto: string, registro: string): void {
+  if (!hijo) return;
+  try {
+    const t = JSON.parse(readFileSync(turno, 'utf-8'));
+    if (t.pid === process.pid) writeFileSync(turno, JSON.stringify({ ...t, hijo, proyecto, registro }));
+  } catch {
+    // sin turno: no hay a quién anotar
+  }
+}
+
+/** Si un proceso existe (solo lo pregunta). EPERM: existe, pero es de otro usuario. */
+const existe = (pid: number) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return (e as NodeJS.ErrnoException).code === 'EPERM';
+  }
+};
+
+/**
+ * Cómo está una revisión lanzada por otro servidor del Studio (o por este antes de reiniciarse), según el turno:
+ * `servidor` (quien la lanzó sigue encendido y la vigila), `director` (quien la lanzó ya no está, pero Claude Code
+ * sigue trabajando), `muerto` (ninguno de los dos existe: nadie la va a cerrar) o `desconocido` (sin datos del turno).
+ */
+export function estadoDelLanzado(turno: string, proyecto: string, vive: (pid: number) => boolean = existe): { estado: 'servidor' | 'director' | 'muerto' | 'desconocido'; hijo?: number } {
+  try {
+    const t = JSON.parse(readFileSync(turno, 'utf-8'));
+    if (typeof t.hijo !== 'number' || t.proyecto !== proyecto) return { estado: 'desconocido' };
+    if (t.pid !== process.pid && typeof t.pid === 'number' && vive(t.pid)) return { estado: 'servidor', hijo: t.hijo };
+    return { estado: vive(t.hijo) ? 'director' : 'muerto', hijo: t.hijo };
+  } catch {
+    return { estado: 'desconocido' };
   }
 }

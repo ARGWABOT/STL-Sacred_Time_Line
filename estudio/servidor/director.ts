@@ -76,7 +76,7 @@ import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio }
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
 import { conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
-import { agruparPasos, buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
+import { actividadDeProyecto, agruparPasos, buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
 import { abrirTerminal, comprobarPaso } from './terminal';
 
@@ -1069,6 +1069,11 @@ export function servidorDirector(): Plugin {
               tokensVivos: await (async () => {
                 const r = (await leerLocal(raiz)).revision;
                 return r?.proyecto === id && r.lanzada && !r.hecha ? tokensDeProyecto(raiz, id) : null;
+              })(),
+              // La última vez que creció su registro: sin nada nuevo en un buen rato, el Studio dice que está parada
+              actividad: await (async () => {
+                const r = (await leerLocal(raiz)).revision;
+                return r?.proyecto === id && r.lanzada && !r.hecha && !r.error ? actividadDeProyecto(raiz, id) : null;
               })(),
               hoy: hoy(),
               errores: [...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)],
