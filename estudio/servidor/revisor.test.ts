@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -51,6 +51,17 @@ describe('el director que lanza el Studio', () => {
 
   it('le encarga la revisión de un proyecto, con su id en las herramientas', () => {
     expect(encargo('golf')).toContain('--proyecto golf --listo');
+  });
+
+  it('espera lo que lanza en segundo plano sin esperas programadas, y con el límite de cada encargo', () => {
+    // el 21 de octubre de 2026 una revisión se programó dos esperas de 20 minutos mientras su flujo ya estaba muerto
+    expect(SIN_ESPERAS).toEqual(expect.arrayContaining(['ScheduleWakeup', 'CronCreate']));
+    const aclaracion = encargoAclaracion({ proyecto: 'golf', mision: 't_x', paso: 0, nota: 'n1', quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
+    const urgencia = encargoUrgencia({ proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
+    for (const [texto, minutos] of [[encargo('golf'), MAX_MIN], [aclaracion, MAX_MIN_ACLARAR], [urgencia, MAX_MIN_URGENCIA]] as const) {
+      expect(texto).toContain('el aviso de que terminó te despierta solo');
+      expect(texto).toContain(`Tienes ${minutos} minutos en total.`);
+    }
   });
 
   it('resume en vivo lo que va haciendo, a partir de su registro en stream-json', () => {

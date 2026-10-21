@@ -24,6 +24,19 @@ export interface EstadoRevisor {
 /** Una revisión que tarda más que esto se da por perdida: el Studio la detiene y lo dice. */
 export const MAX_MIN = 60;
 
+/**
+ * Lo que el director lanzado por el Studio no tiene: esperas programadas. Sin pantalla, una espera de 20 minutos para
+ * «ver si ya terminó» un flujo lo deja parado (el 21 de octubre de 2026, una revisión pasó 25 de sus 40 minutos así); el
+ * aviso de que algo en segundo plano terminó ya lo despierta solo.
+ */
+export const SIN_ESPERAS = ['ScheduleWakeup', 'CronCreate'];
+
+/** Cómo espera lo que lanza en segundo plano (un flujo, un ayudante): sin esperas programadas, y con su límite. */
+const esperar = (minutos: number) =>
+  ` Si lanzas un flujo de varios agentes o un ayudante en segundo plano, sigue con lo demás y, cuando no quede nada más, ` +
+  `termina tu turno: el aviso de que terminó te despierta solo (no tienes esperas programadas). Tienes ${minutos} ` +
+  `minutos en total.`;
+
 /** Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. */
 export const encargo = (proyecto: string) =>
   `Revisión pedida desde el Studio para el proyecto «${proyecto}». Eres el director asistente de STL Studio y te lanzó el ` +
@@ -34,7 +47,8 @@ export const encargo = (proyecto: string) =>
   `despliegues ni borres nada: si algo lo necesita, déjalo listo y dilo en la respuesta y en el mensaje. Tus permisos no ` +
   `aceptan órdenes encadenadas con &&: para cada commit da cd a la carpeta, luego git add y luego git commit, cada una ` +
   `por separado. Cierra como siempre: ` +
-  `node tools/director/bandeja.ts --proyecto ${proyecto} --listo y el commit en la memoria del proyecto.`;
+  `node tools/director/bandeja.ts --proyecto ${proyecto} --listo y el commit en la memoria del proyecto.` +
+  esperar(MAX_MIN);
 
 /** Una aclaración es una ida y vuelta corta: si tarda más que esto, se detiene y el pedido queda para la revisión. */
 export const MAX_MIN_ACLARAR = 15;
@@ -51,7 +65,8 @@ export const encargoAclaracion = (a: AclaracionPedida) =>
   `node tools/director/bandeja.ts --proyecto ${a.proyecto} --aclarar y sigue lo que dice: reescribe solo ese paso en el ` +
   `plan, responde solo esa nota y cierra con node tools/director/bandeja.ts --proyecto ${a.proyecto} --aclarar --listo y ` +
   `el commit en la memoria del proyecto. No toques el código. Tus permisos no aceptan órdenes encadenadas con &&: da cd ` +
-  `a la carpeta, luego git add y luego git commit, cada una por separado.`;
+  `a la carpeta, luego git add y luego git commit, cada una por separado.` +
+  esperar(MAX_MIN_ACLARAR);
 
 /** Una urgencia puede llevar un arreglo con sus pruebas: tiene más tiempo que una aclaración, menos que una revisión. */
 export const MAX_MIN_URGENCIA = 30;
@@ -70,7 +85,8 @@ export const encargoUrgencia = (u: UrgenciaPedida) =>
   `y con las normas de ese proyecto: pruebas en verde y commits locales. Nunca subas, despliegues ni borres nada: si algo ` +
   `lo necesita, déjalo listo y dilo en la respuesta. Tus permisos no aceptan órdenes encadenadas con &&: para cada commit ` +
   `da cd a la carpeta, luego git add y luego git commit, cada una por separado. Cierra con ` +
-  `node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo y el commit en la memoria del proyecto.`;
+  `node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo y el commit en la memoria del proyecto.` +
+  esperar(MAX_MIN_URGENCIA);
 
 /** Lo que se lanza aparte de la revisión: una aclaración o una urgencia. */
 type Aparte = { tipo: 'aclaracion'; a: AclaracionPedida } | { tipo: 'urgencia'; u: UrgenciaPedida };
@@ -434,9 +450,22 @@ function lanzarClaude(programa: string, args: string[], opciones: Parameters<typ
   const env = { ...process.env };
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_ENTRYPOINT;
+  // Sin pantalla, Claude Code corta lo que sigue en segundo plano (un flujo de varios agentes) 10 minutos después del
+  // último turno, y el director nunca lo sabe: el 21 de octubre de 2026 dos revisiones perdieron así su flujo a medias.
+  // Con 0 lo espera, y el aviso de que terminó despierta al director; el límite lo pone el Studio (MAX_MIN)
+  env.CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS = '0';
   return process.platform === 'win32' && /\.cmd$/i.test(programa)
     ? spawn(conComillas(programa), args.map(conComillas), { ...opciones, env, shell: true, windowsHide: true })
     : spawn(programa, args, { ...opciones, env, windowsHide: true });
+}
+
+/**
+ * Detiene al director con todo lo que lanzó. En Windows, matar el proceso deja vivo lo de abajo (el .cmd de npm corre
+ * dentro de una consola, y Claude Code, debajo de ella): se cierra el árbol entero.
+ */
+function detener(p: ReturnType<typeof spawn>): void {
+  if (process.platform === 'win32' && p.pid) spawn('taskkill', ['/pid', String(p.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+  else p.kill();
 }
 
 /** Si Claude Code no tiene sesión en este computador, cómo se inicia (una sola vez, en una terminal). */
@@ -617,16 +646,17 @@ export class Revisor {
     const director = ajustesDelDirector(ultracode, (await leerLocal(this.raiz)).permisos?.ultracode === true);
     const ajustes = join(carpeta, 'ajustes-del-director.json');
     writeFileSync(ajustes, JSON.stringify(director.ajustes));
-    // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder). En stream-json, el
+    // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder); las esperas
+    // programadas no piden permiso, así que se quitan aparte (SIN_ESPERAS). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio, director.flujos)];
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--disallowedTools', ...SIN_ESPERAS, '--allowedTools', ...permitido(repositorio, director.flujos)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
     else await marcarLanzada(this.raiz, proyecto);
     const p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] });
     p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u) : encargo(proyecto));
-    const limite = setTimeout(() => p.kill(), (aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : MAX_MIN) * 60_000);
+    const limite = setTimeout(() => detener(p), (aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : MAX_MIN) * 60_000);
     let cerrado = false;
     const fin = async (problema: string) => {
       if (cerrado) return;
