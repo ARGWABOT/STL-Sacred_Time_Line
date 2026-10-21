@@ -17,7 +17,7 @@
 // en tiempo de ejecución: Node lo corre tal cual).
 import { execFile } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { appendFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import type { Proyecto, TipoProyecto } from './director';
 
@@ -228,27 +228,33 @@ export const vigilando = (vigilia: string | undefined | null, ahora = Date.now()
 
 /** La sesión del director acaba de mirar si había una revisión pedida. */
 export async function marcarVigilia(raiz: string): Promise<void> {
-  const l = await leerLocal(raiz);
-  await guardarLocal(raiz, { ...l, vigilia: new Date().toISOString() });
+  await cambiarLocal(raiz, (l) => ({ ...l, vigilia: new Date().toISOString() }));
 }
 
 /** Cuántas veces se relee estudio.local.json si no se entiende, y cuánto se espera entre una y otra (ms). */
 const RELEER = 3;
 const RELEER_MS = 50;
 const noEsta = (e: unknown) => (e as NodeJS.ErrnoException)?.code === 'ENOENT';
+const esperar = (ms: number) => new Promise((listo) => setTimeout(listo, ms));
 
 /**
  * Lo de este computador. Lo escriben dos procesos (el servidor del Studio y la bandeja): un JSON que no se entiende
- * (a medio escribir, o con el archivo tomado un instante en Windows) se relee unas veces antes de darlo por vacío, porque
- * leerlo vacío y guardar encima borraría lo escrito (una revisión cerrada que se vio fallida, 21 de octubre de 2026).
+ * (con el archivo tomado un instante en Windows, o cambiado a mano) se relee unas veces antes de darlo por vacío. Para
+ * mostrar basta; para cambiarlo, cambiarLocal lo lee sin darlo nunca por vacío.
  */
 export async function leerLocal(raiz: string): Promise<Local> {
+  return (await leerArchivoLocal(raiz)) ?? vacio();
+}
+
+/** El archivo leído, vacío si no existe, o null si existe y, releído, sigue sin entenderse. */
+async function leerArchivoLocal(raiz: string): Promise<Local | null> {
   for (let intento = 1; ; intento++) {
     try {
       return normal(JSON.parse(await readFile(join(raiz, ARCHIVO_LOCAL), 'utf-8')));
     } catch (e) {
-      if (noEsta(e) || intento >= RELEER) return vacio();
-      await new Promise((listo) => setTimeout(listo, RELEER_MS));
+      if (noEsta(e)) return vacio();
+      if (intento >= RELEER) return null;
+      await esperar(RELEER_MS);
     }
   }
 }
@@ -293,10 +299,83 @@ export function corteDeRevision(l: Local, proyecto: string): string | null {
   return marcas[0] ?? null;
 }
 
+/** El candado de estudio.local.json: un archivo junto a él que solo un proceso a la vez puede crear. */
+export const CANDADO_LOCAL = `${ARCHIVO_LOCAL}.candado`;
+/**
+ * Pasado este tiempo, un candado se da por abandonado (el proceso que lo tenía murió a mitad de un cambio) y se quita.
+ * Un cambio dura milisegundos. Si en el doble de este tiempo no se pudo tomar (la carpeta no deja crear archivos), falla.
+ */
+export const CANDADO_VIEJO_MS = 10_000;
+// Dentro de un mismo proceso, los cambios esperan su turno en fila, sin dar vueltas sobre el candado
+const filas = new Map<string, Promise<unknown>>();
+
+/**
+ * Cambia lo de este computador sin perder lo que escribe otro (nota de voz del titular, 21 de octubre de 2026: que no
+ * vuelva a pasar). Lo escriben dos procesos, el servidor del Studio y la bandeja, y cada cambio lee el archivo entero,
+ * cambia una parte y lo guarda entero: si dos cambios se cruzaban, el segundo guardaba encima lo que había leído antes del
+ * primero y lo borraba (así una revisión cerrada pudo perder su «hecha» y verse fallida). Por eso cada cambio toma el
+ * candado, lee lo más nuevo, aplica el cambio, lo guarda y solo entonces lo suelta: de dos que se cruzan, el segundo
+ * espera y parte de lo que dejó el primero. Y si el archivo existe pero no se entiende, no se guarda nada encima, porque
+ * partir de vacío borraría la lista de proyectos y lo pedido. `cambio` devuelve lo nuevo, o undefined si no hay nada que
+ * cambiar. Devuelve cómo quedó.
+ */
+async function cambiarLocal(raiz: string, cambio: (l: Local) => Local | undefined): Promise<Local> {
+  const turno = (filas.get(raiz) ?? Promise.resolve()).catch(() => {}).then(() => conCandado(raiz, async () => {
+    const l = await leerArchivoLocal(raiz);
+    if (!l) throw new Error(`${ARCHIVO_LOCAL} no se entiende: no se guarda nada encima, para no borrar la lista de proyectos ni lo pedido. Corrige el archivo (es JSON) o bórralo y vuelve a entregar los proyectos.`);
+    const nuevo = cambio(l);
+    if (nuevo) await guardarLocal(raiz, nuevo);
+    return nuevo ?? l;
+  }));
+  filas.set(raiz, turno);
+  try {
+    return await turno;
+  } finally {
+    if (filas.get(raiz) === turno) filas.delete(raiz);
+  }
+}
+
+/**
+ * Hace algo con el candado de estudio.local.json tomado. Se toma creando el archivo solo si no existe (de dos que lo
+ * intentan a la vez, solo uno lo crea); si lo tiene otro, se espera. Uno abandonado se quita (CANDADO_VIEJO_MS). Solo lo
+ * suelta quien lo tiene: su contenido es una marca de este proceso y de este cambio.
+ */
+async function conCandado<T>(raiz: string, hacer: () => Promise<T>): Promise<T> {
+  const candado = join(raiz, CANDADO_LOCAL);
+  const marca = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const limite = Date.now() + 2 * CANDADO_VIEJO_MS;
+  for (;;) {
+    try {
+      await writeFile(candado, marca, { flag: 'wx' });
+      break;
+    } catch (e) {
+      const codigo = String((e as NodeJS.ErrnoException)?.code);
+      // En Windows, un candado recién soltado puede seguir «borrándose» un instante (EPERM, EACCES, EBUSY)
+      if (!['EEXIST', 'EPERM', 'EACCES', 'EBUSY'].includes(codigo) || Date.now() > limite) throw e;
+      if (codigo === 'EEXIST') {
+        const otro = await readFile(candado, 'utf-8').catch(() => null);
+        const viejo = await stat(candado).then((s) => Date.now() - s.mtimeMs > CANDADO_VIEJO_MS, () => false);
+        // Abandonado: se quita, y solo si sigue siendo el mismo (que no sea el de otro que lo acaba de tomar)
+        if (viejo && otro !== null && (await readFile(candado, 'utf-8').catch(() => null)) === otro) {
+          await unlink(candado).catch(() => {});
+          continue;
+        }
+      }
+      await esperar(5 + Math.random() * 15);
+    }
+  }
+  try {
+    return await hacer();
+  } finally {
+    if ((await readFile(candado, 'utf-8').catch(() => null)) === marca) await unlink(candado).catch(() => {});
+  }
+}
+
 /**
  * Escribe lo de este computador de una vez: primero a un archivo aparte en la misma carpeta y luego lo pone en su lugar
- * (rename), así nadie lo lee a medio escribir. En Windows, si el archivo está tomado un instante (EPERM, EBUSY, EACCES),
- * se reintenta.
+ * (rename), así nadie lo lee a medio escribir. En Windows, si el archivo está tomado un instante (EPERM, EBUSY, EACCES:
+ * alguien lo está leyendo, o el antivirus), se reintenta, hasta unos dos segundos. Solo lo llama cambiarLocal, con el
+ * candado tomado.
  */
 async function guardarLocal(raiz: string, l: Local): Promise<void> {
   const x = { nota: 'Lo de este computador, fuera de git: el proyecto activo y la carpeta del repositorio de cada proyecto (su memoria está en <repositorio>/.stl, rama stl).', ...l };
@@ -310,8 +389,8 @@ async function guardarLocal(raiz: string, l: Local): Promise<void> {
         break;
       } catch (e) {
         const tomado = ['EPERM', 'EBUSY', 'EACCES'].includes(String((e as NodeJS.ErrnoException)?.code));
-        if (!tomado || intento >= 4) throw e;
-        await new Promise((listo) => setTimeout(listo, RELEER_MS * intento));
+        if (!tomado || intento >= 8) throw e;
+        await esperar(RELEER_MS * intento);
       }
     }
   } finally {
@@ -321,35 +400,34 @@ async function guardarLocal(raiz: string, l: Local): Promise<void> {
 }
 
 export async function guardarActivo(raiz: string, id: string): Promise<void> {
-  const l = await leerLocal(raiz);
-  await guardarLocal(raiz, { ...l, activo: id });
+  await cambiarLocal(raiz, (l) => ({ ...l, activo: id }));
 }
 
 /** Da o quita un permiso del director lanzado (Local › permisos). Sin permisos, la clave sale del archivo. */
 export async function guardarPermiso(raiz: string, permiso: 'ultracode', activo: boolean): Promise<void> {
-  const { permisos, ...l } = await leerLocal(raiz);
-  const otros = { ...permisos };
-  if (activo) otros[permiso] = true;
-  else delete otros[permiso];
-  await guardarLocal(raiz, { ...l, ...(Object.keys(otros).length ? { permisos: otros } : {}) });
+  await cambiarLocal(raiz, ({ permisos, ...l }) => {
+    const otros = { ...permisos };
+    if (activo) otros[permiso] = true;
+    else delete otros[permiso];
+    return { ...l, ...(Object.keys(otros).length ? { permisos: otros } : {}) };
+  });
 }
 
 /** «Máximo» para el director y la terminal que abre el Studio (Local › esfuerzoMaximo); sin él, la clave sale del archivo. */
 export async function guardarEsfuerzoMaximo(raiz: string, activo: boolean): Promise<void> {
-  const { esfuerzoMaximo, ...l } = await leerLocal(raiz);
-  await guardarLocal(raiz, { ...l, ...(activo ? { esfuerzoMaximo: true as const } : {}) });
+  await cambiarLocal(raiz, ({ esfuerzoMaximo, ...l }) => ({ ...l, ...(activo ? { esfuerzoMaximo: true as const } : {}) }));
 }
 
 export async function guardarRutaRepositorio(raiz: string, id: string, ruta: string): Promise<void> {
-  const l = await leerLocal(raiz);
-  await guardarLocal(raiz, { ...l, repositorios: { ...l.repositorios, [id]: ruta } });
+  await cambiarLocal(raiz, (l) => ({ ...l, repositorios: { ...l.repositorios, [id]: ruta } }));
 }
 
 /** Saca un proyecto de este Estudio (su memoria sigue en su repositorio, intacta). */
 export async function olvidarProyecto(raiz: string, id: string): Promise<void> {
-  const l = await leerLocal(raiz);
-  const { [id]: _, ...resto } = l.repositorios;
-  await guardarLocal(raiz, { ...l, activo: l.activo === id ? null : l.activo, repositorios: resto });
+  await cambiarLocal(raiz, (l) => {
+    const { [id]: _, ...resto } = l.repositorios;
+    return { ...l, activo: l.activo === id ? null : l.activo, repositorios: resto };
+  });
 }
 
 /**
@@ -371,11 +449,12 @@ export function reintentoDe(antes: RevisionPedida | undefined, proyecto: string)
  * lleva su `reintento`: retoma lo que esa dejó, sin rehacerlo.
  */
 export async function pedirRevision(raiz: string, proyecto: string, quien: string | null): Promise<RevisionPedida | null> {
-  const l = await leerLocal(raiz);
-  const reintento = reintentoDe(l.revision, proyecto);
-  const revision: RevisionPedida | undefined = quien ? { proyecto, quien, pedida: new Date().toISOString(), ...(reintento ? { reintento } : {}) } : undefined;
-  await guardarLocal(raiz, { ...l, revision });
-  return revision ?? null;
+  const l = await cambiarLocal(raiz, (l) => {
+    const reintento = reintentoDe(l.revision, proyecto);
+    const revision: RevisionPedida | undefined = quien ? { proyecto, quien, pedida: new Date().toISOString(), ...(reintento ? { reintento } : {}) } : undefined;
+    return { ...l, revision };
+  });
+  return l.revision ?? null;
 }
 
 /**
@@ -384,40 +463,42 @@ export async function pedirRevision(raiz: string, proyecto: string, quien: strin
  * `falla`, el reporte de qué pasó queda junto al error.
  */
 export async function marcarLanzada(raiz: string, proyecto: string, error?: string, falla?: FallaRevision): Promise<void> {
-  const l = await leerLocal(raiz);
-  const r = l.revision?.proyecto === proyecto && !l.revision.hecha ? l.revision : null;
-  if (!r) return;
-  // El reintento sigue con ella: si esta también falla, la siguiente retoma desde la primera
-  const base = { proyecto: r.proyecto, quien: r.quien, pedida: r.pedida, ...(r.reintento ? { reintento: r.reintento } : {}) };
-  const fallida = r.lanzada ?? r.fallida;
-  const fallo = { ...base, error: error!, ...(falla ? { falla } : {}), ...(fallida ? { fallida } : {}) };
-  await guardarLocal(raiz, { ...l, revision: error ? fallo : { ...base, lanzada: new Date().toISOString() } });
+  await cambiarLocal(raiz, (l) => {
+    const r = l.revision?.proyecto === proyecto && !l.revision.hecha ? l.revision : null;
+    if (!r) return undefined;
+    // El reintento sigue con ella: si esta también falla, la siguiente retoma desde la primera
+    const base = { proyecto: r.proyecto, quien: r.quien, pedida: r.pedida, ...(r.reintento ? { reintento: r.reintento } : {}) };
+    const fallida = r.lanzada ?? r.fallida;
+    const fallo = { ...base, error: error!, ...(falla ? { falla } : {}), ...(fallida ? { fallida } : {}) };
+    return { ...l, revision: error ? fallo : { ...base, lanzada: new Date().toISOString() } };
+  });
 }
 
 /** La revisión pedida empieza (`en_curso`) o termina (`hecha`). Sin una pedida, `hecha` igual deja la fecha. */
 export async function marcarRevision(raiz: string, proyecto: string, paso: 'en_curso' | 'hecha'): Promise<void> {
-  const l = await leerLocal(raiz);
-  const r = l.revision?.proyecto === proyecto ? l.revision : null;
-  if (paso === 'en_curso' && (!r || r.hecha || r.enCurso)) return;
-  const ahora = new Date().toISOString();
-  await guardarLocal(raiz, { ...l, revision: paso === 'en_curso' ? { ...r!, enCurso: ahora } : { ...(r ?? { proyecto, quien: '', pedida: ahora }), hecha: ahora } });
+  await cambiarLocal(raiz, (l) => {
+    const r = l.revision?.proyecto === proyecto ? l.revision : null;
+    if (paso === 'en_curso' && (!r || r.hecha || r.enCurso)) return undefined;
+    const ahora = new Date().toISOString();
+    return { ...l, revision: paso === 'en_curso' ? { ...r!, enCurso: ahora } : { ...(r ?? { proyecto, quien: '', pedida: ahora }), hecha: ahora } };
+  });
 }
 
 /** Pide que el director aclare un paso, aparte de la revisión (reemplaza una aclaración anterior ya cerrada o fallida). */
 export async function pedirAclaracion(raiz: string, a: Pick<AclaracionPedida, 'proyecto' | 'mision' | 'paso' | 'nota' | 'quien'>): Promise<AclaracionPedida> {
-  const l = await leerLocal(raiz);
   const aclaracion: AclaracionPedida = { ...a, pedida: new Date().toISOString() };
-  await guardarLocal(raiz, { ...l, aclaracion });
+  await cambiarLocal(raiz, (l) => ({ ...l, aclaracion }));
   return aclaracion;
 }
 
 /** La aclaración se lanzó, terminó (`hecha`) o falló (`error`): solo si es la de esa nota. */
 export async function marcarAclaracion(raiz: string, nota: string, paso: 'lanzada' | 'hecha' | { error: string }): Promise<void> {
-  const l = await leerLocal(raiz);
-  const a = l.aclaracion;
-  if (!a || a.nota !== nota || a.hecha || a.error) return;
-  const ahora = new Date().toISOString();
-  await guardarLocal(raiz, { ...l, aclaracion: paso === 'lanzada' ? { ...a, lanzada: ahora } : paso === 'hecha' ? { ...a, hecha: ahora } : { ...a, error: paso.error } });
+  await cambiarLocal(raiz, (l) => {
+    const a = l.aclaracion;
+    if (!a || a.nota !== nota || a.hecha || a.error) return undefined;
+    const ahora = new Date().toISOString();
+    return { ...l, aclaracion: paso === 'lanzada' ? { ...a, lanzada: ahora } : paso === 'hecha' ? { ...a, hecha: ahora } : { ...a, error: paso.error } };
+  });
 }
 
 /** Una urgencia en curso: pedida o lanzada, sin cerrar ni fallar. */
@@ -428,17 +509,19 @@ export const urgenciaActiva = (u: UrgenciaPedida | undefined | null): u is Urgen
  * proyecto, se suman a ella; si el director ya está atendiendo una, esperan en `luego` y van en el lanzamiento siguiente.
  */
 export async function pedirUrgencia(raiz: string, u: { proyecto: string; notas: string[]; quien: string }): Promise<UrgenciaPedida | null> {
-  const l = await leerLocal(raiz);
-  const a = urgenciaActiva(l.urgencia) ? l.urgencia : null;
-  if (a && a.proyecto !== u.proyecto) return null;
-  const ya = new Set([...(a?.notas ?? []), ...(a?.luego ?? [])]);
-  const nuevas = u.notas.filter((n) => !ya.has(n));
-  if (a && !nuevas.length) return a;
-  const urgencia: UrgenciaPedida = !a ? { ...u, notas: nuevas, pedida: new Date().toISOString() }
-    : a.lanzada ? { ...a, luego: [...(a.luego ?? []), ...nuevas] }
-    : { ...a, notas: [...a.notas, ...nuevas] };
-  await guardarLocal(raiz, { ...l, urgencia });
-  return urgencia;
+  const l = await cambiarLocal(raiz, (l) => {
+    const a = urgenciaActiva(l.urgencia) ? l.urgencia : null;
+    if (a && a.proyecto !== u.proyecto) return undefined;
+    const ya = new Set([...(a?.notas ?? []), ...(a?.luego ?? [])]);
+    const nuevas = u.notas.filter((n) => !ya.has(n));
+    if (a && !nuevas.length) return undefined;
+    const urgencia: UrgenciaPedida = !a ? { ...u, notas: nuevas, pedida: new Date().toISOString() }
+      : a.lanzada ? { ...a, luego: [...(a.luego ?? []), ...nuevas] }
+      : { ...a, notas: [...a.notas, ...nuevas] };
+    return { ...l, urgencia };
+  });
+  // Si el director atiende una urgencia de otro proyecto, esta espera la revisión
+  return urgenciaActiva(l.urgencia) && l.urgencia.proyecto === u.proyecto ? l.urgencia : null;
 }
 
 /**
@@ -446,17 +529,18 @@ export async function pedirUrgencia(raiz: string, u: { proyecto: string; notas: 
  * para el lanzamiento siguiente.
  */
 export async function marcarUrgencia(raiz: string, pedida: string, paso: 'lanzada' | 'hecha' | { error: string }): Promise<void> {
-  const l = await leerLocal(raiz);
-  const u = l.urgencia;
-  if (!u || u.pedida !== pedida || u.hecha || u.error) return;
-  const ahora = new Date().toISOString();
-  // La siguiente se reconoce por su fecha: nunca la misma que la que termina
-  const siguiente = ahora > u.pedida ? ahora : new Date(Date.parse(u.pedida) + 1).toISOString();
-  const urgencia: UrgenciaPedida = paso === 'lanzada' ? { ...u, lanzada: ahora }
-    : paso === 'hecha' && u.luego?.length ? { proyecto: u.proyecto, notas: u.luego, quien: u.quien, pedida: siguiente }
-    : paso === 'hecha' ? { ...u, hecha: ahora }
-    : { ...u, error: paso.error };
-  await guardarLocal(raiz, { ...l, urgencia });
+  await cambiarLocal(raiz, (l) => {
+    const u = l.urgencia;
+    if (!u || u.pedida !== pedida || u.hecha || u.error) return undefined;
+    const ahora = new Date().toISOString();
+    // La siguiente se reconoce por su fecha: nunca la misma que la que termina
+    const siguiente = ahora > u.pedida ? ahora : new Date(Date.parse(u.pedida) + 1).toISOString();
+    const urgencia: UrgenciaPedida = paso === 'lanzada' ? { ...u, lanzada: ahora }
+      : paso === 'hecha' && u.luego?.length ? { proyecto: u.proyecto, notas: u.luego, quien: u.quien, pedida: siguiente }
+      : paso === 'hecha' ? { ...u, hecha: ahora }
+      : { ...u, error: paso.error };
+    return { ...l, urgencia };
+  });
 }
 
 export async function leerRutaRepositorio(raiz: string, id: string): Promise<string | null> {

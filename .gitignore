@@ -4,8 +4,10 @@ dist/
 .env
 __pycache__/
 
-# Lo de ESTE computador: el proyecto activo y la ruta del repositorio de cada proyecto (cada quien tiene los suyos)
+# Lo de ESTE computador: el proyecto activo y la ruta del repositorio de cada proyecto (cada quien tiene los suyos),
+# con su candado y su temporal, que viven solo mientras se cambia
 estudio.local.json
+estudio.local.json.*
 
 # La memoria de cada proyecto vive en SU repositorio (rama stl, abierta en .stl/), nunca aquí. La de STL Studio
 # también: en la rama stl de este repositorio. proyectos/ era donde vivía antes.

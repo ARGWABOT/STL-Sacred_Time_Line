@@ -1,10 +1,11 @@
-import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { validarPlan, validarProyecto } from './director';
-import { abrirMemoria, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, CANDADO_LOCAL, CANDADO_VIEJO_MS, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -217,6 +218,71 @@ describe('la revisión pedida desde el Studio', () => {
       // un reintento mal formado sale al leerlo
       writeFileSync(join(dir, 'estudio.local.json'), JSON.stringify({ activo: null, repositorios: {}, revision: { proyecto: 'golf', quien: 'x', pedida: 'p', reintento: { que: 1 } } }));
       expect((await leerLocal(dir)).revision).toEqual({ proyecto: 'golf', quien: 'x', pedida: 'p' });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('los cambios que se cruzan no se pierden: cada uno parte de lo que dejó el anterior (el candado)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'estudio-local-'));
+    try {
+      await pedirRevision(dir, 'golf', 'Laura');
+      // treinta cambios a la vez en este proceso, y el cierre de la revisión en medio: antes, cada uno leía antes de que
+      // el otro guardara, y el último borraba lo de los demás (también la «hecha»)
+      await Promise.all([
+        ...Array.from({ length: 30 }, (_, i) => guardarRutaRepositorio(dir, `p${i}`, `/repos/p${i}`)),
+        marcarRevision(dir, 'golf', 'hecha'),
+        guardarActivo(dir, 'p3'),
+      ]);
+      const l = await leerLocal(dir);
+      expect(Object.keys(l.repositorios)).toHaveLength(30);
+      expect(l.revision?.hecha).toBeTruthy();
+      expect(l.activo).toBe('p3');
+      // y desde otros dos procesos a la vez, como el servidor del Studio y la bandeja
+      const modulo = pathToFileURL(join(__dirname, 'proyectos.ts')).href;
+      const otro = (n: string) => new Promise<number | null>((listo) => {
+        const codigo = `const m = await import(${JSON.stringify(modulo)}); await Promise.all(Array.from({ length: 15 }, (_, i) => m.guardarRutaRepositorio(${JSON.stringify(dir)}, '${n}' + i, '/repos/${n}' + i)));`;
+        spawn(process.execPath, ['--input-type=module', '--no-warnings', '-e', codigo], { stdio: 'ignore' }).on('exit', listo);
+      });
+      const [a, b] = await Promise.all([otro('a'), otro('b'), ...Array.from({ length: 15 }, (_, i) => guardarRutaRepositorio(dir, `c${i}`, `/repos/c${i}`))]);
+      expect([a, b]).toEqual([0, 0]);
+      const todos = (await leerLocal(dir)).repositorios;
+      expect(Object.keys(todos)).toHaveLength(75);
+      expect(todos).toMatchObject({ a14: '/repos/a14', b0: '/repos/b0', c7: '/repos/c7', p29: '/repos/p29' });
+      // el candado se suelta: no queda nada suelto
+      expect(readdirSync(dir)).toEqual(['estudio.local.json']);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('mientras otro tiene el candado se espera; uno abandonado se quita; y nunca se guarda encima de lo que no se entiende', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'estudio-local-'));
+    const candado = join(dir, CANDADO_LOCAL);
+    try {
+      await guardarActivo(dir, 'antes');
+      // otro proceso lo tiene: el cambio espera a que lo suelte
+      writeFileSync(candado, 'otro');
+      let mientras: string | null = 'sin mirar';
+      setTimeout(() => {
+        mientras = JSON.parse(readFileSync(join(dir, 'estudio.local.json'), 'utf-8')).activo;
+        unlinkSync(candado);
+      }, 150);
+      await guardarActivo(dir, 'despues');
+      expect(mientras).toBe('antes');
+      expect((await leerLocal(dir)).activo).toBe('despues');
+      // uno abandonado (su proceso murió a mitad de un cambio) se quita
+      writeFileSync(candado, 'muerto');
+      const viejo = new Date(Date.now() - CANDADO_VIEJO_MS - 5000);
+      utimesSync(candado, viejo, viejo);
+      await guardarActivo(dir, 'otra');
+      expect((await leerLocal(dir)).activo).toBe('otra');
+      expect(existsSync(candado)).toBe(false);
+      // un archivo que no se entiende no se pisa: partir de vacío borraría la lista de proyectos
+      writeFileSync(join(dir, 'estudio.local.json'), '{"activo": "golf", "repositorios": {"golf": "/r');
+      await expect(guardarRutaRepositorio(dir, 'x', '/repos/x')).rejects.toThrow(/no se entiende/);
+      expect(readFileSync(join(dir, 'estudio.local.json'), 'utf-8')).toBe('{"activo": "golf", "repositorios": {"golf": "/r');
+      expect(existsSync(candado)).toBe(false);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
