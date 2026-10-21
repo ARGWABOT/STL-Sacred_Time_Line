@@ -5,8 +5,9 @@
 // Que nunca haya dudas de si está grabando: antes de grabar dice que todavía no graba (y espera el permiso del
 // micrófono sin aparentar que ya graba); mientras graba, un punto rojo que late, el tiempo y un medidor que se mueve con
 // la voz. Dentro de un diálogo, el diálogo se hace a un lado y queda solo esa pastilla, con «Detener y revisar» y
-// «Enviar ya»: la página se puede leer y recorrer mientras se habla. Los diálogos que graban ignoran su evento «close» si
-// siguen abiertos: es este cambio, no un cierre.
+// «Enviar ya»: la página se puede leer y recorrer mientras se habla, y la pastilla queda siempre encima, también si el
+// diálogo se abrió desde otro diálogo. Los diálogos que graban ignoran su evento «close» si siguen abiertos: es este
+// cambio, no un cierre.
 //
 // A uno se le olvida decir algo: después de detener, «Añadir otro fragmento» sigue grabando en el mismo audio. Para que
 // quede un solo archivo válido, se graba lo que llega a un destino de audio propio (no el micrófono directo): al detener,
@@ -17,14 +18,60 @@ const TIPOS = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 
 const MAX_SEGUNDOS = 10 * 60;
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-/** Hace a un lado el diálogo (no modal, solo la pastilla de la grabación) o lo devuelve al frente (modal otra vez). */
+/**
+ * El diálogo modal que queda debajo cuando el que graba deja de ser modal (el de «¿Dónde quedamos?», si el ✉ se abrió
+ * desde él), o null. Un diálogo modal tapa todo lo que no está dentro de él y lo deja sin clics, aunque tenga más
+ * z-index: la pastilla de la grabación tiene que ir dentro de él. Si hay varios, el último de la página, que es el
+ * último que se abrió.
+ */
+export function modalDebajo(dlg: HTMLDialogElement, dialogos: ArrayLike<HTMLDialogElement>): HTMLDialogElement | null {
+  return Array.from(dialogos).reverse().find((d) => d !== dlg && !dlg.contains(d) && d.matches(':modal')) ?? null;
+}
+
+/** Dónde estaba el diálogo que se llevó dentro de otro modal para grabar, para devolverlo al terminar. */
+const llevados = new WeakMap<HTMLDialogElement, { padre: Node; siguiente: Node | null; soltar: () => void }>();
+
+/** Devuelve a su lugar el diálogo que se llevó dentro de otro modal (o nada, si no se llevó). */
+function devolver(dlg: HTMLDialogElement) {
+  const l = llevados.get(dlg);
+  if (!l) return;
+  llevados.delete(dlg);
+  l.soltar();
+  l.padre.insertBefore(dlg, l.siguiente?.parentNode === l.padre ? l.siguiente : null);
+}
+
+/**
+ * Hace a un lado el diálogo (no modal, solo la pastilla de la grabación) o lo devuelve al frente (modal otra vez). La
+ * pastilla queda siempre encima de todo y con sus botones vivos (nota del titular del 21 de octubre de 2026): si debajo
+ * hay otro diálogo modal abierto, se lleva dentro de él, porque fuera quedaría tapada y sin clics, y se devuelve al
+ * terminar o si ese diálogo se cierra antes.
+ */
 function aUnLado(caja: HTMLElement, si: boolean) {
   const dlg = caja.closest('dialog');
   if (!dlg || !dlg.open || dlg.classList.contains('a-un-lado') === si) return;
   dlg.classList.toggle('a-un-lado', si);
   dlg.close();
-  if (si) dlg.show();
-  else dlg.showModal();
+  if (si) {
+    const anfitrion = modalDebajo(dlg, document.querySelectorAll('dialog'));
+    if (anfitrion) {
+      // Los clics de la pastilla no le llegan al diálogo de debajo (podría tomarlos como suyos)
+      const aislar = (e: Event) => e.stopPropagation();
+      // Si el de debajo se cierra mientras graba, la pastilla vuelve a su lugar y sigue a la vista
+      const alCerrar = () => devolver(dlg);
+      llevados.set(dlg, {
+        padre: dlg.parentNode!,
+        siguiente: dlg.nextSibling,
+        soltar: () => { dlg.removeEventListener('click', aislar); anfitrion.removeEventListener('close', alCerrar); },
+      });
+      dlg.addEventListener('click', aislar);
+      anfitrion.addEventListener('close', alCerrar);
+      anfitrion.append(dlg);
+    }
+    dlg.show();
+  } else {
+    devolver(dlg);
+    dlg.showModal();
+  }
   caja.querySelector<HTMLElement>('[data-g]')?.focus();
 }
 
