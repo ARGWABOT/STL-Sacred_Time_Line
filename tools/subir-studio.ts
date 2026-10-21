@@ -17,28 +17,32 @@ const URL = `https://github.com/${CUENTA}/STL-Sacred_Time_Line.git`;
 const subir = process.argv.includes('--subir');
 
 const tokenDe = (u: string) => spawnSync('gh', ['auth', 'token', '--user', u], { encoding: 'utf8' });
-const usuario = EN_GH.find((u) => tokenDe(u).status === 0);
-if (!usuario) throw new Error(`gh no tiene la sesión de ${CUENTA}: corre gh auth login con esa cuenta y vuelve a correr esto.`);
 const sinWorkflow = (t: string) => {
   const r = spawnSync('gh', ['api', '-i', 'user'], { env: { ...process.env, GH_TOKEN: t }, encoding: 'utf8' });
   return r.status === 0 && faltaWorkflow(r.stdout);
 };
 
-// --permiso: gh auth refresh solo renueva la cuenta activa de gh, que puede no ser ARGWABOT. Esto la activa, le pide el
-// permiso «workflow» (abre el navegador) y deja activa la que estaba
+// --permiso: entra a gh con ARGWABOT y el permiso «workflow» (abre el navegador), y deja activa la cuenta que estaba.
+// No usa gh auth switch ni refresh: gh puede guardar el token de una cuenta (incocrea) sin tenerla en su lista, y
+// entonces ninguno de los dos la encuentra; gh auth login la agrega a la lista, o la renueva si ya estaba
 if (process.argv.includes('--permiso')) {
-  const gh = (...a: string[]) => spawnSync('gh', a, { stdio: 'inherit' }).status === 0;
   const { GH_TOKEN: _, ...sinToken } = process.env;
-  const activa = spawnSync('gh', ['api', 'user', '--jq', '.login'], { env: sinToken, encoding: 'utf8' }).stdout.trim();
-  const cambia = activa.toLowerCase() !== usuario.toLowerCase();
-  if (cambia && !gh('auth', 'switch', '-h', 'github.com', '-u', usuario)) throw new Error(`No pude activar la sesión de ${usuario} en gh.`);
-  const ok = gh('auth', 'refresh', '-h', 'github.com', '-s', 'workflow');
-  if (cambia && activa) gh('auth', 'switch', '-h', 'github.com', '-u', activa);
-  if (!ok || sinWorkflow(tokenDe(usuario).stdout.trim())) throw new Error(`La sesión de ${CUENTA} en gh sigue sin el permiso «workflow». Vuelve a correr esto y, en el navegador, acepta con ${CUENTA}.`);
-  console.log(`Listo: la sesión de ${CUENTA} en gh ya tiene el permiso «workflow»${cambia && activa ? ` (y ${activa} sigue siendo tu cuenta activa)` : ''}.`);
+  const gh = (...a: string[]) => spawnSync('gh', a, { env: sinToken, stdio: 'inherit' }).status === 0;
+  const login = () => spawnSync('gh', ['api', 'user', '--jq', '.login'], { env: sinToken, encoding: 'utf8' }).stdout.trim();
+  const activa = login();
+  console.log(`En el navegador, entra a GitHub con la cuenta ${CUENTA} (si ves otra, cierra su sesión primero) y acepta.`);
+  const ok = gh('auth', 'login', '-h', 'github.com', '-p', 'https', '-s', 'workflow', '-w');
+  const entro = login();
+  if (activa && entro.toLowerCase() !== activa.toLowerCase()) gh('auth', 'switch', '-h', 'github.com', '-u', activa);
+  if (!ok) throw new Error('gh no terminó de entrar: vuelve a correr esto.');
+  if (entro.toLowerCase() !== CUENTA.toLowerCase()) throw new Error(`Entraste con ${entro || 'otra cuenta'}, no con ${CUENTA}: en el navegador, cierra esa sesión de GitHub, entra con ${CUENTA} y vuelve a correr esto.`);
+  if (sinWorkflow(tokenDe(CUENTA).stdout.trim())) throw new Error(`La sesión de ${CUENTA} en gh sigue sin el permiso «workflow»: vuelve a correr esto.`);
+  console.log(`Listo: la sesión de ${CUENTA} en gh ya tiene el permiso «workflow»${activa && activa.toLowerCase() !== CUENTA.toLowerCase() ? ` (y ${activa} sigue siendo tu cuenta activa)` : ''}. Ahora: node tools/subir-studio.ts --subir`);
   process.exit(0);
 }
 
+const usuario = EN_GH.find((u) => tokenDe(u).status === 0);
+if (!usuario) throw new Error(`gh no tiene la sesión de ${CUENTA}: corre node tools/subir-studio.ts --permiso y vuelve a correr esto.`);
 const token = tokenDe(usuario).stdout.trim();
 const conToken = ['-c', 'credential.helper=', '-c', 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f'];
 const env = { ...process.env, GH_TOKEN: token, FILTER_BRANCH_SQUELCH_WARNING: '1' };
