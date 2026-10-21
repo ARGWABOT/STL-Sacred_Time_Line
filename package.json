@@ -28,7 +28,8 @@
     "bandeja": "node tools/director/bandeja.ts",
     "diagnosticar": "node tools/director/diagnosticar.ts",
     "estado": "node tools/director/estado.ts",
-    "publicar-stl": "node tools/publicar-stl.ts"
+    "publicar-stl": "node tools/publicar-stl.ts",
+    "subir-studio": "node tools/subir-studio.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
