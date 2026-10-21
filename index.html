@@ -82,6 +82,47 @@
     margin: 2px 0 0; font-size: clamp(10px, calc(var(--ancho) / 80), 14px); line-height: 1.2; color: #f5d27a;
     font-variant-numeric: tabular-nums; letter-spacing: .03em; white-space: nowrap;
   }
+  /* Antes de verla por primera vez: el botón del centro late y, a su lado, «Iniciar la presentación» */
+  @keyframes llama {
+    0% { box-shadow: 0 0 0 0 rgba(245, 210, 122, .7), 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 1px rgba(255, 255, 255, .65); }
+    70%, 100% { box-shadow: 0 0 0 16px rgba(245, 210, 122, 0), 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 1px rgba(255, 255, 255, .65); }
+  }
+  #mando.llama #pausa { animation: llama 1.8s ease-out infinite; }
+  #invita {
+    display: none; position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%);
+    white-space: nowrap; cursor: pointer; padding: 5px 12px; border-radius: 999px;
+    font-size: clamp(11px, calc(var(--ancho) / 75), 15px); font-weight: 600; color: #1a1f33;
+    background: #f5d27a; box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+  }
+  #mando.llama #invita { display: block; }
+  @media (prefers-reduced-motion: reduce) {
+    #mando.llama #pausa { animation: none; box-shadow: 0 0 0 5px rgba(245, 210, 122, .55), 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 1px rgba(255, 255, 255, .65); }
+  }
+  /* La bienvenida: solo la primera vez, centrada sobre todo */
+  #bienvenida {
+    position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px;
+    background: rgba(4, 6, 12, .72); backdrop-filter: blur(3px);
+  }
+  #bienvenida[hidden] { display: none; }
+  #bienvenida .tarjeta {
+    max-width: 470px; padding: 26px 30px 24px; border-radius: 16px; text-align: center; box-sizing: border-box;
+    background: radial-gradient(ellipse at 50% 0%, #1d2440 0%, #0c0f1d 80%);
+    box-shadow: inset 0 0 0 1px rgba(245, 210, 122, .35), 0 18px 50px rgba(0, 0, 0, .6);
+    animation: aparece .35s ease-out;
+  }
+  @keyframes aparece { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+  @media (prefers-reduced-motion: reduce) { #bienvenida .tarjeta { animation: none; } }
+  #bienvenida h2 { margin: 0 0 10px; font-size: 22px; line-height: 1.25; color: #f5d27a; font-weight: 600; letter-spacing: .02em; }
+  #bienvenida p { margin: 0 0 12px; font-size: 16px; line-height: 1.45; color: #fff6e0; }
+  #bienvenida p.chica { font-size: 13px; color: #b9b4a6; margin-bottom: 20px; }
+  #bienvenida button {
+    font: inherit; font-size: 17px; font-weight: 600; color: #1a1f33; cursor: pointer; border: 0; border-radius: 999px;
+    padding: 12px 28px; background: radial-gradient(circle at 40% 30%, #fff0c2, #e8b955 62%, #a07728);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .5), inset 0 1px 1px rgba(255, 255, 255, .65); transition: transform .12s, box-shadow .2s;
+  }
+  #bienvenida button:hover { box-shadow: 0 0 18px rgba(245, 210, 122, .5), inset 0 1px 1px rgba(255, 255, 255, .65); }
+  #bienvenida button:active { transform: scale(.96); }
+  #bienvenida button:focus-visible { outline: 2px solid #fff6d8; outline-offset: 3px; }
   .pista { margin: 0; font-size: clamp(9px, calc(var(--ancho) / 95), 12px); line-height: 1.3; color: #b9b4a6; text-align: center; }
 </style>
 </head>
@@ -119,6 +160,7 @@
       </g>
     </svg>
     <button id="pausa" type="button" aria-label="Pausar la animación"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="icono" d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></svg></button>
+    <span id="invita" aria-hidden="true">Iniciar la presentación ▸</span>
   </div>
   <p id="crono" aria-live="off"></p>
   <p class="pista">Gírala para controlar la animación</p>
@@ -127,6 +169,16 @@
 
 <div id="estado"></div>
 <div id="cuenta"></div>
+</div>
+
+<!-- La bienvenida: solo la primera vez -->
+<div id="bienvenida" hidden>
+  <div class="tarjeta" role="dialog" aria-modal="true" aria-labelledby="bienvenida-titulo" aria-describedby="bienvenida-texto">
+    <h2 id="bienvenida-titulo">Bienvenido a «¿Qué es STL?»</h2>
+    <p id="bienvenida-texto">Te lo explicamos clarito, en versión para dummies (sin ofender: nosotros también la necesitábamos).</p>
+    <p class="chica">Con la rueda del ratón la adelantas o la devuelves, y con el clic de la rueda la pausas.</p>
+    <button type="button" id="iniciar">▶ Iniciar la presentación</button>
+  </div>
 </div>
 
 <script>
@@ -1785,15 +1837,23 @@
   }
   rayas($('marcas'), 40, 51, 54.5, '#f5d27a', 0.35, 1.2, 5);
   rayas($('estrias'), 30, 31, 42, '#c9b8ff', 0.13, 1.4);
+  // Al cargar, la animación espera detenida (sin arrancar sola) y el botón del centro late hasta que se reproduce la
+  // primera vez
+  const mando = $('mando');
+  let espera = true;
   function iconoBoton() {
     $('icono').setAttribute('d', reproduce ? 'M7 5h3.6v14H7zM13.4 5H17v14h-3.6z' : 'M8.5 5.2v13.6L19 12z');
-    boton.setAttribute('aria-label', reproduce ? 'Pausar la animación' : 'Seguir la animación');
+    boton.setAttribute('aria-label', reproduce ? 'Pausar la animación' : espera ? 'Iniciar la presentación' : 'Seguir la animación');
   }
   function alternar() {
     // Al final del video, seguir es verlo otra vez desde el principio
     if (!reproduce && modo === 'con' && fase === 'meta' && reloj - t0 >= durFase) buscar = 0;
-    reproduce = !reproduce; iconoBoton();
+    reproduce = !reproduce;
+    if (reproduce && espera) { espera = false; mando.classList.remove('llama'); }
+    iconoBoton();
   }
+  // Iniciar (o seguir) sin pausarla si ya corre
+  function iniciar() { if (!reproduce) alternar(); }
   // Mover la escena tantos milisegundos (positivos: adelante; negativos: atrás)
   function mover(ms) { buscar = Math.max(0, (buscar ?? antes + pasos) + ms / PASO_ESC); }
   let arrastre = null, segundo = -1;
@@ -1802,7 +1862,7 @@
     return Math.atan2(e.clientY - (b.top + b.height / 2), e.clientX - (b.left + b.width / 2));
   }
   perilla.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('#pausa') || e.button > 0) return;
+    if (e.target.closest('#pausa, #invita') || e.button > 0) return;
     e.preventDefault(); perilla.focus();
     perilla.setPointerCapture(e.pointerId);
     arrastre = { a: angulo(e), seguia: reproduce }; reproduce = false;
@@ -1824,8 +1884,27 @@
   perilla.addEventListener('pointerup', soltar);
   perilla.addEventListener('pointercancel', soltar);
   perilla.addEventListener('lostpointercapture', soltar);
-  // La rueda del ratón también la gira: hacia arriba adelanta, como subir el volumen
-  perilla.addEventListener('wheel', (e) => { e.preventDefault(); mover(-Math.sign(e.deltaY) * 700); }, { passive: false });
+  // La rueda del ratón sobre la escena (el dibujo y la perilla) la recorre como la perilla: hacia abajo adelanta, hacia
+  // arriba devuelve. Cada muesca mueve alrededor de un segundo y medio (en un touchpad, poco a poco), y la escena sigue
+  // como iba: en pausa, sigue en pausa; corriendo, sigue desde el punto nuevo. Fuera de la escena, la rueda es la de
+  // siempre
+  const escenaCaja = $('escena');
+  escenaCaja.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || !$('bienvenida').hidden) return;
+    const muescas = e.deltaMode === 1 ? e.deltaY / 3 : e.deltaMode === 2 ? e.deltaY * 3 : e.deltaY / 100;
+    if (!muescas) return;
+    e.preventDefault();
+    mover(Math.max(-4500, Math.min(4500, muescas * 1500)));
+  }, { passive: false });
+  // El clic de la rueda (el botón del medio): pausa o sigue, sin el desplazamiento automático del navegador (salvo
+  // sobre un enlace, que abre en otra pestaña como siempre)
+  const centro = (e) => e.button === 1 && !e.target.closest?.('a');
+  addEventListener('mousedown', (e) => {
+    if (!centro(e)) return;
+    e.preventDefault();
+    if ($('bienvenida').hidden) alternar();
+  });
+  addEventListener('auxclick', (e) => { if (centro(e)) e.preventDefault(); });
   perilla.addEventListener('keydown', (e) => {
     const ms = { ArrowRight: 1000, ArrowUp: 1000, ArrowLeft: -1000, ArrowDown: -1000, PageUp: 5000, PageDown: -5000 }[e.key];
     if (ms) { e.preventDefault(); mover(ms); }
@@ -1833,6 +1912,7 @@
     else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); alternar(); }
   });
   boton.addEventListener('click', alternar);
+  $('invita').addEventListener('click', iniciar);
   // La perilla gira sola con la escena: una vuelta cada 20 segundos de escena
   function girarPerilla() {
     giro.setAttribute('transform', `rotate(${((((antes + pasos) * PASO_ESC) / VUELTA) * 360) % 360} 60 60)`);
@@ -1864,9 +1944,37 @@
   addEventListener('resize', () => { disponer(); dibujar(reloj); });
   vertical.addEventListener('change', () => { disponer(); dibujar(reloj); });
   ponerModo('sin', 0);
-  // Sin movimiento, la escena empieza quieta en un momento clave; la perilla y el botón la mueven si quieres
-  if (quieto) { reproduce = false; estatico(); }
+  // No arranca sola: espera detenida en su primer cuadro (con su primer subtítulo) y el botón del centro late. Sin
+  // movimiento, la escena espera quieta en un momento clave; la perilla y el botón la mueven si quieres
+  reproduce = false;
+  if (quieto) estatico(); else narrar();
+  mando.classList.add('llama');
   iconoBoton();
+
+  // ══ La bienvenida: solo la primera vez (se recuerda en este navegador). «Iniciar la presentación» la cierra y
+  //    arranca; con Escape o un clic fuera se cierra y la animación sigue detenida, con el botón latiendo
+  const VISTA = 'stl.portada.vista', bienvenida = $('bienvenida'), iniciarBtn = $('iniciar');
+  let yaVino = false;
+  try { yaVino = localStorage.getItem(VISTA) === '1'; } catch { /* sin almacenamiento: se muestra cada vez */ }
+  function cerrarBienvenida(arrancar) {
+    if (bienvenida.hidden) return;
+    bienvenida.hidden = true; $('todo').inert = false;
+    try { localStorage.setItem(VISTA, '1'); } catch { /* sin almacenamiento: no se recuerda */ }
+    if (arrancar) iniciar();
+    boton.focus({ preventScroll: true });
+  }
+  if (!yaVino) {
+    bienvenida.hidden = false; $('todo').inert = true;
+    iniciarBtn.focus();
+    iniciarBtn.addEventListener('click', () => cerrarBienvenida(true));
+    bienvenida.addEventListener('click', (e) => { if (e.target === bienvenida) cerrarBienvenida(false); });
+    addEventListener('keydown', (e) => {
+      if (bienvenida.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); cerrarBienvenida(false); }
+      // El foco no sale del cuadro: su único control es el botón
+      else if (e.key === 'Tab') { e.preventDefault(); iniciarBtn.focus(); }
+    });
+  }
   // Un reloj propio: si la pestaña se oculta, la historia se detiene y sigue donde iba, sin saltarse momentos. La
   // escena avanza en pasos fijos; lo que sobra de un cuadro pasa al siguiente
   const cuadro = (now) => {
