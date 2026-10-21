@@ -46,6 +46,11 @@
 /* donde no cabe en una línea, se parte en dos en vez de salirse */
 .ir-paso { white-space: normal; text-align: left; }
 .ir-paso:hover { background: #d8e7f8; border-color: #9cc0ea; }
+/* El botón del paso de ahora, mientras no se abre: lo principal del paso, lleno y latiendo (sus opciones esperan) */
+.ir-paso.principal { min-height: 36px; padding: 6px 18px; font-size: 14.5px; background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); animation: latido 2.4s ease-in-out infinite; }
+.ir-paso.principal:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
+@media (prefers-reduced-motion: reduce) { .ir-paso.principal { animation: none; } }
+.desmarcar-paso { margin-left: 8px; font-size: 13px; }
 .resaltado { animation: resalte 2.6s ease-out; border-radius: 10px; }
 @keyframes resalte { 0%, 30% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: #fff6d8; } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
 @media (prefers-reduced-motion: reduce) { .resaltado { animation: none; outline: 3px solid #f2b828; } }
@@ -515,7 +520,21 @@ form:has([name="urgente"]:checked) .abrir-urgente { color: var(--peligro); opaci
 .nota-d.plegable .cuerpo-nota { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0 14px 12px; }
 .nota-d.plegable .botones-nota { display: flex; gap: 8px; justify-content: flex-end; }
 .nota-d.plegable .botones-nota button { min-height: 30px; font-size: 13px; padding: 2px 10px; }
-.ver-pasadas { display: inline-flex; gap: 8px; align-items: center; margin: 0 0 14px; font-size: 14.5px; color: var(--suave); cursor: pointer; }
+/* Las propuestas: una barra con lo que espera respuesta y el filtro «Por decidir» / «Todas», como pestañas pequeñas */
+.barra-propuestas { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin: 4px 0 16px; padding: 10px 14px; border: 1px solid var(--borde); border-radius: var(--radio-g); background: var(--panel); box-shadow: var(--sombra); }
+.cuenta-propuestas { margin: 0; font-size: 14.5px; color: var(--suave); }
+.cuenta-propuestas b { color: var(--texto); font-size: 16px; }
+.filtro-propuestas { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--panel-suave); border: 1px solid var(--borde); }
+.filtro-propuestas button { min-height: 30px; padding: 3px 14px; border: 0; border-radius: 999px; background: none; color: var(--suave); font-size: 13.5px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
+.filtro-propuestas button:hover { color: var(--texto); background: none; }
+.filtro-propuestas button[aria-pressed='true'] { background: var(--panel); color: var(--acento-texto); box-shadow: var(--sombra); }
+.filtro-propuestas .cifra { min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--acento-fondo); color: var(--acento-texto); font-size: 12px; line-height: 19px; text-align: center; }
+/* Sin nada que decidir: el estado vacío, con su icono, su porqué y, si hay decididas, cómo volver a verlas */
+.vacio-propuestas { display: flex; gap: 16px; align-items: flex-start; margin: 4px 0 18px; padding: 22px 24px; border: 1px dashed var(--borde-fuerte); border-radius: var(--radio-g); background: var(--panel-suave); max-width: var(--lectura); }
+.vacio-propuestas .icono-vacio { flex: none; width: 40px; height: 40px; padding: 8px; border-radius: 50%; background: var(--acento-fondo); color: var(--acento); }
+.vacio-propuestas b { font-size: 16px; color: var(--texto); }
+.vacio-propuestas p { margin: 4px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--suave); }
+.vacio-propuestas button { margin-top: 12px; }
 /* Los adjuntos de una nota: miniaturas de las imágenes y el nombre de lo demás (estudio/src/adjuntos.ts) */
 .adjuntos { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .adjuntos .lista-adjuntos { flex-basis: 100%; }
