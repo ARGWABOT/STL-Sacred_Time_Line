@@ -133,7 +133,8 @@ input:where([type='text'], [type='url'], [type='search'], [type='number'], [type
 }
 input:where([type='text'], [type='url'], [type='search'], [type='number'], [type='date'], [type='email'], :not([type])), textarea { width: 100%; }
 textarea { line-height: 1.5; resize: vertical; min-height: 0; }
-input::placeholder, textarea::placeholder { color: #9a978e; }
+/* El ejemplo de un campo, en el tenue del tema: 4,5:1 en los dos (antes #9a978e: 2,9:1 sobre el blanco) */
+input::placeholder, textarea::placeholder { color: var(--tenue); opacity: 1; }
 input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--acento); outline-offset: 0; border-color: var(--acento); }
 input[readonly], textarea[readonly] { background: var(--fondo); }
 input[type='checkbox'], input[type='radio'] { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--acento); cursor: pointer; }

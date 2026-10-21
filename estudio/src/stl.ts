@@ -10,8 +10,10 @@
 // docs/metodo/metodologia.md.
 import { icono, type Icono } from './iconos';
 
-// Los colores de los actores, los mismos en todos los gráficos
-const COLOR = { tu: '#2f5fb3', studio: '#5b4fd6', director: '#2c2c2a', modelo: '#0f8a7a', alerta: '#c0502a', ruta: '#7a4fd1', ok: '#23895c', tenue: '#8d96a8' } as const;
+// Los colores de los actores, los mismos en todos los gráficos. Van también como texto (el nombre de cada momento) y bajo
+// un ícono blanco: 4,5:1 sobre el papel claro y 3:1 con el blanco (estilos.test.ts; antes modelo #0f8a7a, ok #23895c y
+// tenue #8d96a8 no llegaban)
+const COLOR = { tu: '#2f5fb3', studio: '#5b4fd6', director: '#2c2c2a', modelo: '#0b7365', alerta: '#c0502a', ruta: '#7a4fd1', ok: '#1b7449', tenue: '#7b8496' } as const;
 const COLOR_STUDIO = COLOR.studio;
 
 /**
@@ -22,16 +24,18 @@ const COLOR_STUDIO = COLOR.studio;
  * tiene su versión ancha y la del teléfono; lo demás es HTML y se acomoda solo. Es el estilo de todos los gráficos.
  */
 type Aporte = 'idea' | 'comentario' | 'pregunta' | 'ajuste';
-// Cada tipo de aporte, con su ejemplo y la fase donde lo pone el director (índice de FASES)
+// Cada tipo de aporte, con su ejemplo y la fase donde lo pone el director (índice de FASES). Su nombre va en su color
+// sobre su fondo: 4,5:1 (antes las ideas, #b7791f, a 3,4:1, y los comentarios, #23895c, a 3,9:1)
 const APORTES: Record<Aporte, { nombre: string; corto: string; color: string; fondo: string; ejemplo: [string, string]; fase: number }> = {
-  idea: { nombre: 'Ideas nuevas', corto: 'Ideas', color: '#b7791f', fondo: '#fdf5e2', ejemplo: ['Por ejemplo: validar', 'los datos al guardar'], fase: 1 },
-  comentario: { nombre: 'Comentarios', corto: 'Comentarios', color: '#23895c', fondo: '#e9f5ee', ejemplo: ['Por ejemplo: el botón', 'de guardar no se ve'], fase: 0 },
+  idea: { nombre: 'Ideas nuevas', corto: 'Ideas', color: '#8f5d12', fondo: '#fdf5e2', ejemplo: ['Por ejemplo: validar', 'los datos al guardar'], fase: 1 },
+  comentario: { nombre: 'Comentarios', corto: 'Comentarios', color: '#1b7449', fondo: '#e9f5ee', ejemplo: ['Por ejemplo: el botón', 'de guardar no se ve'], fase: 0 },
   pregunta: { nombre: 'Preguntas', corto: 'Preguntas', color: '#2f63c9', fondo: '#e9effb', ejemplo: ['Por ejemplo: ¿y si', 'falla el pago?'], fase: 0 },
   ajuste: { nombre: 'Ajustes', corto: 'Ajustes', color: '#7a4fd1', fondo: '#f1ebfb', ejemplo: ['Por ejemplo: poner al', 'día las librerías'], fase: 3 },
 };
 const TIPOS = Object.keys(APORTES) as Aporte[];
-// [nombre, color]: las fases de un proyecto de software, con una puerta entre una y otra
-const FASES: [string, string][] = [['Diseño', '#2f63c9'], ['Desarrollo', '#7a4fd1'], ['Pruebas', '#0f8a7a'], ['Despliegue', '#c8691a']];
+// [nombre, color]: las fases de un proyecto de software, con una puerta entre una y otra. Su número va en ese color sobre
+// el blanco: 4,5:1 (antes Pruebas, #0f8a7a, y Despliegue, #c8691a, no llegaban)
+const FASES: [string, string][] = [['Diseño', '#2f63c9'], ['Desarrollo', '#7a4fd1'], ['Pruebas', '#0b7365'], ['Despliegue', '#a4540f']];
 
 function persona(x: number, y: number) {
   return `<g class="l-persona"><circle cx="${x}" cy="${y - 24}" r="11"/><path d="M${x - 20} ${y + 14}v-8a20 16 0 0 1 40 0v8z"/></g>`;

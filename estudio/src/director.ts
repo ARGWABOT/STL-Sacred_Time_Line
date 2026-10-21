@@ -3686,7 +3686,7 @@ function vistaEsfuerzo() {
   return `<p class="intro">Los ${e.commits.length} commits del repositorio del proyecto del ${fecha(e.desde)} al ${fecha(e.hasta)}, repartidos por frente según sus archivos. Las ${e.decisiones} decisiones del Estudio (entregar, comentar, marcar) se cuentan aparte: son un clic, no trabajo. Las validaciones no hacen commits: en estos días se registraron <b>${validaciones}</b>.</p>
     <h3>Según la fase en curso («${esc(actual.nombre)}»)</h3>
     <div class="reparto">${segmento('foco', 'En foco')}${segmento('apoyo', 'De apoyo')}${segmento('espera', 'En espera')}${segmento('otros', 'Otros')}</div>
-    <p class="leyenda-d"><span><i style="background:#3b8a5a"></i>En foco ${pct(nivel.foco)}</span><span><i style="background:#5b86c5"></i>De apoyo ${pct(nivel.apoyo)}</span><span><i style="background:#d39a3a"></i>En espera ${pct(nivel.espera)}</span><span><i style="background:#b9b5aa"></i>Otros ${pct(nivel.otros)}</span><span>La meta del director: 60 % o más en foco y poco en espera.</span></p>
+    <p class="leyenda-d"><span><i style="background:var(--barra-foco)"></i>En foco ${pct(nivel.foco)}</span><span><i style="background:var(--barra-apoyo)"></i>De apoyo ${pct(nivel.apoyo)}</span><span><i style="background:var(--barra-espera)"></i>En espera ${pct(nivel.espera)}</span><span><i style="background:var(--barra-otros)"></i>Otros ${pct(nivel.otros)}</span><span>La meta del director: 60 % o más en foco y poco en espera.</span></p>
     <h3>Por persona</h3><ul class="resumen-d">${porPersona}</ul>
     <h3>Por frente</h3>
     <div class="barras">${filas
