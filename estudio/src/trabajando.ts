@@ -21,38 +21,7 @@ export const pantallaTrabajando = () => `<section class="pantalla-trabajando" ro
   <p>Mientras revisa, el Studio puede recargarse o reiniciarse solo, por ejemplo cuando cambia su código. No tienes que hacer nada: al terminar se carga completo y te avisa con un sonido.</p>
 </section>`;
 
-// El navegador no deja sonar nada hasta que la página recibe un clic o una tecla: el sonido se prepara con el primero
-let ctx: AudioContext | null = null;
-function prepararSonido() {
-  try {
-    ctx ??= new AudioContext();
-    if (ctx.state === 'suspended') void ctx.resume();
-  } catch {
-    ctx = null;
-  }
-}
-for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, prepararSonido, { capture: true, passive: true });
-
-/** Tres notas cortas que suben, hechas en el navegador (sin archivos). Si el navegador no deja sonar, no pasa nada. */
-export function sonarTermino(): boolean {
-  prepararSonido();
-  if (!ctx || ctx.state !== 'running') return false;
-  const t = ctx.currentTime;
-  [523, 659, 988].forEach((f, i) => {
-    const o = ctx!.createOscillator();
-    const g = ctx!.createGain();
-    const desde = t + i * 0.14;
-    o.type = 'sine';
-    o.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, desde);
-    g.gain.exponentialRampToValueAtTime(0.16, desde + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, desde + 0.6);
-    o.connect(g).connect(ctx!.destination);
-    o.start(desde);
-    o.stop(desde + 0.65);
-  });
-  return true;
-}
+// El sonido del final ya no se sintetiza aquí: es el «veredicto-listo» de AdWi (sonidos.ts › sonar('revision'))
 
 /** Si la pestaña no está a la vista, su título lo dice hasta que vuelvas a ella. */
 export function tituloTermino() {

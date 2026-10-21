@@ -1465,6 +1465,27 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 /* El botón del tema, junto a «¿Dónde quedamos?»: solo el ícono */
 .boton-tema { width: 38px; padding: 0; }
 
+/* Los sonidos (panelSonidos.ts): el botón de la cabecera, tenue si están apagados, y su panel pequeño, bajo él */
+.boton-sonido.apagado { color: var(--suave); }
+.panel-sonido {
+  position: fixed; z-index: 60; width: min(300px, calc(100vw - 16px)); padding: 12px 14px;
+  background: var(--panel); color: var(--texto); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra-alta);
+  display: grid; gap: 10px; font-size: 14px;
+}
+.panel-sonido .ps-grupo { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+.panel-sonido .ps-fila { display: flex; align-items: center; gap: 8px; }
+.panel-sonido .ps-vol { padding-left: 24px; color: var(--suave); }
+.panel-sonido .ps-vol span { min-width: 58px; }
+.panel-sonido .ps-vol input[type='range'], .panel-sonido .ps-vol select { flex: 1; min-width: 0; accent-color: var(--acento); }
+.panel-sonido .ps-nota { margin: 0; color: var(--suave); line-height: 1.5; }
+.panel-sonido .ps-nota b { color: var(--texto); }
+.panel-sonido .ps-momentos { justify-self: start; }
+.dialogo-sonidos .lista-momentos { list-style: none; margin: 10px 0 14px; padding: 0; display: grid; gap: 8px; }
+.dialogo-sonidos .lista-momentos li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 6px 0; border-bottom: 1px solid var(--borde); }
+.dialogo-sonidos .lista-momentos label { color: var(--texto); }
+.dialogo-sonidos .ps-elegir { display: inline-flex; gap: 6px; align-items: center; }
+.dialogo-sonidos .ps-elegir button { width: 38px; padding: 0; }
+
 /* ── El tema oscuro: lo que no usa variables (los fondos blancos y los tonos claros fijos) ── */
 html.oscuro :is(.dialogo-director, .dialogo-director .botones, .menu-proyectos, .item-nav.sel, .candidato, .tipo-proyecto, .opcion, .ficha-unidad, .candidatos-e li, .mision-c.cola[open], .pasos-arranque li.actual, .lista-preguntas li.editando, .cerrar-grande, .puerta) { background: var(--panel); color: var(--texto); }
 html.oscuro .item-nav:hover { background: rgba(255, 255, 255, 0.06); }

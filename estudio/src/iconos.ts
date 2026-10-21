@@ -46,6 +46,9 @@ const TRAZOS = {
   escudo: '<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.9-4.3-1.6-7.5-5.3-7.5-9.9V6z"/><path d="M8.8 12.2l2.3 2.3 4.2-4.4"/>',
   /** El modelo y lo que gasta: un medidor */
   modelo: '<path d="M3.5 17.5a8.5 8.5 0 1 1 17 0"/><path d="M12 17.5l4.2-5.2"/><circle cx="12" cy="17.5" r="1.3"/>',
+  /** Los sonidos: un altavoz con sus ondas, o tachado si están apagados */
+  altavoz: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+  silencio: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
 } as const;
 
 export type Icono = keyof typeof TRAZOS;

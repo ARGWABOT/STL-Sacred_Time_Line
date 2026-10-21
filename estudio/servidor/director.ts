@@ -15,7 +15,8 @@
 // audio o un adjunto de una nota. POST /proyecto-nuevo: abre la memoria en el repositorio, crea el proyecto desde la plantilla (o retoma el que ya
 // tenía) y lo activa. POST /proyectos-varios: lo mismo con varios. POST /activo: cambia el proyecto activo. POST
 // /repositorio: la carpeta nueva del repositorio del proyecto activo, si se movió (debe tener su memoria).
-// POST /accion: una decisión firmada con la identidad de git del clon, en el proyecto activo.
+// POST /accion: una decisión firmada con la identidad de git del clon, en el proyecto activo. GET /sonidos y
+// /sonido?nombre=x.mp3: los sonidos de AdWi en este computador (sonidos.ts).
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
@@ -79,6 +80,7 @@ import { conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracode
 import { actividadDeProyecto, agruparPasos, buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
 import { abrirTerminal, comprobarPaso } from './terminal';
+import { leerSonido, leerSonidos } from './sonidos';
 
 const DIAS_ESFUERZO = 7;
 const ESPERA_COMMIT_MS = 15_000;
@@ -1207,6 +1209,17 @@ export function servidorDirector(): Plugin {
             const activoAhora = await activo();
             const r = await abrirTerminal(ordenAbrirClaude(programa, raiz, activoAhora ? await leerRutaRepositorio(raiz, activoAhora) : null, (await leerLocal(raiz)).esfuerzoMaximo === true), raiz);
             return r.ok ? responder(res, 200, {}) : responder(res, 400, { error: r.error });
+          }
+          // Los sonidos (sonidos.ts): de la carpeta de AdWi en este computador, nunca del repositorio
+          if (ruta === '/sonidos' && req.method === 'GET') return responder(res, 200, await leerSonidos(raiz));
+          if (ruta === '/sonido' && req.method === 'GET') {
+            const datos = await leerSonido(raiz, url.searchParams.get('nombre') ?? '');
+            if (!datos) return responder(res, 404, { error: 'Ese sonido no está.' });
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Cache-Control', 'private, max-age=86400');
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+            return res.end(datos);
           }
           if (ruta === '/activo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);

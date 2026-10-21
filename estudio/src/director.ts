@@ -87,7 +87,9 @@ import { Grabadora } from './grabadora';
 import { Adjuntos } from './adjuntos';
 import { activarRecorrido, paginaSTL, restaurarParada } from './stl';
 import { clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
-import { marcarTrabajando, pantallaTrabajando, sonarTermino, trabajandoGuardado, tituloTermino } from './trabajando';
+import { marcarTrabajando, pantallaTrabajando, trabajandoGuardado, tituloTermino } from './trabajando';
+import { sonar } from './sonidos';
+import { botonSonido } from './panelSonidos';
 import './zen';
 import { celebracion, destinoDeMision, logrosDe, PARA_QUE_SIRVE, seccionesConAlgo } from '../../src/director/animo';
 
@@ -383,7 +385,7 @@ async function cargar(fresco = false) {
   // Con algo a medio escribir o grabando, espera a que quede libre (el aviso se da después de recargar)
   if (termino) {
     // El sonido, antes de recargar: después de la recarga el navegador ya no deja sonar sin un clic
-    if (sonarTermino()) sessionStorage.setItem(CLAVE_SONO, '1');
+    if (sonar('revision')) sessionStorage.setItem(CLAVE_SONO, '1');
     recargarTrasRevision();
     // La recarga ya viene, con su cuenta: no se pinta lo nuevo dos veces
     return;
@@ -510,7 +512,7 @@ import.meta.hot?.on('estudio:recargar', (x?: { reinicio?: boolean; abrir?: boole
 
 /** El director terminó: un aviso grande, el sonido (si no sonó ya antes de recargar) y el título de la pestaña. */
 function avisarTermino() {
-  if (!sessionStorage.getItem(CLAVE_SONO)) sonarTermino();
+  if (!sessionStorage.getItem(CLAVE_SONO)) sonar('revision');
   sessionStorage.removeItem(CLAVE_SONO);
   tituloTermino();
   avisar('El director terminó la revisión: lo nuevo ya está en el Studio.', true);
@@ -1500,6 +1502,8 @@ async function celebrarSiToca() {
   const c = celebracion(ctx(), yo, celebradas);
   if (!c) return;
   localStorage.setItem(claveCelebradas(yo), JSON.stringify([...celebradas, ...c.misiones.map((m) => m.id)]));
+  // Subir de nivel suena más grande que la misión aprobada que lo trajo
+  sonar(c.subeA ? 'logro' : 'aprobada');
   const mia = misionesAbiertas(d.plan, d.estado, yo)[0];
   const sigue = mia ? tarjetaDe(mia) : null;
   const n = nivelDe(xpDe(d.plan, d.estado, yo));
@@ -1548,6 +1552,7 @@ async function completarSiToca(id: string, guardado: Promise<boolean>) {
   if (!m || !m.pasos.length || !m.pasos.every((_, k) => pasosHechos(id).includes(k))) return false;
   if (!['pendiente', 'en_curso', 'rehacer'].includes(estadoMision(m, d.plan, d.estado))) return false;
   if (!(await guardado) || !(await accion({ tipo: 'entregar', mision: m.id }, ''))) return false;
+  sonar('entrega');
   // Entregada, la revisión no se pide sola: la pide la persona, aquí o después con «Pedir revisión». Con el director ya
   // revisando, no entra en esa revisión: se pide cuando termine
   const enMarcha = revisando();
@@ -1714,7 +1719,7 @@ function pintarMando() {
         <span class="sobretitulo">${esc(d.proyecto.nombre || d.activo)} <span class="aqui">› ${esc(vista === 'diagnostico' && esNuevo() ? 'Planteamiento' : NOMBRE_VISTA[vista])}</span> · ${arrancando ? 'el arranque' : `fase ${numeroFase(f)} de ${ultima()}`}</span>
         <h1>${esc(f.nombre)} <small>${esc(corto(f.etapa))}</small></h1>
       </div>
-      <div class="acciones-cabeza">${botonRevision()}${((nv) => `<button type="button" class="boton-suave${nv.sinLeer ? ' por-leer' : ''}${nv.nuevo ? ' hay-novedades' : ''}" data-donde-quedamos title="${nv.sinLeer ? `${nv.nuevo ? 'El director dejó algo nuevo. ' : ''}${nv.sinLeer} ${nv.sinLeer === 1 ? 'línea' : 'líneas'} por leer: lo que dijo el director, lo que avanzamos y en qué quedamos` : 'Lo que dijo el director, lo que avanzamos y en qué quedamos: al día'}">${icono('reloj')} ¿Dónde quedamos?${nv.sinLeer ? `<span class="cifra">${nv.sinLeer}</span>` : ''}</button>`)(novedadesDq())}${botonEnfoque()}${botonTema()}</div>
+      <div class="acciones-cabeza">${botonRevision()}${((nv) => `<button type="button" class="boton-suave${nv.sinLeer ? ' por-leer' : ''}${nv.nuevo ? ' hay-novedades' : ''}" data-donde-quedamos title="${nv.sinLeer ? `${nv.nuevo ? 'El director dejó algo nuevo. ' : ''}${nv.sinLeer} ${nv.sinLeer === 1 ? 'línea' : 'líneas'} por leer: lo que dijo el director, lo que avanzamos y en qué quedamos` : 'Lo que dijo el director, lo que avanzamos y en qué quedamos: al día'}">${icono('reloj')} ¿Dónde quedamos?${nv.sinLeer ? `<span class="cifra">${nv.sinLeer}</span>` : ''}</button>`)(novedadesDq())}${botonEnfoque()}${botonTema()}${botonSonido()}</div>
     </div>
     <div class="cabeza-fila segunda">
       <button type="button" class="avance-puerta" data-ir="ruta" title="Ver la fase y sus criterios">
@@ -2671,6 +2676,7 @@ function cuentaDecisiones(ruta: string, parte: string) {
 /** Responder una decisión (aprobarla o decidir otra cosa): lo dice, y la parte pasa a lo siguiente con un cambio visible. */
 async function decisionRespondida(ruta: string, parte: string) {
   const { total, hechas } = cuentaDecisiones(ruta, parte);
+  sonar('decision');
   recienEntendida = 'decision';
   try {
     await parteAtendida(ruta, parte);
@@ -2787,6 +2793,8 @@ async function marcarTrozo(titulo: string, i: number, soloMarcar = false) {
   d.estado.leidos = { ...(d.estado.leidos ?? {}), [claveLeido(yo, ruta)]: { partes: previo?.partes ?? [], trozos: [...trozos], ...(previo?.completo ? { completo: true } : {}), cuando: new Date().toISOString(), quien: d.identidad.nombre } };
   // Una parte ya leída que se reabrió por una idea cambiada no se vuelve a marcar: ya está entre las leídas
   if (marca && !leidasDe(ruta).includes(titulo) && faltaEnParte(ruta, s).completa) return void (await marcarParte(titulo));
+  // Cada idea entendida de la parte sube una nota; la última suena como la parte leída (marcarParte)
+  if (marca) sonar('entendido', `${ruta}|${titulo}`);
   // El estímulo, solo en esta pintada: si se vuelve a pintar, el botón ya no late otra vez
   recienEntendida = marca ? `${ruta}|${clave}` : '';
   pintar();
@@ -3046,6 +3054,7 @@ async function marcarParte(titulo: string) {
     for (const t of [...trozos]) if (t.startsWith(`${titulo}§`)) trozos.delete(t);
   } else {
     leidas.add(titulo);
+    sonar('parte');
     // Se tacha, se rompe y se va: baja a «Ya leído», al final del documento (nada se borra)
     const sec = [...document.querySelectorAll<HTMLElement>('.lector [data-parte]')].find((x) => x.dataset.parte === titulo);
     if (sec && !quieto()) await romperParte(sec);
@@ -3999,6 +4008,8 @@ async function dejarNota(sobre: { tipo: string; id?: string; seccion?: string; d
     !urgente ? 'Quedó en el Buzón del director. Te responde cuando revise.'
     : automatica() ? 'Lo urgente va solo al director, ahora mismo, y tú sigues con lo tuyo. Te trae el resultado en «¿Dónde quedamos?»; lo demás del Buzón espera la revisión.'
     : 'Quedó en el Buzón, marcada urgente, y la revisión quedó pedida: el director la atiende primero.');
+  // La respuesta a una decisión suena como firmada (decisionRespondida), no como una nota más
+  if (ok && !(sobre.decision && sobre.postura !== 'comenta')) sonar('nota');
   if (ok && urgente) {
     pintarSegundoPlano();
     vigilarTranscripciones([]);
@@ -4047,6 +4058,7 @@ $('vista').addEventListener('change', async (e) => {
     const guardado = marcarPaso(id, Number(i));
     pintar();
     if (casilla.checked) {
+      sonar('paso');
       const m = d.plan.misiones.find((x) => x.id === id);
       const hechos = pasosHechos(id);
       const sigue = m?.pasos.findIndex((_, k) => !hechos.includes(k)) ?? -1;
@@ -4221,7 +4233,10 @@ async function clicEnVista(b: HTMLButtonElement) {
       adjuntos: true,
       vacioVale: true,
     });
-    if (r && (await accion({ tipo: 'entregar', mision: m.id, nota: r.nota, audio: r.audio }, `¡Bien hecho! Entregada: el director la revisa en su próxima revisión y, al aprobarla, sumas ${m.xp} XP.`))) await anexar(r, { tipo: 'mision', id: m.id }, `Con la entrega de «${m.titulo}»`, false);
+    if (r && (await accion({ tipo: 'entregar', mision: m.id, nota: r.nota, audio: r.audio }, `¡Bien hecho! Entregada: el director la revisa en su próxima revisión y, al aprobarla, sumas ${m.xp} XP.`))) {
+      sonar('entrega');
+      await anexar(r, { tipo: 'mision', id: m.id }, `Con la entrega de «${m.titulo}»`, false);
+    }
   } else if (ds.deshacerEntrega) {
     await accion({ tipo: 'deshacer_entrega', mision: ds.deshacerEntrega });
   } else if (ds.copiarOrden !== undefined) {
@@ -4283,6 +4298,7 @@ async function clicEnVista(b: HTMLButtonElement) {
       ? await accion({ tipo: 'comentar', sobre, texto: detalle.texto ?? '', audio: detalle.audio, ...(detalle.adjuntos?.length ? { adjuntos: detalle.adjuntos } : {}) }, `Elegiste «${eleccion}» y se lo contaste: quedó en el Buzón para el director.`)
       : await accion({ tipo: 'comentar', sobre }, `Elegiste «${eleccion}»: quedó en el Buzón para el director.`);
     if (!hecho) b.removeAttribute('disabled');
+    else sonar('paso');
   } else if (ds.yaLoDije) {
     // «Ya te lo dije en mi comentario»: el paso queda respondido con lo que ya dijo con su ✉, sin elegir otra opción
     const [id, i] = ds.yaLoDije.split('|');
@@ -4379,6 +4395,7 @@ async function clicEnVista(b: HTMLButtonElement) {
     const siguiente = d.plan.fases[numeroFase(f) + 1]?.nombre;
     const r = await pedir({ titulo: `Cruzar «${f.puerta.nombre}»`, ayuda: `${esc(f.puerta.prueba)}<br><br>${siguiente ? `Al cruzarla se abre «${esc(siguiente)}» y cambia lo que cada frente puede hacer.` : 'Es la última puerta de la ruta.'}`, campos: [{ id: 'nota', etiqueta: 'Qué dijo la revisión de la puerta (opcional: escrito, en audio o con imágenes)', tipo: 'area' }], boton: 'Cruzar la puerta', audio: true, adjuntos: true, vacioVale: true });
     if (r && (await accion({ tipo: 'cerrar', fase: f.id, nota: r.nota?.trim() || (r.audio ? EN_AUDIO : r.nota) }, `Puerta cruzada.${siguiente ? ` Ahora: ${siguiente}.` : ''}`))) {
+      sonar('logro');
       faseVista = null;
       await anexar(r, { tipo: 'fase', id: f.id }, `Al cruzar «${f.puerta.nombre}»`);
     }

@@ -11,6 +11,7 @@
 // A uno se le olvida decir algo: después de detener, «Añadir otro fragmento» sigue grabando en el mismo audio. Para que
 // quede un solo archivo válido, se graba lo que llega a un destino de audio propio (no el micrófono directo): al detener,
 // la grabación se pausa y el micrófono se suelta; al añadir, se pide otra vez y se reanuda. Se cierra al enviar.
+import { grabando, sonar } from './sonidos';
 
 const TIPOS = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
 const MAX_SEGUNDOS = 10 * 60;
@@ -83,7 +84,10 @@ export class Grabadora {
     const sigue = this.grabador?.state === 'paused';
     // Mientras el navegador pide el permiso, que nadie crea que ya está grabando
     this.caja.innerHTML = '<span class="ayuda-g esperando-mic">Esperando el permiso del micrófono… todavía no graba.</span>';
+    // Suena antes de abrir el micrófono; desde ahí, nada suena (ni la música) hasta soltarlo, para que no quede grabado
+    sonar('grabar-inicio');
     const flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
+    grabando(true);
     if (!sigue) this.armar();
     const a = this.audio!;
     const fuente = a.ctx.createMediaStreamSource(flujo);
@@ -155,6 +159,8 @@ export class Grabadora {
     this.mic.fuente.disconnect();
     this.mic.flujo.getTracks().forEach((t) => t.stop());
     this.mic = null;
+    grabando(false);
+    sonar('grabar-parar');
   }
 
   /** Detiene el fragmento: la grabación queda en pausa, con lo grabado listo para oír, por si se añade otro. */
