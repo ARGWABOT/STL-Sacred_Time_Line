@@ -6,7 +6,7 @@
 //      node tools/subir-studio.ts --subir    (firma lo que falte y sube)
 import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { FIRMA, FORMATO_LOG, filtroDeFirma, porFirmar, rangoPorSubir } from './firma.ts';
+import { FIRMA, FORMATO_LOG, faltaWorkflow, filtroDeFirma, porFirmar, rangoPorSubir } from './firma.ts';
 
 const raiz = join(import.meta.dirname, '..');
 const RAMA = 'main';
@@ -48,6 +48,12 @@ if (!subir) {
   process.exit(0);
 }
 
+// Sin el permiso «workflow», GitHub rechaza la subida por .github/workflows/: se dice antes de firmar nada
+const quien = spawnSync('gh', ['api', '-i', 'user'], { env, encoding: 'utf8' });
+if (quien.status === 0 && faltaWorkflow(quien.stdout) && git('ls-files', '.github/workflows')) {
+  throw new Error(`A la sesión de ${CUENTA} en gh le falta el permiso «workflow», y sin él GitHub no deja subir la integración continua (.github/workflows). Corre gh auth refresh -h github.com -s workflow, acepta en el navegador con ${CUENTA}, y vuelve a correr esto.`);
+}
+
 if (faltan.length) {
   // El respaldo, antes de cambiar nada: la historia de ahora, con la fecha y la hora en su nombre
   const respaldo = `respaldo/antes-de-subir-${new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')}`;
@@ -58,5 +64,11 @@ if (faltan.length) {
   if (quedan.length) throw new Error(`Quedaron ${quedan.length} commit(s) sin firmar: no subo. La historia de antes está en ${respaldo}.`);
   console.log(`Firmados como ${FIRMA.nombre} (la historia de antes quedó en la rama ${respaldo}).`);
 }
-execFileSync('git', [...conToken, 'push', URL, `${RAMA}:${RAMA}`], { cwd: raiz, env, stdio: 'inherit' });
+const empuje = spawnSync('git', [...conToken, 'push', URL, `${RAMA}:${RAMA}`], { cwd: raiz, env, stdio: 'inherit' });
+if (empuje.status !== 0) {
+  console.error(`\nNO SUBÍ: GitHub rechazó la subida (arriba, el porqué). Los commits ya quedaron firmados como ${FIRMA.nombre}: arregla lo que dice y vuelve a correr esto, que solo sube.`);
+  process.exit(1);
+}
+// Que de verdad quedó allá: la rama de GitHub tiene que apuntar a lo de aquí
+if (nube('ls-remote', '--heads', URL, RAMA).split(/\s+/)[0] !== git('rev-parse', RAMA)) throw new Error(`Subí, pero la rama ${RAMA} de GitHub no quedó igual a la de aquí: revísala.`);
 console.log(`Subido: https://github.com/${CUENTA}/STL-Sacred_Time_Line (rama ${RAMA}).`);

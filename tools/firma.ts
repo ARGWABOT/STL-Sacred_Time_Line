@@ -23,6 +23,14 @@ export function filtroDeFirma(firma = FIRMA): string {
   return `export GIT_AUTHOR_NAME='${firma.nombre}' GIT_AUTHOR_EMAIL='${firma.correo}' GIT_COMMITTER_NAME='${firma.nombre}' GIT_COMMITTER_EMAIL='${firma.correo}'`;
 }
 
+// GitHub rechaza subir .github/workflows/ con una sesión de gh sin el permiso «workflow». De la cabecera X-OAuth-Scopes
+// de `gh api -i user`: true si falta (sin la cabecera, como con un token de grano fino, no se puede saber: false)
+export function faltaWorkflow(respuesta: string): boolean {
+  const linea = respuesta.split(/\r?\n/).find((l) => /^x-oauth-scopes:/i.test(l));
+  if (!linea) return false;
+  return !linea.slice(linea.indexOf(':') + 1).split(',').map((s) => s.trim()).includes('workflow');
+}
+
 // Lo que se reescribe: solo lo que aún no está en la nube (desde lo último subido); si la rama aún no existe allá, toda
 export function rangoPorSubir(rama: string, subido: string | null): string {
   return subido ? `${subido}..${rama}` : rama;
