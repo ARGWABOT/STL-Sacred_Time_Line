@@ -150,6 +150,13 @@ body.director-trabajando .aclarar-paso { opacity: 0.45; cursor: not-allowed; }
 body.director-trabajando .boton-opcion { opacity: 0.45; cursor: not-allowed; }
 .eleccion-paso { display: flex; gap: 5px; align-items: center; margin: 8px 0 0; font-size: 14px; color: var(--ok); }
 .eleccion-paso .icono { width: 16px; height: 16px; }
+/* Un paso que pide esperar antes de responder: la cuenta regresiva, y las opciones bloqueadas hasta que llegue a cero */
+.espera-paso { display: flex; gap: 6px; align-items: center; margin: 10px 0 0; font-size: 14px; color: var(--suave); }
+.espera-paso .icono { width: 16px; height: 16px; flex: none; }
+.espera-paso .cifra { font-variant-numeric: tabular-nums; color: var(--texto); }
+.espera-paso.lista { color: var(--ok); }
+.opciones-paso.en-espera .boton-opcion { opacity: .5; cursor: not-allowed; }
+.opciones-paso.en-espera .boton-opcion:hover { background: var(--panel); color: var(--texto); }
 /* «Hazlo tú»: el director puede hacer el paso con tu permiso; si solo puedes tú, el paso lo dice */
 .hazlo-paso { display: inline-block; margin-top: 10px; min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-weight: 600; }
 .hazlo-paso:hover, .hazlo-paso:focus-visible { background: #45443f; border-color: #45443f; color: #f6e7b4; }
@@ -708,9 +715,30 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .boton-enfoque[aria-pressed='true'] { background: var(--acento-fondo); color: var(--acento-texto); }
 /* En la franja del documento solo está «Salir del enfoque»: con el enfoque puesto, la cabecera queda bajo el velo */
 html:not(.enfoque) .boton-enfoque.en-lector { display: none; }
-:is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista, .director-flotante, .atajos-director) { transition: filter 0.3s, opacity 0.3s; }
-html.enfoque :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista, .director-flotante, .atajos-director) { filter: blur(3px); opacity: 0.3; pointer-events: none; user-select: none; }
-html.enfoque .lector :is(.parte-doc.cerrada, .ya-leido-doc, .entrada-doc, .leido-doc) { display: none; }
+:is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { transition: filter 0.3s, opacity 0.3s; }
+html.enfoque :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { filter: blur(3px); opacity: 0.3; pointer-events: none; user-select: none; }
+/* El director flotante y sus atajos quedan siempre encima, también del enfoque: desde la ventana del documento se
+   pregunta, se comenta o se pide la revisión sin salir de ella (sus diálogos son modales y van por encima de todo) */
+html.enfoque :is(.director-flotante, .atajos-director, .segundo-plano) { z-index: 45; }
+html.enfoque .progreso-director { z-index: 46; }
+/* En el enfoque, el tema también se cambia desde la franja de la ventana (fuera de él, está arriba, en la cabecera) */
+html:not(.enfoque) .opciones-lector .boton-tema { display: none; }
+.opciones-lector .boton-tema { min-height: 34px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.opciones-lector .boton-tema .icono { width: 17px; height: 17px; }
+/* El fondo zen detrás de la ventana: un velo del color del fondo con dos nieblas de luz muy tenue que se desplazan
+   despacio, y una luz suave que sigue al puntero con retraso por fuera de la ventana (zen.ts). Debajo de la ventana
+   (z 40) y encima de lo difuminado; no recibe clics. Sin el enfoque, no se ve ni se anima */
+.velo-zen { position: fixed; inset: 0; z-index: 35; overflow: hidden; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 0.6s ease, visibility 0s linear 0.6s; background: color-mix(in srgb, var(--fondo) 62%, transparent); --zen-a: color-mix(in srgb, var(--acento) 16%, transparent); --zen-b: rgba(120, 190, 170, 0.14); --zen-c: rgba(200, 160, 220, 0.12); --zen-luz: color-mix(in srgb, var(--acento) 14%, transparent); }
+html.oscuro .velo-zen { background: color-mix(in srgb, var(--fondo) 70%, transparent); --zen-a: color-mix(in srgb, var(--acento) 14%, transparent); --zen-b: rgba(90, 170, 150, 0.1); --zen-c: rgba(150, 120, 200, 0.1); --zen-luz: color-mix(in srgb, var(--acento) 12%, transparent); }
+html.enfoque .velo-zen { opacity: 1; visibility: visible; transition: opacity 0.6s ease; }
+.zen-niebla { position: absolute; left: -40vmax; top: -40vmax; width: 180vmax; height: 180vmax; will-change: transform;
+  background: radial-gradient(closest-side at 30% 35%, var(--zen-a), transparent), radial-gradient(closest-side at 70% 60%, var(--zen-b), transparent), radial-gradient(closest-side at 45% 75%, var(--zen-c), transparent);
+  animation: zen-deriva 70s ease-in-out infinite alternate; }
+.zen-niebla.dos { opacity: 0.8; background: radial-gradient(closest-side at 62% 30%, var(--zen-b), transparent), radial-gradient(closest-side at 28% 68%, var(--zen-a), transparent); animation: zen-deriva-dos 95s ease-in-out infinite alternate; }
+.zen-luz { position: absolute; left: 0; top: 0; width: 520px; height: 520px; border-radius: 50%; opacity: 0; will-change: transform, opacity; background: radial-gradient(closest-side, var(--zen-luz), transparent); }
+html:not(.enfoque) .velo-zen .zen-niebla { animation-play-state: paused; }
+@keyframes zen-deriva { from { transform: translate3d(-6vmax, -3vmax, 0) rotate(0deg) scale(1); } to { transform: translate3d(6vmax, 4vmax, 0) rotate(14deg) scale(1.08); } }
+@keyframes zen-deriva-dos { from { transform: translate3d(5vmax, 4vmax, 0) rotate(0deg); } to { transform: translate3d(-7vmax, -2vmax, 0) rotate(-12deg); } }html.enfoque .lector :is(.parte-doc.cerrada, .ya-leido-doc, .entrada-doc, .leido-doc) { display: none; }
 /* En el enfoque el documento es una ventana al centro, del alto que pide su contenido: si no cabe, se desplaza por
    dentro (la página no), y la franja de arriba, con «Salir del enfoque», queda siempre a la vista */
 html.enfoque, html.enfoque body { overflow: hidden; }
@@ -721,11 +749,16 @@ html.enfoque .docs > .lector { --franja-enfoque: 60px; position: fixed; inset: 2
 html.enfoque .lector .ajustes-lector { position: sticky; top: 0; z-index: 3; box-sizing: border-box; height: var(--franja-enfoque); flex-wrap: nowrap; background: var(--panel); padding: 6px 0 0; margin: 0 0 8px; }
 html.enfoque .lector .parte-doc > :is(h2, h3):first-child { top: var(--franja-enfoque); }
 html.enfoque .lector .parte-doc.por-leer { border-bottom: 0; padding-block: 4px 8px; }
-@media (max-width: 600px) { html.enfoque .docs > .lector { inset: 8px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); } }
+/* En pantallas angostas la ventana deja a la derecha un margen para los atajos y la cara del director, que siguen
+   encima del enfoque: así no tapan el texto */
+@media (max-width: 760px) { html.enfoque .docs > .lector { inset: 8px; width: calc(100vw - 84px); max-height: calc(100dvh - 16px); margin-inline: 0 auto; } }
 html.enfoque .trozo.actual { background: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .trozo.llega { animation: none; }
-  :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista, .director-flotante, .atajos-director) { transition: none; }
+  :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { transition: none; }
+  .zen-niebla { animation: none; }
+  .zen-luz { display: none; }
+  .velo-zen, html.enfoque .velo-zen { transition: none; }
 }
 @media (max-width: 600px) {
   .trozo { grid-template-columns: minmax(0, 1fr); }

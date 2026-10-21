@@ -7,6 +7,8 @@ import {
   cumpleComprobacion,
   ordenDeComprobacion,
   eleccionDe,
+  MAX_ESPERAR,
+  opcionConDetalle,
   encargoDe,
   pasoHecho,
   pasosPorComprobar,
@@ -762,6 +764,18 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     expect(con({ texto: 'Elige', opciones: ['Sí', 'sí'] })).toHaveLength(1);
     expect(con({ texto: 'Elige', opciones: ['Sí', ''] })).toHaveLength(1);
     expect(con({ texto: 'Elige', opciones: ['Sí', 'No'], hecho: { que: 'nota' } })).toHaveLength(1);
+  });
+
+  it('un paso puede pedir esperar antes de responder (la cuenta regresiva), y una opción «te cuento» abre el comentario', () => {
+    const p = planEjemplo();
+    const con = (paso: Paso) => validarPlan({ ...p, misiones: [...p.misiones, mision([paso])] }, ['titular', 'ana']);
+    expect(con({ texto: 'Espera y mira', opciones: ['Se ve', 'No se ve'], esperar: 120 })).toEqual([]);
+    expect(con({ texto: 'Espera y mira', esperar: 120 })).toHaveLength(1);
+    expect(con({ texto: 'Espera y mira', opciones: ['Se ve', 'No se ve'], esperar: 2 })).toHaveLength(1);
+    expect(con({ texto: 'Espera y mira', opciones: ['Se ve', 'No se ve'], esperar: MAX_ESPERAR + 1 })).toHaveLength(1);
+    expect(opcionConDetalle('Se ve, pero algo falla (te cuento con ✉)')).toBe(true);
+    expect(opcionConDetalle('Falló (te copio el error con ✉)')).toBe(true);
+    expect(opcionConDetalle('Se ve la animación')).toBe(false);
   });
 
   it('«Hazlo tú»: un paso encargado al director se marca solo, y validarPlan lo revisa', () => {

@@ -23,6 +23,7 @@ import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
+import { contenerRecargas } from './recarga';
 import {
   aclaracionesDe,
   agendaDe,
@@ -926,6 +927,8 @@ export function servidorDirector(): Plugin {
       const reloj = setInterval(() => void revisor?.mirar().catch(() => {}), 15_000);
       reloj.unref?.();
       server.httpServer?.on('close', () => clearInterval(reloj));
+      // Mientras el director trabaja, la página no se recarga a pedazos: una sola vez, al final (recarga.ts)
+      contenerRecargas(server, raiz, () => !!revisor?.estado().revisando);
       server.middlewares.use('/__estudio/director', async (req, res) => {
         const url = new URL(req.url ?? '/', 'http://x');
         const ruta = url.pathname.replace(/\/+$/, '') || '/';

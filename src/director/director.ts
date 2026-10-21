@@ -256,8 +256,16 @@ export interface Hecho {
  * «Abrir la terminal con esta orden», que abre una ventana nueva y la corre ahí, para no tener que buscar dónde pegarla.
  * `comprobar`: en un paso de terminal, cómo ve el Studio que salió bien (ver `Comprobacion`): al marcarlo, lo comprueba
  * en ese momento, sin modelo, y si no se cumple el paso no se marca.
+ * `esperar`: en un paso con opciones, los segundos que hay que esperar antes de responder (lo que tarda en verse un
+ * cambio publicado, por ejemplo). El Studio muestra la cuenta regresiva y deja las opciones bloqueadas hasta que pase.
  */
-export type Paso = string | { texto: string; ir?: Destino; hecho?: Hecho; detalle?: string[]; opciones?: string[]; hazlo?: string; soloTu?: string; terminal?: string; comprobar?: Comprobacion };
+export type Paso = string | { texto: string; ir?: Destino; hecho?: Hecho; detalle?: string[]; opciones?: string[]; hazlo?: string; soloTu?: string; terminal?: string; comprobar?: Comprobacion; esperar?: number };
+
+/** Lo más que un paso puede pedir esperar antes de responder: una cuenta más larga ya no es esperar, es otra misión. */
+export const MAX_ESPERAR = 900;
+
+/** Una opción que pide contar algo más («te cuento con ✉»): al elegirla, el Studio abre el comentario del paso. */
+export const opcionConDetalle = (opcion: string) => /✉|te cuento|te copio|te explico/i.test(opcion);
 
 /**
  * La comprobación de un paso de terminal: una orden de solo lectura que el Studio corre en la carpeta del proyecto
@@ -1615,6 +1623,10 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
         else if (o.length < 2 || o.length > MAX_OPCIONES) errores.push(`${donde} da ${o.length} opciones: deben ser de 2 a ${MAX_OPCIONES}.`);
         else if (new Set(o.map((x) => x.trim().toLowerCase())).size !== o.length) errores.push(`${donde} repite una opción.`);
         if (p.hecho) errores.push(`${donde} tiene opciones y \`hecho\`: con opciones se marca solo al elegir; quita el \`hecho\`.`);
+      }
+      if (p.esperar !== undefined) {
+        if (typeof p.esperar !== 'number' || !Number.isInteger(p.esperar) || p.esperar < 5 || p.esperar > MAX_ESPERAR) errores.push(`${donde} pide esperar ${p.esperar} segundos: debe ser un entero de 5 a ${MAX_ESPERAR}.`);
+        if (p.opciones === undefined) errores.push(`${donde} pide esperar sin opciones: la cuenta regresiva bloquea las opciones del paso.`);
       }
       for (const k of ['hazlo', 'soloTu'] as const) {
         const v: unknown = p[k];

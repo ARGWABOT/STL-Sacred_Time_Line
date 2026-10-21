@@ -14,8 +14,36 @@
         if (localStorage.getItem('estudio.lateral') === 'plegada') h.classList.add('lateral-plegada');
       } catch {}
     </script>
+    <!-- La cubierta de carga, aquí y no en los estilos: se ve desde el primer instante, nunca el Studio a medio cargar -->
+    <style>
+      .cubierta-carga { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; background: #f7f3ea; color: #3b3a36; transition: opacity .35s ease; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      html.oscuro .cubierta-carga { background: #16161a; color: #e9e4d6; }
+      .cubierta-carga[hidden] { display: none; }
+      .cubierta-carga.saliendo { opacity: 0; pointer-events: none; }
+      .cubierta-centro { display: grid; justify-items: center; gap: 18px; padding: 24px; text-align: center; }
+      .cubierta-logo { font-weight: 800; letter-spacing: .12em; font-size: 22px; padding: 10px 16px; border-radius: 14px; background: #2a2926; color: #f5d27a; }
+      html.oscuro .cubierta-logo { background: #f5d27a; color: #16161a; }
+      .cubierta-linea { position: relative; width: min(260px, 60vw); height: 14px; }
+      .cubierta-linea::before { content: ''; position: absolute; left: 0; right: 0; top: 6px; height: 2px; border-radius: 2px; background: currentColor; opacity: .18; }
+      .cubierta-linea i { position: absolute; top: 2px; left: 0; width: 10px; height: 10px; border-radius: 50%; background: #d9a92e; box-shadow: 0 0 10px #f5d27a; animation: cubierta-paso 2.4s cubic-bezier(.45, 0, .25, 1) infinite; }
+      .cubierta-linea i:nth-child(2) { animation-delay: .8s; }
+      .cubierta-linea i:nth-child(3) { animation-delay: 1.6s; }
+      @keyframes cubierta-paso { 0% { left: 0; opacity: 0; transform: scale(.6); } 15% { opacity: 1; transform: scale(1); } 85% { opacity: 1; transform: scale(1); } 100% { left: calc(100% - 10px); opacity: 0; transform: scale(.6); } }
+      .cubierta-texto { margin: 0; font-size: 15px; opacity: .8; min-height: 1.4em; }
+      .cubierta-ya { font: inherit; font-size: 14px; font-weight: 600; padding: 6px 18px; border-radius: 999px; border: 1px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+      .cubierta-ya[hidden] { display: none; }
+      @media (prefers-reduced-motion: reduce) { .cubierta-linea i { animation: none; } .cubierta-linea i:nth-child(1) { left: 0; } .cubierta-linea i:nth-child(2) { left: calc(50% - 5px); } .cubierta-linea i:nth-child(3) { left: calc(100% - 10px); } .cubierta-carga { transition: none; } }
+    </style>
   </head>
   <body>
+    <div class="cubierta-carga" id="cubierta-carga" role="status" aria-live="polite">
+      <div class="cubierta-centro">
+        <span class="cubierta-logo" aria-hidden="true">STL</span>
+        <div class="cubierta-linea" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="cubierta-texto" id="cubierta-texto">Abriendo el Studio…</p>
+        <button type="button" class="cubierta-ya" hidden>Actualizar ya</button>
+      </div>
+    </div>
     <div class="app">
       <!-- La barra lateral: el proyecto activo, sus secciones (las pinta director.ts) y quién usa el Studio -->
       <aside class="lateral" id="lateral" aria-label="El Studio">

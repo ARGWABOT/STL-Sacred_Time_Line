@@ -34,6 +34,7 @@ import {
   nivelDe,
   NIVELES,
   notaFoco,
+  opcionConDetalle,
   partesDeDocumento,
   pasosVistos,
   pendientesDelDirector,
@@ -81,6 +82,7 @@ import { Adjuntos } from './adjuntos';
 import { activarRecorrido, paginaSTL, restaurarParada } from './stl';
 import { clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
 import { marcarTrabajando, pantallaTrabajando, sonarTermino, trabajandoGuardado, tituloTermino } from './trabajando';
+import './zen';
 import { celebracion, destinoDeMision, logrosDe } from '../../src/director/animo';
 
 cerrarConClicFuera();
@@ -286,6 +288,9 @@ async function cargar(fresco = false) {
   if ('sinProyectos' in nuevo) return pintarBienvenida(nuevo);
   // Con algo guardándose (o mandado a guardar mientras llegaba esto), lo de aquí es lo más nuevo: no se deshace
   if (d && d.activo === nuevo.activo && (enVuelo > 0 || marca !== cambiosLocales)) nuevo.estado = d.estado;
+  // Mientras el director trabaja, lo que va escribiendo en el plan no se pinta a pedazos (te movería lo que lees): llega
+  // todo junto al terminar
+  if (d && d.activo === nuevo.activo && directorTrabaja(nuevo)) nuevo.plan = d.plan;
   document.body.classList.remove('sin-proyectos');
   // Otro proyecto: lo abierto del anterior no sirve
   if (d && d.activo !== nuevo.activo) {
@@ -327,6 +332,8 @@ async function cargar(fresco = false) {
     // El sonido, antes de recargar: después de la recarga el navegador ya no deja sonar sin un clic
     if (sonarTermino()) sessionStorage.setItem(CLAVE_SONO, '1');
     recargarTrasRevision();
+    // La recarga ya viene, con su cuenta: no se pinta lo nuevo dos veces
+    return;
   }
   sincronizarPasos();
   darDatosDirector(d);
@@ -346,19 +353,104 @@ async function cargar(fresco = false) {
 const CLAVE_TERMINO = 'estudio.revision_terminada';
 const CLAVE_SONO = 'estudio.revision_terminada.sono';
 let esperaRecarga: ReturnType<typeof setInterval> | null = null;
+/** Al terminar la revisión, una sola recarga, anunciada con su cuenta (así se ve lo nuevo, también el código del Studio). */
 function recargarTrasRevision() {
+  sessionStorage.setItem(CLAVE_TERMINO, '1');
+  recargarConCuenta('El director terminó la revisión.');
+}
+
+/** ¿El director trabaja ahora en este proyecto? (una revisión empezada o lanzada, o una aclaración o urgencia lanzadas) */
+function directorTrabaja(x: Datos): boolean {
+  const r = x.revision;
+  const corriendo = (y: { lanzada?: string; hecha?: string; error?: string } | null | undefined) => !!y && !!y.lanzada && !y.hecha && !y.error;
+  return (!!r && !r.hecha && !r.error && !!(r.enCurso || r.lanzada)) || corriendo(x.aclaracion) || corriendo(x.urgencia);
+}
+
+const SEGUNDOS_CUENTA = 3;
+const cargadaEn = Date.now();
+
+/**
+ * La única recarga: la cubierta de carga a pantalla completa, con su cuenta de tres segundos y «Ya», y después la
+ * recarga (que vuelve a mostrar la cubierta hasta que el Studio esté pintado). Con algo a medio escribir o grabando,
+ * espera a que quede libre. Con `reinicio`, el servidor del Studio se reinicia: la página se recarga cuando vuelva.
+ */
+function recargarConCuenta(motivo: string, reinicio = false) {
   if (esperaRecarga) return;
-  const intentar = () => {
+  const empezar = () => {
     if (ocupado()) return false;
-    sessionStorage.setItem(CLAVE_TERMINO, '1');
-    location.reload();
+    if (esperaRecarga) clearInterval(esperaRecarga);
+    esperaRecarga = setTimeout(() => {}, 0);
+    let falta = SEGUNDOS_CUENTA;
+    const texto = () => `${motivo} El Studio se actualiza en ${falta}…`;
+    mostrarCubierta(texto(), reinicio ? undefined : () => recargarYa());
+    const cuenta = setInterval(() => {
+      falta -= 1;
+      if (falta > 0) return void ponerTextoCubierta(texto());
+      clearInterval(cuenta);
+      ponerTextoCubierta('Actualizando el Studio…');
+      if (reinicio) void esperarAlServidor();
+      else recargarYa();
+    }, 1000);
     return true;
   };
-  // Un momento, para que el sonido alcance a oírse antes de recargar
+  // Un momento, para que el sonido alcance a oírse antes de empezar
   esperaRecarga = setTimeout(() => {
-    if (!intentar()) esperaRecarga = setInterval(intentar, 2000);
+    esperaRecarga = null;
+    if (!empezar()) esperaRecarga = setInterval(() => void empezar(), 2000);
   }, 900);
 }
+
+function recargarYa() {
+  location.reload();
+}
+
+/** El servidor se reinicia: se espera a que se vaya y vuelva (o, si nunca se fue, un momento) y se recarga una vez. */
+async function esperarAlServidor() {
+  let seFue = false;
+  const inicio = Date.now();
+  while (Date.now() - inicio < 60_000) {
+    await new Promise((listo) => setTimeout(listo, 1500));
+    const vivo = await fetch('/', { method: 'HEAD', cache: 'no-store' }).then(() => true, () => false);
+    if (!vivo) seFue = true;
+    else if (seFue || Date.now() - inicio > 12_000) return recargarYa();
+  }
+  recargarYa();
+}
+
+/** La cubierta de carga (está en index.html desde el primer momento): se quita cuando el Studio ya está pintado. */
+function quitarCubierta() {
+  const c = document.getElementById('cubierta-carga');
+  if (!c || c.classList.contains('en-cuenta')) return;
+  c.classList.add('saliendo');
+  setTimeout(() => c.setAttribute('hidden', ''), 380);
+}
+
+function mostrarCubierta(texto: string, ya?: () => void) {
+  const c = document.getElementById('cubierta-carga');
+  if (!c) return;
+  c.removeAttribute('hidden');
+  c.classList.remove('saliendo');
+  c.classList.add('en-cuenta');
+  ponerTextoCubierta(texto);
+  const b = c.querySelector<HTMLButtonElement>('.cubierta-ya');
+  if (b) {
+    b.hidden = !ya;
+    b.onclick = ya ? () => ya() : null;
+    if (ya) b.focus();
+  }
+}
+
+function ponerTextoCubierta(texto: string) {
+  const t = document.getElementById('cubierta-texto');
+  if (t) t.textContent = texto;
+}
+
+// El servidor retuvo los cambios del Studio mientras el director trabajaba (estudio/servidor/recarga.ts): ahora, una
+// sola recarga. Si la página es de hace un momento, ya los trae: no hace falta
+import.meta.hot?.on('estudio:recargar', (x?: { reinicio?: boolean }) => {
+  if (!x?.reinicio && Date.now() - cargadaEn < 10_000) return;
+  recargarConCuenta('El director terminó.', !!x?.reinicio);
+});
 
 /** El director terminó: un aviso grande, el sonido (si no sonó ya antes de recargar) y el título de la pestaña. */
 function avisarTermino() {
@@ -1608,19 +1700,57 @@ function listaPasos(m: Mision) {
 
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? botonIr(p.ir) : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i)) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? botonIr(p.ir) : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
 }
 
 /**
  * Un paso que pide elegir (sí o no, una de pocas): las opciones como botones, en el paso mismo. Un clic deja la
- * elección en el Buzón, firmada, y el paso se marca solo; para otra respuesta está el ✉ del paso.
+ * elección en el Buzón, firmada, y el paso se marca solo; para otra respuesta está el ✉ del paso. Si el paso pide
+ * esperar (`esperar`: lo que tarda en verse un cambio), las opciones quedan bloqueadas con su cuenta regresiva, para no
+ * responder antes de tiempo; la cuenta empieza la primera vez que el paso se ve en este navegador.
  */
-function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean): string {
+function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean, esperar?: number): string {
   const elegida = eleccionDe(d.estado.notas, m.id, i, m.para)?.sobre.eleccion;
   if (elegida) return `<p class="eleccion-paso">${icono('check')} Elegiste: <b>${esc(elegida)}</b></p>`;
   if (hecho || d.identidad.rol !== m.para) return '';
-  return `<div class="opciones-paso" role="group" aria-label="Elige una opción">${opciones.map((o, k) => `<button type="button" class="boton-opcion" data-elegir="${esc(m.id)}|${i}|${k}">${esc(o)}</button>`).join('')}</div>`;
+  const hasta = esperar ? inicioEspera(`${m.id}|${i}`) + esperar * 1000 : 0;
+  const bloqueadas = hasta > Date.now();
+  const cuenta = bloqueadas
+    ? `<p class="espera-paso" role="timer" aria-live="off" data-hasta="${hasta}">${icono('reloj')} <span>Espera <b class="cifra">${mmss(hasta - Date.now())}</b> antes de responder: es lo que tarda en verse el cambio.</span></p>`
+    : '';
+  return `${cuenta}<div class="opciones-paso${bloqueadas ? ' en-espera' : ''}" role="group" aria-label="Elige una opción">${opciones.map((o, k) => `<button type="button" class="boton-opcion" data-elegir="${esc(m.id)}|${i}|${k}"${bloqueadas ? ' disabled' : ''}>${esc(o)}</button>`).join('')}</div>`;
 }
+
+/** Cuándo empezó a contar la espera de un paso en este navegador (la primera vez que se vio). */
+function inicioEspera(clave: string): number {
+  const k = `estudio.espera.${clave}`;
+  const guardado = Number(localStorage.getItem(k));
+  if (guardado > 0) return guardado;
+  const ahora = Date.now();
+  localStorage.setItem(k, String(ahora));
+  return ahora;
+}
+
+const mmss = (ms: number) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
+
+// La cuenta regresiva de los pasos que piden esperar: se actualiza en su sitio, sin repintar lo que estás leyendo, y al
+// llegar a cero desbloquea las opciones
+setInterval(() => {
+  for (const p of document.querySelectorAll<HTMLElement>('.espera-paso[data-hasta]')) {
+    const falta = Number(p.dataset.hasta) - Date.now();
+    if (falta > 0) {
+      p.querySelector('.cifra')!.textContent = mmss(falta);
+      continue;
+    }
+    const grupo = p.nextElementSibling;
+    grupo?.classList.remove('en-espera');
+    grupo?.querySelectorAll('button[disabled]').forEach((b) => b.removeAttribute('disabled'));
+    p.outerHTML = `<p class="espera-paso lista">${icono('check')} <span>Listo: ya puedes responder.</span></p>`;
+  }
+}, 1000);
 
 /**
  * La orden de terminal de un paso: a la vista, con «Copiar» y, para quien tiene la misión, «Abrir la terminal con esta
@@ -2330,6 +2460,7 @@ function ajustesLector(ruta: string) {
   return `<div class="ajustes-lector">${leidoDoc(ruta)}
     <div class="opciones-lector" role="group" aria-label="Cómo leer">
       ${botonEnfoque('lector')}
+      ${botonTema()}
       <span class="tamanos-letra">${LETRAS.map((t, i) => `<button type="button" class="tamano-letra t${i}${i === letra ? ' sel' : ''}" data-letra="${i}" aria-pressed="${i === letra}" title="${t}">A</button>`).join('')}</span>
     </div>
   </div>`;
@@ -2348,7 +2479,11 @@ document.addEventListener('click', (e) => {
   if (!b) return;
   localStorage.setItem('estudio.tema', temaOscuro() ? 'claro' : 'oscuro');
   aplicarTema();
-  b.outerHTML = botonTema();
+  // Hay uno arriba y otro en la ventana del enfoque: los dos cambian de icono, y el foco se queda en el que se tocó
+  const todos = [...document.querySelectorAll<HTMLElement>('[data-tema]')];
+  const cual = todos.indexOf(b);
+  todos.forEach((x) => (x.outerHTML = botonTema()));
+  document.querySelectorAll<HTMLElement>('[data-tema]')[cual]?.focus();
 });
 
 /** Los pasos de las misiones abiertas de alguien (tú, si no se dice) que piden leer este documento entero (no una parte suya, que suele pedir decidir). */
@@ -3441,8 +3576,26 @@ async function clicEnVista(b: HTMLButtonElement) {
     const p = d.plan.misiones.find((x) => x.id === id)?.pasos[Number(i)];
     const eleccion = p && typeof p !== 'string' ? p.opciones?.[Number(k)] : undefined;
     if (!eleccion || esperaAlDirector()) return;
+    // Una opción que promete contar más («te cuento con ✉») abre ahí mismo el comentario: la elección y lo que cuentas
+    // van juntos en una sola nota. Si cierras sin escribir, no se elige nada y el paso sigue abierto
+    let detalle: Awaited<ReturnType<typeof pedir>> = null;
+    if (opcionConDetalle(eleccion)) {
+      detalle = await pedir({
+        titulo: `Elegiste «${eleccion.replace(/\s*\([^)]*\)\s*$/, '')}»: cuéntale al director`,
+        ayuda: 'Lo que viste, escrito o en audio (también puedes pegar una captura). Va al Buzón junto con tu elección, y el paso queda hecho.',
+        campos: [{ id: 'texto', etiqueta: 'Qué pasó', tipo: 'area' }],
+        boton: 'Enviar al director',
+        audio: true,
+        adjuntos: true,
+      });
+      if (!detalle) return;
+    }
     b.setAttribute('disabled', '');
-    if (!(await accion({ tipo: 'comentar', sobre: { tipo: 'mision', id, seccion: seccionPaso(Number(i)), eleccion } }, `Elegiste «${eleccion}»: quedó en el Buzón para el director.`))) b.removeAttribute('disabled');
+    const sobre = { tipo: 'mision' as const, id, seccion: seccionPaso(Number(i)), eleccion };
+    const hecho = detalle
+      ? await accion({ tipo: 'comentar', sobre, texto: detalle.texto ?? '', audio: detalle.audio, ...(detalle.adjuntos?.length ? { adjuntos: detalle.adjuntos } : {}) }, `Elegiste «${eleccion}» y se lo contaste: quedó en el Buzón para el director.`)
+      : await accion({ tipo: 'comentar', sobre }, `Elegiste «${eleccion}»: quedó en el Buzón para el director.`);
+    if (!hecho) b.removeAttribute('disabled');
   } else if (ds.hazlo) {
     // «Hazlo tú»: primero, qué hará el director; con el segundo clic, el encargo queda en el Buzón y el paso se marca solo.
     // No se ejecuta ahora: lo hace en su revisión siguiente
@@ -3692,7 +3845,27 @@ window.addEventListener('resize', medirCabeza);
 new ResizeObserver(medirCabeza).observe($('mando'));
 
 // El director flotante (equipo.ts) lleva al siguiente pendiente
-window.addEventListener('estudio:ir', (e) => { if (d) void ir((e as CustomEvent<Destino>).detail); });
+window.addEventListener('estudio:ir', (e) => { if (d) void irDesdeLaCara((e as CustomEvent<Destino>).detail); });
+/**
+ * La cara del director sigue a mano en el modo enfoque. Si lo que toca es justo lo que se está leyendo (el mismo
+ * documento y, si nombra una parte, la que está abierta), se queda en el enfoque y vuelve a centrar la idea; si es otra
+ * cosa, primero pregunta si salir del enfoque, y solo con un sí lo apaga y lleva.
+ */
+async function irDesdeLaCara(dest: Destino) {
+  if (enfoque && document.documentElement.classList.contains('enfoque')) {
+    const abiertas = [...document.querySelectorAll<HTMLElement>('.lector .parte-doc:not(.cerrada)')].map((p) => p.dataset.parte ?? '');
+    if (dest.doc && dest.doc === doc?.ruta && (!dest.seccion || abiertas.includes(dest.seccion))) return centrarIdea();
+    const ok = await confirmar({
+      titulo: '¿Salir del modo enfoque?',
+      texto: `El director te lleva a «${dest.etiqueta || 'tu siguiente pendiente'}», que no es lo que lees ahora. Lo que ya marcaste queda guardado.`,
+      boton: 'Salir y llevarme',
+      cancelar: 'Seguir en el enfoque',
+    });
+    if (!ok) return;
+    ponerEnfoque(false);
+  }
+  return ir(dest);
+}
 alCambiarVista(() => { if (d) pintar(); });
 // Los gráficos de «Qué es STL» se amplían en pantalla completa
 activarRecorrido();
@@ -3708,6 +3881,7 @@ if (trabajandoGuardado()) $('vista').innerHTML = pantallaTrabajando();
 const cargarAlArrancar = (intentos = 0): Promise<void> =>
   cargar().catch((e) => {
     if (!trabajandoGuardado() || intentos >= 60) throw e;
+    quitarCubierta();
     $('vista').innerHTML = pantallaTrabajando();
     return new Promise<void>((listo) => setTimeout(listo, 3000)).then(() => cargarAlArrancar(intentos + 1));
   });
@@ -3737,7 +3911,11 @@ cargarAlArrancar()
   })
   .catch((e) => {
     $('vista').innerHTML = `<p class="aviso remoto">No se pudo cargar el Director: ${esc((e as Error).message)}</p>`;
-  });
+  })
+  // La cubierta de carga sale cuando el Studio ya está pintado entero (nunca se ve a medio cargar)
+  .finally(() => requestAnimationFrame(quitarCubierta));
+// Por si algo se queda colgado: la cubierta nunca tapa el Studio más de 20 segundos
+setTimeout(quitarCubierta, 20_000);
 // Lo que dice el director cambia mientras se trabaja: se relee al volver
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && d && !ocupado()) cargar(true).catch(() => undefined);

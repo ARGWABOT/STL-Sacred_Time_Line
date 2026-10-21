@@ -1,0 +1,2102 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boceto · La línea del proyecto</title>
+<!-- Boceto del director (STL Studio, 19 de octubre de 2026; sexta versión, con lo que pidió el titular al ver la quinta:
+     la línea del proyecto va abajo y las ramas salen hacia arriba y luego vagan; cada rama es una frase del desarrollador
+     («hazlo verde», «nuevo feature», «trabaja en el front»…) y no una «sesión 2»; el desarrollador tiene su figura y es
+     quien mueve la línea y abre las ramas, cada vez más despacio entre más se bifurca, desde la tercera parte de la
+     fase 1. Con STL, cada rama intenta tender su hilo hacia el modelo y el Studio la atrapa antes de que llegue. Hay tres
+     paradas: la primera, normal; la segunda, una urgencia, que el Studio le lleva al director al instante; la tercera,
+     normal otra vez, y en ella el director da dos misiones y después la misión final). En la urgente, el Studio le
+     entrega al director solo la urgencia, el director le devuelve al Studio la misión urgente, y lo demás espera en el
+     Studio, completo, a la revisión siguiente (nota de voz del titular al ver la sexta). Séptima versión, con lo que
+     pidió al ver la sexta: el desarrollador va siempre a su mismo paso y nunca se apura para llegar a la revisión;
+     cuando termina sus misiones se detiene, y es ahí cuando el Studio se acomoda rápido y llama al director. La
+     urgencia ya no lo detiene: el Studio se la lleva sola al director, que aparece aislado (todo lo demás se oscurece),
+     la resuelve, le devuelve el resultado al Studio y el Studio se lo trae como reporte («Dónde quedamos»), con una
+     sola misión: revisar el resultado. Por eso ahora son dos paradas y una urgencia. Octava versión, con lo que pidió
+     al ver la séptima: el desarrollador es un cubito con carita; los subtítulos cuentan lo que hace el Studio de verdad
+     (recibe, guarda y organiza lo que le dejas, y se lo entrega al director), sin narrar el dibujo al pie de la letra;
+     sin STL, cada rama lleva en su punta un rótulo de su color, con letra blanca, que la sigue y cambia de frase, y la
+     rama más nueva queda encima; con STL, la urgencia sí te detiene, se resuelve rápido y te deja primero una misión
+     roja, «revisa lo urgente»; las fases se marcan solo con su rayita; el modelo tiene su icono; sin leyenda de colores;
+     y lo que el director descarta o reformula se ve. Novena versión, con lo que pidió al ver la octava: sin STL, las
+     ramas brotan un poco más despacio, ninguna se sale del cuadro (al llegar al borde dan vueltas), llenan la pantalla
+     hacia la derecha y todas llevan su rótulo que cambia; con STL, el Studio es una barrera (un guardrail) que filtra lo
+     que pides antes de que llegue al modelo, y lo filtra con el director, que vive dentro del Studio: el Studio lo saca
+     y lo pone entre él y el modelo. La urgencia llega en cámara lenta; el Studio deja de recoger, la toma, se aparta con
+     ella y se ve más grande; saca al director, le entrega solo la urgencia, el director la resuelve con el modelo y le
+     devuelve el resultado; el Studio te trae primero la misión roja, vuelve a poner en orden las que venían y sigue
+     recogiendo lo que había dejado. El modelo tiene carita, y los rótulos de la línea no se enciman. Décima versión,
+     con lo que pidió al ver la novena: con STL todo va más despacio, para alcanzar a leer; la urgencia es lo último que
+     el Studio recoge y, en cuanto la atrapa, se acerca la cámara; y la entrega de su resultado también va en cámara
+     lenta, antes de que el Studio siga recogiendo. Undécima versión, con lo que pidió al ver la décima: una perilla, como
+     la del volumen de una radio, para mover la animación (a la derecha adelanta, a la izquierda vuelve; en el centro,
+     pausa o sigue); la escena se calcula en pasos fijos y con su propia semilla al azar, así que volver atrás es volver
+     a calcularla igual hasta ese punto, y adelantar es calcularla rápido (sin cámara lenta). La cámara lenta dura más y
+     sus franjas negras son más anchas; sin STL, las ramas cambian de dirección con menos frecuencia; y los fundidos ya
+     no dejan ver el cuadro del canvas (borran el dibujo en vez de pintarlo de oscuro). Duodécima versión, con lo que
+     pidió al ver la undécima: arriba solo «¿Qué es STL?»; la perilla, más grande, en la esquina de arriba a la derecha,
+     con una sola pista; sin las cifras de abajo con STL; junto al modelo, un contador de tokens, que sin STL se dispara
+     con cada rama y con STL solo sube cuando habla el director; sin STL, cada rama es una conversación graciosa pero
+     real (sube tu pedido, baja la respuesta del modelo); con STL, primero le entregas tu meta al Studio, que se la da al
+     director; las ramas brotan más seguido, con rótulos de su color; la urgencia brota en un claro, su hilo se llena
+     rápido y el Studio va derecho a ella; sin franjas negras; la entrega de la solución de la urgencia va en cámara
+     lenta y su marca en la línea pasa de roja a verde con un chulito; y se descartan una o dos ideas por revisión, con
+     un tarrito de basura. Decimotercera versión, con lo que pidió al ver la duodécima: la perilla pasa de una escena
+     a la otra sin cortes, hacia adelante y hacia atrás, como si fueran una sola; los subtítulos se ven siempre, aunque
+     la perilla gire rápido, y no narran el dibujo al pie de la letra; sin STL, cada rama es una sesión que abres
+     aparte (no cada pedido); y arriba a la izquierda, tu carita de cerca con la atención que te pide el proyecto: sin
+     STL sube con cada sesión hasta agotarte (ojos en X); con STL sube despacio con tus ideas y vuelve a cero cuando el
+     director te devuelve una misión. Decimocuarta versión, con lo que pidió al ver la decimotercera: tu cubito de la
+     línea tiene la misma carita que el de cerca; con STL, tu atención baja cada vez que el Studio recoge una idea
+     (al soltarla, ya no la cargas); lo que espera su fase se reparte a lo largo de las misiones siguientes; la urgencia
+     es un «¡cambio urgente!» (nunca una falla en producción), no tiende hilo al modelo y el Studio va rápido a atraparla
+     por la cabeza; su revisión es la misión que tocaba (4, y las demás se corren); el último tramo va más rápido; los
+     subtítulos son más cortos y ninguno se va antes de alcanzar a leerlo (o a contarlo un narrador): si hace falta, la
+     escena se frena; y todo cabe en la pantalla, sin desplazarse: el título arriba a la izquierda, los tokens arriba a
+     la derecha, la perilla abajo a la derecha, y en un teléfono vertical se ve acostado. Decimoquinta versión, con lo
+     que pidió al ver la decimocuarta: el título dice «¿Qué es STL?: El guardrail donde más hacía falta, en el Dev»; los
+     subtítulos sin STL, con sus palabras (el reenvío del mismo contexto multiplica los tokens, «¿cuándo llegas a la meta? No lo sabemos»); sin STL te agotas un poco más tarde y,
+     entre más cansado, más despacio avanzas; con STL le entregas al Studio tu proyecto y tu meta; el Studio es el que
+     va y atrapa: visita cada cabecita (la de cada ramita también) y esa parte desaparece en el instante en que la
+     atrapa, sin que nada vuele hacia él; si el hilo hacia el modelo ya tiene sus cuatro o cinco rayitas, atrapa la punta
+     del hilo, y si no, la cabecita; y más liviano (sin sombras difusas, menos píxeles en pantallas muy densas y menos
+     brillos dobles en las ramas finas). Decimoséptima versión, con lo que pidió al ver la decimosexta: con STL, las
+     ramas ya no tienden hilo hacia el modelo; solo nacen, con sus cabecitas, y el Studio siempre atrapa cabecitas,
+     nunca puntas de hilo. Con lo que pidió al ver la decimoctava: la revisión ya no espera a que termines tus
+     misiones; puedes detenerte y pedirla en cualquier momento, y el Studio organiza con el método todo lo que dejaste
+     (ideas, comentarios, decisiones y entregas) antes de llevárselo al director. Con lo que pidió al ver la
+     decimonovena (20 de octubre): con STL, las ramas brotan más seguido y más dispersas; el Studio las deja
+     dispersarse un rato antes de ir por ellas y, cuando va, va más rápido; y todo lo de la línea (misiones, paradas y
+     el cambio urgente) queda a la misma distancia, sin amontonarse al final ni dejar tramos vacíos. Con lo que
+     pidió después (20 de octubre): sin cámara lenta en ninguna parte; la escena ya nunca se detiene a esperar un
+     subtítulo (si uno va atrasado, el siguiente se muestra un poco antes); y cuando el Studio termina de recoger, va
+     rápido y fluido hasta donde le entrega todo al director. Con lo que pidió al ver esa (20 de octubre): sin «ponle
+     sonido» en ninguna rama, y ninguna orden al modelo dentro de los subtítulos (solo en las ramas); un reloj con lo
+     que dura toda la historia y en qué segundo va; los subtítulos, en líneas cortas que cambian, y cada momento de la
+     escena dura lo que tardan en leerse las suyas (lo que pasa en el dibujo va al ritmo del texto); la misión 4,
+     «revisa lo urgente», con más espacio a su alrededor y sin ramas encima; y lo que espera su fase, solo sus
+     bolitas, sin rótulo (lo cuenta el subtítulo). Con lo que pidió después (20 de octubre): la escena sin STL dura
+     menos de un minuto; sus subtítulos ya no dicen que las sesiones chocan y se contradicen ni que te agotas (lo
+     cuenta tu carita), y lo que se repetía quedó dicho una sola vez. Con el guion nuevo del titular (20 de octubre):
+     los subtítulos son los suyos, apenas pulidos, y cada cosa pasa con su frase (las ramas sin STL brotan con «Abres
+     otra sesión» y «Después otra, y otra, y otra»; en el inicio, tu meta, el director, la ruta y las misiones llegan
+     cada una con la suya; el director usa el modelo desde que organiza, y del todo con «y usa el modelo para ejecutarlo»); una pausa
+     dramática antes del cambio urgente; la segunda revisión cuenta el ciclo entero; y cada misión completada se
+     celebra con un brinco de tu cubito y confeti. Con sus notas de voz al verla (20 de octubre): sin la línea de la
+     dispersión de la atención (irá en otra parte de la documentación) y con un cierre más corto antes de pasar a la
+     escena con STL; sin anunciar la segunda revisión («Y así se repite el ciclo:» sigue de corrido); el director se
+     conecta con el modelo en cuanto el Studio le entrega lo recogido (un hilo tenue mientras organiza, que se enciende
+     al hacer el pedido; solo se ve, sin subtítulo); cada misión completada se celebra con un brinco alto, una sacudida
+     y serpentinas alrededor, y en la meta tu cubito celebra en bucle; y el reloj cuenta siempre el video completo (sin
+     STL más con STL), aunque se elija una escena con el interruptor. Con sus notas de voz siguientes (20 de
+     octubre): la revisión dice «ideas, ajustes o comentarios»; al celebrar una misión, tu cubito se detiene, brinca
+     en su sitio y solo al caer sigue andando, y cada celebración dura la mitad; en el acercamiento de la urgencia ya
+     no hay recuadro rojo punteado ni su tinte rojo ni su texto: lo que pasa se dice junto a cada actor; y la línea da
+     más espacio del cambio urgente a la misión 8 (ahí se resuelve la urgencia y se retoma con «revisa lo urgente») y
+     menos a las misiones 8, 9 y final, que solo marcan el cierre. Con sus dos notas de voz de la tarde (20 de
+     octubre): al caer del brinco, tu cubito da un solo rebotito y sigue (sin temblor), las serpentinas son la mitad de
+     largas y la celebración dura un 20 % menos; en la meta, la celebración se repite más espaciada y la palabra
+     «Meta» se apaga al llegar, para que no se encime con tu cubito; y tu cubito se llama «tú» en las dos escenas,
+     con la etiqueta un poco más abajo. Con sus notas de voz de la noche (20 de octubre): todo rótulo del dibujo empieza
+     con mayúscula («Tokens gastados», «Atención requerida», «El modelo», «Tú»…; los subtítulos que siguen una frase no,
+     porque son su continuación); el cambio urgente es un solo punto, sin ramitas, y el Studio no guarda nada rojo
+     mientras el director lo atiende; al volver, el Studio solo devuelve su resultado: las misiones que venían se corren
+     por la línea, sin luces que salgan de él; dos segundos menos de pausa antes del cambio urgente y un tramo un poco
+     más rápido después de «poniéndote de nuevo en la ruta más óptima»; y el Studio nunca se queda quieto, ni siquiera
+     cuando te trae el resultado. Con su nota de voz de la noche, más tarde (20 de octubre): el tramo de las misiones
+     4 a 7, después del cambio urgente, dura la mitad (era repetitivo: solo se te veía avanzar y abrir ramas), y sus
+     ideas brotan más juntas, para llegar antes a «Y así se repite el ciclo». Con lo que pidió para la portada de la
+     página pública (20 de octubre): la animación ya no arranca sola: espera detenida en su primer cuadro, con el botón
+     del centro latiendo y «Iniciar la presentación» a su lado; la primera vez, una bienvenida la inicia; la rueda del
+     ratón sobre la escena la recorre como la perilla (hacia abajo adelanta, hacia arriba devuelve) y el clic de la
+     rueda la pausa o la sigue. Dibujado en un canvas que se
+     repinta entero en cada cuadro. No es parte del producto: solo muestra la idea. Un solo archivo, sin librerías:
+     se abre con doble clic o desde el Studio encendido. -->
+<style>
+  :root { color-scheme: dark; }
+  /* Todo cabe en la pantalla, sin desplazarse: el tamaño lo calcula disponer() (--ancho, --letra) */
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body {
+    background: radial-gradient(ellipse at 50% 42%, #141a2e 0%, #07090f 72%);
+    color: #e9e6dc; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  #todo {
+    --ancho: 1000px; --letra: 16px;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; transform-origin: top left; box-sizing: border-box;
+    padding: 8px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  }
+  /* Arriba: el título a la izquierda y el interruptor a la derecha */
+  header { width: var(--ancho); display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+  h1 { justify-self: start; font-size: clamp(15px, calc(var(--ancho) / 50), 22px); line-height: 1.25; margin: 0; font-weight: 600; color: #f5d27a; letter-spacing: .02em; }
+  h1 span { font-weight: 500; color: #fff1c4; }
+  /* El interruptor: el mismo proyecto, sin STL y con STL */
+  #modos {
+    justify-self: end; display: inline-flex; padding: 3px; border-radius: 999px;
+    background: rgba(12, 15, 26, .92); box-shadow: inset 0 0 0 1px rgba(245, 210, 122, .25), 0 4px 16px rgba(0, 0, 0, .4);
+  }
+  #modos button {
+    font: inherit; font-size: 14px; color: #b9b4a6; background: none; border: 0; border-radius: 999px;
+    padding: 6px 18px; cursor: pointer; transition: background .2s, color .2s;
+  }
+  #modos button[aria-pressed="true"] { background: #f5d27a; color: #1a1f33; font-weight: 600; }
+  #modos button:focus-visible { outline: 2px solid #fff6d8; outline-offset: 2px; }
+  #escena { position: relative; width: var(--ancho); flex: none; }
+  canvas { width: 100%; aspect-ratio: 1000 / 460; display: block; }
+  /* Los subtítulos: narran la historia mientras pasa */
+  #estado {
+    min-height: 2.9em; width: min(800px, var(--ancho)); padding: 8px 18px; box-sizing: border-box; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--letra); line-height: 1.4; color: #fff6e0; text-align: center;
+    background: rgba(4, 6, 12, .62); border-radius: 10px; box-shadow: 0 0 24px rgba(0, 0, 0, .35);
+    transition: opacity .22s;
+  }
+  #estado.cambia { opacity: 0; }
+  #cuenta { min-height: 1.4em; font-size: 12px; color: #8f8a7d; text-align: center; padding: 0 20px; flex: none; }
+  /* La perilla: se gira como el volumen de una radio; en el centro, pausa o sigue. Abajo a la derecha, donde termina
+     la línea del tiempo, y crece o se achica con el dibujo */
+  #mando {
+    position: absolute; right: .6%; bottom: 2.5%; width: 11%; z-index: 3;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  #perilla {
+    position: relative; width: 100%; aspect-ratio: 1; flex: none; border-radius: 50%;
+    touch-action: none; cursor: grab; outline: none; -webkit-tap-highlight-color: transparent;
+  }
+  #perilla.gira { cursor: grabbing; }
+  #perilla:focus-visible { box-shadow: 0 0 0 2px #fff6d8; }
+  #perilla svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .55)); }
+  #perilla #aro { transition: opacity .25s; opacity: 0; }
+  #perilla.gira #aro, #perilla:hover #aro { opacity: 1; }
+  #pausa {
+    position: absolute; left: 50%; top: 50%; width: 37%; height: 37%; margin: 0; padding: 0; transform: translate(-50%, -50%);
+    border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+    background: radial-gradient(circle at 40% 32%, #fff0c2, #e8b955 62%, #a07728);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 1px rgba(255, 255, 255, .65), inset 0 -2px 3px rgba(90, 60, 10, .35);
+    transition: transform .12s, box-shadow .2s;
+  }
+  #pausa:hover { box-shadow: 0 0 14px rgba(245, 210, 122, .45), inset 0 1px 1px rgba(255, 255, 255, .65), inset 0 -2px 3px rgba(90, 60, 10, .35); }
+  #pausa:active { transform: translate(-50%, -50%) scale(.93); }
+  #pausa:focus-visible { outline: 2px solid #fff6d8; outline-offset: 3px; }
+  #pausa svg { width: 42%; height: 42%; fill: #1a1f33; }
+  /* El reloj de la historia: en qué punto va y cuánto dura toda */
+  #crono {
+    margin: 2px 0 0; font-size: clamp(10px, calc(var(--ancho) / 80), 14px); line-height: 1.2; color: #f5d27a;
+    font-variant-numeric: tabular-nums; letter-spacing: .03em; white-space: nowrap;
+  }
+  /* Antes de verla por primera vez: el botón del centro late y, a su lado, «Iniciar la presentación» */
+  @keyframes llama {
+    0% { box-shadow: 0 0 0 0 rgba(245, 210, 122, .7), 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 1px rgba(255, 255, 255, .65); }
+    70%, 100% { box-shadow: 0 0 0 16px rgba(245, 210, 122, 0), 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 1px rgba(255, 255, 255, .65); }
+  }
+  #mando.llama #pausa { animation: llama 1.8s ease-out infinite; }
+  #invita {
+    display: none; position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%);
+    white-space: nowrap; cursor: pointer; padding: 5px 12px; border-radius: 999px;
+    font-size: clamp(11px, calc(var(--ancho) / 75), 15px); font-weight: 600; color: #1a1f33;
+    background: #f5d27a; box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+  }
+  #mando.llama #invita { display: block; }
+  @media (prefers-reduced-motion: reduce) {
+    #mando.llama #pausa { animation: none; box-shadow: 0 0 0 5px rgba(245, 210, 122, .55), 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 1px rgba(255, 255, 255, .65); }
+  }
+  /* La bienvenida: solo la primera vez, centrada sobre todo */
+  #bienvenida {
+    position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px;
+    background: rgba(4, 6, 12, .72); backdrop-filter: blur(3px);
+  }
+  #bienvenida[hidden] { display: none; }
+  #bienvenida .tarjeta {
+    max-width: 470px; padding: 26px 30px 24px; border-radius: 16px; text-align: center; box-sizing: border-box;
+    background: radial-gradient(ellipse at 50% 0%, #1d2440 0%, #0c0f1d 80%);
+    box-shadow: inset 0 0 0 1px rgba(245, 210, 122, .35), 0 18px 50px rgba(0, 0, 0, .6);
+    animation: aparece .35s ease-out;
+  }
+  @keyframes aparece { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+  @media (prefers-reduced-motion: reduce) { #bienvenida .tarjeta { animation: none; } }
+  #bienvenida h2 { margin: 0 0 10px; font-size: 22px; line-height: 1.25; color: #f5d27a; font-weight: 600; letter-spacing: .02em; }
+  #bienvenida p { margin: 0 0 12px; font-size: 16px; line-height: 1.45; color: #fff6e0; }
+  #bienvenida p.chica { font-size: 13px; color: #b9b4a6; margin-bottom: 20px; }
+  #bienvenida button {
+    font: inherit; font-size: 17px; font-weight: 600; color: #1a1f33; cursor: pointer; border: 0; border-radius: 999px;
+    padding: 12px 28px; background: radial-gradient(circle at 40% 30%, #fff0c2, #e8b955 62%, #a07728);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .5), inset 0 1px 1px rgba(255, 255, 255, .65); transition: transform .12s, box-shadow .2s;
+  }
+  #bienvenida button:hover { box-shadow: 0 0 18px rgba(245, 210, 122, .5), inset 0 1px 1px rgba(255, 255, 255, .65); }
+  #bienvenida button:active { transform: scale(.96); }
+  #bienvenida button:focus-visible { outline: 2px solid #fff6d8; outline-offset: 3px; }
+  .pista { margin: 0; font-size: clamp(9px, calc(var(--ancho) / 95), 12px); line-height: 1.3; color: #b9b4a6; text-align: center; }
+</style>
+</head>
+<body>
+<div id="todo">
+<header>
+  <h1>¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span></h1>
+  <div id="modos" role="group" aria-label="Ver el proyecto">
+    <button type="button" data-modo="sin" aria-pressed="true">Sin STL</button>
+    <button type="button" data-modo="con" aria-pressed="false">Con STL</button>
+  </div>
+</header>
+
+<div id="escena">
+<canvas id="lienzo" role="img" aria-label="Sin STL, el desarrollador avanza por la línea del proyecto y cada sesión que abre aparte es una rama hacia arriba que conversa de ida y vuelta con el modelo; entre más ramas, más lento avanza, no llega a la meta, se agota y el contador de tokens se dispara. Con STL, el desarrollador le entrega su proyecto y su meta al Studio, que se los da al director, y va siempre a su mismo paso; el Studio, como una barrera, va hasta cada idea y la atrapa antes de que llegue al modelo, la guarda y la organiza, y al soltarla la atención del desarrollador baja; en dos paradas, cuando el desarrollador termina sus misiones, el Studio saca de adentro al director, que recibe todo junto, descarta o reformula lo que hace falta, habla con el modelo y lo reparte en misiones. Entre las dos, un cambio urgente: el Studio va rápido a atraparlo, se aparta con él, saca al director, que lo resuelve con el modelo, y le trae al desarrollador el resultado; su siguiente misión es revisarlo. Al final, dos misiones y la misión final llevan a la meta. Arriba a la izquierda, la carita del desarrollador y la atención que le pide el proyecto; arriba a la derecha, los tokens gastados"></canvas>
+<div id="mando">
+  <div id="perilla" role="slider" tabindex="0" aria-valuemin="0" aria-valuenow="0" aria-valuetext="segundo 0 de esta escena"
+    aria-label="Perilla de la animación: gírala a la derecha para adelantar y a la izquierda para volver; con las flechas, de a un segundo">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <radialGradient id="cuerpo" cx="42%" cy="34%" r="72%">
+          <stop offset="0" stop-color="#3b4263"/><stop offset=".55" stop-color="#1d2238"/><stop offset="1" stop-color="#0c0f1d"/>
+        </radialGradient>
+        <linearGradient id="bisel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f5d27a" stop-opacity=".9"/><stop offset="1" stop-color="#7a5c22" stop-opacity=".45"/>
+        </linearGradient>
+      </defs>
+      <circle id="aro" cx="60" cy="60" r="57" fill="none" stroke="#f5d27a" stroke-opacity=".28" stroke-width="5"/>
+      <g id="marcas"></g>
+      <circle cx="60" cy="60" r="46" fill="url(#cuerpo)" stroke="url(#bisel)" stroke-width="1.6"/>
+      <g id="giro">
+        <g id="estrias"></g>
+        <circle cx="60" cy="21" r="3.4" fill="#f5d27a"/>
+        <circle cx="60" cy="21" r="6" fill="#f5d27a" fill-opacity=".22"/>
+      </g>
+    </svg>
+    <button id="pausa" type="button" aria-label="Pausar la animación"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="icono" d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></svg></button>
+    <span id="invita" aria-hidden="true">Iniciar la presentación ▸</span>
+  </div>
+  <p id="crono" aria-live="off"></p>
+  <p class="pista">Gírala para controlar la animación</p>
+</div>
+</div>
+
+<div id="estado"></div>
+<div id="cuenta"></div>
+</div>
+
+<!-- La bienvenida: solo la primera vez -->
+<div id="bienvenida" hidden>
+  <div class="tarjeta" role="dialog" aria-modal="true" aria-labelledby="bienvenida-titulo" aria-describedby="bienvenida-texto">
+    <h2 id="bienvenida-titulo">Bienvenido a «¿Qué es STL?»</h2>
+    <p id="bienvenida-texto">Te lo explicamos clarito, en versión para dummies (sin ofender: nosotros también la necesitábamos).</p>
+    <p class="chica">Con la rueda del ratón la adelantas o la devuelves, y con el clic de la rueda la pausas.</p>
+    <button type="button" id="iniciar">▶ Iniciar la presentación</button>
+  </div>
+</div>
+
+<script>
+  // La línea va abajo; el modelo, arriba al centro; las ramas suben entre los dos
+  // (la línea termina antes del borde derecho: abajo a la derecha va la perilla)
+  const W = 1000, H = 460, Y = 372, X0 = 60, META = 830;
+  // El modelo (Claude Code, Codex…): sin STL le habla todo; con STL, solo el director
+  const MX = W / 2, MY = 30;
+  // Las fases de la ruta: donde empieza cada una
+  const FASES = [X0, 252, 445, 637, META];
+  // Las ramas empiezan a la tercera parte de la fase 1
+  const BROTA = X0 + (FASES[1] - X0) / 3;
+  // Lo que el desarrollador le va pidiendo al chat: cada frase, una rama, del color de su clase
+  const GRUPOS = {
+    nuevo: { c: '#5ad1ff', f: ['nuevo feature', 'agrega un buscador', '¿y si mejor…?', 'agrega un botón', 'que mande un correo'] },
+    ajuste: { c: '#6fe3a1', f: ['hazlo verde', 'hazlo más grande', 'muévelo a la derecha', 'hazlo blanco', 'hazlo negro', 'hazlo naranja'] },
+    corrige: { c: '#b48cff', f: ['no me gustó', 'quedó mal, corrígelo', 'vuelve a como estaba', 'eso no era'] },
+    parte: { c: '#ffb36b', f: ['trabaja en la base de datos', 'trabaja en el front', 'trabaja en el servidor', 'trabaja en comunicaciones'] },
+    // Un cambio urgente o prioritario (nunca una falla en producción: esa no se arregla directo con el modelo)
+    urgencia: { c: '#ff6b8a', f: ['¡cambio urgente!'] },
+  };
+  const ORO = '#f5d27a', LUZ = '#fff6d8', MORADO = '#b9a3ff', ROJO = '#ff6b8a', MODELO = '#c5d2e6', VERDE = '#6fe3a1';
+  // Los subtítulos: por momento, las líneas que se reparten a lo largo de ese momento. Una idea corta por línea, que
+  // cambia sola: nada de bloques largos, porque muchos lo verán sin sonido. Cada momento dura por lo menos lo que
+  // tardan en leerse sus líneas, así el dibujo va al ritmo del texto. Cuentan el sentido, no el dibujo, y nunca citan
+  // lo que le pides al modelo (eso solo va en las ramas)
+  const GUION = {
+    // Sin STL: el problema
+    // (en menos de un minuto: cada idea se dice una vez, y lo que ya cuenta el dibujo, como tu cansancio, no se repite)
+    // (el guion del titular del 20 de octubre: la escena va al ritmo de sus frases; ver los comentarios de cada momento)
+    sinIntro: ['Hoy usamos agentes de programación por chat, como Claude Code o Codex,',
+      'le hablas directamente al modelo,',
+      'pides, te responde, «revisas» (sí, claro) y repites.'],
+    // La primera rama brota con «Abres otra sesión», tres más con «Después otra, y otra, y otra» y dos con «Parece más
+    // eficiente» (pasoSin)
+    sinRamas: ['Luego se te ocurre una idea brillante: ¿pedir varias cosas a la vez?',
+      'Abres otra sesión para ir adelantando algo más.',
+      'Después otra, y otra, y otra.',
+      'Parece más eficiente, pero… olvidas algo.',
+      'El modelo puede hacer mil cosas a la vez. Tú no.',
+      'Cada sesión nueva divide tu atención',
+      'y desperdicia tokens reenviando el mismo contexto una y otra vez.',
+      'Dejas de revisar lo que te entrega (aún más)',
+      'y empiezas a aprobar en automático…',
+      'Al final te agotas más y gastas más, pero avanzas menos.'],
+    // (corto: lo de la dispersión de la atención va en otra parte de la documentación)
+    sinFin: ['¿Qué propone STL?'],
+    // Con STL: la solución, en dos revisiones y un cambio urgente. Cuentan lo que hace el Studio de verdad, no lo que
+    // se mueve en el dibujo. En el inicio, cada frase llega con lo suyo: tu meta vuela al Studio, el director sale y
+    // habla con el modelo, piensa la ruta, lanza las misiones y aparecen (pasoCon)
+    inicio: ['Le entregas al Studio tu proyecto y la meta que quieres.',
+      'El Studio usa su director integrado, que habla con el modelo por ti.',
+      'Diagnostica y traza la ruta más óptima hacia esa meta.',
+      'Y te da misiones estratégicas: una a la vez.',
+      'Sí, como en un juego: con nivel, logros y confeti cuando completas una.'],
+    // Las ideas empiezan a brotar con la segunda frase (empezarTrabajo)
+    // (el guion del titular del 20 de octubre, en la tarde: sus frases largas van partidas donde respiran, sin cambiar
+    // sus palabras)
+    trabajo1: ['A medida que cumples tus misiones,',
+      'igual se te ocurren ideas nuevas, comentarios o ajustes.',
+      'Pero en vez de abrir sesiones nuevas, se las entregas al Studio.',
+      'El Studio recoge todo tu feedback y lo retiene de forma organizada,',
+      'sin enviarlo aún al modelo,',
+      'liberando tu atención para que sigas enfocado en una sola cosa:',
+      'tu misión actual.'],
+    // La revisión se cuenta de corrido en tres momentos: la pides (llega), el Studio le entrega al director lo que
+    // estaba en cola (invoca) y el director lo procesa (procesa), cada frase con lo que pasa en el dibujo
+    llega1: ['Cuando consideras que ya acumulaste suficientes ideas, ajustes o comentarios,',
+      'pides una revisión al director.'],
+    invoca: ['El Studio entrega lo que está en cola al director.'],
+    // El director usa el modelo desde que organiza (el hilo tenue) y lo enciende del todo con «Entonces usa el modelo
+    // para ejecutarlo» (pasoCon)
+    procesa: ['Este evalúa el estado actual, descarta lo redundante, revisa qué conviene y qué no,',
+      'lo organiza y define un miniplan de ejecución.',
+      'Entonces usa el modelo para ejecutarlo de la forma más eficiente.'],
+    // Cada línea va con lo suyo: con «lo clave se vuelve misión» vuelan las misiones, luego lo que espera su fase y al
+    // final lo descartado
+    reparte: ['Al terminar te reporta de forma muy clara y fácil de entender lo que hizo',
+      'y organiza tus inputs con respecto al plan: lo clave se vuelve misión.',
+      'Lo que no es de esta fase espera la suya.',
+      'Lo que no sirve se descarta o se replantea, y te explica por qué.'],
+    // Antes de que brote la urgencia, una pausa dramática (PAUSAS) con tus misiones ya en la línea
+    entrega: ['Así, después de cada revisión obtienes lo más importante:',
+      'las siguientes misiones más estratégicas, una a la vez.',
+      'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.'],
+    brota: ['¡Oh no, un cambio urgente!'],
+    dispara: ['El Studio le da prioridad, pone en standby lo demás'],
+    saleUrg: ['y procesa esa petición de inmediato con el director…'],
+    procesaUrg: ['…y el modelo.'],
+    devuelveUrg: ['Listo: el resultado de solo esa petición vuelve al Studio,'],
+    avisaUrg: ['quien te asigna como siguiente misión prioritaria confirmar este resultado,',
+      'antes de seguir con el flujo principal, sin perder el enfoque,'],
+    sigue: ['poniéndote de nuevo en la ruta más óptima.'],
+    // La revisión siguiente cuenta el ciclo entero, repartido en sus momentos (sin anunciarla: sigue de corrido)
+    llega2: ['Y así se repite el ciclo:'],
+    invoca2: ['acumulas tus peticiones,'],
+    procesa2: ['el director las organiza en un miniplan y lo ejecuta con el modelo',
+      'y tú sostienes tu enfoque,'],
+    reparte2: ['hasta llegar a la meta planteada',
+      'por la ruta más óptima.'],
+    meta: ['¡Meta cumplida!',
+      'Muchas ideas, mejoras y ajustes procesados por el Studio y su director',
+      'como una sola línea, consistente y estratégica.',
+      'Menos agotamiento, menos costo. Eso es STL.'],
+  };
+  // El narrador: cuánto tarda en leerse (o en contarse en voz alta) una línea, en milisegundos reales
+  // (algunas llevan después una pausa dramática, también en milisegundos)
+  // (antes del cambio urgente, dos segundos menos que antes: nota de voz del 20 de octubre)
+  const PAUSAS = { 'El modelo puede hacer mil cosas a la vez. Tú no.': 1800,
+    'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.': 200 };
+  const lectura = (t) => 900 + t.length * 60 + (PAUSAS[t] || 0);
+  // En qué momento de su escena empieza cada línea (de 0 a dur): cada una tiene el tiempo que tarda en leerse, así una
+  // línea larga no deja a la siguiente esperando y la escena no se frena a tirones
+  function momentos(lineas, dur) {
+    const total = lineas.reduce((s, l) => s + lectura(l), 0);
+    let va = 0;
+    return lineas.map((l) => { const en = (va / total) * dur; va += lectura(l); return en; });
+  }
+  // Lo que el director dice sobre sí mientras procesa: una frase tras otra, y al final reparte
+  const PIENSA = ['leyendo todo junto…', 'unificando…', 'descartando…', 'reformulando…', 'hablando con el modelo…',
+    'comparando con la ruta…', 'organizando las misiones…', 'definiendo la estrategia…'];
+  const PIENSA_URG = ['¡urgente! solo esto…', 'pidiéndole el cambio al modelo…', 'recibí la respuesta: hecho'];
+  const POR_FRASE = 1150, FRASES = 4, POR_FRASE_URG = 850;
+  // Cuánto se enciende el hilo del director al modelo mientras organiza lo recibido (1: cuando le hace el pedido)
+  const ORGANIZA = 0.55;
+  // Sin STL: cada rama es una conversación con el modelo, de pedido y respuesta. La luz que sube lleva lo que pides; la
+  // que baja, lo que el modelo contesta. Pedidos reales de desarrollo, con su poco de humor de lado y lado
+  const CHARLAS = [
+    ['haz la base de datos', '¡Sí, capitán! Ya está'], ['hazlo más grande', 'De una'], ['muévelo a la derecha', 'Listo. ¿Así?'],
+    ['esto no era así', 'Ups, lo siento'], ['¿estás seguro?', 'Totalmente… creo'], ['¿en serio?', 'Perdón, ya lo arreglo'],
+    ['hazlo verde', 'Verde. Muy verde'], ['no, el otro verde', 'Entendido: otro verde'], ['trabaja en el front', 'Vamos, a toda máquina'],
+    ['nuevo feature', '¡Me encanta! ¿Cuál?'], ['revisa si así era', 'Revisado: casi'], ['vuelve a como estaba', 'Ok… ¿a cuál de todas?'],
+    ['quedó mal, corrígelo', 'Tienes toda la razón'], ['agrega un buscador', 'Busca todo… menos eso'], ['agrega un botón', 'Puse tres, por si acaso'],
+    ['¿y si mejor…?', 'Como digas, jefe'], ['trabaja en el servidor', 'Servidor listo… creo'], ['que mande un correo', 'Mandé 400. Ups'],
+    ['eso ya lo habíamos hecho', '¿Ah, sí? No lo recuerdo'], ['hazlo blanco', 'Blanco, como antes del rojo'], ['no me gustó', 'Ups. Va otra vez'],
+    ['revisa la base de datos', 'Está perfecta (no la vi)'], ['¿por qué se rompió?', 'Buena pregunta'], ['hazlo naranja', '¡Naranja! Entendido'],
+  ];
+  // Una conversación: sube el pedido, baja la respuesta y se queda un momento en la punta (milisegundos)
+  const SUBE = 1300, BAJA = 1300, QUEDA = 1300, CICLO = SUBE + BAJA + QUEDA;
+  // Los tokens: cada conversación gasta más entre más vieja es (carga su contexto) y entre más conversaciones hay a la
+  // vez; el total crece cada vez más rápido. Con STL, solo gasta el director cuando habla con el modelo
+  const TOK_BASE = 0.9, TOK_EDAD = 5000, TOK_MAS = 0.18, TOK_DIRECTOR = 1.6;
+  // Sin STL, las ramas no salen de este cuadro: al acercarse al borde, dan vueltas
+  const CAJA = { x0: X0 + 14, x1: META - 50, y0: MY + 70, y1: Y - 30 }, BORDE = 45;
+  // Cuántas ramas caben, todas con su rótulo: las justas para que se vea que pueden ser muchas, sin exagerar (y sin
+  // cargar el dibujo)
+  const MAX_RAMAS = 14;
+  // El Studio deja que las ramas se dispersen un rato antes de ir por ellas (ESPERA_CAZA, milisegundos desde que
+  // brotan) y, cuando va, va rápido (píxeles por milisegundo); a la urgencia va de una. Cuando termina de recoger, va
+  // rápido (ACOMODA) hasta donde le entrega todo al director
+  const CAZA = 0.22, CAZA_URG = 0.6, REPOSO = 0.08, ACOMODA = 0.5, ESPERA_CAZA = 1700;
+  // Cuánta atención te pide cada idea hasta que se la entregas al Studio
+  const SUBE_IDEA = 0.09;
+  // El paso del desarrollador con STL: siempre el mismo (píxeles por milisegundo); nunca se apura para llegar a una revisión
+  const PASO = 0.028;
+  // Con STL, todo lo que pasa en la línea va casi a la misma distancia (TRECHO): tres misiones, la primera parada, el
+  // cambio urgente, la misión de revisarlo, tres misiones más, la segunda parada, dos misiones y la misión final, y la
+  // meta. Así no se amontonan al final ni quedan tramos largos en los que la línea avanza sin que pase nada. Del cambio
+  // urgente a la misión 8 la línea es más larga: alrededor de la misión 4, «revisa lo urgente», que tiene el rótulo
+  // más largo, hay casi dos trechos a cada lado (ESPACIO_URG), y las misiones 5, 6 y 7 van un poco más separadas
+  // (TRECHO_URG). Las misiones 8, 9 y final solo marcan el cierre: se reparten, más juntas, lo que queda hasta la meta
+  const TRECHO = (META - X0) / 15.5, ESPACIO_URG = 1.75 * TRECHO, TRECHO_URG = 1.2 * TRECHO;
+  // La urgencia se queda a la vista, latiendo, el tiempo de leer «¡Oh no, un cambio urgente!», antes de que el Studio
+  // vaya por ella (milisegundos de escena)
+  const VE_URG = 1500;
+  // En el último tramo, ya sin ideas sueltas, vas más rápido
+  const PASO_FINAL = 2;
+  // Cuándo vuelves a andar, después de que el Studio te trae la misión roja (ya con las demás en orden)
+  const ARRANCA = 1900;
+  // Después de «poniéndote de nuevo en la ruta más óptima», hasta la parada siguiente, vas un poco más rápido: así la
+  // historia sigue de corrido, sin un silencio largo antes de «Y así se repite el ciclo» (al doble que antes: en la
+  // mitad del tiempo, nota de voz del 20 de octubre)
+  const PASO_SIGUE = 2.4;
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // La escena avanza en pasos fijos (milisegundos de escena): así siempre se calcula igual. Una vuelta de la perilla
+  // mueve 20 segundos de escena
+  const PASO_ESC = 16, VUELTA = 20000;
+
+  const $ = (id) => document.getElementById(id);
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const tope = (k) => Math.max(0, Math.min(1, k));
+  const suave = (k) => k * k * (3 - 2 * k);
+  // El azar de la escena sale de una semilla: con la misma semilla, la escena se repite igual, y así la perilla puede
+  // volver atrás (vuelve a calcularla desde el principio hasta ese punto)
+  let rnd = Math.random;
+  function semilla(s) {
+    rnd = () => {
+      s = (s + 0x6d2b79f5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const azar = (a, b) => a + rnd() * (b - a);
+  const uno = (lista) => lista[Math.floor(rnd() * lista.length)];
+  // Una ocurrencia de alguna de las clases dadas: su frase y su color
+  function ocurrencia(clases) {
+    const g = uno(clases);
+    return { g, c: GRUPOS[g].c, n: uno(GRUPOS[g].f) };
+  }
+
+  const cv = $('lienzo'), ctx = cv.getContext('2d');
+  function ajustar() {
+    // En pantallas muy densas, como mucho 1,5 píxeles por punto: se ve igual de nítido y pinta muchos menos píxeles
+    const r = Math.min(1.5, window.devicePixelRatio || 1), w = cv.clientWidth || W;
+    cv.width = Math.round(w * r); cv.height = Math.round(w * H / W * r);
+    ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+  }
+
+  // El fondo: estrellas tenues, que se apagan cerca del borde para que no se note el cuadro del dibujo
+  const ESTRELLAS = Array.from({ length: 90 }, () => {
+    const x = azar(0, W), y = azar(0, H), borde = Math.min(1, x / 90, (W - x) / 90, y / 70, (H - y) / 70);
+    return { x, y, r: azar(0.2, 1.3), a: azar(0.08, 0.5) * borde };
+  });
+
+  // modo: 'sin' o 'con'. La historia es siempre completa (sin STL y luego con STL); el interruptor salta a una de las dos
+  let modo = 'sin';
+  let reloj = 0, previo, fase, t0, durFase, lineas = [], pausaSub, textoCuenta = '', velo = 0, metaBrillo = 0, efectos = [];
+  // Lo que falta por narrar (cada línea con el momento de la escena en que le toca), la que se ve, desde cuándo (en
+  // tiempo real)
+  let cola = [], actual = null, vistaDesde = 0;
+  // Con STL
+  let parada, urg, cabeza, desde, xd, contador, agenda, lanzado, objetivo, avance, durTrabajo, alarma, andar = PASO;
+  let ramas, orbita, vuelos, misiones, nuevas, esperan, nudos, revisiones, cuenta, st, entregaSale, entregado = false, entregadoEn = 0;
+  // El director vive dentro del Studio: dirK dice cuánto salió (0, adentro; 1, entre el Studio y el modelo)
+  let dirA, dirS, dirX, dirY, dirK = 0, pensarTxt, pensarA, enlace = 0;
+  // El acercamiento al Studio y al director cuando atienden una urgencia aparte
+  let lupa = 1;
+  // La urgencia en curso (u), cuánto se oscurece lo demás (aisla) y cuándo llegó el reporte (aviso)
+  let u, aisla = 0, aviso = 0;
+  // Lo que el director descarta: una marca que se queda un momento donde se apagó
+  let descartes = [];
+  // Cada misión que completas se celebra: tu cubito da un brinco (desde fiesta) y suelta confeti
+  let fiesta = -Infinity, confeti = [];
+  // Al empezar, tu meta: la luz que le entregas al Studio y él al director
+  let metaLuz = null;
+  // Sin STL
+  let hebras, agendaSin, frases;
+  // Los tokens gastados en la escena, y a qué ritmo van (por segundo)
+  let tokens = 0, ritmo = 0;
+  // La atención que te pide el proyecto (de 0, fresco, a 1, agotado) y hacia dónde va
+  let atencion = 0, atencionMeta = 0;
+  // La escena en curso (su modo, cuándo empezó y su semilla), cuántos pasos lleva, y si se está volviendo a calcular
+  // en silencio (sin subtítulos), al volver atrás con la perilla
+  let escena, pasos = 0, silencio = false, ultimaCuenta = '';
+  // Las escenas ya vistas, con cuántos pasos duró cada una (antes: la suma), y las que quedaron adelante al volver
+  // atrás: así la perilla pasa de una escena a otra sin cortes, como si fueran una sola
+  let historia = [], adelante = [], antes = 0;
+  // La perilla: a qué paso de la historia hay que ir (null: a ninguno), si la animación corre, y si está saltando
+  let buscar = null, reproduce = true, sobra = 0, saltando = false;
+
+  function subtitulo(texto) {
+    const s = $('estado');
+    // Al girar la perilla, el texto cambia al instante: siempre se ve qué dice ese momento
+    if (quieto || saltando) { clearTimeout(pausaSub); s.classList.remove('cambia'); s.textContent = texto; return; }
+    s.classList.add('cambia');
+    clearTimeout(pausaSub);
+    pausaSub = setTimeout(() => { s.textContent = texto; s.classList.remove('cambia'); }, 220);
+  }
+  function mostrar(t) { actual = t; vistaDesde = performance.now(); subtitulo(t); }
+  // Cada cuadro: si ya le toca a la línea siguiente, se muestra cuando la que se ve ya se alcanzó a leer. La escena
+  // nunca se detiene a esperar al narrador: si se atrasa (hay más de una línea esperando), cada línea dura un poco
+  // menos hasta ponerse al día. Al girar la perilla, se muestra al instante la que toca
+  function narrar() {
+    if (saltando || quieto) {
+      let ultima = null;
+      while (cola.length && reloj >= cola[0].en) ultima = cola.shift();
+      if (ultima) mostrar(ultima.t);
+      return;
+    }
+    if (!cola.length || reloj < cola[0].en) return;
+    const atraso = cola.length > 1 && reloj >= cola[1].en;
+    if (actual && performance.now() - vistaDesde < lectura(actual) * (atraso ? 0.6 : 0.85)) return;
+    mostrar(cola.shift().t);
+  }
+  // Un momento nuevo de la escena: dura por lo menos lo que tardan en leerse sus líneas, y sus líneas pasan a la cola
+  function cambiar(nueva, now, dur, clave) {
+    fase = nueva; t0 = now; lineas = GUION[clave || nueva] || [];
+    const leer = lineas.reduce((s, l) => s + lectura(l), 0) * (modo === 'con' ? PAUSADO : 1);
+    durFase = Math.max(1, dur, leer);
+    if (!silencio) momentos(lineas, durFase).forEach((en, i) => cola.push({ t: lineas[i], en: now + en }));
+  }
+  // Al volver atrás con la perilla: la línea de ese momento se ve ya, y las que siguen quedan en la cola
+  function renarrar() {
+    cola = [];
+    const n = lineas.length;
+    if (!n) return;
+    const en = momentos(lineas, durFase);
+    const i = Math.max(0, en.findLastIndex((m) => t0 + m <= reloj));
+    lineas.forEach((l, j) => { if (j > i) cola.push({ t: l, en: t0 + en[j] }); });
+    mostrar(lineas[i]);
+  }
+  function destello(x, y, color, now, grande) { efectos.push({ x, y, color, t: now, max: grande ? 30 : 16 }); }
+  function contar(cifras) { ultimaCuenta = cifras; if (!silencio && cifras !== textoCuenta) { textoCuenta = cifras; $('cuenta').textContent = cifras; } }
+  // Lo que el director piensa en voz alta, encima de él: cada frase aparece, se queda y se va
+  function pensando(t, frases, inicio, por = POR_FRASE) {
+    const i = Math.floor(t / por), q = (t - i * por) / por;
+    if (i < 0 || i >= frases.length) { pensarA = 0; return; }
+    pensarTxt = frases[(i + inicio) % frases.length];
+    pensarA = 0.95 * tope(q / 0.18) * tope((1 - q) / 0.18);
+  }
+
+  // Una escena nueva: su propia semilla, para que cada vez las ramas salgan distintas. La que termina queda en la
+  // historia; si se había vuelto atrás, la siguiente es la misma que ya se vio (salvo un cambio con el interruptor)
+  function ponerModo(m, now, aMano) {
+    // Al medir una escena, su final solo avisa que terminó
+    if (midiendo) { termino = true; return; }
+    const previa = escena;
+    if (escena) { historia.push({ escena, largo: pasos }); antes += pasos; }
+    // Al cambiar de escena con el interruptor, lo que faltaba por narrar de la otra ya no se dice
+    if (aMano) { adelante = []; cola = []; actual = null; }
+    const sigue = !aMano && adelante.length && adelante.at(-1).modo === m ? adelante.pop() : null;
+    if (sigue) escena = { ...sigue, desde: now };
+    else if (m === 'con' && !aMano && previa && previa.ciclo) {
+      // La escena con STL de la historia completa ya se midió al empezar la sin STL: misma semilla, mismo largo
+      escena = { modo: m, desde: now, semilla: previa.ciclo.semillaCon, largo: previa.ciclo.con, ciclo: previa.ciclo };
+    } else {
+      escena = { modo: m, desde: now, semilla: (Math.random() * 4294967296) >>> 0 };
+      const e = escena;
+      e.largo = medir(e);
+      // Las dos escenas son un solo video: el reloj cuenta siempre la historia completa (sin STL y luego con STL). Con
+      // la sin STL se mide también la con STL que sigue; si se eligió la con STL con el interruptor, se mide una sin STL
+      // para saber cuánto dura lo de antes
+      if (m === 'sin') {
+        const con = { modo: 'con', desde: now + e.largo * PASO_ESC, semilla: (Math.random() * 4294967296) >>> 0 };
+        e.ciclo = { sin: e.largo, con: medir(con), semillaCon: con.semilla };
+      } else {
+        e.ciclo = { sin: medir({ modo: 'sin', desde: now, semilla: (Math.random() * 4294967296) >>> 0 }), con: e.largo };
+      }
+      escena = e;
+    }
+    empezar();
+  }
+  // Cuántos pasos dura una escena: se calcula entera en silencio, con su semilla y desde su momento, igual a como se
+  // verá (la escena en curso se vuelve a empezar después, así que no se pierde nada)
+  let midiendo = false, termino = false;
+  function medir(e) {
+    const guarda = { escena, pasos, reloj, silencio };
+    midiendo = true; termino = false; silencio = true;
+    escena = e; reloj = e.desde; empezar();
+    while (!termino && pasos < 60000) avanzar();
+    const largo = pasos;
+    midiendo = false;
+    ({ escena, pasos, reloj, silencio } = guarda);
+    return largo;
+  }
+  // El reloj de la historia: en qué punto va y cuánto dura toda, en tiempo real (la escena con STL va más despacio).
+  // Es un solo video: la duración es siempre la suma de las dos escenas, aunque se elija una con el interruptor
+  const minutos = (ms) => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const real = (n, m) => (n * PASO_ESC) / (m === 'con' ? PAUSADO : 1);
+  let textoReloj = '';
+  function cronometro() {
+    if (!escena || escena.largo == null) return;
+    const c = escena.ciclo;
+    const total = c ? real(c.sin, 'sin') + real(c.con, 'con') : real(escena.largo, escena.modo);
+    const va = (c && escena.modo === 'con' ? real(c.sin, 'sin') : 0) + real(Math.min(pasos, escena.largo), escena.modo);
+    const t = `${minutos(va)} / ${minutos(total)}`;
+    if (t !== textoReloj) {
+      textoReloj = t;
+      $('crono').textContent = t;
+      $('crono').title = c ? 'Va en este punto de la historia completa (sin STL y con STL) / lo que dura toda' : 'Va en este punto de la escena / lo que dura';
+    }
+  }
+  // Empieza la escena en curso desde su principio (también al volver atrás con la perilla)
+  function empezar() {
+    modo = escena.modo; pasos = 0; semilla(escena.semilla);
+    document.querySelectorAll('#modos button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === modo)));
+    if (modo === 'sin') reiniciarSin(escena.desde); else reiniciarCon(escena.desde);
+  }
+
+  // ══ Sin STL: el desarrollador mueve la línea; cada ocurrencia suya abre una rama que sube y habla con el modelo,
+  //    de cada rama salen otras, y él avanza cada vez más despacio
+  function reiniciarSin(now) {
+    efectos = []; metaBrillo = 0; velo = 1; frases = 0; tokens = 0; ritmo = 0; atencion = 0;
+    hebras = [{ pts: [[X0, Y]], x: X0, y: Y, ang: 0, vel: 0, color: ORO, nivel: 0, viva: true, prox: Infinity, hijos: 0, nace: now }];
+    agendaSin = [];
+    cambiar('sinIntro', now, 4600);
+  }
+  function brotar(padre, now) {
+    const nivel = padre.nivel + 1;
+    // Las ramas de la línea son algo nuevo u otra parte del trabajo; las que salen de ellas, ajustes y correcciones
+    const o = nivel === 1 ? ocurrencia(['nuevo', 'parte']) : ocurrencia(['ajuste', 'ajuste', 'corrige', 'nuevo']);
+    // Salen hacia arriba y un poco a la derecha, por donde aún hay espacio
+    const ang = nivel === 1 ? -Math.PI / 2 + azar(0.05, 0.85) : padre.ang + (rnd() < 0.35 ? -1 : 1) * azar(0.45, 0.95);
+    // Su primera conversación empieza con la ocurrencia que la abrió; las siguientes, al azar
+    const h = { pts: [[padre.x, padre.y]], x: padre.x, y: padre.y, ang, vel: azar(0.024, 0.036), color: o.c, nivel, viva: true,
+      prox: now + azar(2600, 4200), hijos: 0, vib: azar(0, 6.28), charla: [o.n, (CHARLAS.find((c) => c[0] === o.n) || uno(CHARLAS))[1]], ciclo: now + 500,
+      nace: now, sentido: rnd() < 0.5 ? -1 : 1 };
+    frases++;
+    hebras.push(h); padre.hijos++;
+    destello(padre.x, padre.y, o.c, now);
+  }
+  function crecer(h, dt, now) {
+    if (h.nivel > 0) {
+      // Salen hacia arriba y, poco a poco, vagan sin rumbo, con una leve preferencia por la derecha. Cambian de dirección
+      // pocas veces y despacio, para que se entienda cómo se bifurcan
+      h.ang += Math.sin(now / 2100 + h.vib) * 0.00022 * dt + azar(-1, 1) * 0.0006 * dt;
+      if (Math.cos(h.ang) < 0) h.ang += (Math.sin(h.ang) < 0 ? 1 : -1) * 0.00035 * dt;
+      // Cerca del borde del cuadro, si van hacia afuera, dan vueltas hasta volver hacia adentro: ninguna se sale,
+      // ninguna tapa al modelo ni baja a la línea, y ninguna alcanza la meta
+      if (h.y < CAJA.y1) h.dentro = true;
+      let nx = 0, ny = 0;
+      if (h.x < CAJA.x0 + BORDE) nx -= 1 - (h.x - CAJA.x0) / BORDE;
+      if (h.x > CAJA.x1 - BORDE) nx += 1 - (CAJA.x1 - h.x) / BORDE;
+      if (h.y < CAJA.y0 + BORDE) ny -= 1 - (h.y - CAJA.y0) / BORDE;
+      if (h.dentro && h.y > CAJA.y1 - BORDE) ny += 1 - (CAJA.y1 - h.y) / BORDE;
+      const n = Math.hypot(nx, ny);
+      if (n > 0 && Math.cos(h.ang) * nx + Math.sin(h.ang) * ny > -0.3 * n) h.ang += h.sentido * (0.002 + 0.004 * Math.min(1, n)) * dt;
+    }
+    h.x += Math.cos(h.ang) * h.vel * dt; h.y += Math.sin(h.ang) * h.vel * dt;
+    if (h.nivel > 0) {
+      h.x = Math.max(CAJA.x0, Math.min(CAJA.x1, h.x));
+      h.y = Math.max(CAJA.y0, h.dentro ? Math.min(CAJA.y1, h.y) : h.y);
+    }
+    const [lx, ly] = h.pts.at(-1);
+    // Un punto cada 7: la curva se ve igual de suave con menos tramos que pintar
+    if (Math.hypot(h.x - lx, h.y - ly) >= 7) h.pts.push([h.x, h.y]);
+  }
+  function pasoSin(now, dt) {
+    const t = now - t0, linea = hebras[0];
+    // El desarrollador es quien mueve la línea: entre más cansado, más despacio avanza (agotado, casi no se mueve); y
+    // nunca se acerca a la meta
+    // (al principio, llega a donde brotan las ramas justo cuando termina lo que se cuenta)
+    if (fase === 'sinIntro') linea.vel = (BROTA - X0) / durFase;
+    else linea.vel = 0.03 * (1 - 0.92 * tope(atencion)) * tope((600 - linea.x) / 140);
+    if (fase === 'sinSale') linea.vel = 0;
+    linea.x = Math.min(linea.x + linea.vel * dt, BROTA + (fase === 'sinIntro' ? 0 : Infinity));
+    linea.pts = [[X0, Y], [linea.x, Y]];
+    if (fase === 'sinRamas') while (agendaSin.length && t >= agendaSin[0]) { agendaSin.shift(); brotar(linea, now); }
+    if (fase !== 'sinIntro') {
+      for (const h of hebras.slice()) {
+        if (h.nivel === 1 && h.viva && now >= h.prox && hebras.length <= MAX_RAMAS && h.hijos < (h.nivel === 1 ? 2 : 1)) {
+          brotar(h, now); h.prox = now + azar(3000, 4800);
+        }
+      }
+    }
+    for (const h of hebras) if (h.viva && h.nivel > 0) crecer(h, dt, now);
+    // Al terminar una conversación, la rama empieza otra, al azar
+    for (const h of hebras) {
+      if (h.nivel > 0 && h.viva && now >= h.ciclo + CICLO) {
+        let otra = uno(CHARLAS);
+        while (otra[0] === h.charla[0]) otra = uno(CHARLAS);
+        h.charla = otra; h.ciclo = now;
+      }
+    }
+    // Los tokens: cada conversación viva gasta según su edad y según cuántas hablan a la vez; el contador no para,
+    // ni siquiera al final de la escena
+    const vivas0 = hebras.filter((h) => h.viva);
+    ritmo = vivas0.reduce((s, h) => s + TOK_BASE * (1 + (now - h.nace) / TOK_EDAD), 0) * (1 + TOK_MAS * (vivas0.length - 1));
+    tokens += ritmo * dt;
+    // Tu atención: cada sesión abierta es un canal más que vigilar; con unas trece, quedas agotado. Sube despacio:
+    // el cansancio llega poco a poco, y con él se frena tu avance
+    atencion += (tope((hebras.length - 1) / 13) - atencion) * Math.min(1, dt / 2200);
+
+    velo = fase === 'sinIntro' ? 1 - tope(t / 700) : fase === 'sinSale' ? tope(t / durFase) : 0;
+    if (fase === 'sinIntro' && t >= durFase) {
+      cambiar('sinRamas', now, 23000);
+      // Cuándo abre el desarrollador cada rama desde la línea, al ritmo de lo que se cuenta: la primera con «Abres otra
+      // sesión», tres con «Después otra, y otra, y otra» y dos con «Parece más eficiente»
+      const e = momentos(lineas, durFase), tramo = (i) => (e[i + 1] ?? durFase) - e[i];
+      agendaSin = [e[1] + 300, e[2] + 150, e[2] + tramo(2) / 3, e[2] + (2 * tramo(2)) / 3, e[3], e[3] + tramo(3) / 2];
+    }
+    // (el cierre dura solo lo que tarda en leerse su pregunta, y pasa enseguida a la escena con STL)
+    else if (fase === 'sinRamas' && t >= durFase) cambiar('sinFin', now, 0);
+    else if (fase === 'sinFin' && t >= durFase) cambiar('sinSale', now, 500);
+    else if (fase === 'sinSale' && t >= durFase) { ponerModo('con', now); return; }
+    efectos = efectos.filter((f) => now - f.t < 700);
+    const vivas = hebras.filter((h) => h.viva).length;
+    const vas = Math.round(((linea.x - X0) / (META + 30 - X0)) * 100);
+    contar(`Ramas abiertas: ${hebras.length - 1} · conversaciones a la vez con el modelo: ${vivas} · tu avance: ${vas} % · llegaron a la meta: 0`);
+  }
+
+  // ══ Con STL: el Studio atrapa, el director ordena y reparte (y solo él habla con el modelo), tú haces una misión a la vez.
+  //    Dos paradas, cuando terminas tus misiones (la segunda, con la misión final), y entre ellas una urgencia, que no te detiene
+  function reiniciarCon(now) {
+    cabeza = X0; xd = X0; parada = 0; urg = false; contador = 0; lanzado = false; alarma = 0; u = null; aisla = 0; aviso = 0; descartes = [];
+    ramas = []; orbita = []; vuelos = []; misiones = []; nuevas = []; esperan = []; nudos = []; revisiones = []; efectos = [];
+    cuenta = { hechas: 0, esperan: 0, descartadas: 0, atrapadas: 0 };
+    st = { x: X0 + 55, y: Y - 112, a: 0, carga: [], lleva: false };
+    dirK = 0; lupa = 1; pensarA = 0; enlace = 0; metaBrillo = 0; velo = 1; entregaSale = null; entregado = false;
+    tokens = 0; ritmo = 0; atencion = 0; atencionMeta = 0;
+    metaLuz = null; fiesta = -Infinity; confeti = []; serpentinas = [];
+    ubicarDirector();
+    cambiar('inicio', now, 11800);
+  }
+  // El director vive dentro del Studio: con dirK en 0 es un solecito en su centro; al salir, se pone a medio camino
+  // entre el Studio y el modelo
+  function ubicarDirector() {
+    const mx = lerp(st.x, MX, 0.5), my = lerp(st.y, MY + 12, 0.5), k = suave(tope(dirK));
+    dirX = lerp(st.x, mx, k); dirY = lerp(st.y, my, k);
+    dirA = st.a; dirS = (0.3 + 0.7 * k) * lupa;
+  }
+
+  // ── El Studio: flota cerca del desarrollador, como un ser aparte. Es él quien va hasta cada rama y la atrapa: visita
+  //    cada cabecita (primero las de sus ramitas, al final la de la rama) y cada parte desaparece en el instante en que
+  //    la atrapa; nada vuela hacia él. Las deja dispersarse un rato y luego va rápido: alguna alcanza a echar ramitas.
+  function reposo(now) { return { x: Math.min(META + 15, cabeza + 55), y: Y - 112 + Math.sin(now / 650) * 6 }; }
+  function volarStudio(x, y, dt, vel) {
+    const d = Math.hypot(x - st.x, y - st.y);
+    if (d < 0.5) return d;
+    const k = Math.min(1, (vel * dt * Math.min(1, 0.3 + d / 50)) / d);
+    st.x += (x - st.x) * k; st.y += (y - st.y) * k;
+    return d;
+  }
+  // Adonde tiene que ir el Studio para atrapar una rama: la cabecita más cercana de las ramitas que ya se ven y aún no
+  // atrapó; cuando no queda ninguna, la cabecita de la rama misma (las ramas no tienden hilo, así que nunca es la punta
+  // de un hilo)
+  function blanco(r, now) {
+    let mejor = null;
+    r.hijos.forEach((g, j) => {
+      if (g.atrapada) return;
+      const p = ramita(r, g, j, now);
+      if (p.f <= 0.04) return;
+      const d = Math.hypot(p.ex - st.x, p.ey - st.y);
+      if (!mejor || d < mejor.d) mejor = { x: p.ex, y: p.ey, d, g };
+    });
+    if (mejor) return mejor;
+    return { x: r.tx, y: yRama(r, now) };
+  }
+  // Lo que el Studio alcanza entra en él en ese instante y, en el dibujo, desaparece ahí mismo: nada vuela hacia él
+  function atrapar(r, b, now) {
+    if (b.g) {
+      b.g.atrapada = now; cuenta.atrapadas++;
+      st.carga.push({ color: b.g.c, urgente: false, ang: azar(0, 6.28), k: 0 });
+      destello(b.x, b.y, b.g.c, now);
+      return;
+    }
+    const urgente = r.o.g === 'urgencia';
+    r.atrapada = now; cuenta.atrapadas++;
+    st.carga.push({ color: r.o.c, urgente, ang: azar(0, 6.28), k: 0 });
+    // Al entregarle la idea al Studio, la sueltas: tu atención baja lo que había subido (la urgencia, solo un poco,
+    // hasta que te llega su resultado)
+    atencionMeta = Math.max(0, atencionMeta - (urgente ? 0.1 : SUBE_IDEA));
+    if (urgente) { alarma = now; destello(st.x, st.y, ROJO, now, true); }
+    else destello(st.x, st.y, MORADO, now, true);
+  }
+  function cazar(now, dt, rapido) {
+    // Lo urgente primero; si no, siempre lo más cercano que aún no atrapó, de cualquier rama: cada vez que atrapa
+    // algo, se va derecho a lo siguiente más cerca y no da vueltas. Cuando te detienes, se acomoda rápido
+    let presa = ramas.find((r) => !r.atrapada && r.o.g === 'urgencia'), b = presa && blanco(presa, now);
+    if (!presa) {
+      for (const r of ramas) {
+        // Las deja dispersarse antes de ir por ellas (cuando te detienes, casi no espera)
+        if (r.atrapada || now - r.nace <= (rapido ? 250 : ESPERA_CAZA)) continue;
+        const c = blanco(r, now), d = Math.hypot(c.x - st.x, c.y - st.y);
+        if (!b || d < b.d) { presa = r; b = { ...c, d }; }
+      }
+    }
+    // La urgencia no tiende hilo: se deja ver un momento y el Studio va derecho y rápido a su cabecita
+    const urgente = presa && presa.o.g === 'urgencia';
+    if (urgente && now - presa.nace < VE_URG - 350) { const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO); }
+    else if (presa) {
+      const d = volarStudio(b.x, b.y, dt, urgente ? CAZA_URG : rapido ? CAZA * 2 : CAZA);
+      if (d < 9 && (b.g || now - presa.nace >= (urgente ? VE_URG : 700))) atrapar(presa, b, now);
+    } else { const p = reposo(now); volarStudio(p.x, p.y, dt, rapido ? ACOMODA : REPOSO); }
+  }
+
+  // ── El trabajo: el desarrollador recorre las misiones y, mientras tanto, sus ocurrencias abren ramas hacia arriba
+  //    Vas siempre a tu mismo paso (PASO, o más despacio si lo que se cuenta tarda más en leerse) hasta la última
+  //    misión, y ahí te detienes: así llegas cuando termina lo que se cuenta, y la escena no se frena esperándolo
+  function empezarTrabajo(now) {
+    desde = cabeza; avance = 0;
+    // Te detienes un trecho después de tu última misión: ahí va la parada
+    objetivo = misiones.filter((m) => !m.hecha).at(-1).x + (parada ? TRECHO_URG : TRECHO);
+    const durPaso = (objetivo - desde) / PASO;
+    const clases = ['nuevo', 'ajuste', 'corrige', 'parte'];
+    if (parada === 0) {
+      cambiar('trabajo', now, durPaso, 'trabajo1');
+      durTrabajo = durFase; andar = (objetivo - desde) / durTrabajo;
+      // Las ramas empiezan cuando el desarrollador pasa la tercera parte de la fase 1
+      // Brotan muy seguido, más rápido de lo que el Studio alcanza a recoger: así se ven muchas a la vez, como sin STL
+      // (y nunca antes de que se cuente «se te ocurren ideas nuevas»)
+      const empieza = Math.max(((BROTA - desde) / (objetivo - desde)) * durTrabajo, momentos(lineas, durFase)[1]);
+      const cada = (durTrabajo - empieza - 1200) / 12;
+      agenda = Array.from({ length: 12 }, (_, i) => ({ en: empieza + i * cada, o: ocurrencia(clases) }));
+    } else {
+      durTrabajo = durPaso; andar = PASO;
+      // La urgencia brota cuando ya hay un par de ramas sueltas y justo para que su marca quede trecho y medio después
+      // de la parada (el Studio la atrapa VE_URG después, mientras sigues andando); mientras el director la atiende no
+      // brota nada (el Studio está con él). Luego brotan pocas, más juntas (ese tramo va al doble: PASO_SIGUE), para
+      // que todas salgan antes de la parada
+      const enUrg = Math.max(600, ESPACIO_URG / PASO - VE_URG - 100);
+      agenda = [0.25, 0.65].map((k) => ({ en: k * enUrg, o: ocurrencia(clases) }))
+        .concat({ en: enUrg, o: ocurrencia(['urgencia']) })
+        .concat([2400, 3400, 4400].map((ms) => ({ en: enUrg + ms, o: ocurrencia(clases) })));
+      cambiar('trabajo', now, 0, 'trabajo2');
+    }
+  }
+
+  // La urgencia brota en un claro: el punto, cerca de ti, más lejos de todas las ramas, sus ramitas y el Studio, para
+  // que no quede tapada
+  function claro() {
+    const cerca = [{ x: st.x, y: st.y }];
+    for (const r of ramas) { cerca.push({ x: r.tx, y: r.ty }); for (const g of r.hijos) cerca.push({ x: r.tx + g.dx, y: r.ty + g.dy }); }
+    let mejor = null;
+    for (let x = Math.max(X0 + 60, cabeza - 120); x <= Math.min(META - 140, cabeza + 380); x += 20) {
+      for (let y = Y - 210; y <= Y - 95; y += 15) {
+        const d = cerca.reduce((m, p) => Math.min(m, Math.hypot((p.x - x) * 0.8, p.y - y)), Infinity);
+        if (!mejor || d > mejor.d) mejor = { x, y, d };
+      }
+    }
+    return mejor;
+  }
+  function nacer(a, now) {
+    const ox = cabeza, urgente = a.o.g === 'urgencia', c = urgente ? claro() : null;
+    // Se dispersan: nacen repartidas a lo ancho y a lo alto, no todas junto a ti. Después de la primera parada van hacia
+    // adelante y más arriba, lejos de los rótulos de la línea (sobre todo del de la misión 4)
+    const despues = parada > 0;
+    const tx = c ? c.x : Math.max(X0 + 30, Math.min(META - 70, ox + (despues ? azar(40, 190) : azar(-60, 170))));
+    const ty = c ? c.y : Y - (despues ? azar(120, 215) : azar(80, 210));
+    // El cambio urgente es un solo punto: no echa ramitas (así el Studio no guarda nada rojo aparte de él)
+    const hijos = urgente ? [] : Array.from({ length: 1 + Math.floor(rnd() * 2) }, () => {
+      const o = rnd() < 0.4 ? a.o : ocurrencia(['ajuste', 'corrige', 'nuevo']);
+      return { c: o.c, dx: azar(-55, 55), dy: -azar(18, 55), vib: azar(0, 6.28), amp: 4 };
+    });
+    if (a.o.g === 'urgencia') cambiar('trabajo', now, 2200, 'brota');
+    // Cada idea te pide un poco de atención, mucho menos que una sesión nueva, hasta que el Studio la recoge; la
+    // urgencia, más
+    atencionMeta = Math.min(urgente ? 0.85 : 0.7, atencionMeta + (urgente ? 0.25 : SUBE_IDEA));
+    // La curva sube desde la línea y se tuerce un poco hacia donde quiere ir
+    ramas.push({ o: a.o, nace: now, vib: azar(0, 6.28), amp: 5, ox, tx, ty, c1: ox + azar(-30, 30), c2: tx + azar(-45, 45), hijos });
+  }
+
+  // Dónde está cada parte de una rama ahora (tiemblan; al ser atrapadas dejan de crecer)
+  function yRama(r, now) { return r.ty + Math.sin(now / 380 + r.vib) * r.amp; }
+  function ramita(r, h, j, now) {
+    const tt = r.atrapada ? Math.min(now, r.atrapada) : now;
+    const f = tope((tt - r.nace - 650 - j * 300) / 550);
+    const ty = yRama(r, now), w = Math.sin(now / 300 + h.vib) * h.amp;
+    return { f, bx: r.tx, by: ty, ex: r.tx + (h.dx + w) * f, ey: ty + h.dy * f, cx: r.tx + (h.dx * 0.15 + w) * f, cy: ty + h.dy * 0.55 * f };
+  }
+  // Con STL, ninguna rama tiende hilo hacia el modelo: solo nace, con su cabecita, y el Studio va por ella (nota de voz
+  // del titular al ver la decimosexta). Así el Studio no tiene que cazar puntas de hilo: siempre atrapa cabecitas
+
+  // ── El reparto: lo que sirve se junta en las misiones siguientes, lo aplazado espera su fase, lo demás se apaga.
+  //    En la última, dos misiones y la misión final.
+  function repartir(now) {
+    if (parada === 2) {
+      nuevas = [1, 2, 3].map((i) => ({ x: xd + ((META - xd) * i) / 4, n: i < 3 ? ++contador : 0, carga: 0, visible: false, hecha: false, final: i === 3 }));
+    } else {
+      // Dejan libre el tramo después de la parada: ahí van a caer el cambio urgente y la misión de revisarlo (la 4), con
+      // trecho y medio a cada lado; al llegar la urgencia, estas se corren un lugar
+      nuevas = [0, 1, 2].map((i) => ({ x: xd + 2 * ESPACIO_URG + (i ? ESPACIO_URG + (i - 1) * TRECHO_URG : 0), n: ++contador, carga: 0, visible: false, hecha: false }));
+    }
+    misiones.push(...nuevas);
+    const destinos = misiones.filter((m) => !m.hecha && m.x > cabeza && !m.urgente);
+    let j = 0;
+    // Se descartan una o dos por revisión, no más: así se nota sin que parezca que se pierde la mitad
+    const nDescarta = orbita.length < 3 ? Math.min(1, orbita.length - 1) : rnd() < 0.5 ? 1 : 2;
+    const descarta = new Set();
+    while (descarta.size < Math.max(0, nDescarta)) descarta.add(Math.floor(rnd() * orbita.length));
+    const destinoDe = orbita.map((o, i) => descarta.has(i) ? 'rechazada' : rnd() < 0.2 && parada !== 2 ? 'aplazada' : 'mision');
+    // En la primera, por lo menos una espera su fase: el subtítulo lo cuenta
+    if (parada !== 2 && !destinoDe.includes('aplazada')) { const i = destinoDe.indexOf('mision'); if (i >= 0 && destinoDe.filter((d) => d === 'mision').length > 1) destinoDe[i] = 'aplazada'; }
+    // Lo que espera su fase se reparte a lo largo del tramo de las misiones nuevas, al azar pero parejo: cada una en su
+    // trocito del tramo, después del cambio urgente y sin caer encima de una misión ni de la misión 4. Solo su bolita:
+    // sin rótulo, lo cuenta el subtítulo
+    const aplazadas = destinoDe.filter((d) => d === 'aplazada').length, ta = xd + ESPACIO_URG + 25, tb = nuevas.at(-1).x - 12;
+    const ocupados = nuevas.map((m) => m.x).concat(parada === 2 ? [] : [xd + 2 * ESPACIO_URG]);
+    let k = 0;
+    const lugar = () => {
+      const ancho = (tb - ta) / aplazadas;
+      let x = ta + (k++ + 0.5) * ancho + azar(-0.3, 0.3) * ancho;
+      const cerca = ocupados.find((m) => Math.abs(m - x) < 16);
+      if (cerca != null) x = cerca + (x < cerca ? -16 : 16);
+      return x;
+    };
+    // Cada clase sale cuando la nombra su subtítulo: primero las misiones, luego lo que espera su fase y al final lo
+    // descartado
+    const ls = GUION[parada === 2 ? 'reparte2' : 'reparte'], durLeer = ls.reduce((s, l) => s + lectura(l), 0) * PAUSADO;
+    const enLinea = momentos(ls, durLeer);
+    const cuando = { mision: enLinea[parada === 2 ? 0 : 1], aplazada: enLinea.at(-2), rechazada: enLinea.at(-1) };
+    const enClase = { mision: 0, aplazada: 0, rechazada: 0 };
+    vuelos = orbita.map((o, i) => {
+      const destino = destinoDe[i];
+      // Algunas no llegan tal cual: el director las reformula y cambian de color en el camino
+      const v = { color: o.color, destino, x0: dirX + Math.cos(o.ang) * 25, y0: dirY + Math.sin(o.ang) * 25, sale: now + cuando[destino] + enClase[destino]++ * 110,
+        alto: (i % 2 ? 1 : -1) * azar(25, 60), x: 0, y: 0, a: 0, s: 0, reforma: destino === 'mision' && rnd() < 0.35 };
+      if (destino === 'mision') { v.mision = destinos[j++ % destinos.length]; v.x1 = v.mision.x; v.y1 = Y; }
+      else if (destino === 'aplazada') { v.x1 = lugar(); v.y1 = Y; }
+      else { v.x1 = dirX + azar(-70, 70); v.y1 = Math.max(MY + 60, dirY - 40); }
+      return v;
+    });
+    orbita = [];
+    return vuelos.reduce((m, v) => Math.max(m, v.sale - now), 0) + 1100 + 500;
+  }
+
+  function volar(now) {
+    vuelos = vuelos.filter((v) => {
+      const q = tope((now - v.sale) / 1100), s = suave(q);
+      v.x = lerp(v.x0, v.x1, s); v.y = lerp(v.y0, v.y1, s) - Math.sin(Math.PI * s) * Math.abs(v.alto);
+      v.a = q <= 0 ? 0 : v.destino === 'rechazada' ? 1 - 0.5 * s : 1; v.s = q <= 0 ? 0 : s;
+      if (q < 1) return true;
+      if (v.destino === 'mision') {
+        v.mision.carga++; destello(v.x1, Y, v.reforma ? ORO : v.color, now);
+        // Las misiones que el Studio vuelve a poner en orden después de una urgencia aparecen al llegar
+        if (v.revela) { v.mision.visible = true; destello(v.x1, Y, ORO, now, true); }
+      }
+      else if (v.destino === 'aplazada') { esperan.push({ x: v.x1, color: v.color, vib: azar(0, 6.28) }); cuenta.esperan++; destello(v.x1, Y, v.color, now); }
+      else { cuenta.descartadas++; descartes.push({ x: v.x1, y: v.y1, color: v.color, t: now }); }
+      return false;
+    });
+  }
+
+  // Las misiones aparecen una tras otra, en orden
+  function revelar(lista, t, base, now) {
+    lista.forEach((m, i) => {
+      if (!m.visible && t >= base + i * 450) { m.visible = true; destello(m.x, Y, m.urgente ? ROJO : ORO, now, true); }
+    });
+  }
+
+  // La celebración de una misión completada: tu cubito se detiene, da un brinco bien alto en su sitio (no hacia
+  // adelante), al caer da un solo rebotito y lo rodean unas serpentinas, con un puñado de confeti; solo entonces
+  // sigue por la ruta. En la meta, se repite en bucle, con una pausa entre una y otra
+  const CONFETI = ['#f5d27a', '#5ad1ff', '#6fe3a1', '#b48cff', '#ffb36b', '#ff6b8a'], DURA_FIESTA = 600;
+  // (milisegundos: el brinco, el rebotito después, y lo que duran las serpentinas; un 20 % menos que antes, nota de
+  // voz del 20 de octubre)
+  const SALTO = 240, SACUDE = 180, DURA_SERP = 520, PAUSA_META = 1400;
+  // Mientras brinca y se sacude, tu cubito no avanza
+  const celebrando = (now) => now - fiesta < SALTO + SACUDE;
+  let serpentinas = [];
+  function celebrar(x, now, grande) {
+    fiesta = now;
+    for (let i = 0; i < (grande ? 26 : 16); i++) {
+      const ang = -Math.PI / 2 + azar(-1.2, 1.2), v = azar(0.07, grande ? 0.19 : 0.15);
+      confeti.push({ x, y: Y - 22, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, giro: azar(0, 6.28), color: uno(CONFETI), t: now });
+    }
+    // Las serpentinas salen alrededor de tu cubito, en abanico hacia arriba y a los lados
+    const n = grande ? 9 : 7;
+    for (let i = 0; i < n; i++) {
+      serpentinas.push({ ang: -Math.PI / 2 + ((i / (n - 1)) * 2 - 1) * 1.45 + azar(-0.12, 0.12), largo: azar(10, grande ? 18 : 15),
+        color: CONFETI[i % CONFETI.length], vib: azar(0, 6.28), t: now });
+    }
+  }
+  function moverConfeti(now, dt) {
+    confeti = confeti.filter((c) => now - c.t < DURA_FIESTA);
+    for (const c of confeti) { c.vy += 0.00028 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.giro += dt / 90; }
+    serpentinas = serpentinas.filter((s) => now - s.t < DURA_SERP);
+  }
+  // Cuánto brinca tu cubito al completar una misión: un salto vertical, alto, que cae suave
+  // y, al caer, un solo rebotito pequeño antes de quedar acomodado
+  const brinco = (now) => {
+    const q = (now - fiesta) / SALTO, r = (now - fiesta - SALTO) / SACUDE;
+    if (q >= 0 && q < 1) return Math.sin(Math.PI * q) * 24;
+    return r >= 0 && r < 1 ? Math.sin(Math.PI * r) * 4 : 0;
+  };
+  // (ya sin temblor de lado a lado: nota de voz del 20 de octubre)
+  const sacudida = () => 0;
+  // Las serpentinas: cintas onduladas que brotan alrededor de tu cubito, se estiran, ondean y se apagan
+  function dibujarSerpentinas(cx, cy, now) {
+    for (const s of serpentinas) {
+      const q = (now - s.t) / DURA_SERP, sale = suave(tope(q / 0.35)), a = 1 - tope((q - 0.6) / 0.4);
+      if (a <= 0.01 || sale <= 0.01) continue;
+      const r0 = 14 + 6 * sale, largo = s.largo * sale, dx = Math.cos(s.ang), dy = Math.sin(s.ang);
+      ctx.save(); ctx.strokeStyle = s.color; ctx.globalAlpha = a; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i <= 12; i++) {
+        const k = i / 12, w = Math.sin(k * 10 + now / 70 + s.vib) * 3.2 * k;
+        const x = cx + dx * (r0 + largo * k) - dy * w, y = cy + dy * (r0 + largo * k) + dx * w;
+        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      }
+      ctx.stroke(); ctx.restore();
+    }
+  }
+
+  // Al pasar la línea, la misión hecha y lo que esperaba su fase se vuelven camino: un nudo de su color
+  function alcanzar(now) {
+    for (const m of misiones) {
+      if (m.visible && !m.hecha && m.x <= cabeza) {
+        m.hecha = true; cuenta.hechas++;
+        nudos.push({ x: m.x, color: m.urgente ? ROJO : LUZ, r: 3 });
+        destello(m.x, Y, m.urgente ? ROJO : ORO, now, true);
+        celebrar(m.x, now);
+      }
+    }
+    esperan = esperan.filter((p) => {
+      if (p.x > cabeza) return true;
+      nudos.push({ x: p.x, color: p.color, r: 2.3 });
+      destello(p.x, Y, p.color, now);
+      cuenta.esperan--;
+      return false;
+    });
+  }
+
+  // El Studio le entrega al director, que ya salió de él, lo que guardó; cuando terminó, el director empieza a pensar
+  function entregar(now) {
+    if (entregaSale == null) entregaSale = now;
+    // En la urgente, el Studio entrega solo lo urgente; lo demás se queda adentro, para la revisión completa
+    const da = urg ? st.carga.filter((c) => c.urgente) : st.carga;
+    da.forEach((c, i) => { c.k = suave(tope((now - entregaSale - i * 60) / 800)); });
+    if (entregaSale != null && now - entregaSale >= da.length * 60 + 900) {
+      orbita = da.map((c) => ({ color: c.color, urgente: c.urgente, ang: 0 }));
+      st.carga = st.carga.filter((c) => !da.includes(c)); ramas = ramas.filter((r) => !r.atrapada);
+      return true;
+    }
+    return false;
+  }
+
+  // ── La urgencia: llega y te detiene, y se resuelve rápido. El Studio deja de recoger lo demás, toma
+  //    solo la urgencia y se aparta con ella, más grande, lejos de las ramas (lo demás se oscurece); ahí saca al director
+  //    y le entrega solo la urgencia; el director la resuelve con el modelo, le devuelve el resultado y vuelve a entrar
+  //    al Studio. El Studio te trae el reporte («Dónde quedamos») y, primero, una misión prioritaria, en rojo: revisar el
+  //    resultado; detrás vuelve a poner en orden las que venían, y sigue recogiendo lo que había dejado suelto.
+  function empezarUrgencia(now) {
+    alarma = 0; urg = true; xd = cabeza; entregaSale = null;
+    // El lugar aparte: a la derecha de las ramas, y el director a medio camino entre el Studio y el modelo
+    const ax = Math.min(720, Math.max(600, cabeza + 340)), ay = Y - 125;
+    const mx = lerp(ax, MX, 0.5), my = lerp(ay, MY + 12, 0.5);
+    u = { etapa: 'aparta', t0: now, ax, ay, caja: { x0: Math.min(ax, mx) - 85, x1: Math.max(ax, mx) + 85, y0: my - 95, y1: ay + 60 } };
+    revisiones.push({ x: xd, urgente: true });
+    cambiar('trabajo', now, 2400, 'dispara');
+  }
+  function flotarAparte(now, dt) { volarStudio(u.ax, u.ay + Math.sin(now / 650) * 6, dt, REPOSO); }
+  function atenderUrgencia(now, dt) {
+    const t = now - u.t0;
+    // Cada etapa dura por lo menos lo que tarda en leerse su subtítulo (durFase): el movimiento se reparte en ese tiempo
+    if (u.etapa === 'aparta') {
+      // Se aparta con la urgencia y se acerca la cámara
+      aisla = tope(t / 700); lupa = 1 + 0.45 * suave(tope(t / (0.6 * durFase)));
+      const d = volarStudio(u.ax, u.ay, dt, 0.3 * Math.min(1, 1800 / durFase));
+      if (d < 3 && t > 1100 && t >= durFase) { u = { ...u, etapa: 'sale', t0: now }; cambiar('trabajo', now, 2200, 'saleUrg'); }
+    } else if (u.etapa === 'sale') {
+      // El Studio saca al director y le entrega solo la urgencia
+      flotarAparte(now, dt);
+      dirK = tope(t / 800);
+      if (t > 900 && !u.dio && entregar(now)) { u.dio = true; u.dioEn = now; }
+      // Con la urgencia en la mano, el director se conecta enseguida con el modelo
+      enlace = u.dio ? ORGANIZA * tope((now - u.dioEn) / 300) : 0;
+      if (u.dio && t >= durFase) {
+        u = { ...u, etapa: 'atiende', t0: now };
+        cambiar('trabajo', now, PIENSA_URG.length * POR_FRASE_URG + 200, 'procesaUrg');
+      }
+    } else if (u.etapa === 'atiende') {
+      // Le pide la solución al modelo y recibe su respuesta (lo que piensa se reparte en lo que dura la etapa)
+      flotarAparte(now, dt);
+      pensando(t, PIENSA_URG, 0, (durFase - 200) / PIENSA_URG.length);
+      enlace = ORGANIZA + (1 - ORGANIZA) * tope(t / 300);
+      if (t >= durFase) {
+        pensarA = 0; orbita = [];
+        destello(dirX, dirY, ROJO, now, true);
+        u = { ...u, etapa: 'devuelve', t0: now, x0: dirX, y0: dirY };
+        cambiar('trabajo', now, 1500, 'devuelveUrg');
+      }
+    } else if (u.etapa === 'devuelve') {
+      // El resultado vuela del director al Studio, y el director vuelve a entrar en él
+      flotarAparte(now, dt);
+      enlace = 1 - tope(t / 300);
+      const vuela = 0.45 * durFase, s = suave(tope(t / vuela));
+      u.lx = lerp(u.x0, st.x, s); u.ly = lerp(u.y0, st.y, s) - Math.sin(Math.PI * s) * 25; u.la = t < vuela ? 1 : 0;
+      if (t >= vuela && !st.lleva) { st.lleva = true; destello(st.x, st.y, ROJO, now, true); }
+      dirK = 1 - tope((t - vuela) / (0.45 * durFase));
+      if (t >= durFase) {
+        u = { ...u, etapa: 'avisa', t0: now };
+        cambiar('trabajo', now, 4200, 'avisaUrg');
+      }
+    } else if (u.etapa === 'avisa') {
+      // El Studio vuelve a su tamaño y te trae el resultado; al llegar, la solución baja a la marca de la urgencia, en la
+      // línea, donde surgió: la marca pasa de roja a verde. Entonces aparece primero la misión roja
+      lupa = 1 + 0.45 * (1 - suave(tope(t / 1000)));
+      // (sigue flotando mientras te trae el resultado: nunca se queda quieto)
+      const d = volarStudio(cabeza + 30, Y - 100 + Math.sin(now / 650) * 6, dt, 0.6);
+      if (!u.llega && (d < 6 || t > 1500)) { u.llega = now; st.lleva = false; destello(st.x, st.y, VERDE, now, true); }
+      if (u.llega && !aviso) {
+        const s = suave(tope((now - u.llega) / 800)), marca = revisiones.find((r) => r.urgente && !r.resuelta);
+        const mx = marca ? marca.x : cabeza;
+        u.rx = lerp(st.x, mx, s); u.ry = lerp(st.y, Y, s) - Math.sin(Math.PI * s) * 18;
+        if (now - u.llega >= 800) {
+          aviso = now;
+          if (marca) marca.resuelta = true;
+          destello(mx, Y, VERDE, now, true);
+          misionRevisar(now);
+        }
+      }
+      volar(now);
+      aisla = aviso ? 1 - tope((now - aviso) / 900) : 1;
+      if (aviso && now - aviso >= ARRANCA + 300 && !vuelos.length && t >= durFase) {
+        urg = false; u = null; aisla = 0; lupa = 1;
+        cambiar('trabajo', now, Math.max(2000, (objetivo - cabeza) / (PASO * PASO_SIGUE)), 'sigue');
+        andar = Math.min(PASO * PASO_SIGUE, Math.max(0.005, (objetivo - cabeza) / durFase));
+      }
+    }
+  }
+  // La misión de revisar el resultado: justo delante de ti, y es la misión que tocaba (si tocaba la 4, la 4 es revisar
+  // lo urgente, y las que venían se corren por la línea: 5, 6, 7), a un trecho cada una, y la parada siguiente un
+  // trecho después de la última
+  function misionRevisar(now) {
+    // Trecho y medio después del cambio urgente, y las que venían, trecho y medio después de ella: así su rótulo, el
+    // más largo de la línea, se lee sin tocar a los demás
+    const parada1 = revisiones.filter((r) => !r.urgente).at(-1);
+    const x = Math.max(cabeza + 20, (parada1 ? parada1.x : cabeza) + 2 * ESPACIO_URG);
+    let antes = x;
+    const venian = misiones.filter((m) => !m.hecha && m.x > cabeza).sort((a, b) => a.x - b.x);
+    const n = venian.length ? venian[0].n : contador + 1;
+    for (const m of venian) m.n++;
+    contador++;
+    // Las que venían se corren por la línea hasta su lugar nuevo: del Studio solo vuelve el resultado de lo urgente,
+    // nada más (nota de voz del 20 de octubre)
+    venian.forEach((m, i) => {
+      const x1 = antes + (i ? TRECHO_URG : ESPACIO_URG);
+      m.corre = { x0: m.x, x1, t: now + 300 + i * 120 };
+      antes = x1;
+    });
+    objetivo = antes + TRECHO_URG;
+    // Una sola misión por delante: tu atención vuelve a cero
+    atencionMeta = 0;
+    misiones.push({ x, n, carga: 0, visible: true, hecha: false, urgente: true });
+    destello(x, Y, ROJO, now, true);
+  }
+
+  // El tiempo del dibujo del inicio (11,8 s, con lo que pasa en él) estirado al de sus frases: tu meta vuela al Studio
+  // con la primera; el director sale con la segunda; habla con el modelo y traza la ruta con la tercera; lanza las
+  // misiones con la cuarta, y aparecen con la quinta
+  const INICIO_DIBUJO = [0, 2600, 5000, 6900, 8500, 11800];
+  function alInicio(t) {
+    const e = momentos(GUION.inicio, durFase), de = [0, e[1], e[2], e[3], e[4], durFase];
+    for (let i = 1; i < de.length; i++) {
+      if (t <= de[i]) return lerp(INICIO_DIBUJO[i - 1], INICIO_DIBUJO[i], tope((t - de[i - 1]) / (de[i] - de[i - 1])));
+    }
+    return INICIO_DIBUJO.at(-1);
+  }
+
+  function pasoCon(now, dt) {
+    const t = now - t0;
+    velo = 0;
+    if (fase === 'inicio') {
+      // El Studio aparece y saca al director, que se pone entre él y el modelo, habla con el modelo, traza la ruta,
+      // lanza las primeras misiones y vuelve a entrar al Studio; el Studio queda flotando. Cada cosa llega con su
+      // frase: lo de abajo está medido en el tiempo del dibujo (tt), que se estira al de lo que se cuenta
+      velo = 1 - tope(t / 700);
+      st.a = suave(tope(t / 700));
+      const tt = alInicio(t), ttAntes = alInicio(t - dt);
+      const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO);
+      if (tt >= 900 && ttAntes < 900) destello(st.x, st.y, MORADO, now, true);
+      // Tu meta: una luz que le entregas al Studio y que el Studio le entrega al director cuando lo saca
+      if (tt >= 1000 && tt < 2400) {
+        const s = suave((tt - 1000) / 1400);
+        metaLuz = { x: lerp(X0, st.x, s), y: lerp(Y - 26, st.y, s) - Math.sin(Math.PI * s) * 40 };
+      } else if (tt >= 2400 && tt < 3400) metaLuz = { x: st.x, y: st.y };
+      else if (tt >= 3400 && tt < 4300) {
+        const s = suave((tt - 3400) / 900);
+        metaLuz = { x: lerp(st.x, dirX, s), y: lerp(st.y, dirY, s) - Math.sin(Math.PI * s) * 20 };
+      } else if (tt >= 4300 && tt < 6700) metaLuz = { x: dirX + Math.cos(now / 400) * 25 * dirS, y: dirY + Math.sin(now / 400) * 25 * dirS };
+      else metaLuz = null;
+      if (tt >= 2400 && ttAntes < 2400) destello(st.x, st.y, ORO, now);
+      dirK = tope((tt - 2600) / 1100) * (1 - tope((tt - 9800) / 1000));
+      enlace = tope((tt - 4300) / 400) * (1 - tope((tt - 6700) / 400));
+      pensando(tt - 4300, ['estudiando tu proyecto y tu meta…', 'trazando la ruta…'], 0);
+      if (!lanzado && tt >= 6900) {
+        lanzado = true;
+        destello(dirX, dirY, ORO, now, true);
+        nuevas = [1, 2, 3].map((i) => ({ x: X0 + TRECHO * i, n: ++contador, carga: 0, visible: false, hecha: false }));
+        misiones.push(...nuevas);
+        vuelos = nuevas.map((m, i) => ({ color: '#ffe3a0', destino: 'mision', mision: m, x0: dirX, y0: dirY, x1: m.x, y1: Y,
+          sale: now + i * 160, alto: azar(20, 45), x: 0, y: 0, a: 0 }));
+      }
+      volar(now);
+      revelar(nuevas, tt, 8500, now);
+      if (t >= durFase) { metaLuz = null; empezarTrabajo(now); }
+    } else if (fase === 'trabajo') {
+      // Vas siempre a tu mismo paso; una urgencia te detiene hasta que te llega su misión, y al llegar a tu última
+      // misión, también te detienes
+      if (celebrando(now)) { /* se detiene a celebrar la misión */ }
+      else if (!urg && !alarma) cabeza = Math.min(objetivo, cabeza + andar * dt);
+      else if (u && u.etapa === 'avisa' && aviso && now - aviso >= ARRANCA) cabeza = Math.min(objetivo, cabeza + andar * dt);
+      if (urg) atenderUrgencia(now, dt);
+      else {
+        avance += dt;
+        while (agenda.length && avance >= agenda[0].en) nacer(agenda.shift(), now);
+        // En cuanto atrapa la urgencia, no recoge nada más: se aparta con ella y se acerca la cámara
+        if (!alarma) cazar(now, dt);
+        if (alarma) empezarUrgencia(now);
+        else if (cabeza >= objetivo) {
+          // Te detuviste: la revisión es justo ahí, y el Studio se acomoda rápido
+          xd = cabeza; agenda = [];
+          parada = parada === 0 ? 1 : 2;
+          cambiar('llega', now, 1800, parada === 1 ? 'llega1' : 'llega2');
+        }
+      }
+    } else if (fase === 'llega') {
+      cazar(now, dt, true);
+      // La revisión empieza cuando ya no queda ninguna rama suelta y ya se leyó lo que se cuenta
+      if (t >= 600 && t >= durFase && ramas.every((r) => r.atrapada)) {
+        revisiones.push({ x: xd, n: parada });
+        entregaSale = null; entregado = false;
+        cambiar('invoca', now, 3600, parada === 2 ? 'invoca2' : 'invoca');
+      }
+    } else if (fase === 'invoca') {
+      // El Studio llega rápido a su lugar, saca al director, que se pone entre él y el modelo, y le entrega lo que guardó
+      const p = reposo(now); volarStudio(p.x, p.y, dt, ACOMODA);
+      dirK = tope(t / 1100);
+      if (t > 1200 && !entregado && entregar(now)) { entregado = true; entregadoEn = now; }
+      // En cuanto recibe lo que le entrega el Studio, el director se conecta con el modelo para organizarlo: el hilo
+      // de ida y vuelta se tiende ya, más tenue (solo se ve: los subtítulos no lo cuentan)
+      enlace = entregado ? ORGANIZA * tope((now - entregadoEn) / 400) : 0;
+      if (entregado && t >= durFase) cambiar('procesa', now, FRASES * POR_FRASE + 400, parada === 2 ? 'procesa2' : 'procesa');
+    } else if (fase === 'procesa') {
+      // El director organiza lo recibido con el modelo (el hilo tenue) y, con todo junto y ordenado, le hace el pedido
+      // claro: el hilo se enciende del todo (lo que piensa se reparte en lo que dura el momento). En la primera
+      // revisión, se enciende con «Entonces usa el modelo para ejecutarlo»
+      pensando(t, PIENSA, parada * 2, (durFase - 400) / FRASES);
+      const habla = parada === 1 ? momentos(lineas, durFase).at(-1) ?? 0 : 0;
+      enlace = ORGANIZA + (1 - ORGANIZA) * tope((t - habla) / 400);
+      const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO);
+      if (t >= durFase) {
+        pensarA = 0;
+        // Termina de pensar: un destello, y reparte
+        destello(dirX, dirY, ORO, now, true);
+        cambiar('reparte', now, repartir(now), parada === 2 ? 'reparte2' : 'reparte');
+      }
+    } else if (fase === 'reparte') {
+      enlace = 1 - tope(t / 400);
+      const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO);
+      volar(now);
+      if (!vuelos.length && t >= durFase) {
+        if (parada === 2) cambiar('entrega', now, nuevas.length * 450 + 3400, 'cierra');
+        else cambiar('entrega', now, nuevas.length * 450 + 2600);
+      }
+    } else if (fase === 'entrega') {
+      // Aparecen las misiones; luego el director vuelve a entrar al Studio, que queda otra vez flotando. Con las
+      // prioridades otra vez en la línea y una misión a la vez, tu atención vuelve a cero
+      revelar(nuevas, t, 200, now);
+      atencionMeta = 0;
+      const espera = nuevas.length * 450 + 500;
+      dirK = 1 - tope((t - espera) / 1000);
+      const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO);
+      if (t >= durFase) {
+        if (parada === 2) cambiar('tramo', now, (META + 30 - cabeza) / (PASO * PASO_FINAL) + 400);
+        else empezarTrabajo(now);
+      }
+    } else if (fase === 'tramo') {
+      // El último tramo: sin ramas ni cambios, por las dos misiones y la misión final, derecho a la meta y más rápido
+      if (!celebrando(now)) cabeza = Math.min(META + 30, cabeza + PASO * PASO_FINAL * dt);
+      const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO * 1.6);
+      if (t >= durFase && cabeza >= META + 30) cambiar('meta', now, 6000);
+    } else if (fase === 'meta') {
+      metaBrillo = 0.55 + 0.3 * Math.sin(now / 250);
+      // En la meta, tu cubito celebra en bucle: brinco, sacudida, serpentinas y confeti, una y otra vez
+      if (t < durFase - 900 && now - fiesta >= SALTO + SACUDE + PAUSA_META) celebrar(cabeza, now, true);
+      const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO);
+      // Sin fundido a negro: ya no empieza otra vuelta, así que la meta queda a la vista
+      velo = 0;
+      // Al llegar a la meta, el video termina y se queda ahí (sin volver a empezar solo): con la perilla se recorre
+      // hacia atrás o hacia adelante, y el botón del centro lo vuelve a ver desde el principio
+      if (t >= durFase) {
+        if (midiendo) { termino = true; return; }
+        if (!silencio && !arrastre) { reproduce = false; iconoBoton(); }
+        return;
+      }
+    }
+
+    // Las ramas atrapadas desaparecen enseguida
+    ramas = ramas.filter((r) => !r.atrapada || now - r.atrapada < 160);
+    for (const c of st.carga) if (entregaSale == null || (fase !== 'invoca' && !(u && u.etapa === 'sale'))) c.ang += dt / 700;
+    ubicarDirector();
+    // Las luces que el director recibió giran a su alrededor
+    const vel = fase === 'procesa' ? 260 : 520;
+    orbita.forEach((o, i) => { o.ang = now / vel + (i * 2 * Math.PI) / orbita.length; });
+    // Las misiones que se corren después de una urgencia se deslizan por la línea
+    for (const m of misiones) {
+      if (!m.corre) continue;
+      const k = suave(tope((now - m.corre.t) / 900));
+      m.x = lerp(m.corre.x0, m.corre.x1, k);
+      if (k >= 1) m.corre = null;
+    }
+    alcanzar(now);
+    moverConfeti(now, dt);
+    efectos = efectos.filter((f) => now - f.t < 700);
+
+    // Los tokens: solo los gasta el director, mientras habla con el modelo
+    ritmo = TOK_DIRECTOR * enlace * (dirA > 0.01 ? 1 : 0);
+    tokens += ritmo * dt;
+    // Tu atención sube despacio y baja con calma
+    atencion += (atencionMeta - atencion) * Math.min(1, dt / (atencionMeta < atencion ? 1100 : 600));
+    // Con STL no hay cifras debajo: el dibujo y el contador de tokens ya lo cuentan
+    contar('');
+  }
+
+  // ══ El dibujo: cada cuadro se pinta entero, sin filtros (el brillo es un trazo ancho y tenue debajo de cada trazo)
+  // (sinBrillo: solo el trazo, para las líneas finas y largas, donde el brillo casi no se ve y cuesta mucho pintarlo)
+  function trazar(dibujo, color, ancho, alfa, sinBrillo) {
+    if (alfa <= 0.01) return;
+    ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); dibujo();
+    if (!sinBrillo) { ctx.globalAlpha = alfa * 0.16; ctx.lineWidth = ancho * 4.5; ctx.stroke(); }
+    ctx.globalAlpha = alfa; ctx.lineWidth = ancho; ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  function luz(x, y, r, color, alfa) {
+    if (alfa <= 0.01) return;
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alfa * 0.18; ctx.beginPath(); ctx.arc(x, y, r * 3, 0, 7); ctx.fill();
+    ctx.globalAlpha = alfa; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  // Todo rótulo del dibujo empieza con mayúscula, aunque empiece con un signo («¡Urgente!», «✉ Reporte»); una cifra
+  // («+1.200 por segundo») se queda como está
+  const mayus = (t) => String(t).replace(/^([^\p{L}\p{N}]*)(\p{L})/u, (_, a, b) => a + b.toUpperCase());
+  function texto(t, x, y, color, tam, alfa, extra, alinear) {
+    if (alfa <= 0.01) return;
+    t = mayus(t);
+    ctx.font = `${extra || ''} ${tam}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+    ctx.fillStyle = color; ctx.globalAlpha = alfa; ctx.textAlign = alinear || 'center'; ctx.fillText(t, x, y);
+    ctx.globalAlpha = 1;
+  }
+  // Acomoda rótulos en renglones: de izquierda a derecha, cada uno toma el primer renglón donde no toca a ningún otro
+  // (ni a lo que ya ocupa ese lugar)
+  function acomodar(lista, filas, ocupa) {
+    const usado = filas.map((_, i) => ocupa.filter((o) => o.fila === i).map((o) => [o.a, o.b]));
+    lista.sort((p, q) => p.x - q.x);
+    for (const r of lista) {
+      ctx.font = `${r.peso || ''} ${r.tam}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+      const w = ctx.measureText(mayus(r.t)).width, a = r.x - w / 2 - 5, b = r.x + w / 2 + 5;
+      let f = usado.findIndex((tramos) => tramos.every(([p, q]) => b < p || a > q));
+      if (f < 0) f = filas.length - 1;
+      usado[f].push([a, b]);
+      texto(r.t, r.x, filas[f], r.color, r.tam, r.alfa, r.peso);
+    }
+  }
+  const yOnda = (x, now) => Y + Math.sin(x / 37 + now / 800) * 1.2;
+  function onda(a, b, now) {
+    ctx.moveTo(a, yOnda(a, now));
+    for (let x = a + 8; x < b; x += 8) ctx.lineTo(x, yOnda(x, now));
+    ctx.lineTo(b, yOnda(b, now));
+  }
+  // Un trozo de la curva de una rama (de 0 hasta u), en tramos cortos: sale de la línea hacia arriba
+  function bezier(r, ty, u) {
+    const P = [[r.ox, Y], [r.c1, Y - 45], [r.c2, ty + 50], [r.tx, ty]];
+    const pt = (s) => {
+      const a = (1 - s) ** 3, b = 3 * (1 - s) ** 2 * s, c = 3 * (1 - s) * s * s, d = s ** 3;
+      return [a * P[0][0] + b * P[1][0] + c * P[2][0] + d * P[3][0], a * P[0][1] + b * P[1][1] + c * P[2][1] + d * P[3][1]];
+    };
+    ctx.moveTo(P[0][0], P[0][1]);
+    for (let i = 1; i <= 24; i++) { const [x, y] = pt((u * i) / 24); ctx.lineTo(x, y); }
+  }
+  // El desarrollador: un cubito con carita en la punta de la línea, que es quien la mueve. Si está detenido por una
+  // urgencia, lo dice encima (salvo cuando encima va el reporte)
+  function desarrollador(x0, alfa, etiqueta, now, detenido, letrero = true) {
+    // Con STL, al completar una misión: brinco, sacudida y serpentinas a su alrededor
+    const fiestaCon = modo === 'con', x = x0 + (fiestaCon ? sacudida(now) : 0);
+    const bote = detenido ? 0 : Math.abs(Math.sin(now / 260)) * 1.6, cy = Y - 15 - bote - (fiestaCon ? brinco(now) : 0);
+    if (fiestaCon) dibujarSerpentinas(x, cy, now);
+    ctx.save(); ctx.globalAlpha = alfa;
+    const halo = ctx.createRadialGradient(x, cy, 0, x, cy, 22);
+    halo.addColorStop(0, 'rgba(255,241,196,.28)'); halo.addColorStop(1, 'rgba(255,241,196,0)');
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, cy, 22, 0, 7); ctx.fill();
+    ctx.restore();
+    // La misma carita que se ve de cerca arriba a la izquierda: tu cansancio se ve también aquí
+    carita(x, cy, 1, tope(atencion), now);
+    luz(x0, Y, 3.5, LUZ, alfa);
+    texto(etiqueta, x0, Y + 23, '#fff1c4', 10.5, 0.8 * alfa);
+    if (detenido) {
+      const a = alfa * (0.75 + 0.25 * Math.sin(now / 160));
+      ctx.fillStyle = ROJO; ctx.globalAlpha = a;
+      ctx.fillRect(x - 5, cy - 27, 3.2, 10); ctx.fillRect(x + 1.8, cy - 27, 3.2, 10); ctx.globalAlpha = 1;
+      if (letrero) texto('detenido: primero lo urgente', x, cy - 33, '#ffd0da', 11, a, '600');
+    }
+  }
+  // Un rótulo pegado a la punta de una rama: fondo del color de la línea (más oscuro, para leerlo) y letra blanca
+  function oscuro(color, k) {
+    const n = parseInt(color.slice(1), 16);
+    return `rgb(${Math.round((n >> 16) * k)}, ${Math.round(((n >> 8) & 255) * k)}, ${Math.round((n & 255) * k)})`;
+  }
+  // (en cursiva, lo que contesta el modelo)
+  function rotulo(t, x, y, color, tam, alfa, cursiva) {
+    if (alfa <= 0.01) return;
+    t = mayus(t);
+    ctx.font = `${cursiva ? 'italic ' : ''}600 ${tam}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+    const w = ctx.measureText(t).width + 12, h = tam + 8;
+    const bx = Math.max(4, Math.min(W - w - 4, x + 6)), by = Math.max(4, Math.min(H - h - 4, y - h - 5));
+    ctx.globalAlpha = alfa;
+    ctx.fillStyle = oscuro(color, 0.58); ctx.beginPath(); ctx.roundRect(bx, by, w, h, h / 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(t, bx + 6, by + h / 2 + 0.5);
+    ctx.textBaseline = 'alphabetic'; ctx.globalAlpha = 1;
+  }
+  // El Studio: un marco redondeado, morado, que flota aparte de la línea; lo atrapado gira adentro
+  function studio(x, y, s, a, now) {
+    if (a <= 0.01) return;
+    const r = Math.max(4, s * 0.35);
+    const marco = () => {
+      ctx.moveTo(x - s + r, y - s); ctx.arcTo(x + s, y - s, x + s, y + s, r); ctx.arcTo(x + s, y + s, x - s, y + s, r);
+      ctx.arcTo(x - s, y + s, x - s, y - s, r); ctx.arcTo(x - s, y - s, x + s, y - s, r); ctx.closePath();
+    };
+    // Con una urgencia adentro, o con su resultado de vuelta, el marco late en rojo
+    const late = st.carga.some((c) => c.urgente) || st.lleva ? 0.5 + 0.5 * Math.sin(now / 90) : 0;
+    ctx.fillStyle = 'rgba(167, 139, 250, .14)'; ctx.globalAlpha = a; ctx.beginPath(); marco(); ctx.fill(); ctx.globalAlpha = 1;
+    trazar(marco, late ? ROJO : MORADO, 1.6 + late, a);
+    if (st.lleva) luz(x, y, 3.2, ROJO, a);
+    texto(st.lleva ? 'resultado → tú' : late ? '¡urgente! → director' : 'Studio', x, y + s + 15, late ? ROJO : '#c9b8ff', 12, a * 0.95, '600');
+    // Mientras el director atiende la urgencia, lo demás sigue en el Studio, esperando la revisión completa
+    if (urg && !late && st.carga.length) texto('lo demás espera aquí', x, y + s + 29, '#c9b8ff', 10.5, a * 0.7, 'italic');
+  }
+  // El modelo (Claude Code, Codex…): una caja serena arriba; sin STL tiembla con todo lo que le llega
+  function modelo(now, agite) {
+    const x = MX + (agite ? Math.sin(now / 37) * agite : 0);
+    const marco = () => { ctx.roundRect(x - 66, MY - 13, 132, 26, 8); };
+    ctx.fillStyle = 'rgba(120, 140, 170, .14)'; ctx.beginPath(); marco(); ctx.fill();
+    trazar(marco, '#8fa3c0', 1.3, 0.85);
+    // Su icono: una carita redonda, azulada, con una chispa al lado que brilla despacio. Si le hablan demasiadas ramas
+    // a la vez, pone cara de agobio
+    const fx = x - 46, fy = MY, agobio = agite > 1.5;
+    const cara = ctx.createRadialGradient(fx - 2, fy - 3, 1, fx, fy, 9);
+    cara.addColorStop(0, '#eef3fb'); cara.addColorStop(1, '#9fb3d1');
+    // Su brillo, un círculo tenue (las sombras difusas del canvas son caras de pintar en cada cuadro)
+    luz(fx, fy, 3.5, MODELO, 0.5);
+    ctx.fillStyle = cara; ctx.beginPath(); ctx.arc(fx, fy, 8.5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#1a1f33';
+    for (const ojo of [-3, 3]) { ctx.beginPath(); ctx.ellipse(fx + ojo, fy - 1.5, 1.2, agobio ? 1.2 : 1.7, 0, 0, 7); ctx.fill(); }
+    ctx.fillStyle = 'rgba(255, 140, 150, .5)';
+    for (const m of [-5.2, 5.2]) { ctx.beginPath(); ctx.arc(fx + m, fy + 2, 1.4, 0, 7); ctx.fill(); }
+    ctx.strokeStyle = '#1a1f33'; ctx.lineWidth = 1.1; ctx.lineCap = 'round'; ctx.beginPath();
+    if (agobio) { ctx.moveTo(fx - 2.4, fy + 4); ctx.lineTo(fx - 0.8, fy + 3); ctx.lineTo(fx + 0.8, fy + 4); ctx.lineTo(fx + 2.4, fy + 3); }
+    else { ctx.moveTo(fx - 2.4, fy + 2.4); ctx.quadraticCurveTo(fx, fy + 4.8, fx + 2.4, fy + 2.4); }
+    ctx.stroke();
+    const r = 3.2, cx = fx + 10, cy = fy - 8;
+    ctx.fillStyle = MODELO; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(now / 500);
+    ctx.beginPath(); ctx.moveTo(cx, cy - r);
+    ctx.quadraticCurveTo(cx, cy, cx + r, cy); ctx.quadraticCurveTo(cx, cy, cx, cy + r);
+    ctx.quadraticCurveTo(cx, cy, cx - r, cy); ctx.quadraticCurveTo(cx, cy, cx, cy - r); ctx.fill();
+    ctx.globalAlpha = 1;
+    texto('el modelo', x + 10, MY + 4.5, MODELO, 12, 0.95, '600');
+  }
+  // Una conversación de ida y vuelta con el modelo: el hilo, un mensaje que sube y la respuesta que baja
+  function idaYVuelta(ax, ay, color, alfa, fase0, now) {
+    ctx.setLineDash([3, 6]); ctx.strokeStyle = color; ctx.globalAlpha = alfa * 0.45; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(MX, MY + 12); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    const u = (now / 1500 + fase0) % 1, v = (now / 1500 + fase0 + 0.5) % 1;
+    luz(lerp(ax, MX, u), lerp(ay, MY + 12, u), 1.7, color, alfa);
+    luz(lerp(MX, ax, v), lerp(MY + 12, ay, v), 1.5, MODELO, alfa * 0.85);
+  }
+  // Sin STL, la conversación de una rama: sube su pedido (una luz de su color) y baja la respuesta del modelo. El rótulo
+  // de la punta dice lo que pides mientras va y viene, y lo que el modelo contesta cuando la respuesta llega
+  function charla(h, alfa, now) {
+    ctx.setLineDash([3, 6]); ctx.strokeStyle = h.color; ctx.globalAlpha = alfa * 0.45; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(MX, MY + 12); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    const q = now - h.ciclo;
+    if (q < 0) return;
+    if (q < SUBE) { const s = suave(q / SUBE); luz(lerp(h.x, MX, s), lerp(h.y, MY + 12, s), 2.2, h.color, alfa); }
+    else if (q < SUBE + BAJA) { const s = suave((q - SUBE) / BAJA); luz(lerp(MX, h.x, s), lerp(MY + 12, h.y, s), 2, MODELO, alfa); }
+  }
+  function rotuloCharla(h, now) {
+    const q = now - h.ciclo, tam = h.nivel === 1 ? 11.5 : 10.5;
+    if (q >= SUBE + BAJA) rotulo(h.charla[1], h.x, h.y, '#9fb3d1', tam, 0.95, true);
+    else rotulo(h.charla[0], h.x, h.y, h.color, tam, 0.95);
+  }
+  // El contador de tokens, arriba a la derecha, del mismo tamaño que tu atención, al otro lado: lo que lleva gastado la
+  // escena y, debajo, a qué ritmo. Sin STL se pone rojo cuando el ritmo se dispara
+  function contadorTokens(now) {
+    const w = 228, h = 62, x = W - 16 - w, y = 10;
+    const caliente = modo === 'sin' ? tope(ritmo / 120) : 0;
+    const borde = caliente > 0.5 ? ROJO : '#8fa3c0';
+    ctx.fillStyle = `rgba(${Math.round(lerp(12, 70, caliente))}, ${Math.round(lerp(15, 20, caliente))}, 26, .82)`;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill();
+    trazar(() => ctx.roundRect(x, y, w, h, 12), borde, 1, 0.45 + (caliente > 0.5 ? 0.4 + 0.15 * Math.sin(now / 120) : 0));
+    texto('tokens gastados', x + 14, y + 20, '#b9b4a6', 11, 0.95, '600', 'left');
+    texto(Math.round(tokens).toLocaleString('es-CO'), x + w - 14, y + 22, caliente > 0.5 ? '#ffd0da' : '#fff1c4', 19, 1, '700', 'right');
+    const ps = Math.round(ritmo * 1000);
+    texto(ps ? `+${ps.toLocaleString('es-CO')} por segundo` : 'en reposo', x + w - 14, y + 47, caliente > 0.5 ? '#ffb3c2' : '#8f8a7d', 10.5, 0.95, 'italic', 'right');
+  }
+  // Un color entre dos (de 0, el primero, a 1, el segundo)
+  function mezclar(c1, c2, k) {
+    const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)), a = p(c1), b = p(c2);
+    return `rgb(${a.map((v, i) => Math.round(lerp(v, b[i], k))).join(', ')})`;
+  }
+  // Tu carita, de cerca, según tu cansancio (a, de 0 a 1): los ojos se cierran, la sonrisa se vuelve mueca, sale una
+  // gota de sudor y, agotado, los ojos se vuelven una X
+  function carita(cx, cy, s, a, now) {
+    const agotado = a >= 0.97;
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s);
+    const cuerpo = ctx.createLinearGradient(0, -9, 0, 9);
+    cuerpo.addColorStop(0, mezclar('#fff6dc', '#d6d2cb', a)); cuerpo.addColorStop(1, mezclar('#ffd9a0', '#a9a197', a));
+    // Su brillo, que se apaga con el cansancio: un círculo tenue, sin sombra difusa
+    if (a < 0.95) { ctx.fillStyle = '#fff1c4'; ctx.globalAlpha = 0.16 * (1 - a); ctx.beginPath(); ctx.arc(0, 0, 13, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+    ctx.fillStyle = cuerpo; ctx.beginPath(); ctx.roundRect(-9, -9, 18, 18, 5); ctx.fill();
+    ctx.strokeStyle = '#1a1f33'; ctx.fillStyle = '#1a1f33'; ctx.lineCap = 'round'; ctx.lineWidth = 0.9;
+    for (const ojo of [-3.6, 3.6]) {
+      if (agotado) {
+        ctx.beginPath(); ctx.moveTo(ojo - 1.5, -3); ctx.lineTo(ojo + 1.5, 0); ctx.moveTo(ojo + 1.5, -3); ctx.lineTo(ojo - 1.5, 0); ctx.stroke();
+        continue;
+      }
+      ctx.beginPath(); ctx.ellipse(ojo, -1.5, 1.4, Math.max(0.35, 1.9 * (1 - 0.75 * a)), 0, 0, 7); ctx.fill();
+      // Las ojeras, cuando ya pesa
+      if (a > 0.45) {
+        ctx.globalAlpha = tope((a - 0.45) / 0.3) * 0.5; ctx.strokeStyle = '#6b5a8a';
+        ctx.beginPath(); ctx.arc(ojo, -0.4, 1.8, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+        ctx.globalAlpha = 1; ctx.strokeStyle = '#1a1f33';
+      }
+    }
+    ctx.fillStyle = 'rgba(255, 140, 150, .55)'; ctx.globalAlpha = 1 - a;
+    for (const m of [-6, 6]) { ctx.beginPath(); ctx.arc(m, 2.2, 1.7, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1; ctx.lineWidth = 1.1; ctx.beginPath();
+    if (agotado) { ctx.moveTo(-3, 4.4); for (let i = 1; i <= 4; i++) ctx.lineTo(-3 + i * 1.5, 4.4 + (i % 2 ? -1 : 0)); }
+    else { const c = lerp(2.6, -1.8, a); ctx.moveTo(-2.6, 3.6); ctx.quadraticCurveTo(0, 3.6 + c, 2.6, 3.6); }
+    ctx.stroke();
+    // La gota de sudor
+    if (a > 0.55) {
+      const g = tope((a - 0.55) / 0.2), dy = ((now / 900) % 1) * 3;
+      ctx.globalAlpha = g * 0.9; ctx.fillStyle = '#8fd0ff';
+      ctx.beginPath(); ctx.moveTo(10.5, -7 + dy); ctx.quadraticCurveTo(12.6, -3.6 + dy, 10.5, -2.6 + dy); ctx.quadraticCurveTo(8.4, -3.6 + dy, 10.5, -7 + dy); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+  // Tú, de cerca, arriba a la izquierda: tu carita y la atención que te pide el proyecto. Sin STL sube con cada sesión
+  // que abres, hasta agotarte; con STL sube despacio con tus ideas y vuelve a cero cuando el director te devuelve una
+  // misión
+  function zoomAtencion(now) {
+    const a = tope(atencion), x = 16, y = 10, w = 228, h = 62;
+    ctx.fillStyle = 'rgba(12, 15, 26, .8)'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill();
+    trazar(() => ctx.roundRect(x, y, w, h, 12), a > 0.75 ? ROJO : '#8f8a7d', 1, 0.45);
+    carita(x + 32, y + h / 2, 2, a, now);
+    const bx = x + 66, by = y + 29, bw = w - 80, bh = 8;
+    texto('atención requerida', bx, y + 20, '#b9b4a6', 11, 0.95, '600', 'left');
+    ctx.fillStyle = 'rgba(255, 255, 255, .08)'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
+    const color = a < 0.5 ? mezclar(VERDE, ORO, a / 0.5) : mezclar(ORO, ROJO, (a - 0.5) / 0.5);
+    if (a > 0.01) { ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(bx, by, Math.max(bh, bw * a), bh, 4); ctx.fill(); }
+    const como = a >= 0.97 ? 'agotado' : a > 0.75 ? 'muy cansado' : a > 0.5 ? 'cansado' : a > 0.22 ? 'atento'
+      : modo === 'con' ? 'fresco: una cosa a la vez' : 'fresco';
+    texto(como, bx, by + 22, a > 0.75 ? '#ffb3c2' : '#8f8a7d', 10.5, 0.95, 'italic', 'left');
+  }
+  // Con STL, el único hilo que llega al modelo: el del director, con el mensaje ya ordenado que sube y la respuesta que baja
+  function hiloDirector(now) {
+    if (enlace <= 0.01 || dirA <= 0.01) return;
+    const ax = dirX, ay = dirY - 16 * dirS, bx = MX, by = MY + 12;
+    const cx = lerp(ax, bx, 0.5), cy = Math.min(ay, by) + 10;
+    const en = (u) => ({ x: (1 - u) * (1 - u) * ax + 2 * (1 - u) * u * cx + u * u * bx, y: (1 - u) * (1 - u) * ay + 2 * (1 - u) * u * cy + u * u * by });
+    trazar(() => { ctx.moveTo(ax, ay); ctx.quadraticCurveTo(cx, cy, bx, by); }, ORO, 1.4, enlace * dirA * 0.7);
+    const sube = en((now / 1300) % 1), baja = en(1 - ((now / 1300 + 0.5) % 1));
+    luz(sube.x, sube.y, 2.6, LUZ, enlace * dirA);
+    luz(baja.x, baja.y, 2.2, MODELO, enlace * dirA * 0.9);
+  }
+  // El director: un núcleo luminoso con un anillo que gira, una cara sencilla y, encima, lo que va pensando. Vive
+  // dentro del Studio (ahí es un solecito en su centro) y sale de él. Se dibuja al final de todo: nada le tapa la cara.
+  function director(now) {
+    if (dirA <= 0.01) return;
+    const fuera = tope((dirK - 0.35) / 0.4);
+    // Atendiendo una urgencia: un anillo rojo que late
+    if (urg && fuera) trazar(() => ctx.arc(dirX, dirY, 34 * dirS, 0, 7), ROJO, 1.4, fuera * dirA * (0.45 + 0.35 * Math.sin(now / 120)));
+    for (const o of orbita) luz(dirX + Math.cos(o.ang) * 25 * dirS, dirY + Math.sin(o.ang) * 25 * dirS, 2.4, o.color, dirA);
+    ctx.save(); ctx.translate(dirX, dirY); ctx.scale(dirS, dirS); ctx.globalAlpha = dirA;
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, 36);
+    halo.addColorStop(0, 'rgba(255,207,90,.32)'); halo.addColorStop(1, 'rgba(255,207,90,0)');
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(0, 0, 36, 0, 7); ctx.fill();
+    ctx.save(); ctx.rotate((now / (fase === 'procesa' ? 6 : 20)) * Math.PI / 180);
+    ctx.setLineDash([5, 7]); ctx.strokeStyle = urg ? '#ffb3c2' : '#ffe3a0'; ctx.lineWidth = 1.4; ctx.globalAlpha = dirA * 0.8;
+    ctx.beginPath(); ctx.arc(0, 0, 19, 0, 7); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    ctx.globalAlpha = dirA;
+    const nucleo = ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
+    nucleo.addColorStop(0, '#fffaf0'); nucleo.addColorStop(0.65, '#ffe3a0'); nucleo.addColorStop(1, '#e9b94a');
+    ctx.fillStyle = nucleo; ctx.beginPath(); ctx.arc(0, 0, 12, 0, 7); ctx.fill();
+    ctx.fillStyle = '#1a1f33';
+    for (const ojo of [-4, 4]) { ctx.beginPath(); ctx.ellipse(ojo, -2, 1.7, 2.4, 0, 0, 7); ctx.fill(); }
+    ctx.strokeStyle = '#1a1f33'; ctx.lineWidth = 1.3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-3.5, 3.5); ctx.quadraticCurveTo(0, 6.5, 3.5, 3.5); ctx.stroke();
+    ctx.restore();
+    // Atendiendo una urgencia, su nombre dice también qué atiende: solo lo urgente
+    texto(urg ? 'director: solo lo urgente' : 'director', dirX, dirY - 36 * dirS, urg ? '#ffd0da' : ORO, 12, dirA * fuera, urg ? '600' : '');
+    // Lo que piensa no se sale del cuadro, aunque el director esté en el inicio
+    texto(pensarTxt || '', Math.max(dirX, 95), dirY - 56 * dirS, urg ? '#ffd0da' : '#fff1c4', 13, pensarA * dirA, 'italic');
+  }
+
+  function fondo(now) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fff';
+    for (const e of ESTRELLAS) { ctx.globalAlpha = e.a; ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // Las fases (solo su rayita: sin rótulo, para no competir con lo demás), el inicio y la meta
+    FASES.slice(1, -1).forEach((x) => {
+      ctx.strokeStyle = ORO; ctx.globalAlpha = 0.3; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, Y - 10); ctx.lineTo(x, Y + 10); ctx.stroke(); ctx.globalAlpha = 1;
+    });
+    luz(X0, Y, 5.5, ORO, 0.9);
+    texto('inicio', X0 - 12, Y + 4, ORO, 13, 0.85, '', 'right');
+    ctx.strokeStyle = ORO; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.arc(META + 30, Y, 10, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+    luz(META + 30, Y, 9, ORO, metaBrillo);
+    // (con STL, la palabra se apaga cuando tu cubito llega, para que no se encime con él mientras celebra)
+    const llega = modo === 'con' && cabeza ? tope((cabeza - (META - 30)) / 40) : 0;
+    texto('Meta', META + 30, Y - 20, ORO, 13, 0.85 * (1 - llega));
+  }
+  function efectosYVelo(now) {
+    for (const f of efectos) {
+      const q = (now - f.t) / 700;
+      ctx.strokeStyle = f.color; ctx.lineWidth = 2; ctx.globalAlpha = 1 - q;
+      ctx.beginPath(); ctx.arc(f.x, f.y, 2 + f.max * q, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
+  // El fundido entre escenas borra el dibujo (deja ver el fondo de la página) en vez de pintarlo de un color: así el
+  // cuadro del dibujo nunca se nota
+  function cubrir() {
+    if (velo <= 0.01) return;
+    ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000'; ctx.globalAlpha = tope(velo); ctx.fillRect(0, 0, W, H); ctx.restore();
+  }
+
+  function dibujarSin(now) {
+    fondo(now);
+    const linea = hebras[0];
+    const ramas1 = hebras.length - 1;
+    // Lo que le falta a la línea, punteado
+    ctx.setLineDash([2, 9]); ctx.strokeStyle = ORO; ctx.globalAlpha = 0.2; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(linea.x, Y); ctx.lineTo(META + 20, Y); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    if (fase === 'sinFin' || fase === 'sinSale') texto('?', META + 30, Y + 5, ORO, 14, 0.5 + 0.4 * Math.sin(now / 300), '600');
+    // Todo habla con el modelo, de ida y vuelta: el desarrollador y la punta de cada rama
+    hebras.forEach((h, i) => {
+      if (!h.viva || (h.nivel > 0 && h.pts.length < 3)) return;
+      if (h.nivel === 0) idaYVuelta(h.x, Y - 22, '#fff1c4', 0.8, 0, now);
+      else charla(h, h.nivel === 1 ? 0.75 : 0.55, now);
+    });
+    modelo(now, Math.min(3, ramas1 * 0.12));
+    contadorTokens(now);
+    if (ramas1 > 3) texto('le hablan todas a la vez', MX, MY + 30, '#8fa3c0', 11, tope((ramas1 - 3) / 3) * 0.8, 'italic');
+    // La línea recorrida, cada vez más tenue
+    const tenue = Math.max(0.4, 1 - 0.03 * ramas1);
+    if (linea.x > X0 + 0.5) { trazar(() => onda(X0, linea.x, now), '#ffcf5a', 6, 0.35 * tenue); trazar(() => onda(X0, linea.x, now), '#ffe3a0', 3, tenue); }
+    // Las ramas y sus ramitas, en el orden en que nacieron: la más nueva queda encima. Todas llevan su rótulo pegado a
+    // la punta, que va cambiando: ninguna punta queda sin el suyo
+    for (let i = 1; i < hebras.length; i++) {
+      const h = hebras[i], ancho = [3, 1.8, 1.3, 1][h.nivel];
+      if (h.pts.length < 2) continue;
+      const camino = () => { ctx.moveTo(h.pts[0][0], h.pts[0][1]); for (const [x, y] of h.pts) ctx.lineTo(x, y); ctx.lineTo(h.x, h.y); };
+      trazar(camino, h.color, ancho, h.nivel === 1 ? 0.9 : h.nivel === 2 ? 0.7 : 0.55, h.nivel > 1);
+      if (h.viva) luz(h.x, h.y, h.nivel === 1 ? 2.6 : 1.8, h.color, 1);
+      if (h.viva) rotuloCharla(h, now);
+    }
+    efectosYVelo(now);
+    desarrollador(linea.x, 1, 'tú', now, false);
+    zoomAtencion(now);
+    cubrir();
+  }
+
+  // Un tarrito de basura: donde cae lo que el director descarta
+  function basura(x, y, alfa) {
+    if (alfa <= 0.01) return;
+    ctx.save(); ctx.globalAlpha = alfa; ctx.strokeStyle = '#ff8fa3'; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.fillStyle = 'rgba(255, 143, 163, .18)';
+    // El cuerpo, un poco más angosto abajo, con sus rayitas
+    ctx.beginPath(); ctx.moveTo(x - 6, y - 4); ctx.lineTo(x - 4.8, y + 7); ctx.lineTo(x + 4.8, y + 7); ctx.lineTo(x + 6, y - 4); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath(); for (const dx of [-2.2, 0, 2.2]) { ctx.moveTo(x + dx, y - 1.5); ctx.lineTo(x + dx * 0.9, y + 4.8); } ctx.stroke();
+    // La tapa y su asa
+    ctx.beginPath(); ctx.moveTo(x - 7.5, y - 6); ctx.lineTo(x + 7.5, y - 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - 2.2, y - 6); ctx.lineTo(x - 2.2, y - 8); ctx.lineTo(x + 2.2, y - 8); ctx.lineTo(x + 2.2, y - 6); ctx.stroke();
+    ctx.restore();
+  }
+  // La marca de cada revisión en la línea. La de la urgencia es roja y late mientras se atiende; resuelta, se vuelve
+  // verde con su chulito, en el mismo lugar donde surgió
+  function marcas(now) {
+    for (const r of revisiones) {
+      const verde = r.urgente && r.resuelta, color = verde ? VERDE : r.urgente ? ROJO : ORO;
+      if (r.urgente && !verde) luz(r.x, Y, 9, ROJO, 0.3 + 0.2 * Math.sin(now / 140));
+      ctx.save(); ctx.translate(r.x, Y); ctx.rotate(Math.PI / 4); ctx.fillStyle = color;
+      const lado = r.urgente ? 13 : 10; ctx.fillRect(-lado / 2, -lado / 2, lado, lado); ctx.restore();
+      if (verde) {
+        ctx.strokeStyle = '#0d2a1a'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(r.x - 3.2, Y + 0.2); ctx.lineTo(r.x - 0.8, Y + 2.6); ctx.lineTo(r.x + 3.4, Y - 2.4); ctx.stroke();
+      }
+    }
+  }
+  function dibujarCon(now) {
+    fondo(now);
+
+    // La línea: lo que falta (punteado) y lo recorrido, con su halo
+    ctx.setLineDash([2, 9]); ctx.strokeStyle = ORO; ctx.globalAlpha = 0.2; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cabeza, Y); ctx.lineTo(META + 20, Y); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    if (cabeza > X0 + 0.5) {
+      trazar(() => onda(X0, cabeza, now), '#ffcf5a', 6, 0.35);
+      trazar(() => onda(X0, cabeza, now), '#ffe3a0', 3, 1);
+    }
+    for (const n of nudos) luz(n.x, Y, n.r, n.color, 0.9);
+    // Los rótulos de la línea se acomodan juntos, para que ninguno quede encima de otro
+    const arriba = [], abajo = [];
+    // Las marcas de las revisiones se dibujan después del desarrollador (marcas()), para que él no las tape
+    for (const r of revisiones) {
+      const verde = r.urgente && r.resuelta;
+      abajo.push({ t: verde ? 'urgente ✓ hecho' : r.urgente ? 'cambio urgente' : `parada ${r.n}`, x: r.x,
+        color: verde ? VERDE : r.urgente ? ROJO : '#8f8a7d', tam: 11, alfa: 1, peso: r.urgente ? '600' : '' });
+    }
+    // Lo que espera su fase: solo su bolita de color, sin rótulo (lo cuenta el subtítulo)
+    for (const p of esperan) luz(p.x, Y, 3.2 + Math.sin(now / 420 + p.vib) * 0.6, p.color, 1);
+    for (const m of misiones) {
+      if (m.hecha) continue;
+      if (m.visible) {
+        const color = m.urgente ? ROJO : '#ffcf5a';
+        luz(m.x, Y, 11 + Math.sin(now / 260 + (m.n || 0)) * 2, color, 0.3);
+        luz(m.x, Y, 6, m.urgente ? '#ffd0da' : LUZ, 1);
+        const nombre = m.final ? 'misión final' : `misión ${m.n}`;
+        arriba.push({ t: nombre, x: m.x, color: m.urgente ? '#ffd0da' : '#fff1c4', tam: 12, alfa: 1, peso: m.final || m.urgente ? '600' : '' });
+        // La de revisar lo urgente dice qué es en un segundo renglón, encima de su número: así no ocupa tanto a lo ancho
+        if (m.urgente) arriba.push({ t: 'revisa lo urgente', x: m.x, color: '#ffd0da', tam: 10.5, alfa: 1, peso: '600' });
+      } else if (m.carga) luz(m.x, Y, 2 + m.carga * 0.7, LUZ, 0.55);
+    }
+    // Lo que ya ocupa su lugar sobre la línea: el desarrollador, la meta y, si estás detenido, su letrero o el reporte
+    const detenido = !!alarma || (urg && !(aviso && now - aviso >= ARRANCA));
+    const ocupa = [{ fila: 0, a: cabeza - 14, b: cabeza + 14 }, { fila: 0, a: META + 10, b: META + 50 }];
+    if (detenido) ocupa.push({ fila: 1, a: cabeza - 8, b: cabeza + 8 });
+    if (detenido && !aviso) for (const fila of [2, 3]) ocupa.push({ fila, a: cabeza - 80, b: cabeza + 80 });
+    if (aviso && now - aviso < 4500) for (const fila of [2, 3]) ocupa.push({ fila, a: cabeza - 82, b: cabeza + 82 });
+    acomodar(arriba, [Y - 16, Y - 30, Y - 44, Y - 58], ocupa);
+    acomodar(abajo, [Y + 34, Y + 47], []);
+
+    // Las ramas suben desde la línea y solo nacen: no le hablan al modelo. Existen hasta que el Studio atrapa su
+    // cabecita: ahí desaparecen
+    for (const r of ramas) {
+      const tt = r.atrapada ? Math.min(now, r.atrapada) : now;
+      const crece = tope((tt - r.nace) / (r.o.g === 'urgencia' ? 250 : 700)), ty = yRama(r, now);
+      const se = r.atrapada ? 1 - tope((now - r.atrapada) / 150) : 1;
+      const roja = r.o.g === 'urgencia' && !r.atrapada ? 0.5 + 0.5 * Math.sin(now / 110) : 0;
+      if (roja) luz(r.tx, ty, 8, ROJO, 0.25 * roja);
+      trazar(() => bezier(r, ty, crece), r.o.c, 1.7 + roja, se);
+      if (crece >= 1 && !r.atrapada) luz(r.tx, ty, 2.8, r.o.c, 1);
+      // Su frase, en un rótulo de su color pegado a la punta, como sin STL
+      if (crece >= 1) rotulo(r.o.n, r.tx, ty, r.o.c, r.o.g === 'urgencia' ? 12.5 : 11.5, 0.95 * se);
+      r.hijos.forEach((g, j) => {
+        const p = ramita(r, g, j, now);
+        // La ramita cuya cabecita ya atrapó el Studio, ya no está
+        if (p.f <= 0.04 || g.atrapada) return;
+        trazar(() => { ctx.moveTo(p.bx, p.by); ctx.quadraticCurveTo(p.cx, p.cy, p.ex, p.ey); }, g.c, 1.2, 0.9 * se);
+        if (!r.atrapada) luz(p.ex, p.ey, 2, g.c, 1);
+      });
+    }
+
+    // Durante una urgencia, todo lo demás se oscurece: el Studio y el director la atienden aparte, lejos de las ramas
+    // (cuando el Studio vuelve contigo, la luz lo sigue)
+    if (aisla > 0.01 && u) {
+      const c = u.caja, enCaja = u.etapa !== 'avisa';
+      const cx = enCaja ? (c.x0 + c.x1) / 2 : st.x, cy = enCaja ? (c.y0 + c.y1) / 2 : st.y;
+      const velo2 = ctx.createRadialGradient(cx, cy, enCaja ? 110 : 45, cx, cy, enCaja ? 330 : 260);
+      velo2.addColorStop(0, 'rgba(0, 0, 0, 0)'); velo2.addColorStop(1, 'rgba(0, 0, 0, .82)');
+      // Se borra lo de alrededor en vez de pintarlo de oscuro: así no se nota el cuadro del dibujo
+      ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+      ctx.globalAlpha = aisla; ctx.fillStyle = velo2; ctx.fillRect(0, 0, W, H); ctx.restore();
+      // Sin recuadro ni tinte rojo alrededor (congestionaban): lo que pasa lo dice cada actor junto a sí (nota de voz
+      // del 20 de octubre)
+    }
+
+    // Arriba, el modelo: con STL nada suelto le llega; solo el hilo del director, cuando ya ordenó
+    modelo(now, 0);
+    contadorTokens(now);
+    hiloDirector(now);
+
+    // Detenido desde que el Studio atrapa la urgencia hasta que te trae su misión roja y pone en orden las demás
+    desarrollador(cabeza, 1, 'tú', now, detenido, !aviso);
+    // El confeti de la misión que acabas de completar
+    for (const c of confeti) {
+      const a = 1 - tope((now - c.t - DURA_FIESTA * 0.6) / (DURA_FIESTA * 0.4));
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.giro); ctx.globalAlpha = a; ctx.fillStyle = c.color;
+      ctx.fillRect(-2.2, -1.2, 4.4, 2.4); ctx.restore();
+    }
+    marcas(now);
+    // El reporte de la urgencia, que el Studio te trae: se queda un rato sobre ti
+    if (aviso) {
+      const q = (now - aviso) / 4500, a = tope(q / 0.08) * tope((1 - q) / 0.2);
+      texto('✉ reporte: cambio hecho', cabeza, Y - 58, '#ffd0da', 12.5, a, '600');
+      texto('en «Dónde quedamos»', cabeza, Y - 44, '#ffd0da', 10.5, a * 0.8, 'italic');
+    }
+    // El resultado de la urgencia, del director al Studio
+    if (u && u.etapa === 'devuelve' && u.la) luz(u.lx, u.ly, 3.6, ROJO, 1);
+    // La solución, del Studio a la marca de la urgencia en la línea
+    if (u && u.etapa === 'avisa' && u.llega && !aviso && u.rx != null) {
+      luz(u.rx, u.ry, 4.2, VERDE, 1);
+      rotulo('✓ resultado', u.rx, u.ry, VERDE, 12, 1);
+    }
+    // El Studio, flotando, con lo atrapado girando adentro (y pasando al director cuando se lo entrega); con una
+    // urgencia, aparte, se ve más grande
+    const tam = (13 + Math.min(7, st.carga.length * 0.5)) * lupa;
+    studio(st.x, st.y, tam, st.a, now);
+    for (const c of st.carga) {
+      const ax = st.x + Math.cos(c.ang) * tam * 0.55, ay = st.y + Math.sin(c.ang) * tam * 0.55;
+      const bx = dirX + Math.cos(c.ang) * 25 * dirS, by = dirY + Math.sin(c.ang) * 25 * dirS;
+      luz(lerp(ax, bx, c.k), lerp(ay, by, c.k), 2.2, c.color, st.a);
+    }
+    // Lo que reparte el director: lo reformulado cambia a dorado en el camino; lo descartado sube, se tacha y se apaga
+    for (const v of vuelos) {
+      if (v.a <= 0.01) continue;
+      const cambio = v.reforma ? tope((v.s - 0.3) / 0.3) : 0;
+      luz(v.x, v.y, 3.4, cambio > 0.5 ? '#ffe3a0' : v.color, v.a);
+      if (v.reforma && v.s > 0.2 && v.s < 0.9) texto('reformulada', v.x, v.y - 10, '#ffe3a0', 10.5, Math.sin(Math.PI * (v.s - 0.2) / 0.7) * 0.9, 'italic');
+      if (v.destino === 'rechazada' && v.s > 0.15) texto('descartada', v.x, v.y - 10, '#ffb3c2', 10.5, v.a * 0.8, 'italic');
+    }
+    descartes = descartes.filter((d) => now - d.t < 1600);
+    for (const d of descartes) {
+      const q = (now - d.t) / 1600, a = 1 - q;
+      luz(d.x, d.y - 4, 2.4, d.color, a * 0.5 * (1 - tope(q * 3)));
+      basura(d.x, d.y, a);
+      texto('descartada', d.x, d.y - 16 - q * 8, '#ffb3c2', 11, a, '600');
+    }
+    efectosYVelo(now);
+    director(now);
+    // Tu meta, de ti al Studio y del Studio al director
+    if (metaLuz) { luz(metaLuz.x, metaLuz.y, 4.2, ORO, 1); rotulo('proyecto + meta', metaLuz.x, metaLuz.y, ORO, 11.5, 1); }
+    zoomAtencion(now);
+    cubrir();
+  }
+
+  // Con STL la escena va más despacio que sin STL, para que alcances a leer lo que pasa
+  const PAUSADO = 0.72;
+
+  function paso(now, dt) { if (modo === 'sin') pasoSin(now, dt); else pasoCon(now, dt); }
+  function dibujar(now) { if (modo === 'sin') dibujarSin(now); else dibujarCon(now); }
+  // Un paso fijo de la escena
+  function avanzar() {
+    reloj += PASO_ESC; pasos++;
+    paso(reloj, PASO_ESC);
+  }
+  // Ir a un paso de la historia: hacia adelante, se calcula rápido desde donde va, y al terminar una escena sigue en la
+  // otra; hacia atrás, se vuelve a la escena de ese paso (aunque sea la anterior) y se calcula desde su principio, en
+  // silencio, con la misma semilla, y queda igual a como se vio
+  function ir(n) {
+    if (n >= antes + pasos) {
+      for (let i = 0; antes + pasos < n && i < 4000; i++) avanzar();
+      return;
+    }
+    silencio = true;
+    while (n < antes && historia.length) { adelante.push(escena); const h = historia.pop(); escena = h.escena; antes -= h.largo; }
+    reloj = escena.desde; empezar();
+    while (pasos < n - antes) avanzar();
+    silencio = false;
+    renarrar();
+    $('cuenta').textContent = textoCuenta = ultimaCuenta;
+  }
+
+  // Sin movimiento: se dibuja un momento de cada escena, quieto (con STL, el director atendiendo la urgencia)
+  function estatico() {
+    for (let i = 0; i < 12000; i++) {
+      avanzar();
+      const t = reloj - t0;
+      if (modo === 'sin' ? fase === 'sinFin' && t > 1500 : u && u.etapa === 'atiende' && reloj - u.t0 > 1500) break;
+    }
+    narrar();
+    dibujar(reloj);
+  }
+
+  document.querySelectorAll('#modos button').forEach((b) => b.addEventListener('click', () => {
+    buscar = null; ponerModo(b.dataset.modo, reloj, true);
+    if (quieto) estatico();
+  }));
+
+  // ══ La perilla: se gira como el volumen de una radio. A la derecha adelanta la escena (rápido), a
+  //    la izquierda la devuelve, hasta su principio; mientras la giras, la escena se queda quieta, y al soltarla sigue
+  //    como iba. En el centro, pausa o sigue
+  const perilla = $('perilla'), giro = $('giro'), boton = $('pausa');
+  const SVG = 'http://www.w3.org/2000/svg';
+  function rayas(g, n, r0, r1, color, alfa, ancho, cada) {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * 2 * Math.PI, largo = cada && i % cada === 0 ? 3 : 0;
+      const l = document.createElementNS(SVG, 'line');
+      l.setAttribute('x1', 60 + Math.sin(a) * (r0 - largo)); l.setAttribute('y1', 60 - Math.cos(a) * (r0 - largo));
+      l.setAttribute('x2', 60 + Math.sin(a) * r1); l.setAttribute('y2', 60 - Math.cos(a) * r1);
+      l.setAttribute('stroke', color); l.setAttribute('stroke-opacity', largo ? alfa * 1.8 : alfa);
+      l.setAttribute('stroke-width', ancho); l.setAttribute('stroke-linecap', 'round');
+      g.appendChild(l);
+    }
+  }
+  rayas($('marcas'), 40, 51, 54.5, '#f5d27a', 0.35, 1.2, 5);
+  rayas($('estrias'), 30, 31, 42, '#c9b8ff', 0.13, 1.4);
+  // Al cargar, la animación espera detenida (sin arrancar sola) y el botón del centro late hasta que se reproduce la
+  // primera vez
+  const mando = $('mando');
+  let espera = true;
+  function iconoBoton() {
+    $('icono').setAttribute('d', reproduce ? 'M7 5h3.6v14H7zM13.4 5H17v14h-3.6z' : 'M8.5 5.2v13.6L19 12z');
+    boton.setAttribute('aria-label', reproduce ? 'Pausar la animación' : espera ? 'Iniciar la presentación' : 'Seguir la animación');
+  }
+  function alternar() {
+    // Al final del video, seguir es verlo otra vez desde el principio
+    if (!reproduce && modo === 'con' && fase === 'meta' && reloj - t0 >= durFase) buscar = 0;
+    reproduce = !reproduce;
+    if (reproduce && espera) { espera = false; mando.classList.remove('llama'); }
+    iconoBoton();
+  }
+  // Iniciar (o seguir) sin pausarla si ya corre
+  function iniciar() { if (!reproduce) alternar(); }
+  // Mover la escena tantos milisegundos (positivos: adelante; negativos: atrás)
+  function mover(ms) { buscar = Math.max(0, (buscar ?? antes + pasos) + ms / PASO_ESC); }
+  let arrastre = null, segundo = -1;
+  function angulo(e) {
+    const b = perilla.getBoundingClientRect();
+    return Math.atan2(e.clientY - (b.top + b.height / 2), e.clientX - (b.left + b.width / 2));
+  }
+  perilla.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('#pausa, #invita') || e.button > 0) return;
+    e.preventDefault(); perilla.focus();
+    perilla.setPointerCapture(e.pointerId);
+    arrastre = { a: angulo(e), seguia: reproduce }; reproduce = false;
+    perilla.classList.add('gira');
+  });
+  perilla.addEventListener('pointermove', (e) => {
+    if (!arrastre) return;
+    const a = angulo(e);
+    let d = a - arrastre.a;
+    if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+    arrastre.a = a;
+    mover((d / (2 * Math.PI)) * VUELTA);
+  });
+  const soltar = () => {
+    if (!arrastre) return;
+    reproduce = arrastre.seguia; arrastre = null;
+    perilla.classList.remove('gira'); iconoBoton();
+  };
+  perilla.addEventListener('pointerup', soltar);
+  perilla.addEventListener('pointercancel', soltar);
+  perilla.addEventListener('lostpointercapture', soltar);
+  // La rueda del ratón sobre la escena (el dibujo y la perilla) la recorre como la perilla: hacia abajo adelanta, hacia
+  // arriba devuelve. Cada muesca mueve alrededor de un segundo y medio (en un touchpad, poco a poco), y la escena sigue
+  // como iba: en pausa, sigue en pausa; corriendo, sigue desde el punto nuevo. Fuera de la escena, la rueda es la de
+  // siempre
+  const escenaCaja = $('escena');
+  escenaCaja.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || !$('bienvenida').hidden) return;
+    const muescas = e.deltaMode === 1 ? e.deltaY / 3 : e.deltaMode === 2 ? e.deltaY * 3 : e.deltaY / 100;
+    if (!muescas) return;
+    e.preventDefault();
+    mover(Math.max(-4500, Math.min(4500, muescas * 1500)));
+  }, { passive: false });
+  // El clic de la rueda (el botón del medio): pausa o sigue, sin el desplazamiento automático del navegador (salvo
+  // sobre un enlace, que abre en otra pestaña como siempre)
+  const centro = (e) => e.button === 1 && !e.target.closest?.('a');
+  addEventListener('mousedown', (e) => {
+    if (!centro(e)) return;
+    e.preventDefault();
+    if ($('bienvenida').hidden) alternar();
+  });
+  addEventListener('auxclick', (e) => { if (centro(e)) e.preventDefault(); });
+  perilla.addEventListener('keydown', (e) => {
+    const ms = { ArrowRight: 1000, ArrowUp: 1000, ArrowLeft: -1000, ArrowDown: -1000, PageUp: 5000, PageDown: -5000 }[e.key];
+    if (ms) { e.preventDefault(); mover(ms); }
+    else if (e.key === 'Home') { e.preventDefault(); buscar = antes; }
+    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); alternar(); }
+  });
+  boton.addEventListener('click', alternar);
+  $('invita').addEventListener('click', iniciar);
+  // La perilla gira sola con la escena: una vuelta cada 20 segundos de escena
+  function girarPerilla() {
+    giro.setAttribute('transform', `rotate(${((((antes + pasos) * PASO_ESC) / VUELTA) * 360) % 360} 60 60)`);
+    const s = Math.floor((pasos * PASO_ESC) / 1000);
+    if (s !== segundo) {
+      segundo = s;
+      perilla.setAttribute('aria-valuenow', String(s));
+      perilla.setAttribute('aria-valuetext', `segundo ${s} de la escena ${modo === 'sin' ? 'sin STL' : 'con STL'}`);
+    }
+  }
+
+  // Todo cabe en la pantalla: el dibujo toma el ancho que permiten la ventana y lo que va arriba y abajo. En un
+  // teléfono vertical, todo se acuesta (gira 90 grados) para verse en su forma más ancha
+  const vertical = matchMedia('(orientation: portrait) and (pointer: coarse)');
+  function disponer() {
+    const todo = $('todo'), rot = vertical.matches;
+    const vw = rot ? innerHeight : innerWidth, vh = rot ? innerWidth : innerHeight;
+    todo.style.width = vw + 'px'; todo.style.height = vh + 'px';
+    todo.style.transform = rot ? 'rotate(90deg) translateY(-100%)' : '';
+    const letra = Math.max(12, Math.min(17, vw / 68));
+    todo.style.setProperty('--letra', letra + 'px');
+    // Lo que ocupan el título, los subtítulos (dos renglones) y la cuenta, con sus espacios
+    const resto = document.querySelector('header').offsetHeight + letra * 1.4 * 2 + 16 + 18 + 16 + 18;
+    const ancho = Math.floor(Math.max(280, Math.min(vw - 16, 1240, ((vh - resto) * W) / H)));
+    todo.style.setProperty('--ancho', ancho + 'px');
+    ajustar();
+  }
+  disponer();
+  addEventListener('resize', () => { disponer(); dibujar(reloj); });
+  vertical.addEventListener('change', () => { disponer(); dibujar(reloj); });
+  ponerModo('sin', 0);
+  // No arranca sola: espera detenida en su primer cuadro (con su primer subtítulo) y el botón del centro late. Sin
+  // movimiento, la escena espera quieta en un momento clave; la perilla y el botón la mueven si quieres
+  reproduce = false;
+  if (quieto) estatico(); else narrar();
+  mando.classList.add('llama');
+  iconoBoton();
+
+  // ══ La bienvenida: solo la primera vez (se recuerda en este navegador). «Iniciar la presentación» la cierra y
+  //    arranca; con Escape o un clic fuera se cierra y la animación sigue detenida, con el botón latiendo
+  const VISTA = 'stl.portada.vista', bienvenida = $('bienvenida'), iniciarBtn = $('iniciar');
+  let yaVino = false;
+  try { yaVino = localStorage.getItem(VISTA) === '1'; } catch { /* sin almacenamiento: se muestra cada vez */ }
+  function cerrarBienvenida(arrancar) {
+    if (bienvenida.hidden) return;
+    bienvenida.hidden = true; $('todo').inert = false;
+    try { localStorage.setItem(VISTA, '1'); } catch { /* sin almacenamiento: no se recuerda */ }
+    if (arrancar) iniciar();
+    boton.focus({ preventScroll: true });
+  }
+  if (!yaVino) {
+    bienvenida.hidden = false; $('todo').inert = true;
+    iniciarBtn.focus();
+    iniciarBtn.addEventListener('click', () => cerrarBienvenida(true));
+    bienvenida.addEventListener('click', (e) => { if (e.target === bienvenida) cerrarBienvenida(false); });
+    addEventListener('keydown', (e) => {
+      if (bienvenida.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); cerrarBienvenida(false); }
+      // El foco no sale del cuadro: su único control es el botón
+      else if (e.key === 'Tab') { e.preventDefault(); iniciarBtn.focus(); }
+    });
+  }
+  // Un reloj propio: si la pestaña se oculta, la historia se detiene y sigue donde iba, sin saltarse momentos. La
+  // escena avanza en pasos fijos; lo que sobra de un cuadro pasa al siguiente
+  const cuadro = (now) => {
+    const dt0 = Math.min(50, now - (previo ?? now)); previo = now;
+    if (buscar != null) { saltando = true; ir(Math.round(buscar)); narrar(); saltando = false; buscar = null; sobra = 0; }
+    else if (reproduce) {
+      // Siempre al mismo ritmo: la escena nunca se frena ni se detiene
+      narrar();
+      sobra += dt0 * (modo === 'con' ? PAUSADO : 1);
+      for (let i = 0; sobra >= PASO_ESC && i < 8; i++) { sobra -= PASO_ESC; avanzar(); }
+      if (sobra >= PASO_ESC) sobra = 0;
+    }
+    dibujar(reloj); girarPerilla(); cronometro();
+    requestAnimationFrame(cuadro);
+  };
+  requestAnimationFrame(cuadro);
+</script>
+</body>
+</html>

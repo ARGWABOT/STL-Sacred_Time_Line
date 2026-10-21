@@ -163,7 +163,7 @@ export async function leerLocal(raiz: string): Promise<Local> {
 
 // Lo mismo, sin esperar: para resolver rutas en cualquier parte. Se relee solo si el archivo cambió.
 let enMemoria: { raiz: string; cuando: number; local: Local } | null = null;
-function leerLocalYa(raiz: string): Local {
+export function leerLocalYa(raiz: string): Local {
   const archivo = join(raiz, ARCHIVO_LOCAL);
   try {
     const cuando = statSync(archivo).mtimeMs;
@@ -174,6 +174,16 @@ function leerLocalYa(raiz: string): Local {
   } catch {
     return vacio();
   }
+}
+
+/**
+ * ¿El director está trabajando ahora en este computador? Una revisión que ya empezó (o que el Studio lanzó), o una
+ * aclaración o una urgencia lanzadas, sin cerrar ni fallar. Mientras tanto, el Studio no se recarga a pedazos.
+ */
+export function directorTrabajando(l: Local): boolean {
+  const r = l.revision;
+  const corriendo = (x: { lanzada?: string; hecha?: string; error?: string } | undefined) => !!x && !!x.lanzada && !x.hecha && !x.error;
+  return (!!r && !r.hecha && !r.error && !!(r.enCurso || r.lanzada)) || corriendo(l.aclaracion) || corriendo(l.urgencia);
 }
 
 async function guardarLocal(raiz: string, l: Local): Promise<void> {

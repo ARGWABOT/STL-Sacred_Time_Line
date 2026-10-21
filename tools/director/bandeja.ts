@@ -419,7 +419,10 @@ linea('\n## Documentos por revisar: ponles todo lo nuevo antes de cerrar');
 for (const p of personas) {
   const pendientes = documentosEnOrden(plan, estado, p).filter((d) => d.estado !== 'revisado' && !d.ruta.startsWith('repo:'));
   linea(`- ${nombre(p)}: ${pendientes.map((d) => `${d.ruta} («${d.mision.titulo}»)`).join(', ') || 'ninguno'}`);
+  // Solo el documento que sigue: tenerlos escritos por adelantado es leer después lo que ya cambió o ya se hizo
+  if (pendientes.length > 1) linea(`  ⚠ ${pendientes.length} documentos por leer: deja solo el que sigue. Los demás se escriben cuando les toque, con lo que haya pasado para entonces.`);
 }
+linea('Lo que ya se hizo no se vuelve a leer: por cada documento por leer, ¿lo que explica, propone o pide decidir ya se hizo, se decidió o se aprobó por otro camino (una nota, un «Hazlo tú», una iteración en el chat, lo avanzado)? Entonces sácalo de la misión (quita su paso y su entrada en `documentos` de la misión) y dilo en la respuesta: no se pide confirmar lo que ya está hecho.');
 // El control de los cortes (regla crítica): ninguna idea por leer puede quedar mal cortada (un título solo, una línea
 // corta, una imagen sin su texto, un bloque sin cerrar, una idea demasiado larga)
 const porLeer = new Set(personas.flatMap((p) => documentosEnOrden(plan, estado, p).filter((d) => d.estado !== 'revisado' && !d.ruta.startsWith('repo:')).map((d) => d.ruta)));

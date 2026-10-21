@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { validarPlan, validarProyecto } from './director';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -12,6 +12,23 @@ afterAll(() => rmSync(raiz, { recursive: true, force: true }));
 
 const titular = { nombre: 'Laura', correo: 'laura@ejemplo.co' };
 const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_NAME: 'Prueba', GIT_AUTHOR_EMAIL: 'p@e.co', GIT_COMMITTER_NAME: 'Prueba', GIT_COMMITTER_EMAIL: 'p@e.co' } }).trim();
+
+describe('el director trabajando (el Studio no se recarga a pedazos mientras tanto)', () => {
+  it('una revisión en curso o lanzada, o una aclaración o urgencia lanzadas, sin cerrar ni fallar', () => {
+    const base = { activo: 'x', repositorios: {} };
+    const r = { proyecto: 'x', quien: 'titular', pedida: '2026-10-20T10:00:00Z' };
+    expect(directorTrabajando(base)).toBe(false);
+    expect(directorTrabajando({ ...base, revision: r })).toBe(false);
+    expect(directorTrabajando({ ...base, revision: { ...r, lanzada: 'a' } })).toBe(true);
+    expect(directorTrabajando({ ...base, revision: { ...r, enCurso: 'a' } })).toBe(true);
+    expect(directorTrabajando({ ...base, revision: { ...r, enCurso: 'a', hecha: 'b' } })).toBe(false);
+    expect(directorTrabajando({ ...base, revision: { ...r, lanzada: 'a', error: 'no' } })).toBe(false);
+    expect(directorTrabajando({ ...base, aclaracion: { ...r, mision: 'm', paso: 0, nota: 'n', lanzada: 'a' } })).toBe(true);
+    expect(directorTrabajando({ ...base, aclaracion: { ...r, mision: 'm', paso: 0, nota: 'n' } })).toBe(false);
+    expect(directorTrabajando({ ...base, urgencia: { ...r, notas: ['n'], lanzada: 'a' } })).toBe(true);
+    expect(directorTrabajando({ ...base, urgencia: { ...r, notas: ['n'], lanzada: 'a', hecha: 'b' } })).toBe(false);
+  });
+});
 
 /** Un repositorio de proyecto con un commit de código, como los de verdad. */
 function repo(nombre: string): string {
