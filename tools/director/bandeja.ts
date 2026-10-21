@@ -53,7 +53,7 @@ import {
   YA_LO_DIJE,
 } from '../../src/director/director.ts';
 import { fechaDeCambio, leerFresco } from '../../src/director/fresco.ts';
-import { corteDeRevision, enDisco as enDiscoDe, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { comandoTranscripcion } from '../../src/director/transcripcion.ts';
 import { argumentos, colaDeDiagnosticos, leerTodo, memoria, nombreDe, otrosProyectos, POR_REVISION, proyectoElegido, raiz } from './comun.ts';
 
@@ -247,12 +247,13 @@ if (args.includes('--listo')) {
     const a = archivar(plan, archivo, estado, desde);
     if (a.movidas) {
       final = a.plan;
-      writeFileSync(rutaArchivo, JSON.stringify(a.archivo, null, 2) + '\n', 'utf-8');
+      await escribirDeUnaVez(rutaArchivo, JSON.stringify(a.archivo, null, 2) + '\n');
       console.log(`Archivadas ${a.movidas} respuestas y veredictos cerrados en director/archivo.json: el plan pasó de ${pesa(plan)} KB a ${pesa(final)} KB. Agrega director/archivo.json al commit.`);
     }
     if (pesa(final) > TOPE_PLAN_KB) console.log(`⚠ El plan sigue pesando ${pesa(final)} KB (el tope es ${TOPE_PLAN_KB} KB): lo que queda no es respuesta ni veredicto cerrado; mira qué más sobra (misiones viejas, propuestas descartadas).`);
   }
-  writeFileSync(rutaPlan, JSON.stringify(final, null, 2) + '\n', 'utf-8');
+  // De una vez: el Studio lo lee mientras tanto (para saber si cerró) y no debe encontrarlo a medio escribir
+  await escribirDeUnaVez(rutaPlan, JSON.stringify(final, null, 2) + '\n');
   await marcarRevision(raiz, elegido, 'hecha');
   console.log(`Revisión marcada: ${plan.revisado}`);
   process.exit(0);

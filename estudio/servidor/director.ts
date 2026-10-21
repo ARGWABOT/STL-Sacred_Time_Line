@@ -72,7 +72,7 @@ import {
   type Validacion,
 } from '../../src/director/director';
 import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarEsfuerzoMaximo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
+import { abrirMemoria, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, guardarActivo, guardarEsfuerzoMaximo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
@@ -454,10 +454,11 @@ export function servidorDirector(): Plugin {
     return r;
   };
 
+  // De una vez: la bandeja (otro proceso) lee lo de cada persona en plena revisión y no debe encontrarlo a medio escribir
   async function escribirJson(ruta: string, datos: unknown) {
     const archivo = enDisco(raiz, ruta);
     await mkdir(join(archivo, '..'), { recursive: true });
-    await writeFile(archivo, JSON.stringify(datos, null, 2) + '\n', 'utf-8');
+    await escribirDeUnaVez(archivo, JSON.stringify(datos, null, 2) + '\n');
   }
 
   async function decidir(id: string, cuerpo: any, yo: Identidad & { rol: Persona }): Promise<{ estado: EstadoDirector; proyecto: Proyecto; que: string; archivos: string[] }> {

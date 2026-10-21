@@ -372,16 +372,14 @@ async function conCandado<T>(raiz: string, hacer: () => Promise<T>): Promise<T> 
 }
 
 /**
- * Escribe lo de este computador de una vez: primero a un archivo aparte en la misma carpeta y luego lo pone en su lugar
- * (rename), así nadie lo lee a medio escribir. En Windows, si el archivo está tomado un instante (EPERM, EBUSY, EACCES:
- * alguien lo está leyendo, o el antivirus), se reintenta, hasta unos dos segundos. Solo lo llama cambiarLocal, con el
- * candado tomado.
+ * Escribe un archivo de una vez: primero a uno aparte en la misma carpeta y luego lo pone en su lugar (rename), así quien
+ * lo lee desde otro proceso nunca lo encuentra a medio escribir (escribirlo encima lo vacía primero). En Windows, si el
+ * archivo está tomado un instante (EPERM, EBUSY, EACCES: alguien lo está leyendo, o el antivirus), se reintenta, hasta
+ * unos dos segundos. Para lo que leen dos procesos: estudio.local.json, el plan y lo de cada persona.
  */
-async function guardarLocal(raiz: string, l: Local): Promise<void> {
-  const x = { nota: 'Lo de este computador, fuera de git: el proyecto activo y la carpeta del repositorio de cada proyecto (su memoria está en <repositorio>/.stl, rama stl).', ...l };
-  const archivo = join(raiz, ARCHIVO_LOCAL);
+export async function escribirDeUnaVez(archivo: string, texto: string): Promise<void> {
   const temporal = `${archivo}.${process.pid}-${Math.random().toString(36).slice(2, 8)}.tmp`;
-  await writeFile(temporal, JSON.stringify(x, null, 2) + '\n', 'utf-8');
+  await writeFile(temporal, texto, 'utf-8');
   try {
     for (let intento = 1; ; intento++) {
       try {
@@ -396,6 +394,12 @@ async function guardarLocal(raiz: string, l: Local): Promise<void> {
   } finally {
     await unlink(temporal).catch(() => {}); // ya se movió, o no se pudo: que no quede suelto
   }
+}
+
+/** Escribe lo de este computador de una vez. Solo lo llama cambiarLocal, con el candado tomado. */
+async function guardarLocal(raiz: string, l: Local): Promise<void> {
+  const x = { nota: 'Lo de este computador, fuera de git: el proyecto activo y la carpeta del repositorio de cada proyecto (su memoria está en <repositorio>/.stl, rama stl).', ...l };
+  await escribirDeUnaVez(join(raiz, ARCHIVO_LOCAL), JSON.stringify(x, null, 2) + '\n');
   enMemoria = null;
 }
 
