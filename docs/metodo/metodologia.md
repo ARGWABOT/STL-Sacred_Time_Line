@@ -35,7 +35,7 @@ El chat sirve para tareas cortas, pero en un proyecto largo trae seis problemas:
 ### El arranque: del repositorio a la ruta
 
 1. **Conectar.** El titular da la ruta del repositorio y cuenta, sin pulir, qué es el proyecto y qué quiere lograr.
-2. **Diagnosticar.** El director lee el repositorio (su historia, su estructura, su documentación, su código y sus pruebas) y dice con franqueza qué está listo, qué falta y qué riesgos hay, frente por frente.
+2. **Diagnosticar.** El director lee el repositorio (su historia, su estructura, su documentación, su código y sus pruebas) y dice con franqueza qué está listo, qué falta y qué riesgos hay, frente por frente. También investiga qué recomiendan quienes saben de ese tipo de proyecto y lo deja como la estrategia para él, con sus fuentes.
 3. **Fijar la meta.** El director propone dos o tres metas posibles, cada una con su criterio de éxito. El titular elige, mezcla o escribe la suya, y la fija: qué se logra y cómo se sabe que se logró.
 4. **Trazar la ruta.** El director parte el camino en fases, cada una con su puerta y sus criterios, dice qué hace cada frente en cada fase y da la primera misión.
 
@@ -63,8 +63,8 @@ El chat sirve para tareas cortas, pero en un proyecto largo trae seis problemas:
 
 | Pieza | Qué hace |
 | --- | --- |
-| **Proyecto** | Dónde está, el contexto, la meta fijada y el equipo. Su memoria vive en su propio repositorio (rama `stl`). |
-| **El diagnóstico** | Qué tan listo está cada frente para el objetivo, con lo hecho, lo que falta y los objetivos candidatos. |
+| **Proyecto** | La meta fijada, el contexto, el diagnóstico, dónde está y el equipo. Su memoria vive en su propio repositorio (rama `stl`). |
+| **El diagnóstico** | Dentro de Proyecto: qué tan listo está el proyecto para la meta (lo más listo y lo más flojo), la estrategia para ese tipo de proyecto y, mientras no hay meta, las que propone el director. |
 | **La ruta** | Fases, puertas, criterios y frentes, con el avance medido. |
 | **Las misiones** | Por persona, una a la vez, paso a paso, con botón al lugar exacto. |
 | **Los documentos** | Los del director y los del repositorio, partidos en partes comentables. Los revisados quedan sellados. |
