@@ -195,8 +195,7 @@ const marcarPaso = (id: string, i: number, hecho?: boolean) => {
 
 /**
  * Los pasos que se hacen dentro del Studio se marcan solos: el director le pone a cada uno lo que prueba que se hizo
- * (`hecho`: la meta fijada, una parte leída, una propuesta respondida…) y, en cuanto el Studio lo ve, lo marca con su
- * estrella, lo dice y ofrece volver a la misión; si era el último, la entrega. Sin modelo: es lo que el Studio ya lee.
+ * (`hecho`: la meta fijada, una parte leída, una propuesta respondida…) y, en cuanto el Studio lo ve, lo marca, lo dice y ofrece volver a la misión; si era el último, la entrega. Sin modelo: es lo que el Studio ya lee.
  * Cada paso se marca solo una vez: si lo desmarcas, queda a mano (lo recuerda este navegador).
  */
 const CLAVE_VISTOS = 'estudio.director.pasos-vistos';
@@ -739,9 +738,11 @@ function irDelPaso(m: Mision, i: number, dest: Destino, deAhora: boolean, espera
   if (!deAhora || d.identidad.rol !== m.para) return botonIr(dest);
   const abierto = pasoAbierto(m.id, i);
   const hasta = esperar && !abierto ? inicioEspera(`${m.id}|${i}`) + esperar * 1000 : 0;
+  // Mientras espera, el botón no se ve (no se muestra lo que aún no se puede hacer): la cuenta, grande, dice por qué y
+  // qué aparece al terminar; a cero, la cuenta sale y el botón aparece resaltado (pedido del titular)
   if (hasta > Date.now()) {
-    return `${botonIr(dest, 'ir-paso en-espera', ` data-abre="${esc(m.id)}|${i}" data-espera="${esc(m.id)}|${i}" disabled`)}
-      <p class="espera-paso" role="timer" aria-live="off" data-hasta="${hasta}" data-libera="${esc(m.id)}|${i}">${icono('reloj')} <span>Espera <b class="cifra">${mmss(hasta - Date.now())}</b> antes de abrirlo: es lo que tarda en verse el cambio.</span></p>`;
+    return `${cuentaGrande(hasta, `${m.id}|${i}`, `Al terminar, aquí aparece «${dest.etiqueta}».`)}
+      ${botonIr(dest, 'ir-paso principal', ` data-abre="${esc(m.id)}|${i}" data-espera="${esc(m.id)}|${i}" hidden`)}`;
   }
   return botonIr(dest, abierto ? 'ir-paso' : 'ir-paso principal', ` data-abre="${esc(m.id)}|${i}"`);
 }
@@ -1356,26 +1357,32 @@ async function completarSiToca(id: string, guardado: Promise<boolean>) {
   if (!(await guardado) || !(await accion({ tipo: 'entregar', mision: m.id }, ''))) return false;
   // Entregada, la revisión no se pide sola: la pide la persona, aquí o después con «Pedir revisión»
   const yaPedida = !!d.revision && !d.revision.hecha;
+  const mia = misionesAbiertas(d.plan, d.estado, d.identidad.rol ?? TITULAR)[0];
   // Si ya hay otro diálogo abierto (por ejemplo «Dónde quedamos»), no se le encima: basta el aviso
   if (document.querySelector('dialog[open]')) {
-    avisar(`Misión completada: «${recortar(m.titulo, 70)}». Quedó entregada${yaPedida ? ' y entra en la revisión ya pedida' : ': el director la revisa cuando pidas la revisión'}.`, true, undefined,
+    avisar(`Misión completada: «${recortar(m.titulo, 70)}». Quedó entregada${yaPedida ? ' y entra en la revisión ya pedida' : mia ? ': el director la revisa cuando pidas la revisión' : '. Era tu última misión por ahora: pide la revisión para que el director defina las siguientes'}.`, true, undefined,
       yaPedida ? undefined : { etiqueta: 'Pedir la revisión', hacer: () => void pedirLaRevision(true) });
     return true;
   }
-  const mia = misionesAbiertas(d.plan, d.estado, d.identidad.rol ?? TITULAR)[0];
   const sigue = mia ? tarjetaDe(mia) : null;
   const dlg = document.createElement('dialog');
   dlg.className = 'dialogo-director celebracion';
   dlg.innerHTML = `<form method="dialog">
     ${quieto() ? '' : `<div class="confeti" aria-hidden="true">${Array.from({ length: 18 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}</div>`}
     <span class="etiqueta">Misión completada</span>
-    <h2>¡Bien hecho!</h2>
+    <h2>${mia ? '¡Bien hecho!' : '¡Felicidades!'}</h2>
     <ul class="cumplidas"><li>${icono('estrella')}<span>${esc(m.titulo)}</span><b>+${m.xp} XP</b></li></ul>
-    <p class="como">${yaPedida
-      ? 'Quedó entregada y entra en la revisión que ya pediste'
-      : 'Quedó entregada. El director la revisa cuando pidas la revisión: aquí, con «Pedir la revisión», o cuando quieras, con «Pedir revisión» junto a su cara'}. Al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>
-    ${mia ? `<div class="mision-a"><span class="etiqueta">Tu misión ahora</span><b>${esc(mia.titulo)}</b></div>` : ''}
-    <div class="botones"><button type="button" data-cerrar>Cerrar</button>${yaPedida ? '' : '<button type="button" data-pedir>Pedir la revisión</button>'}${sigue ? '<button type="button" class="primario" data-seguir>Ir a mi misión →</button>' : ''}</div>
+    ${mia
+      ? `<p class="como">${yaPedida
+        ? 'Quedó entregada y entra en la revisión que ya pediste'
+        : 'Quedó entregada. El director la revisa cuando pidas la revisión: aquí, con «Pedir la revisión», o cuando quieras, con «Pedir revisión» junto a su cara'}. Al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>
+    <div class="mision-a"><span class="etiqueta">Tu misión ahora</span><b>${esc(mia.titulo)}</b></div>`
+      // Sin otra misión abierta, la revisión es lo que sigue: el director decide la misión siguiente con lo entregado
+      : `<p class="todas-hechas">${yaPedida
+        ? 'Completaste todas las misiones que tenías por ahora. Entra en la revisión que ya pediste: el director analiza el resultado y define tus misiones siguientes.'
+        : 'Completaste todas las misiones que tenías por ahora. Pide la revisión para que el director analice el resultado y defina tus misiones siguientes: sin ella, no hay misión nueva.'}</p>
+    <p class="como">Al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>`}
+    <div class="botones"><button type="button" data-cerrar>Cerrar</button>${yaPedida ? '' : `<button type="button"${mia ? '' : ' class="primario"'} data-pedir>Pedir la revisión</button>`}${sigue ? '<button type="button" class="primario" data-seguir>Ir a mi misión →</button>' : ''}</div>
   </form>`;
   document.body.append(dlg);
   dlg.addEventListener('click', (e) => {
@@ -1723,7 +1730,20 @@ function listaPasos(m: Mision) {
 
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? irDelPaso(m, i, p.ir, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, p.ir) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}${conCasillas ? ' con-marca' : ''}"><span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? irDelPaso(m, i, p.ir, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, p.ir) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas ? `<div class="pie-paso">${hechos.has(i) ? '' : aclararPaso(m, i)}${marcaPaso(m, i, p, hechos.has(i))}</div>` : ''}</li>`).join('')}</ol>`;
+}
+
+/**
+ * Cómo se marca un paso: «Listo, ya lo hice», abajo a la derecha del paso de ahora (la estrella no se entendía como
+ * «terminé», pedido del titular). Un paso con orden de terminal ya trae su «Ya lo hice» junto a la orden, y uno que pide
+ * elegir se marca al elegir: ahí no hay otro botón. La casilla queda siempre, escondida: la usan «Ya lo hice» y «Desmarcar».
+ */
+function marcaPaso(m: Mision, i: number, p: Paso, hecho: boolean): string {
+  const o = typeof p === 'string' ? null : p;
+  const casilla = (oculta: boolean) => `<input type="checkbox" ${oculta ? 'hidden' : 'class="sr-only"'} data-paso="${esc(m.id)}|${i}"${hecho ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />`;
+  if (hecho || d.identidad.rol !== m.para || o?.terminal || o?.opciones?.length) return casilla(true);
+  const titulo = o?.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste; si ya lo hiciste, márcalo tú' : o?.comprobar ? 'El Studio comprueba que salió bien antes de marcarlo' : 'Márcalo cuando lo hayas hecho';
+  return `<label class="listo-paso" title="${titulo}">${casilla(false)}${icono('check')} Listo, ya lo hice</label>`;
 }
 
 /**
@@ -1738,16 +1758,25 @@ function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean, 
   if (hecho || d.identidad.rol !== m.para) return '';
   // Si el paso manda a ver algo, primero se ve: las opciones se abren cuando se abre su botón (y, si el paso pide
   // esperar, la espera bloquea ese botón: al abrirlo ya pasó, así que las opciones no esperan otra vez)
+  // Mientras su botón espera, nada de esto se ve: aparece con él, al terminar la cuenta
+  const clave = `${m.id}|${i}`;
   if (ir && !pasoAbierto(m.id, i)) {
-    return `<p class="espera-paso por-abrir">${icono('info')} <span>Primero oprime «${esc(ir.etiqueta)}»: cuando lo hayas visto, aquí eliges cómo te fue.</span></p>
-      <div class="opciones-paso en-espera" role="group" aria-label="Elige una opción (se abre al ver lo que pide el paso)">${opciones.map((o) => `<button type="button" class="boton-opcion" disabled>${esc(o)}</button>`).join('')}</div>`;
+    const esperando = !!esperar && inicioEspera(clave) + esperar * 1000 > Date.now();
+    return `<div class="tras-espera" data-tras-espera="${esc(clave)}"${esperando ? ' hidden' : ''}><p class="espera-paso por-abrir">${icono('info')} <span>Primero oprime «${esc(ir.etiqueta)}»: cuando lo hayas visto, aquí eliges cómo te fue.</span></p>
+      <div class="opciones-paso en-espera" role="group" aria-label="Elige una opción (se abre al ver lo que pide el paso)">${opciones.map((o) => `<button type="button" class="boton-opcion" disabled>${esc(o)}</button>`).join('')}</div></div>`;
   }
-  const hasta = esperar && !ir ? inicioEspera(`${m.id}|${i}`) + esperar * 1000 : 0;
+  const hasta = esperar && !ir ? inicioEspera(clave) + esperar * 1000 : 0;
   const bloqueadas = hasta > Date.now();
-  const cuenta = bloqueadas
-    ? `<p class="espera-paso" role="timer" aria-live="off" data-hasta="${hasta}">${icono('reloj')} <span>Espera <b class="cifra">${mmss(hasta - Date.now())}</b> antes de responder: es lo que tarda en verse el cambio.</span></p>`
-    : '';
-  return `${cuenta}<div class="opciones-paso${bloqueadas ? ' en-espera' : ''}" role="group" aria-label="Elige una opción">${opciones.map((o, k) => `<button type="button" class="boton-opcion" data-elegir="${esc(m.id)}|${i}|${k}"${bloqueadas ? ' disabled' : ''}>${esc(o)}</button>`).join('')}</div>`;
+  const cuenta = bloqueadas ? cuentaGrande(hasta, clave, 'Al terminar, aquí aparecen las opciones para responder.') : '';
+  return `${cuenta}<div class="opciones-paso" role="group" aria-label="Elige una opción"${bloqueadas ? ` data-espera="${esc(clave)}" hidden` : ''}>${opciones.map((o, k) => `<button type="button" class="boton-opcion" data-elegir="${esc(m.id)}|${i}|${k}">${esc(o)}</button>`).join('')}</div>`;
+}
+
+/**
+ * La cuenta de un paso que pide esperar, grande y a la vista: dice cuánto falta, por qué y qué aparece al terminar.
+ * Lo que espera no se muestra deshabilitado: no se muestra, y aparece resaltado cuando la cuenta llega a cero.
+ */
+function cuentaGrande(hasta: number, clave: string, alTerminar: string): string {
+  return `<div class="espera-paso grande" role="timer" aria-live="off" data-hasta="${hasta}" data-libera="${esc(clave)}">${icono('reloj')}<b class="cifra">${mmss(hasta - Date.now())}</b><span>Espera: es lo que tarda en verse el cambio. ${esc(alTerminar)}</span></div>`;
 }
 
 /** Cuándo empezó a contar la espera de un paso en este navegador (la primera vez que se vio). */
@@ -1766,7 +1795,8 @@ const mmss = (ms: number) => {
 };
 
 // La cuenta regresiva de los pasos que piden esperar: se actualiza en su sitio, sin repintar lo que estás leyendo, y al
-// llegar a cero desbloquea lo que esperaba: el botón que lleva a verlo o, si el paso no tiene botón, las opciones
+// llegar a cero sale y aparece, resaltado, lo que esperaba: el botón que lleva a verlo (con lo que viene tras él) o, si
+// el paso no tiene botón, las opciones
 setInterval(() => {
   for (const p of document.querySelectorAll<HTMLElement>('.espera-paso[data-hasta]')) {
     const falta = Number(p.dataset.hasta) - Date.now();
@@ -1774,17 +1804,13 @@ setInterval(() => {
       p.querySelector('.cifra')!.textContent = mmss(falta);
       continue;
     }
-    if (p.dataset.libera) {
-      document.querySelectorAll<HTMLButtonElement>(`[data-espera="${CSS.escape(p.dataset.libera)}"]`).forEach((b) => {
-        b.disabled = false; b.classList.remove('en-espera'); b.classList.add('principal');
-      });
-      p.outerHTML = `<p class="espera-paso lista">${icono('check')} <span>Listo: ya puedes abrirlo.</span></p>`;
-      continue;
-    }
-    const grupo = p.nextElementSibling;
-    grupo?.classList.remove('en-espera');
-    grupo?.querySelectorAll('button[disabled]').forEach((b) => b.removeAttribute('disabled'));
-    p.outerHTML = `<p class="espera-paso lista">${icono('check')} <span>Listo: ya puedes responder.</span></p>`;
+    const clave = CSS.escape(p.dataset.libera ?? '');
+    const boton = p.parentElement?.querySelector<HTMLElement>(`[data-espera="${clave}"]`)?.tagName === 'BUTTON';
+    p.parentElement?.querySelectorAll<HTMLElement>(`[data-espera="${clave}"], [data-tras-espera="${clave}"]`).forEach((x) => {
+      x.hidden = false;
+      if (x.dataset.espera) x.classList.add('recien-libre');
+    });
+    p.outerHTML = `<p class="espera-paso lista" role="status">${icono('check')} <span>Listo: ya puedes ${boton ? 'abrirlo' : 'responder'}.</span></p>`;
   }
 }, 1000);
 
@@ -3160,7 +3186,7 @@ function vistaMetodo() {
     <ol class="ritmo">
       <li><b>El arranque:</b> conectas el repositorio y cuentas qué buscas; el director lo diagnostica y propone metas; ${esc(nombreTitular())} fija una; el director traza la ruta.</li>
       <li><b>El director asigna:</b> en Misiones, cada uno ve su misión de ahora, paso a paso, y por qué. Una a la vez.</li>
-      <li><b>Ustedes hacen y entregan:</b> cada paso se marca con su estrella y, al marcar el último, la misión queda entregada. Los documentos se leen y se comentan aquí mismo, parte por parte.</li>
+      <li><b>Ustedes hacen y entregan:</b> cada paso se marca con «Listo, ya lo hice» y, al marcar el último, la misión queda entregada. Los documentos se leen y se comentan aquí mismo, parte por parte.</li>
       <li><b>Ustedes opinan:</b> lo que no les guste, en el Buzón o en «Comentar», escrito o grabado. Se corrige o se borra hasta la revisión.</li>
       <li><b>El director revisa:</b> cuando ${esc(nombreTitular())} pide la revisión («Pedir revisión», o «revisa estudio» en su sesión), el director transcribe los audios, lee todo junto y responde. Aprueba o pide rehacer cada entrega, contesta cada nota, ajusta la ruta, asigna la misión siguiente y pone el boletín.</li>
       <li><b>${esc(nombreTitular())} decide:</b> fija la meta, responde las propuestas, tiene la última palabra sobre cada criterio y cruza las puertas.</li>
@@ -3582,7 +3608,7 @@ async function clicEnVista(b: HTMLButtonElement) {
     verPropuestasPasadas = ds.verPasadas === '1';
     pintar();
   } else if (ds.desmarcarPaso) {
-    // «Desmarcar»: lo mismo que oprimir la estrella de un paso ya hecho, a la vista en «Completado»
+    // «Desmarcar»: quita la marca de un paso ya hecho, a la vista en «Completado»
     const casilla = $('vista').querySelector<HTMLInputElement>(`[data-paso="${CSS.escape(ds.desmarcarPaso)}"]`);
     if (casilla?.checked) {
       casilla.checked = false;
@@ -3626,7 +3652,7 @@ async function clicEnVista(b: HTMLButtonElement) {
     const p = d.plan.misiones.find((x) => x.id === mision)?.pasos[Number(i)];
     avisar(`Se abrió una ventana de terminal con la orden corriendo. Cuando diga que terminó, oprime «Ya lo hice»${typeof p !== 'string' && p?.comprobar ? ': el Studio comprueba que salió bien y marca el paso' : ' y el paso se marca'}.`, true);
   } else if (ds.yaHice) {
-    // «Ya lo hice»: lo mismo que la estrella del paso (con su comprobación, si la tiene), a la vista junto a la orden
+    // «Ya lo hice»: lo mismo que «Listo, ya lo hice» (con su comprobación, si la tiene), a la vista junto a la orden
     const casilla = $('vista').querySelector<HTMLInputElement>(`[data-paso="${CSS.escape(ds.yaHice)}"]`);
     if (casilla && !casilla.checked) {
       casilla.checked = true;

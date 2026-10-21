@@ -50,8 +50,6 @@
 .ir-paso.principal { min-height: 36px; padding: 6px 18px; font-size: 14.5px; background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); animation: latido 2.4s ease-in-out infinite; }
 .ir-paso.principal:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
 @media (prefers-reduced-motion: reduce) { .ir-paso.principal { animation: none; } }
-/* Mientras corre la espera del paso, su botón no lleva a nada todavía: se ve apagado, sin latir */
-.ir-paso.en-espera { opacity: .55; cursor: not-allowed; }
 .desmarcar-paso { margin-left: 8px; font-size: 13px; }
 .resaltado { animation: resalte 2.6s ease-out; border-radius: 10px; }
 @keyframes resalte { 0%, 30% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: #fff6d8; } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
@@ -119,7 +117,7 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 .mision-c .pasos { margin: 0; padding-left: 4px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; list-style: none; counter-reset: paso; }
 .mision-c .pasos li { counter-increment: paso; display: block; position: relative; padding: 8px 10px 8px 40px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid #efece5; line-height: 1.55; }
 .mision-c .pasos li::before { content: counter(paso); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-size: 12px; font-weight: 700; background: var(--acento-fondo); color: var(--acento-texto); }
-.mision-c .pasos li:has(.casilla-paso)::before { display: none; }
+.mision-c .pasos li.con-marca::before { display: none; }
 .mision-c .pasos li > span { margin-right: 6px; }
 .mision-c .pasos li.hecho { background: var(--ok-fondo); border-color: #d6e8c8; }
 .mision-c .pasos li.hecho > span { color: var(--suave); text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, 0.3); }
@@ -130,15 +128,15 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 /* Lo ya marcado baja a «Completado», plegado: la tarjeta muestra solo lo que falta */
 .pasos-completados > summary { cursor: pointer; width: fit-content; margin: 2px 0 6px; font-size: 14px; font-weight: 600; color: var(--ok); }
 .pasos-completados > summary .cifra { margin-left: 4px; }
-/* Cada paso se marca con su estrella: gris mientras falta, dorada al hacerlo */
-/* La estrella del paso, a la derecha, más grande y centrada en vertical con su caja (pedido del titular) */
-.mision-c .pasos li:has(.casilla-paso) { padding: 10px 58px 10px 14px; }
-.casilla-paso { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: inline-flex; cursor: pointer; border-radius: 50%; }
-.casilla-paso .icono { width: 32px; height: 32px; fill: none; stroke: #b9b5ab; transition: transform 0.15s, fill 0.15s, stroke 0.15s; }
-.casilla-paso:hover .icono { stroke: #c9a227; transform: scale(1.12); }
-.casilla-paso:has(input:checked) .icono { fill: #e8b923; stroke: #c9a227; }
-.casilla-paso:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .casilla-paso .icono { transition: none; } .casilla-paso:hover .icono { transform: none; } }
+/* Cada paso se marca con «Listo, ya lo hice», abajo a la derecha de su caja (pedido del titular: la estrella no se entendía) */
+.mision-c .pasos li.con-marca { padding: 10px 14px; }
+.pie-paso { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.pie-paso:empty { display: none; }
+.listo-paso { margin: 10px 0 0 auto; display: inline-flex; gap: 6px; align-items: center; min-height: 36px; padding: 4px 18px; border-radius: 999px; background: var(--ok-fondo); border: 1px solid var(--ok); color: var(--ok-texto); font-size: 14px; font-weight: 600; cursor: pointer; }
+.listo-paso .icono { width: 16px; height: 16px; }
+.listo-paso:hover { background: var(--ok); color: var(--texto-en-color); }
+.listo-paso:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
+body.director-trabajando .listo-paso { opacity: 0.45; cursor: not-allowed; }
 .comentar-paso { min-height: 24px; margin-left: 4px; padding: 0 8px; font-size: 12px; line-height: 20px; border-radius: 999px; background: var(--sobre); border-color: var(--sobre-borde); color: var(--sobre-texto); opacity: 0.6; vertical-align: baseline; }
 .mision-c .pasos li:hover .comentar-paso, .comentar-paso:focus-visible { opacity: 1; }
 /* El paso explicado en acciones más pequeñas, y «No lo entiendo, explícamelo mejor» debajo, discreto */
@@ -161,7 +159,14 @@ body.director-trabajando .boton-opcion { opacity: 0.45; cursor: not-allowed; }
 .espera-paso { display: flex; gap: 6px; align-items: center; margin: 10px 0 0; font-size: 14px; color: var(--suave); }
 .espera-paso .icono { width: 16px; height: 16px; flex: none; }
 .espera-paso .cifra { font-variant-numeric: tabular-nums; color: var(--texto); }
-.espera-paso.lista { color: var(--ok); }
+.espera-paso.lista { color: var(--ok); font-weight: 600; }
+/* La cuenta, grande: lo que espera no se ve hasta que llega a cero (pedido del titular) */
+.espera-paso.grande { gap: 12px; padding: 10px 14px; border-radius: var(--radio); background: var(--acento-fondo); color: var(--texto); line-height: 1.45; }
+.espera-paso.grande .icono { width: 26px; height: 26px; }
+.espera-paso.grande .cifra { flex: none; font-size: 30px; font-weight: 700; line-height: 1; }
+/* Lo que la espera retenía aparece resaltado: es lo que sigue */
+.recien-libre { outline: 3px solid var(--ok); outline-offset: 3px; border-radius: 999px; }
+.opciones-paso.recien-libre { border-radius: var(--radio); }
 .opciones-paso.en-espera .boton-opcion { opacity: .5; cursor: not-allowed; }
 .opciones-paso.en-espera .boton-opcion:hover { background: var(--panel); color: var(--texto); }
 /* «Hazlo tú»: el director puede hacer el paso con tu permiso; si solo puedes tú, el paso lo dice */
@@ -968,6 +973,7 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .celebracion .cumplidas li > span { flex: 1; min-width: 0; }
 .celebracion .cumplidas .icono { width: 18px; height: 18px; color: var(--ok); flex: none; }
 .celebracion .cumplidas b { color: var(--oro); white-space: nowrap; }
+.celebracion .todas-hechas { margin: 0; padding: 10px 14px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 15px; line-height: 1.5; }
 .celebracion .barra-xp > div { animation: celebra-barra 1.2s ease-out both; }
 .sube-nivel, .logros-nuevos { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; color: #7a5a06; }
 .sube-nivel .icono { width: 20px; height: 20px; color: var(--oro); fill: #f2c94c; }

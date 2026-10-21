@@ -372,7 +372,7 @@ function paradaEmpieza(ir: (vista: string, texto: string) => string, o: { conPes
     ['hoy', 'Hoy, primero', `Lo que dijo el director y tu misión de ahora. Cada paso trae su botón al lugar exacto, y la cara del director te lleva a lo que sigue.${ir('misiones', 'Ir a Hoy')}`],
     ['buzon', 'Opina donde estés', `Cada «Comentar al director» deja lo que digas, escrito o en voz, en el Buzón, donde lo corriges o lo borras.${ir('buzon', 'Abrir el Buzón')}`],
     ['documentos', 'Un documento a la vez', 'Se abre el que sigue en tu orden de lectura, parte por parte y de a una idea (solo la de ahora a la vista; con «Modo enfoque», nada más alrededor): marca cada una «Entendido» y responde cada decisión.'],
-    ['estrella', 'Entrega', 'Marca cada paso con su estrella: con el último, la misión se entrega sola. Lo entregado queda sellado.'],
+    ['estrella', 'Entrega', 'Marca cada paso con «Listo, ya lo hice»: con el último, la misión se entrega sola. Lo entregado queda sellado.'],
     ['pregunta', 'Pregunta sin cortar tu trabajo', `Las anotas cuando se te ocurren; el director las responde juntas, como un informe.${ir('preguntas', 'Ver las preguntas')}`],
   ];
   return `<h3>De cero a tu primera misión</h3>
