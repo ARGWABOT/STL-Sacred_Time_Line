@@ -1,8 +1,8 @@
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, trabajoConElPedido } from './revisor';
+import { agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tomarTurno, trabajoConElPedido } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -23,6 +23,30 @@ describe('el director que lanza el Studio', () => {
     // los flujos de varios agentes, solo con el permiso del titular (ultracode)
     expect(p).not.toContain('Workflow');
     expect(permitido(String.raw`C:\repos\golf`, true)).toEqual([...p.slice(0, p.indexOf('Task') + 1), 'Workflow', ...p.slice(p.indexOf('Task') + 1)]);
+  });
+
+  it('lanza un director a la vez, aunque haya dos servidores del Studio encendidos', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stl-turno-'));
+    try {
+      const turno = join(dir, 'lanzando.json');
+      expect(tomarTurno(turno)).toBe(true);
+      // el otro servidor llega 109 ms después: no lo toma
+      expect(tomarTurno(turno)).toBe(false);
+      soltarTurno(turno);
+      expect(tomarTurno(turno)).toBe(true);
+      soltarTurno(turno);
+      // uno abandonado (su proceso ya no existe, o pasó el límite de una revisión) se toma
+      writeFileSync(turno, JSON.stringify({ pid: 2 ** 30, cuando: new Date().toISOString() }));
+      expect(tomarTurno(turno)).toBe(true);
+      writeFileSync(turno, JSON.stringify({ pid: process.pid, cuando: '2026-01-01T00:00:00.000Z' }));
+      expect(tomarTurno(turno)).toBe(true);
+      // soltar el de otro proceso no lo suelta
+      writeFileSync(turno, JSON.stringify({ pid: 2 ** 30, cuando: new Date().toISOString() }));
+      soltarTurno(turno);
+      expect(existsSync(turno)).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('le encarga la revisión de un proyecto, con su id en las herramientas', () => {

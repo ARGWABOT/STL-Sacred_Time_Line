@@ -8,7 +8,7 @@
 // Sin Claude Code con su sesión iniciada en este computador, las revisiones pedidas las toma esa sesión con
 // /loop 5m /vigila, como antes.
 import { spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join, relative, resolve } from 'node:path';
 import { ajustesDelDirector, archivoAjustesClaude, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
@@ -420,6 +420,55 @@ function sinSesion(programa: string): Promise<string | null> {
   });
 }
 
+/**
+ * El turno de lanzar al director, entre todos los servidores del Studio de este computador: un archivo que se crea solo
+ * si no existe (atómico), con el proceso que lo tiene. Sin él, dos servidores encendidos a la vez vieron la misma
+ * revisión pedida y lanzaron dos directores sobre el mismo plan (21 de octubre de 2026). Si su proceso ya no existe o
+ * pasó el límite de una revisión, está abandonado y se toma.
+ */
+export function tomarTurno(archivo: string, ahora = Date.now()): boolean {
+  for (let intento = 0; intento < 2; intento++) {
+    try {
+      writeFileSync(archivo, JSON.stringify({ pid: process.pid, cuando: new Date(ahora).toISOString() }), { flag: 'wx' });
+      return true;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') return false;
+      if (!turnoAbandonado(archivo, ahora)) return false;
+      try { unlinkSync(archivo); } catch { return false; }
+    }
+  }
+  return false;
+}
+
+function turnoAbandonado(archivo: string, ahora: number): boolean {
+  try {
+    const t = JSON.parse(readFileSync(archivo, 'utf-8'));
+    if (!(ahora - Date.parse(t.cuando) < (MAX_MIN + 5) * 60_000)) return true;
+    process.kill(t.pid, 0); // solo pregunta si el proceso existe
+    return false;
+  } catch (e) {
+    // EPERM: existe, pero es de otro usuario
+    return (e as NodeJS.ErrnoException).code !== 'EPERM';
+  }
+}
+
+/** Suelta el turno, si es de este proceso. */
+export function soltarTurno(archivo: string): void {
+  try {
+    if (JSON.parse(readFileSync(archivo, 'utf-8')).pid === process.pid) unlinkSync(archivo);
+  } catch {
+    // ya no estaba
+  }
+}
+
+/** Si lo que se iba a lanzar sigue sin lanzar (otro servidor del Studio pudo tomarlo un instante antes). */
+function sigueSinLanzar(l: Awaited<ReturnType<typeof leerLocal>>, proyecto: string, aparte?: Aparte): boolean {
+  if (aparte?.tipo === 'aclaracion') return l.aclaracion?.nota === aparte.a.nota && !l.aclaracion.lanzada && !l.aclaracion.hecha;
+  if (aparte?.tipo === 'urgencia') return l.urgencia?.pedida === aparte.u.pedida && !l.urgencia.lanzada && !l.urgencia.hecha;
+  const r = l.revision;
+  return !!r && r.proyecto === proyecto && !r.lanzada && !r.enCurso && !r.hecha && !r.error;
+}
+
 export class Revisor {
   private hijo: string | null = null;
   private ocupado = false;
@@ -510,6 +559,10 @@ export class Revisor {
   private async lanzar(proyecto: string, programa: string, repositorio: string, aparte?: Aparte): Promise<void> {
     const carpeta = join(this.raiz, '.revisiones');
     mkdirSync(carpeta, { recursive: true });
+    // Un director a la vez en este computador, aunque haya dos servidores del Studio encendidos
+    const turno = join(carpeta, 'lanzando.json');
+    if (!tomarTurno(turno)) return;
+    if (!sigueSinLanzar(await leerLocal(this.raiz), proyecto, aparte)) return soltarTurno(turno);
     // La de una aclaración o una urgencia lleva su nombre: así no se confunde con el registro de la revisión (progresoDeProyecto)
     const archivo = join(carpeta, `${proyecto}-${aparte ? `${aparte.tipo}-` : ''}${new Date().toISOString().replace(/[:.]/g, '-')}.log`);
     const registro = openSync(archivo, 'a');
@@ -540,6 +593,7 @@ export class Revisor {
       clearTimeout(limite);
       closeSync(registro);
       this.hijo = null;
+      soltarTurno(turno);
       // La cuenta no acepta el modelo elegido: vuelve al de siempre (también en Claude Code, que con él tampoco
       // arrancaría), y el aviso lo dice
       if (modelo && fallaDelModelo(readFileSync(archivo, 'utf-8'))) {
