@@ -1310,16 +1310,18 @@ function archivoDq(proyecto: string): LineaDq[] {
       if (!viejas) {
         try { viejas = new Set(JSON.parse(localStorage.getItem(claveLeidasDq(proyecto)) ?? '[]') as string[]); } catch { viejas = new Set(); }
       }
-      // Otra versión de una línea que esperaba sin leer (el director la reescribió o la alargó, y ya no está en el
-      // resumen): la nueva la reemplaza, para no leer dos veces lo mismo con otras palabras
-      const reemplazadas = archivo.filter((v) => !v.leida && v.s === s.id && !deAhora.has(v.h) && mismaIdea(v.t, t));
-      if (reemplazadas.length) archivo = archivo.filter((v) => !reemplazadas.includes(v));
       archivo.push({ h, s: s.id, t, llego: ahora, ...(viejas.has(h) ? { leida: ahora } : {}) });
       conocidas.add(h);
       cambio = true;
     }
   }
-  if (cambio) guardarArchivoDq(proyecto, archivo);
+  // Una línea que esperaba sin leer y que el director reescribió o alargó (ya no está en el resumen) sale: la reemplaza
+  // su versión más nueva, para no leer dos veces lo mismo con otras palabras
+  const vigentes = archivo.filter((l) => !l.leida || deAhora.has(l.h));
+  const masNueva = (v: LineaDq, w: LineaDq) => deAhora.has(w.h) || w.llego > v.llego || (w.llego === v.llego && w.t.length > v.t.length);
+  const sobran = new Set(vigentes.filter((v) => !v.leida && !deAhora.has(v.h) && vigentes.some((w) => w !== v && w.s === v.s && masNueva(v, w) && mismaIdea(v.t, w.t))));
+  if (sobran.size) archivo = archivo.filter((l) => !sobran.has(l));
+  if (cambio || sobran.size) guardarArchivoDq(proyecto, archivo);
   return archivo;
 }
 
