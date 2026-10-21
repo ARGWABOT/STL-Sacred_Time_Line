@@ -45,7 +45,7 @@
         {
           "id": "a_diagnostico",
           "texto": "El diagnóstico del director, hecho",
-          "como": "El director lee el repositorio y escribe el diagnóstico (pestaña Diagnóstico) con su documento.",
+          "como": "El director lee el repositorio y escribe el diagnóstico (en Proyecto, «El diagnóstico del director») con su documento.",
           "indicador": "diagnostico"
         },
         {

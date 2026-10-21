@@ -97,7 +97,7 @@ const VISTAS: Vista[] = ['misiones', 'buzon', 'documentos', 'ruta', 'propuestas'
  * plan del director, las validaciones, el esfuerzo y la bitácora eran reportes, y el método está en «Qué es STL».
  * Proyecto (la configuración) está en la barra solo mientras el proyecto arranca; después, se abre con el engranaje
  * del selector de proyectos. «Modelo y consumo» no es de ningún proyecto (es Claude Code en este computador): va en el
- * pie de la barra, aparte (pedido del titular, 21 de octubre). El diagnóstico sigue en la barra hasta que pase a Proyecto. Preguntas, la ruta, los
+ * pie de la barra, aparte (pedido del titular, 21 de octubre). El diagnóstico vive en Proyecto, plegado. Preguntas, la ruta, los
  * documentos y las propuestas aparecen cuando tienen algo (o si estás en ellas); la primera vez, el director dice para
  * qué sirven (`avisarSeccionesNuevas`).
  */
@@ -107,7 +107,7 @@ function gruposNav(): { titulo: string; vistas: Vista[]; plegable?: boolean }[] 
   const sirve = (v: Vista) => !(v in PARA_QUE_SIRVE) || conAlgo.includes(v) || vista === v;
   return [
     { titulo: '', vistas: (['misiones', 'buzon', 'preguntas'] as Vista[]).filter(sirve) },
-    { titulo: 'El proyecto', vistas: (['ruta', 'documentos', 'propuestas', 'diagnostico', ...(arranca ? ['proyecto'] : [])] as Vista[]).filter(sirve) },
+    { titulo: 'El proyecto', vistas: (['ruta', 'documentos', 'propuestas', ...(arranca ? ['proyecto'] : [])] as Vista[]).filter(sirve) },
   ];
 }
 
@@ -195,6 +195,7 @@ const NOMBRE_ESTADO_MISION: Record<EstadoMision, string> = {
 
 let d: Datos;
 let vista: Vista = VISTAS.includes(localStorage.getItem('estudio.director.pestana') as Vista) ? (localStorage.getItem('estudio.director.pestana') as Vista) : 'misiones';
+if (vista === 'diagnostico') vista = 'proyecto'; // el diagnóstico ya vive en Proyecto
 let faseVista: string | null = null;
 let celda: { frente: string; fase: string } | null = null;
 let consulta: string | null = null; // el frente de «¿Puedo trabajar en…?»
@@ -813,8 +814,10 @@ async function ir(dest: Destino) {
   if (dest.doc) return abrirDocumento(dest.doc, dest.seccion ?? null);
   // «Escribirle al director» abre el comentario, como el atajo junto a su cara: el Buzón ya no tiene formulario
   if (dest.vista === 'buzon' && dest.ancla === 'escribir') return escribirAlDirector();
-  // «El director en este computador» salió de Proyecto: los botones de antes llevan a «Modelo y consumo»
+  // Lo que cambió de lugar: «El director en este computador» salió de Proyecto a «Modelo y consumo», y el diagnóstico
+  // (con sus metas propuestas) entró en Proyecto. Los botones de antes llevan al lugar nuevo
   if (dest.vista === 'proyecto' && dest.ancla === 'p-director') dest = { ...dest, vista: 'modelo', ancla: 'm-director' };
+  if (dest.vista === 'diagnostico') dest = { ...dest, vista: 'proyecto', ancla: dest.ancla === 'd-objetivos' ? 'p-objetivo' : 'p-diagnostico' };
   if (dest.fase) faseVista = dest.fase;
   if (dest.tipoValidacion) tipoValidacionInicial = dest.tipoValidacion;
   anclaPendiente = dest.ancla ?? null;
@@ -1757,7 +1760,7 @@ function arranqueHTML() {
     nuevo
       ? { n: 'Cuenta el proyecto', hecho: d.arranque !== 'contar', texto: 'Qué es, qué quieres lograr y cuándo estará completo, en Proyecto.', boton: botonIr({ vista: 'proyecto', ancla: 'p-contexto', etiqueta: 'Ir a Proyecto' }) }
       : { n: 'Entrega el repositorio', hecho: conectado, texto: 'Su carpeta, en Proyecto. Lo demás lo detecta el director.', boton: botonIr({ vista: 'proyecto', ancla: 'p-repositorio', etiqueta: 'Ir a Proyecto' }) },
-    { n: nuevo ? 'El planteamiento' : 'El diagnóstico', hecho, texto: nuevo ? 'El director devuelve lo que entendió, el alcance, los riesgos y metas posibles. Pídelo con «Pedir revisión».' : 'El director lee el repositorio, detecta lo que está en curso y propone metas. Pídelo con «Pedir revisión».', boton: hecho ? botonIr({ vista: 'diagnostico', etiqueta: 'Leerlo' }) : '' },
+    { n: nuevo ? 'El planteamiento' : 'El diagnóstico', hecho, texto: nuevo ? 'El director devuelve lo que entendió, el alcance, los riesgos y metas posibles. Pídelo con «Pedir revisión».' : 'El director lee el repositorio, detecta lo que está en curso y propone metas. Pídelo con «Pedir revisión».', boton: hecho ? botonIr({ vista: 'proyecto', ancla: 'p-diagnostico', etiqueta: 'Leerlo' }) : '' },
     { n: 'Fija tu meta', hecho: !!d.proyecto.objetivo, texto: 'Elige uno de los que propone el director, o escribe el tuyo: qué se logra y cómo se sabe.', boton: hecho ? botonIr({ vista: 'proyecto', ancla: 'p-objetivo', etiqueta: 'Ir a la meta' }) : '' },
     { n: 'La ruta', hecho: d.plan.fases.length > 1, texto: 'De nuevo, «Pedir revisión»: trae las fases y tu primera misión.', boton: '' },
   ];
@@ -3004,11 +3007,8 @@ function vistaProyecto() {
           <button type="button" data-explorar-repo>📁 Explorar…</button>
           <button type="submit" class="primario">${r.ruta ? 'Usar esta carpeta' : 'Conectar'}</button>
         </form>`;
-  return `<p class="intro">Lo que el director necesita para trabajar: dónde está el proyecto, qué es y, después del diagnóstico, a dónde quieres llegar. En el repositorio solo escribe su memoria (la rama <code>stl</code>) y lo que tú apruebes.</p>
-  <div class="dos-columnas">
-    <div>
-      <section class="panel-d" data-ancla="p-repositorio">
-        <h3>1. Dónde está</h3>
+  const repo = `<section class="panel-d" data-ancla="p-repositorio">
+        <h3>Dónde está</h3>
         ${info ? `<p class="bien-repo">✓ ${esc(info.ruta)}</p>
           <p class="como">Su memoria (la ruta, las notas, los documentos del director) vive en ese repositorio, en la rama <code>stl</code>, abierta en la carpeta <code>.stl</code>. Sube a su nube solo si tú lo pides.</p>
           <details class="detalles-repo"><summary>Detalles del repositorio</summary>
@@ -3022,9 +3022,9 @@ function vistaProyecto() {
             ${formRepo}
           </details>`
         : `<p class="como">La carpeta del proyecto en <b>este computador</b>.</p>${formRepo}${r.error ? `<p class="aviso remoto">${esc(r.error)}</p>` : ''}`}
-      </section>
-      <section class="panel-d" data-ancla="p-contexto">
-        <h3>2. Qué es el proyecto y qué buscas <span class="chip ${esNuevo() ? 'apoyo' : 'foco'}">${esNuevo() ? 'Proyecto nuevo' : 'Proyecto existente'}</span></h3>
+      </section>`;
+  const contexto = `<section class="panel-d" data-ancla="p-contexto">
+        <h3>Qué es el proyecto y qué buscas <span class="chip ${esNuevo() ? 'apoyo' : 'foco'}">${esNuevo() ? 'Proyecto nuevo' : 'Proyecto existente'}</span></h3>
         <p class="como">${esNuevo() ? 'Cuéntalo sin pulir, como se lo dirías a alguien que llega nuevo. Con esto el director hace el planteamiento y te propone metas.' : 'El director lo detecta al leer el repositorio y lo deja escrito aquí. Corrígelo o complétalo si hace falta (prioridades, lo que está a medias) y guárdalo.'}${t ? '' : ' Lo escribe el titular.'}</p>
         <form id="form-proyecto" class="form-proyecto">
           <label>Nombre del proyecto<input type="text" name="nombre" value="${esc(p.nombre)}" required${soloLectura} /></label>
@@ -3035,7 +3035,7 @@ function vistaProyecto() {
             const meta = p.metaInicial || det?.meta || '';
             const marca = (usa: boolean, texto: string) => (usa ? `<small class="detectado">✦ ${texto}</small>` : '');
             return `<label class="ancho">Qué es, para quién y en qué punto está<textarea name="contexto" rows="5"${soloLectura} placeholder="Ej.: una app para que los talleres agenden citas. La usan 3 talleres de prueba. El código lo hice yo solo en 6 meses…">${esc(ctx)}</textarea>${marca(!p.contexto && !!det?.contexto, 'Lo detectó el director al leer el repositorio: corrígelo si hace falta y guárdalo.')}</label>
-          <label class="ancho">${esNuevo() ? 'Qué quieres lograr, en tus palabras' : 'Tu meta'}<textarea name="metaInicial" rows="3"${soloLectura} placeholder="Ej.: que 20 talleres paguen por ella antes de fin de año, sin que se caiga">${esc(meta)}</textarea>${marca(!p.metaInicial && !!det?.meta, 'Meta sugerida por el director, según lo que detectó: complétala o reemplázala con la tuya. La fijas en «3. La meta».')}</label>`;
+          <label class="ancho">${esNuevo() ? 'Qué quieres lograr, en tus palabras' : 'Tu meta'}<textarea name="metaInicial" rows="3"${soloLectura} placeholder="Ej.: que 20 talleres paguen por ella antes de fin de año, sin que se caiga">${esc(meta)}</textarea>${marca(!p.metaInicial && !!det?.meta, 'Meta sugerida por el director, según lo que detectó: complétala o reemplázala con la tuya. La fijas en «La meta».')}</label>`;
           })()}
           ${esNuevo() ? `<label class="ancho">¿Cuándo se considera completo?<textarea name="terminado" rows="2"${soloLectura} placeholder="Ej.: cuando 20 talleres paguen la suscripción dos meses seguidos">${esc(p.terminado ?? '')}</textarea></label>` : ''}
           <details class="ancho mas-datos"><summary>Más datos del repositorio (opcional)</summary>
@@ -3046,15 +3046,15 @@ function vistaProyecto() {
           </details>
           ${t ? '<div class="botones"><button type="submit" class="primario">Guardar</button></div>' : ''}
         </form>
-      </section>
-      <section class="panel-d" data-ancla="p-objetivo">
-        <h3>3. La meta</h3>
+      </section>`;
+  const meta = `<section class="panel-d" data-ancla="p-objetivo">
+        <h3>La meta</h3>
         ${o ? `<div class="objetivo-firmado">
             <span class="etiqueta">Meta fijada · ${fecha(o.firmado.fecha)} · ${esc(o.firmado.quien)}</span>
             <p class="obj-texto">${esc(o.texto)}</p>
             <p><b>Cómo sabremos que se cumplió:</b> ${esc(o.exito)}</p>
             ${o.horizonte ? `<p><b>Horizonte:</b> ${esc(o.horizonte)}</p>` : ''}
-            <div class="acciones-p">${t ? '<button type="button" data-reabrir-objetivo>Cambiar la meta</button>' : ''}<button type="button" class="al-director" data-comentar="objetivo|">✉ Comentar al director</button></div>
+            <div class="acciones-p">${t ? '<button type="button" data-replantear-objetivo>Replantear la meta</button>' : ''}<button type="button" class="al-director" data-comentar="objetivo|">✉ Comentar al director</button></div>
           </div>`
         : `<p class="como">Una meta clara dice <b>qué se logra</b> y <b>cómo se sabe que se logró</b> (un número o un hecho que se pueda comprobar). ${d.plan.diagnostico.fecha ? 'Elige uno de los que propone el director, mézclalos o escribe el tuyo.' : 'El director recomienda firmarlo después del diagnóstico: así se mide contra lo que de verdad hay.'}</p>
           ${candidatos.length ? `<div class="candidatos">${candidatos.map((c) => `<article class="candidato${b.candidato === c.id ? ' sel' : ''}" data-ancla="objetivo-${esc(c.id)}">
@@ -3072,12 +3072,21 @@ function vistaProyecto() {
             <label>Horizonte (opcional: un hito, no un plazo)<input type="text" name="horizonte" value="${esc(b.horizonte)}" placeholder="Ej.: antes de abrir a otra ciudad" /></label>
             <div class="botones"><button type="submit" class="primario">Fijar esta meta</button></div>
           </form>` : '<p class="nota-rol">La meta la fija el titular.</p>'}`}
-        ${(p.objetivosAnteriores ?? []).length ? `<h3>Metas anteriores</h3><ul class="adelantado">${p.objetivosAnteriores!.map((x) => `<li>«${esc(x.texto)}» <small>(firmado el ${fecha(x.firmado.fecha)}, reabierto el ${fecha(x.reabierto.fecha)}: ${esc(x.reabierto.nota ?? '')})</small></li>`).join('')}</ul>` : ''}
-      </section>
+        ${(p.objetivosAnteriores ?? []).length ? `<details class="detalles-repo metas-anteriores"><summary>Metas anteriores <span class="cifra">${p.objetivosAnteriores!.length}</span></summary><ul class="adelantado">${p.objetivosAnteriores!.map((x) => `<li>«${esc(x.texto)}» <small>(fijada el ${fecha(x.firmado.fecha)}, replanteada el ${fecha(x.reabierto.fecha)}${x.reabierto.nota ? `: ${esc(x.reabierto.nota)}` : ''})</small></li>`).join('')}</ul></details>` : ''}
+      </section>`;
+  const equipo = [...d.plan.boletin].reverse().find((x) => x.para === 'equipo');
+  // Con la meta fijada, va arriba: es contra lo que se mide todo. Antes, el orden del arranque: dónde está, qué es, el
+  // diagnóstico del director y la meta (decidido en «Un Studio más simple»: el diagnóstico vive en Proyecto, plegado)
+  const orden = o ? [meta, contexto, seccionDiagnostico(), repo] : [repo, contexto, seccionDiagnostico(), meta];
+  return `<p class="intro">${o ? 'Tu meta, qué es el proyecto, lo que encontró el director al diagnosticarlo y dónde está.' : 'Lo que el director necesita para trabajar: dónde está el proyecto, qué es y, después de su diagnóstico, a dónde quieres llegar.'} En el repositorio solo escribe su memoria (la rama <code>stl</code>) y lo que tú apruebes.</p>
+  <div class="dos-columnas">
+    <div>
+      ${orden.join('\n      ')}
     </div>
     <div>
       <section class="panel-d" data-ancla="p-equipo">
         <h3>El equipo</h3>
+        ${equipo ? `<div class="boletin-equipo"><p class="etiqueta-boletin">Boletín del equipo · ${fecha(equipo.fecha)}</p><div class="notas-boletin">${Object.entries(equipo.notas).map(([k, v]) => `<span><span class="nota-letra ${v}">${v}</span>${esc(k)}</span>`).join('')}</div><p>${esc(equipo.comentario)}</p></div>` : ''}
         <p class="como">Cada persona trabaja en su computador y firma con su identidad de git: el Estudio la reconoce por su correo. El titular decide; los demás hacen sus misiones y le escriben al director.</p>
         <ul class="lista-equipo">${(p.equipo.length ? p.equipo : [{ id: TITULAR, nombre: nombrePersona(TITULAR), correo: d.identidad.correo, cargo: 'Director de proyecto (se registra al guardar)' }])
           .map((i) => `<li><span class="monograma">${esc(i.nombre.charAt(0))}</span><div><b>${esc(i.nombre)}</b>${i.id === TITULAR ? ' <span class="chip foco">Titular</span>' : ''}<small>${esc(i.cargo ?? '')}${i.cargo ? ' · ' : ''}${esc(i.correo)}</small></div>${t && i.id !== TITULAR ? `<button type="button" data-quitar-integrante="${esc(i.id)}">Quitar</button>` : ''}</li>`)
@@ -3215,59 +3224,51 @@ function vistaModelo() {
 
 // ───────────────────────────────────────────── diagnóstico
 
-function estrellas(n: number) {
-  return `<span class="estrellas" title="${n} de 5: qué tan listo está para lo que pide la meta">${'★'.repeat(n)}<span class="vacia">${'★'.repeat(5 - n)}</span></span>`;
-}
+/** «a», «a y b», «a, b y c». */
+const unir = (xs: string[]) => (xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}`);
+/** Una fuente: si trae una dirección, la dirección se vuelve enlace (se abre aparte). */
+const conEnlaces = (t: string) => esc(t).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
 
-function vistaDiagnostico() {
+/**
+ * El diagnóstico del director, dentro de Proyecto (decidido en «Un Studio más simple»): abierto mientras no hay meta
+ * (se lee para elegirla) y plegado después. Su resumen, lo de cada frente compilado en un párrafo (lo más listo y lo más
+ * flojo, sin tarjetas por frente), la estrategia para este tipo de proyecto con sus fuentes, y el documento completo a
+ * un clic. Las metas que propone van en «La meta», solo mientras no hay una.
+ */
+function seccionDiagnostico() {
   const dg = d.plan.diagnostico;
+  const nuevo = esNuevo();
+  const titulo = nuevo ? 'El planteamiento del director' : 'El diagnóstico del director';
   if (!dg.fecha) {
-    return esNuevo()
-      ? `<div class="panel-d sin-diagnostico">
-      <h3>Todavía no hay planteamiento</h3>
-      <p>Este proyecto es nuevo: no hay repositorio que diagnosticar. El director parte de lo que le cuentes y te devuelve un planteamiento: lo que entendió, el alcance, los supuestos, los riesgos y las preguntas abiertas, con dos o tres objetivos para firmar.</p>
-      <ol class="ritmo">
-        <li>Cuenta el proyecto: qué es, qué quieres lograr y cuándo estará completo. ${botonIr({ vista: 'proyecto', ancla: 'p-contexto', etiqueta: 'Ir a Proyecto' })}</li>
-        <li>Oprime <b>«Pedir revisión»</b>, arriba: el Studio llama al director.</li>
-      </ol></div>`
-      : `<div class="panel-d sin-diagnostico">
-      <h3>Todavía no hay diagnóstico</h3>
-      <p>El director lee el repositorio: su historial, su estructura, su documentación y su código. Detecta lo que está en curso y hacia dónde apunta el proyecto según sus propios documentos, te dice con franqueza qué está listo, qué falta y qué riesgos ve, y te propone dos o tres objetivos.</p>
-      <ol class="ritmo">
-        <li>Comprueba que el repositorio está conectado. ${botonIr({ vista: 'proyecto', ancla: 'p-repositorio', etiqueta: 'Ir a Proyecto' })}</li>
-        <li>Oprime <b>«Pedir revisión»</b>, arriba: el Studio llama al director.</li>
-      </ol></div>`;
+    return `<section class="panel-d sin-diagnostico" data-ancla="p-diagnostico">
+        <h3>${titulo}</h3>
+        <p class="como">${nuevo
+          ? 'Este proyecto es nuevo: no hay repositorio que diagnosticar. Con lo que cuentes en «Qué es el proyecto», el director te devuelve lo que entendió, el alcance, los supuestos, los riesgos y las preguntas abiertas, con dos o tres metas para elegir.'
+          : 'El director lee el repositorio (su historial, su estructura, su documentación y su código), detecta lo que está en curso y hacia dónde apunta según sus propios documentos, te dice con franqueza qué está listo, qué falta y qué riesgos ve, y te propone dos o tres metas.'} Pídelo con <b>«Pedir revisión»</b>, arriba.</p>
+      </section>`;
   }
-  const actual = faseActual(d.plan, d.estado);
-  const esfuerzo = d.senales.esfuerzo ? repartoPorFrente(d.senales.esfuerzo.commits) : {};
-  const equipo = [...d.plan.boletin].reverse().find((b) => b.para === 'equipo');
-  return `<p class="intro">${esNuevo() ? 'Planteamiento' : 'Diagnóstico'} del director del ${fecha(dg.fecha)}. Las estrellas dicen qué tan listo está cada frente para lo que pide el objetivo, no cuánto se ha trabajado en él. ¿Algo no te cuadra? Coméntalo donde lo leas: el director lo revisa y lo corrige en un documento nuevo.</p>
-    ${equipo ? `<div class="panel-d boletin-equipo"><h3>Boletín del equipo · ${fecha(equipo.fecha)}</h3><div class="notas-boletin">${Object.entries(equipo.notas).map(([k, v]) => `<span><span class="nota-letra ${v}">${v}</span>${esc(k)}</span>`).join('')}</div><p>${esc(equipo.comentario)}</p></div>` : ''}
-    <ul class="resumen-d" data-ancla="d-resumen">${dg.resumen.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
-    <p><button type="button" class="al-director" data-comentar="diagnostico|">✉ Comentar el diagnóstico al director</button></p>
-    ${(d.plan.objetivos ?? []).length ? `<h3 data-ancla="d-objetivos">Las metas que propone el director</h3>
-      <div class="candidatos">${d.plan.objetivos.map((c) => `<article class="candidato${d.proyecto.objetivo?.candidato === c.id ? ' sel' : ''}">
-        <b>${esc(c.texto)}</b><p><span class="tit">Éxito</span> ${esc(c.exito)}</p><p><span class="tit">Por qué</span> ${esc(c.porQue)}</p>${c.riesgo ? `<p><span class="tit">Riesgo</span> ${esc(c.riesgo)}</p>` : ''}
-        <div class="acciones-p">${d.proyecto.objetivo ? (d.proyecto.objetivo.candidato === c.id ? '<span class="chip foco">El firmado</span>' : '') : titular() ? `<button type="button" data-usar-candidato="${esc(c.id)}">Usar este</button>` : ''}<button type="button" class="al-director" data-comentar="objetivo|${esc(c.id)}">✉ Comentar</button></div>
-      </article>`).join('')}</div>` : ''}
-    <h3 data-ancla="d-frentes">Frente por frente <small>· su papel en «${esc(actual.nombre)}»</small></h3>
-    <div class="rejilla-frentes">${d.plan.frentes
-      .map((x) => {
-        const g = dg.frentes[x.id];
-        const t = trabajoDe(actual, x.id);
-        if (!g) return '';
-        return `<article class="tarjeta-frente">
-          <header><b>${esc(x.nombre)}</b>${estrellas(g.nota)}</header>
-          <p class="veredicto-f">${esc(g.veredicto)}</p>
-          <div class="listas"><div><span class="tit">Hecho</span><ul>${g.hecho.map((h) => `<li>${esc(h)}</li>`).join('')}</ul></div>
-            <div><span class="tit">Falta</span><ul>${g.falta.map((h) => `<li>${esc(h)}</li>`).join('')}</ul></div></div>
-          <div class="pie">${chipNivel(t.nivel)}<span>${esc(t.que)}</span></div>
-          <div class="pie"><span>Esfuerzo de los últimos 7 días: ${pct(esfuerzo[x.id] ?? 0)}</span>${x.rutas.length ? `<span>· ${x.rutas.map(esc).join(', ')}</span>` : ''}</div>
-          <div class="pie"><button type="button" class="al-director" data-comentar="diagnostico||${esc(x.id)}">✉ Comentar este frente</button></div>
-        </article>`;
-      })
-      .join('')}</div>
-    ${dg.fuentes?.length ? `<h3>Lo que leyó el director</h3><ul class="adelantado">${dg.fuentes.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}`;
+  // Lo de cada frente, en un párrafo: lo más listo y lo más flojo, con el veredicto de lo más flojo si es uno solo
+  const fr = d.plan.frentes.filter((x) => dg.frentes[x.id]).map((x) => ({ nombre: x.nombre, ...dg.frentes[x.id] }));
+  const conNota = (x: (typeof fr)[number]) => `${esc(x.nombre)} (${x.nota} de 5)`;
+  const max = Math.max(...fr.map((x) => x.nota));
+  const min = Math.min(...fr.map((x) => x.nota));
+  const flojos = fr.filter((x) => x.nota === min);
+  const compilado = !fr.length ? ''
+    : max === min ? `<p class="compilado-frentes"><b>Frente por frente:</b> ${unir(fr.map(conNota))}.</p>`
+    : `<p class="compilado-frentes"><b>Lo más listo:</b> ${unir(fr.filter((x) => x.nota === max).map(conNota))}. <b>Lo más flojo:</b> ${unir(flojos.map(conNota))}${flojos.length === 1 && flojos[0].veredicto ? `: ${esc(flojos[0].veredicto.replace(/\.$/, ''))}` : ''}.</p>`;
+  const est = dg.estrategia;
+  const estrategia = est ? `<h4>La estrategia para este tipo de proyecto</h4><p class="texto-d">${esc(est.texto)}</p><p class="como">Fuentes: ${est.fuentes.map(conEnlaces).join(' · ')}</p>` : '';
+  const documento = d.plan.documentos.find((x) => /(^|\/)(diagnostico|planteamiento)\.md$/.test(x.ruta));
+  return `<section class="panel-d" data-ancla="p-diagnostico">
+      <details class="plegable-d"${d.proyecto.objetivo ? '' : ' open'}>
+        <summary><h3>${titulo}</h3><small>del ${fecha(dg.fecha)}</small></summary>
+        <ul class="resumen-d">${dg.resumen.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+        ${compilado}
+        ${estrategia}
+        <div class="acciones-p">${documento ? botonIr({ doc: documento.ruta, etiqueta: 'Leer el documento completo' }, 'boton-suave') : ''}<button type="button" class="al-director" data-comentar="diagnostico|">✉ Comentar ${nuevo ? 'el planteamiento' : 'el diagnóstico'} al director</button></div>
+        ${dg.fuentes?.length ? `<details class="detalles-repo"><summary>Lo que leyó el director</summary><ul class="adelantado">${dg.fuentes.map((f) => `<li>${conEnlaces(f)}</li>`).join('')}</ul></details>` : ''}
+      </details>
+    </section>`;
 }
 
 // ───────────────────────────────────────────── frentes por fase y excepciones
@@ -3531,7 +3532,7 @@ function pintar() {
   const errores = d.errores.length ? `<details class="aviso remoto"><summary>El director tiene algo por corregir en su plan. No tienes que hacer nada: lo ve y lo corrige solo en su próxima revisión.</summary>${d.errores.map((e) => `<p>${esc(e)}</p>`).join('')}</details>` : '';
   const html = {
     misiones: vistaMisiones, buzon: vistaBuzon, documentos: vistaDocumentos, ruta: vistaRuta, propuestas: vistaPropuestas,
-    proyectos: vistaProyectos, proyecto: vistaProyecto, diagnostico: vistaDiagnostico, frentes: vistaFrentes, validaciones: vistaValidaciones, esfuerzo: vistaEsfuerzo,
+    proyectos: vistaProyectos, proyecto: vistaProyecto, diagnostico: vistaProyecto, frentes: vistaFrentes, validaciones: vistaValidaciones, esfuerzo: vistaEsfuerzo,
     metodo: vistaMetodo, bitacora: vistaBitacora, stl: () => vistaStl(true), preguntas: vistaPreguntas, modelo: vistaModelo,
   }[vista]();
   v.innerHTML = errores + html;
@@ -3557,13 +3558,21 @@ function pintar() {
     irASeccion = null;
   }
   if (anclaPendiente) {
-    resaltar(v.querySelector<HTMLElement>(`[data-ancla="${CSS.escape(anclaPendiente)}"]`));
+    const el = v.querySelector<HTMLElement>(`[data-ancla="${CSS.escape(anclaPendiente)}"]`);
+    // Lo que se señala se ve abierto: un botón que lleva al diagnóstico, plegado, lo despliega
+    el?.querySelector<HTMLDetailsElement>(':scope > details.plegable-d')?.setAttribute('open', '');
+    resaltar(el);
     anclaPendiente = null;
   } else seguirResalte(v);
   tipoValidacionInicial = null;
 }
 
 function irA(nueva: Vista) {
+  // El diagnóstico ya no es una sección: vive en Proyecto, plegado
+  if (nueva === 'diagnostico') {
+    anclaPendiente ??= 'p-diagnostico';
+    nueva = 'proyecto';
+  }
   const otra = nueva !== vista;
   vista = nueva;
   localStorage.setItem('estudio.director.pestana', nueva);
@@ -4102,9 +4111,33 @@ async function clicEnVista(b: HTMLButtonElement) {
     borradorObjetivo = { texto: c.texto, exito: c.exito, horizonte: c.horizonte ?? '', candidato: c.id };
     anclaPendiente = 'p-objetivo';
     irA('proyecto');
-  } else if (ds.reabrirObjetivo !== undefined) {
-    const r = await pedir({ titulo: 'Cambiar la meta', ayuda: 'Cambiar la meta cambia la ruta: el director la revisa con la meta nueva. El anterior queda en el historial con tu razón.', campos: [{ id: 'motivo', etiqueta: 'Por qué', tipo: 'area', requerido: true }], boton: 'Reabrir', audio: true, adjuntos: true });
-    if (r && (await accion({ tipo: 'reabrir_objetivo', motivo: r.motivo?.trim() || EN_AUDIO }, 'Meta reabierta. Fija la nueva cuando la tengas clara.'))) await anexar(r, { tipo: 'objetivo' }, 'Al cambiar la meta');
+  } else if (ds.replantearObjetivo !== undefined) {
+    // «Replantear la meta»: la de ahora, lista para cambiarla; al guardarla se pide la revisión, y el director hace un
+    // análisis fresco del proyecto hacia la meta nueva y ajusta la ruta (decidido en «Un Studio más simple»)
+    const o = d.proyecto.objetivo;
+    if (!o) return;
+    const r = await pedir({
+      titulo: 'Replantear la meta',
+      ayuda: 'Cambia lo que haga falta. Al guardarla, el Studio le pide la revisión al director: hace un análisis fresco del proyecto hacia la meta nueva y ajusta la ruta. La de ahora queda en «Metas anteriores», con tu porqué si lo dices.',
+      campos: [
+        { id: 'texto', etiqueta: 'La meta: a dónde quieres llegar', tipo: 'area', requerido: true, valor: o.texto },
+        { id: 'exito', etiqueta: 'Cómo sabremos que se cumplió', tipo: 'area', requerido: true, valor: o.exito },
+        { id: 'horizonte', etiqueta: 'Horizonte (opcional: un hito, no un plazo)', tipo: 'texto', valor: o.horizonte ?? '' },
+        { id: 'motivo', etiqueta: 'Por qué la replanteas (opcional; escrito o en audio)', tipo: 'area' },
+      ],
+      boton: 'Guardar y pedir la revisión',
+      audio: true,
+      adjuntos: true,
+      vacioVale: true,
+    });
+    if (!r) return;
+    if (!r.texto?.trim() || !r.exito?.trim()) return void avisar('Una meta clara dice qué se logra y cómo se sabe que se logró: escribe las dos.');
+    const igual = r.texto.trim() === o.texto && r.exito.trim() === o.exito && (r.horizonte?.trim() ?? '') === (o.horizonte ?? '');
+    if (igual) return void avisar('La meta quedó igual: no cambié nada.', true);
+    const motivo = r.motivo?.trim() || (r.audio ? EN_AUDIO : '');
+    if (!(await accion({ tipo: 'replantear_objetivo', texto: r.texto, exito: r.exito, horizonte: r.horizonte ?? '', motivo }, ''))) return;
+    await anexar(r, { tipo: 'objetivo' }, 'Al replantear la meta');
+    await pedirLaRevision(true);
   } else if (ds.quitarIntegrante) {
     const i = d.proyecto.equipo.find((x) => x.id === ds.quitarIntegrante)!;
     if (await confirmar({ titulo: `¿Quitar a ${i.nombre} del equipo?`, texto: 'Lo que ya hizo queda en el historial.', boton: 'Quitar del equipo', peligro: true })) await accion({ tipo: 'quitar_integrante', id: i.id });

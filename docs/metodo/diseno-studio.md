@@ -33,8 +33,8 @@ Lo revisé en tres anchos: el panel de la app (unos 850 px), un portátil (1440 
 
 Cada principio sale de una guía conocida de experiencia de usuario o de accesibilidad:
 
-1. **Una sola línea: tu misión.** El primer vistazo responde «¿qué hago ahora?» con tu misión, completa, y nada más compite con ella. Lo que pasó (lo que dijo el director, lo avanzado, los resultados) no queda fijo en la pantalla: se lee en «¿Dónde quedamos?», cuyo botón dice cuántas líneas faltan por leer y late cuando el director dejó algo nuevo. Lo que espera de ti va solo en tu misión (y el director flotante lleva a ella): ni el resumen, ni el mensaje, ni las respuestas listan pendientes. Los pasos que marcas viajan con lo demás, así el director nunca vuelve a pedir algo que ya marcaste. Nunca dos pasos por delante: la cola de misiones no se muestra, y la barra lateral deja a la vista solo lo de todos los días (el seguimiento y la consulta van plegados; la configuración del proyecto, en el engranaje del selector). El director flotante habla de lo que sigue y responde a lo que haces (al marcar un paso, dice cuál sigue). Lo demás se abre cuando hace falta (divulgación progresiva, [NN/g](https://www.nngroup.com/articles/progressive-disclosure/)).
-2. **Navegación lateral agrupada.** Con más de siete secciones, una barra lateral es más fácil de recorrer y de ampliar que una fila de pestañas ([NN/g, navegación vertical](https://www.nngroup.com/articles/vertical-nav/)). Las secciones van en grupos con nombre (Hoy, El proyecto, Seguimiento…), porque menos opciones a la vista hacen más rápida la decisión ([ley de Hick](https://lawsofux.com/hicks-law/)).
+1. **Una sola línea: tu misión.** El primer vistazo responde «¿qué hago ahora?» con tu misión, completa, y nada más compite con ella. Lo que pasó (lo que dijo el director, lo avanzado, los resultados) no queda fijo en la pantalla: se lee en «¿Dónde quedamos?», cuyo botón dice cuántas líneas faltan por leer y late cuando el director dejó algo nuevo. Lo que espera de ti va solo en tu misión (y el director flotante lleva a ella): ni el resumen, ni el mensaje, ni las respuestas listan pendientes. Los pasos que marcas viajan con lo demás, así el director nunca vuelve a pedir algo que ya marcaste. Nunca dos pasos por delante: la cola de misiones no se muestra, y la barra lateral deja a la vista solo lo de todos los días (la configuración del proyecto va en el engranaje del selector, y la del director, al pie). El director flotante habla de lo que sigue y responde a lo que haces (al marcar un paso, dice cuál sigue). Lo demás se abre cuando hace falta (divulgación progresiva, [NN/g](https://www.nngroup.com/articles/progressive-disclosure/)).
+2. **Navegación lateral agrupada.** Con más de siete secciones, una barra lateral es más fácil de recorrer y de ampliar que una fila de pestañas ([NN/g, navegación vertical](https://www.nngroup.com/articles/vertical-nav/)). Las secciones van en grupos (lo de todos los días arriba y, con su nombre, «El proyecto»), porque menos opciones a la vista hacen más rápida la decisión ([ley de Hick](https://lawsofux.com/hicks-law/)).
 3. **Líneas de lectura de 60 a 75 caracteres.** Los documentos, el diagnóstico y los textos largos llevan un ancho máximo de unos 72 caracteres ([Baymard Institute](https://baymard.com/blog/line-length-readability)).
 4. **Letra legible.** El texto base sube a 15 px, el de los documentos a 16 px y el más pequeño queda en 12 px, solo para datos secundarios.
 5. **Controles fáciles de tocar.** Los botones normales miden 36 px de alto y los principales, 40 px. Superan el mínimo de 24 px de [WCAG 2.2 (2.5.8)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
@@ -48,29 +48,26 @@ Cada principio sale de una guía conocida de experiencia de usuario o de accesib
 
 ```
 ┌───────────────────┬──────────────────────────────────────────────┐
-│ STL Studio        │ Mi proyecto · Diagnóstico   ¿Dónde quedamos? │
-│ [ Mi proyecto  ▾ ]│ ███████░░░░ 2 de 4 criterios para la puerta      │
+│ STL Studio        │ Mi proyecto · Hoy           ¿Dónde quedamos? │
+│ [ Mi proyecto ⚙▾ ]│ ███████░░░░ 2 de 4 criterios para la puerta      │
 │                   ├──────────────────────────────────────────────┤
-│ HOY               │                                              │
-│  ● Tu misión    1 │   El director: lo último y lo que sigue       │
+│  ● Hoy          1 │                                              │
 │    Buzón        2 │   Tu misión de ahora, completa               │
 │    Preguntas    1 │                                              │
-│ EL PROYECTO       │   En cola · tu avance · el equipo            │
+│ EL PROYECTO       │                                              │
 │    La ruta        │                                              │
 │    Documentos   1 │                                              │
 │    Propuestas   6 │                                              │
-│    Diagnóstico    │                                              │
-│ SEGUIMIENTO       │                                              │
-│    Frentes · Validaciones · Esfuerzo · Bitácora                  │
-│ AJUSTES           │                                              │
-│    Proyecto       │                                              │
 │ ───────────────── │                                              │
+│ Modelo y consumo  │                                              │
 │ Ana · Titular     │                                              │
-│ Qué es STL        │                                              │
+│ Qué es STL ↗      │                                              │
 └───────────────────┴──────────────────────────────────────────────┘
 ```
 
 - **El selector de proyecto** va arriba de la barra lateral. Muestra cada proyecto con su etapa, lo que tiene por revisar y su alerta, si la hay. Al cambiar, el director te dice dónde quedaron («Dónde quedamos») y te lleva a tu misión.
+- **Proyecto, en el engranaje del selector** (en la barra solo mientras el proyecto arranca): la meta arriba, qué es el proyecto, **el diagnóstico del director**, plegado (su resumen, lo más listo y lo más flojo de los frentes en un párrafo, la estrategia para ese tipo de proyecto y el documento a un clic), y dónde está. Las metas que propone el director se ven solo mientras no hay una; «Replantear la meta» la cambia y pide la revisión.
+- **«Modelo y consumo», al pie de la barra**, aparte de las secciones del proyecto porque no es de ninguno: el modelo y el esfuerzo del director (la configuración de Claude Code en ese computador, la de `/model` y `/effort`), los límites del plan y lo que gastó cada lanzamiento.
 - **Las cifras pasan a la navegación.** Cada sección lleva su número (misiones tuyas, notas sin respuesta, documentos por leer, propuestas por decidir). El tablero completo de la fase, con la línea de la ruta, queda en «La ruta».
 - **La cabecera del proyecto** ocupa dos líneas: el nombre, la fase, el avance hacia la puerta y «¿Dónde quedamos?».
 - **«Hoy» abre siempre con el director**: lo último que se completó, lo que sigue en la ruta y tu misión de ahora completa. Mientras el proyecto arranca, el arranque se ve ahí mismo, en una franja de cuatro pasos.

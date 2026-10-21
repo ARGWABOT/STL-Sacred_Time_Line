@@ -324,7 +324,10 @@ linea(`- Contexto (del titular): ${proyecto.contexto || '(aún no lo cuenta)'}`)
 if (proyecto.tipo === 'nuevo') linea(`- Cuándo se considera completo: ${proyecto.terminado || '(aún no lo dice)'}`);
 linea(`- Lo que quiere lograr (antes del diagnóstico): ${proyecto.metaInicial || '(aún no lo dice)'}`);
 linea(`- La meta: ${proyecto.objetivo ? `«${proyecto.objetivo.texto}». Éxito: ${proyecto.objetivo.exito}${proyecto.objetivo.horizonte ? `. Horizonte: ${proyecto.objetivo.horizonte}` : ''} (${proyecto.objetivo.firmado.quien}, ${proyecto.objetivo.firmado.fecha})` : 'ninguna todavía'}`);
-for (const o of proyecto.objetivosAnteriores ?? []) linea(`- Objetivo reabierto el ${o.reabierto.fecha}: «${o.texto}». Razón: ${o.reabierto.nota ?? ''}`);
+for (const o of proyecto.objetivosAnteriores ?? []) linea(`- Meta anterior, replanteada el ${o.reabierto.fecha}: «${o.texto}». ${o.reabierto.nota ? `Razón: ${o.reabierto.nota}` : 'Sin razón escrita (si la dijo, está en el Buzón).'}`);
+// «Replantear la meta» pide la revisión: el director rehace el análisis hacia la meta nueva y ajusta la ruta
+const replanteada = proyecto.objetivo && (proyecto.objetivosAnteriores ?? []).some((o) => o.reabierto.fecha >= proyecto.objetivo!.firmado.fecha.slice(0, 10)) && (!desde || proyecto.objetivo.firmado.fecha >= desde.slice(0, 10));
+if (replanteada && plan.fases.length > 1) linea('- LA META SE REPLANTEÓ desde la última revisión: haz un análisis fresco del proyecto hacia la meta nueva (lo que ya sirve, lo que deja de servir, lo que falta) y ajusta la ruta: fases, criterios, misiones y propuestas. Lo que cambió va en un documento nuevo y corto, con su misión de leerlo (la ruta ya leída queda sellada).');
 for (const h of proyecto.historialIA ?? []) linea(`- Historial de IA: ${h.agente}${h.sesiones ? `, ${h.sesiones} sesiones` : ''}${h.ultima ? `, la última del ${h.ultima.slice(0, 10)}` : ''}${h.donde ? ` (en ${h.donde})` : ''}. Léelo una vez en el diagnóstico para encontrar lo pendiente.`);
 linea(`- Equipo: ${proyecto.equipo.map((i) => `${i.nombre} (${i.id}${i.cargo ? `, ${i.cargo}` : ''})`).join('; ') || 'solo el titular, aún sin registrar'}`);
 

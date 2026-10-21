@@ -45,7 +45,7 @@
         {
           "id": "a_diagnostico",
           "texto": "El planteamiento del director, hecho",
-          "como": "El director devuelve lo que entendió, el alcance, los supuestos, los riesgos y las preguntas abiertas (pestaña Diagnóstico).",
+          "como": "El director devuelve lo que entendió, el alcance, los supuestos, los riesgos y las preguntas abiertas (en Proyecto, «El planteamiento del director»).",
           "indicador": "diagnostico"
         },
         {

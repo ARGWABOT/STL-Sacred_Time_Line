@@ -6,6 +6,8 @@
 //      node tools/director/mirar.ts "http://localhost:5180/?mirar&vista=ruta" → otra vista del Studio, sin el resumen encima
 //      node tools/director/mirar.ts https://argwabot.github.io/…   → otra página (https, o de este computador)
 //      … --anchos telefono,escritorio                              → solo esos anchos
+//      … --alto 2400                                               → una ventana más alta, para ver lo que queda abajo
+//                                                                    (llevar a un ancla desplazando la página deja la captura en blanco)
 //      … --proyecto <id>                                           → guarda las capturas en la memoria de ese proyecto
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -16,15 +18,25 @@ import { ANCHOS, argumentosNavegador, candidatosNavegador, erroresDeConsola, url
 import { argumentos, memoria, proyectoElegido } from './comun.ts';
 
 const { args, pedido } = argumentos();
-const iAnchos = args.indexOf('--anchos');
-const pedidos = iAnchos >= 0 ? (args[iAnchos + 1] ?? '').split(',') : null;
-const resto = iAnchos >= 0 ? [...args.slice(0, iAnchos), ...args.slice(iAnchos + 2)] : args;
+/** El valor de una opción (`--anchos x`), y los argumentos sin ella. */
+const opcion = (xs: string[], nombre: string): [string | null, string[]] => {
+  const i = xs.indexOf(nombre);
+  return i >= 0 ? [xs[i + 1] ?? '', [...xs.slice(0, i), ...xs.slice(i + 2)]] : [null, xs];
+};
+const [pedidosTexto, sinAnchos] = opcion(args, '--anchos');
+const [altoTexto, resto] = opcion(sinAnchos, '--alto');
+const pedidos = pedidosTexto === null ? null : pedidosTexto.split(',');
+const alto = altoTexto === null ? null : Number(altoTexto);
+if (alto !== null && !(Number.isInteger(alto) && alto >= 400 && alto <= 8000)) {
+  console.error('El alto va de 400 a 8000 píxeles.');
+  process.exit(1);
+}
 const url = urlPermitida(resto[0] ?? 'http://localhost:5180/?mirar');
 if (!url) {
   console.error('Solo miro páginas https o de este computador (http://localhost…).');
   process.exit(1);
 }
-const anchos = pedidos ? ANCHOS.filter((a) => pedidos.includes(a.nombre)) : ANCHOS;
+const anchos = (pedidos ? ANCHOS.filter((a) => pedidos.includes(a.nombre)) : ANCHOS).map((a) => (alto ? { ...a, alto } : a));
 if (!anchos.length) {
   console.error(`Los anchos son: ${ANCHOS.map((a) => a.nombre).join(', ')}.`);
   process.exit(1);

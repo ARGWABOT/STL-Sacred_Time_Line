@@ -148,6 +148,14 @@ describe('la plantilla de arranque', () => {
   it('el ejemplo también es válido', () => {
     expect(validarPlan(planEjemplo(), ['titular', 'ana'])).toEqual([]);
   });
+
+  it('la estrategia del diagnóstico trae su texto y al menos una fuente real', () => {
+    const p = planEjemplo();
+    const con = (estrategia: { texto: string; fuentes: string[] }) => validarPlan({ ...p, diagnostico: { ...p.diagnostico, estrategia } }, ['titular', 'ana']);
+    expect(con({ texto: 'Validar con usuarios antes de escalar.', fuentes: ['https://basecamp.com/shapeup'] })).toEqual([]);
+    expect(con({ texto: 'Validar con usuarios antes de escalar.', fuentes: [] })).toHaveLength(1);
+    expect(con({ texto: ' ', fuentes: ['Shape Up'] })).toHaveLength(1);
+  });
 });
 
 describe('el arranque: del repositorio a la ruta', () => {

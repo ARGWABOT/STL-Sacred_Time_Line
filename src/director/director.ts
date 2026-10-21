@@ -166,6 +166,11 @@ export interface Diagnostico {
   frentes: Record<string, DiagnosticoFrente>;
   /** Lo que leyó el director para hacerlo (archivos, carpetas, el historial…). */
   fuentes?: string[];
+  /**
+   * La estrategia para este tipo de proyecto: lo que recomiendan quienes saben de él (una app, una tesis, un sitio, un
+   * producto), en uno o dos párrafos, con sus fuentes reales. El director la investiga en cada diagnóstico.
+   */
+  estrategia?: { texto: string; fuentes: string[] };
 }
 
 /** Un objetivo que propone el director a partir del diagnóstico; el titular elige, mezcla o escribe el suyo. */
@@ -1753,6 +1758,8 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
     if (!frentes.has(id)) errores.push(`El diagnóstico nombra el frente «${id}», que no está.`);
     if (!(g.nota >= 0 && g.nota <= 5)) errores.push(`El diagnóstico de «${id}» tiene una nota fuera de 0 a 5.`);
   }
+  const estrategia = plan.diagnostico?.estrategia;
+  if (estrategia && (!estrategia.texto?.trim() || !estrategia.fuentes?.some((f) => f?.trim()))) errores.push('La estrategia del diagnóstico necesita su texto y al menos una fuente real.');
   // Las misiones y lo que dice el director
   unicos('Misiones', (plan.misiones ?? []).map((m) => m.id));
   const criterios = new Set(plan.fases.flatMap((f) => f.criterios.map((c) => c.id)));

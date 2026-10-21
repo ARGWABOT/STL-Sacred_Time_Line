@@ -356,21 +356,23 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .frentes-fase li span.t { grid-column: 1 / -1; color: var(--suave); font-size: 13.5px; line-height: 1.45; }
 .adelantado { margin: 0; padding-left: 20px; font-size: 14.5px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; line-height: 1.5; }
 
-/* ── El diagnóstico ── */
+/* ── El diagnóstico, dentro de Proyecto: abierto mientras no hay meta, plegado después ── */
 .resumen-d { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 15.5px; line-height: 1.65; max-width: var(--lectura); }
-.rejilla-frentes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-.tarjeta-frente { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--sombra); }
-.tarjeta-frente header { display: flex; align-items: center; gap: 8px; }
-.tarjeta-frente header b { flex: 1; font-size: 16px; }
-.estrellas { color: var(--oro); letter-spacing: 1px; font-size: 15px; white-space: nowrap; }
-.estrellas .vacia { color: #d9d5ca; }
-.tarjeta-frente .veredicto-f { font-size: 14.5px; font-style: italic; margin: 0; line-height: 1.5; }
-.tarjeta-frente .listas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13.5px; line-height: 1.45; }
-.tarjeta-frente .listas ul { margin: 4px 0 0; padding-left: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; }
-.tarjeta-frente .listas .tit { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--suave); }
-.tarjeta-frente .pie { font-size: 12.5px; color: var(--suave); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.tarjeta-frente .pie button { min-height: 32px; font-size: 13px; padding: 4px 10px; }
+.plegable-d > summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; cursor: pointer; list-style: none; }
+.plegable-d > summary::-webkit-details-marker { display: none; }
+.plegable-d > summary h3 { margin: 0; }
+.plegable-d > summary small { color: var(--suave); font-size: 13px; }
+.plegable-d > summary::after { content: ''; width: 7px; height: 7px; margin-left: auto; align-self: center; border: solid var(--suave); border-width: 0 1.8px 1.8px 0; transform: rotate(45deg); transition: transform 0.15s; }
+.plegable-d[open] > summary::after { transform: rotate(-135deg); }
+.plegable-d > summary:focus-visible { outline: 2px solid var(--acento); outline-offset: 4px; border-radius: 4px; }
+.plegable-d[open] > summary { margin-bottom: 14px; }
+.plegable-d h4 { margin: 18px 0 6px; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); }
+.compilado-frentes, .plegable-d .texto-d { margin: 14px 0 0; font-size: 15px; line-height: 1.6; max-width: var(--lectura); }
+.plegable-d h4 + .texto-d { margin-top: 0; }
+.plegable-d .acciones-p { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+.metas-anteriores .cifra { margin-left: 4px; }
 .boletin-equipo { margin-bottom: 16px; }
+.boletin-equipo .etiqueta-boletin { margin: 0 0 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); }
 .notas-boletin { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; }
 .notas-boletin > span { display: flex; align-items: center; gap: 6px; }
 .boletin-equipo p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; }
@@ -1329,7 +1331,6 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
   .fila-barra { grid-template-columns: 120px minmax(0, 1fr) 48px; }
   .bitacora li { grid-template-columns: 80px minmax(0, 1fr); }
   .bitacora li .q { display: none; }
-  .tarjeta-frente .listas { grid-template-columns: minmax(0, 1fr); }
   .mision-c { padding: 14px; }
   .cabeza-proyecto h1 { font-size: 22px; }
 }

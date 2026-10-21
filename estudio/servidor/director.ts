@@ -773,6 +773,21 @@ export function servidorDirector(): Plugin {
         que = `reabre el objetivo: ${motivo}`;
         break;
       }
+      case 'replantear_objetivo': {
+        // «Replantear la meta»: la de ahora pasa al historial (con el porqué, si lo hay) y la nueva queda fijada de una vez
+        soloTitular('replantear la meta');
+        if (!proyecto.objetivo) throw new Rechazo('No hay una meta fijada que replantear.');
+        const texto = textoDe(cuerpo.texto, 1000);
+        const exito = textoDe(cuerpo.exito, 1000);
+        if (!texto || !exito) throw new Rechazo('Una meta clara dice qué se logra y cómo se sabe que se logró.');
+        const horizonte = textoDe(cuerpo.horizonte, 200);
+        const motivo = textoDe(cuerpo.motivo, 1000);
+        proyecto.objetivosAnteriores = [...(proyecto.objetivosAnteriores ?? []), { ...proyecto.objetivo, reabierto: { ...firma, ...(motivo ? { nota: motivo } : {}) } }];
+        proyecto.objetivo = { texto, exito, ...(horizonte ? { horizonte } : {}), firmado: firma };
+        cambiaProyecto = true;
+        que = `replantea la meta: ${texto}`;
+        break;
+      }
       case 'integrante': {
         soloTitular('cambiar el equipo');
         const nombre = textoDe(cuerpo.nombre, 80);
