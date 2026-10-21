@@ -219,7 +219,7 @@ async function verPasosHechos() {
     localStorage.setItem(CLAVE_VISTOS, JSON.stringify([...vistos].slice(-300)));
     const marcados = nuevos.map((x) => ({ ...x, guardado: marcarPaso(x.m.id, x.i, true) }));
     pintar();
-    for (const x of marcados) if (await completarSiToca(x.m.id, x.guardado)) return void decir('¡Misión completada! Ya la tengo para revisarla.', 'riendo');
+    for (const x of marcados) if (await completarSiToca(x.m.id, x.guardado)) return void decir('¡Misión completada! La reviso cuando me pidas la revisión.', 'riendo');
     const x = marcados[0];
     decir('¡Hecho! Lo vi en el Studio y marqué el paso.', 'feliz');
     avisar(`Hecho: lo vi en el Studio. «${recortar(textoPaso(x.m.pasos[x.i]), 80)}» quedó marcado.`, true, undefined, { etiqueta: 'Volver a tu misión', hacer: () => void ir({ vista: 'misiones', ancla: `mision-${x.m.id}`, etiqueta: '' }) });
@@ -1239,8 +1239,14 @@ async function completarSiToca(id: string, guardado: Promise<boolean>) {
   if (!m || !m.pasos.length || !m.pasos.every((_, k) => pasosHechos(id).includes(k))) return false;
   if (!['pendiente', 'en_curso', 'rehacer'].includes(estadoMision(m, d.plan, d.estado))) return false;
   if (!(await guardado) || !(await accion({ tipo: 'entregar', mision: m.id }, ''))) return false;
-  // Entregada, la revisión se pide sola: sin el clic aparte en «Pedir revisión»
-  const pedida = !d.revision || d.revision.hecha ? await pedirLaRevision(true, true) : true;
+  // Entregada, la revisión no se pide sola: la pide la persona, aquí o después con «Pedir revisión»
+  const yaPedida = !!d.revision && !d.revision.hecha;
+  // Si ya hay otro diálogo abierto (por ejemplo «Dónde quedamos»), no se le encima: basta el aviso
+  if (document.querySelector('dialog[open]')) {
+    avisar(`Misión completada: «${recortar(m.titulo, 70)}». Quedó entregada${yaPedida ? ' y entra en la revisión ya pedida' : ': el director la revisa cuando pidas la revisión'}.`, true, undefined,
+      yaPedida ? undefined : { etiqueta: 'Pedir la revisión', hacer: () => void pedirLaRevision(true) });
+    return true;
+  }
   const mia = misionesAbiertas(d.plan, d.estado, d.identidad.rol ?? TITULAR)[0];
   const sigue = mia ? tarjetaDe(mia) : null;
   const dlg = document.createElement('dialog');
@@ -1250,15 +1256,18 @@ async function completarSiToca(id: string, guardado: Promise<boolean>) {
     <span class="etiqueta">Misión completada</span>
     <h2>¡Bien hecho!</h2>
     <ul class="cumplidas"><li>${icono('estrella')}<span>${esc(m.titulo)}</span><b>+${m.xp} XP</b></li></ul>
-    <p class="como">Quedó entregada${pedida ? ' y la revisión quedó pedida' : ''}: el director la revisa${pedida ? '' : ' en su próxima revisión'} y, al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>
+    <p class="como">${yaPedida
+      ? 'Quedó entregada y entra en la revisión que ya pediste'
+      : 'Quedó entregada. El director la revisa cuando pidas la revisión: aquí, con «Pedir la revisión», o cuando quieras, con «Pedir revisión» junto a su cara'}. Al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>
     ${mia ? `<div class="mision-a"><span class="etiqueta">Tu misión ahora</span><b>${esc(mia.titulo)}</b></div>` : ''}
-    <div class="botones"><button type="button" data-cerrar>Cerrar</button>${sigue ? '<button type="button" class="primario" data-seguir>Ir a mi misión →</button>' : ''}</div>
+    <div class="botones"><button type="button" data-cerrar>Cerrar</button>${yaPedida ? '' : '<button type="button" data-pedir>Pedir la revisión</button>'}${sigue ? '<button type="button" class="primario" data-seguir>Ir a mi misión →</button>' : ''}</div>
   </form>`;
   document.body.append(dlg);
   dlg.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
-    if (b?.dataset.seguir === undefined && b?.dataset.cerrar === undefined) return;
+    if (b?.dataset.seguir === undefined && b?.dataset.cerrar === undefined && b?.dataset.pedir === undefined) return;
     dlg.close();
+    if (b.dataset.pedir !== undefined) void pedirLaRevision(true);
     if (b.dataset.seguir !== undefined && sigue) void ir(sigue);
   });
   dlg.addEventListener('close', () => dlg.remove());
@@ -2484,7 +2493,7 @@ async function marcarParte(titulo: string) {
   if (!(await guardado)) return;
   const marcados = pasos.map((x) => ({ id: x.m.id, guardado: marcarPaso(x.m.id, x.i, true) }));
   pintar();
-  for (const x of marcados) if (await completarSiToca(x.id, x.guardado)) return void decir('¡Misión completada! Ya la tengo para revisarla.', 'riendo');
+  for (const x of marcados) if (await completarSiToca(x.id, x.guardado)) return void decir('¡Misión completada! La reviso cuando me pidas la revisión.', 'riendo');
   await documentoTerminado(ruta, marcados.length > 0);
 }
 
@@ -3176,7 +3185,17 @@ document.addEventListener('click', (e) => {
     const que = rev.dataset.revision;
     const ahora = estadoRevision();
     // El atajo junto a la cara del director: pide la revisión o dice en qué va
-    if (que === 'pedir' || (que === 'atajo' && ahora.estado === 'ninguna')) return void pedirLaRevision(true);
+    if (que === 'pedir') return void pedirLaRevision(true);
+    // El atajo está junto a «Comentario» y «Preguntas»: un clic de más no debe lanzar al director, se confirma antes
+    if (que === 'atajo' && ahora.estado === 'ninguna') {
+      const pendientes = cifras().buzon + cifras().preguntas;
+      return void confirmar({
+        titulo: '¿Pido la revisión al director?',
+        texto: `El director revisa ahora todo lo pendiente de este proyecto${pendientes ? ` (${pendientes} ${pendientes === 1 ? 'nota o pregunta' : 'notas y preguntas'} sin responder)` : ''}. Mientras revisa, puedes navegar y leer, pero no agregar nada nuevo.\n\nSolo se pide si lo confirmas.`,
+        boton: 'Sí, pedir la revisión',
+        cancelar: 'No, todavía no',
+      }).then((si) => si && pedirLaRevision(true));
+    }
     if (que === 'cancelar') return void pedirLaRevision(false);
     return avisar(ahora.texto, ahora.estado !== 'sin_vigilia');
   }
@@ -3271,7 +3290,7 @@ $('vista').addEventListener('change', async (e) => {
       const sigue = m?.pasos.findIndex((_, k) => !hechos.includes(k)) ?? -1;
       const texto = (p: Paso) => (typeof p === 'string' ? p : p.texto);
       if (m && sigue >= 0) decir(`¡Bien! Lo que sigue: ${recortar(texto(m.pasos[sigue]), 110)}`, 'feliz');
-      else if (m && (await completarSiToca(id, guardado))) decir('¡Misión completada! Ya la tengo para revisarla.', 'riendo');
+      else if (m && (await completarSiToca(id, guardado))) decir('¡Misión completada! La reviso cuando me pidas la revisión.', 'riendo');
     }
     return;
   }
