@@ -48,7 +48,8 @@ const metas = (titulo: string, url: string) => `<meta name="description" content
   <link rel="canonical" href="${url}" />`;
 
 // La portada: la animación, sin su comentario de versiones (es la historia del boceto, no de la página), con su título
-// y, abajo a la izquierda, el paso a la metodología completa
+// y, abajo a la izquierda, un icono de información discreto: al pasar el ratón, al enfocarlo o con un clic (en un
+// teléfono, con el dedo), muestra el paso a la metodología completa y la versión, sin ocupar la escena
 const ANIMACION = 'docs/difusion/linea-del-proyecto.html';
 const TITULO = '¿Qué es STL? · El guardrail donde más hacía falta, en el Dev';
 if (!existsSync(join(raiz, ANIMACION))) throw new Error(`Falta la animación de la portada: ${ANIMACION}.`);
@@ -56,11 +57,41 @@ const portada = readFileSync(join(raiz, ANIMACION), 'utf8')
   .replace(/<!--[\s\S]*?-->\s*/, '')
   .replace(/<title>[^<]*<\/title>/, `<title>${TITULO}</title>\n${metas(TITULO, URL_PUBLICA)}`)
   .replace('</body>', `<style>
-  #seguir { position: fixed; left: 14px; bottom: 10px; z-index: 9; margin: 0; font-size: 12.5px; color: #8f8a7d; }
-  #seguir a { color: #f5d27a; text-decoration: none; font-weight: 600; }
-  #seguir a:hover, #seguir a:focus-visible { text-decoration: underline; }
+  #info { position: fixed; left: 12px; bottom: 12px; z-index: 9; font-size: 13px; }
+  #info-boton {
+    width: 28px; height: 28px; padding: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+    font: italic 600 15px/1 Georgia, 'Times New Roman', serif; color: #f5d27a; background: rgba(12, 15, 26, .85);
+    border: 1px solid rgba(245, 210, 122, .45); opacity: .7; transition: opacity .2s, box-shadow .2s;
+  }
+  #info:hover #info-boton, #info.abierta #info-boton, #info-boton:focus-visible { opacity: 1; box-shadow: 0 0 12px rgba(245, 210, 122, .35); }
+  #info-boton:focus-visible { outline: 2px solid #fff6d8; outline-offset: 2px; }
+  /* La caja sale encima del icono; el relleno de abajo es el puente para que el ratón llegue sin que se cierre */
+  #info-caja {
+    position: absolute; left: 0; bottom: 100%; padding-bottom: 8px; visibility: hidden; opacity: 0;
+    transform: translateY(4px); transition: opacity .18s, transform .18s, visibility 0s .18s;
+  }
+  #info:hover #info-caja, #info:focus-within #info-caja, #info.abierta #info-caja { visibility: visible; opacity: 1; transform: none; transition: opacity .18s, transform .18s; }
+  #info-caja div {
+    display: grid; gap: 6px; padding: 10px 14px; border-radius: 10px; white-space: nowrap; color: #b9b4a6;
+    background: rgba(12, 15, 26, .96); box-shadow: inset 0 0 0 1px rgba(245, 210, 122, .3), 0 8px 24px rgba(0, 0, 0, .5);
+  }
+  #info-caja a { color: #f5d27a; text-decoration: none; font-weight: 600; }
+  #info-caja a:hover, #info-caja a:focus-visible { text-decoration: underline; }
+  @media (prefers-reduced-motion: reduce) { #info-caja { transition: none; } }
 </style>
-<p id="seguir"><a href="metodologia.html">La metodología completa →</a> · Versión del ${hoy}</p>
+<div id="info">
+  <div id="info-caja" role="tooltip"><div><a href="metodologia.html">La metodología completa →</a><span>Versión del ${hoy}</span></div></div>
+  <button type="button" id="info-boton" aria-label="Más información: la metodología completa y la versión" aria-expanded="false" aria-describedby="info-caja">i</button>
+</div>
+<script>
+  (() => {
+    const info = document.getElementById('info'), boton = document.getElementById('info-boton');
+    const poner = (abierta) => { info.classList.toggle('abierta', abierta); boton.setAttribute('aria-expanded', String(abierta)); };
+    boton.addEventListener('click', (e) => { e.stopPropagation(); poner(!info.classList.contains('abierta')); });
+    addEventListener('click', (e) => { if (!info.contains(e.target)) poner(false); });
+    addEventListener('keydown', (e) => { if (e.key === 'Escape' && info.classList.contains('abierta')) { poner(false); boton.focus(); } });
+  })();
+</script>
 </body>`);
 
 const html = `<!doctype html>

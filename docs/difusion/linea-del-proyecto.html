@@ -114,7 +114,8 @@
      página pública (20 de octubre): la animación ya no arranca sola: espera detenida en su primer cuadro, con el botón
      del centro latiendo y «Iniciar la presentación» a su lado; la primera vez, una bienvenida la inicia; la rueda del
      ratón sobre la escena la recorre como la perilla (hacia abajo adelanta, hacia arriba devuelve) y el clic de la
-     rueda la pausa o la sigue. Dibujado en un canvas que se
+     rueda la pausa o la sigue. Y, con su nota de esa noche, los subtítulos no se ven hasta que la animación empieza
+     (al iniciarla, o al moverla con la perilla o la rueda). Dibujado en un canvas que se
      repinta entero en cada cuadro. No es parte del producto: solo muestra la idea. Un solo archivo, sin librerías:
      se abre con doble clic o desde el Studio encendido. -->
 <style>
@@ -156,6 +157,8 @@
     transition: opacity .22s;
   }
   #estado.cambia { opacity: 0; }
+  /* Antes de iniciarla, los subtítulos no se ven (guardan su lugar): empiezan con la animación */
+  #estado.espera { visibility: hidden; }
   #cuenta { min-height: 1.4em; font-size: 12px; color: #8f8a7d; text-align: center; padding: 0 20px; flex: none; }
   /* La perilla: se gira como el volumen de una radio; en el centro, pausa o sigue. Abajo a la derecha, donde termina
      la línea del tiempo, y crece o se achica con el dibujo */
@@ -273,7 +276,7 @@
 </div>
 </div>
 
-<div id="estado"></div>
+<div id="estado" class="espera"></div>
 <div id="cuenta"></div>
 </div>
 
@@ -1955,13 +1958,19 @@
     // Al final del video, seguir es verlo otra vez desde el principio
     if (!reproduce && modo === 'con' && fase === 'meta' && reloj - t0 >= durFase) buscar = 0;
     reproduce = !reproduce;
-    if (reproduce && espera) { espera = false; mando.classList.remove('llama'); }
+    if (reproduce) empezar();
     iconoBoton();
+  }
+  // La primera vez que se inicia (o que se mueve con la perilla o la rueda): el botón deja de latir y aparecen los
+  // subtítulos, que hasta entonces no se ven
+  function empezar() {
+    if (!espera) return;
+    espera = false; mando.classList.remove('llama'); $('estado').classList.remove('espera');
   }
   // Iniciar (o seguir) sin pausarla si ya corre
   function iniciar() { if (!reproduce) alternar(); }
   // Mover la escena tantos milisegundos (positivos: adelante; negativos: atrás)
-  function mover(ms) { buscar = Math.max(0, (buscar ?? antes + pasos) + ms / PASO_ESC); }
+  function mover(ms) { empezar(); buscar = Math.max(0, (buscar ?? antes + pasos) + ms / PASO_ESC); }
   let arrastre = null, segundo = -1;
   function angulo(e) {
     const b = perilla.getBoundingClientRect();
