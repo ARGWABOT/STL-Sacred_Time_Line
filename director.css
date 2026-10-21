@@ -50,6 +50,8 @@
 .ir-paso.principal { min-height: 36px; padding: 6px 18px; font-size: 14.5px; background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); animation: latido 2.4s ease-in-out infinite; }
 .ir-paso.principal:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
 @media (prefers-reduced-motion: reduce) { .ir-paso.principal { animation: none; } }
+/* Mientras corre la espera del paso, su botón no lleva a nada todavía: se ve apagado, sin latir */
+.ir-paso.en-espera { opacity: .55; cursor: not-allowed; }
 .desmarcar-paso { margin-left: 8px; font-size: 13px; }
 .resaltado { animation: resalte 2.6s ease-out; border-radius: 10px; }
 @keyframes resalte { 0%, 30% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: #fff6d8; } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
