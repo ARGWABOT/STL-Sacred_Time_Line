@@ -75,7 +75,7 @@ import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio }
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
 import { conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
-import { agruparPasos, buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor } from './revisor';
+import { agruparPasos, buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
 import { abrirTerminal, comprobarPaso } from './terminal';
 
@@ -1015,6 +1015,11 @@ export function servidorDirector(): Plugin {
               progreso: await (async () => {
                 const r = (await leerLocal(raiz)).revision;
                 return r?.proyecto === id && r.lanzada && !r.hecha ? agruparPasos(progresoDeProyecto(raiz, id)) : null;
+              })(),
+              // Y los tokens que lleva, para verlos subir junto a «El director está revisando»
+              tokensVivos: await (async () => {
+                const r = (await leerLocal(raiz)).revision;
+                return r?.proyecto === id && r.lanzada && !r.hecha ? tokensDeProyecto(raiz, id) : null;
               })(),
               hoy: hoy(),
               errores: [...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)],

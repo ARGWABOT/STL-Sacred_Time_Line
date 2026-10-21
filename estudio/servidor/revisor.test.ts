@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tomarTurno, trabajoConElPedido } from './revisor';
+import { agruparPasos, compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -95,6 +95,36 @@ describe('el director que lanza el Studio', () => {
       // Una revisión nueva empieza de cero
       writeFileSync(join(raiz, '.revisiones', 'golf-2026-10-18T14-00-00-000Z.log'), `${dice('Otra')}\n`);
       expect(progresoDeProyecto(raiz, 'golf').map((p) => p.texto)).toEqual(['Otra']);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it('cuenta los tokens en vivo: una vez por respuesta, aunque venga repetida en sus partes, y al terminar el total exacto', () => {
+    const resp = (id: string, salida: number) => JSON.stringify({ type: 'assistant', message: { id, content: [], usage: { input_tokens: 2, cache_creation_input_tokens: 100, cache_read_input_tokens: 1000, output_tokens: salida } } });
+    // La misma respuesta en dos partes, con lo escrito atrasado en la primera: cuenta lo más que dijo
+    const uso = usoDe(`${resp('m1', 1)}\n${resp('m1', 40)}\n${resp('m2', 10)}\nno es json\n`);
+    expect(tokensDe(uso)).toBe(1142 + 1112);
+    // De a pedazos: suma a lo ya contado
+    usoDe(`${resp('m3', 0)}\n`, uso);
+    expect(tokensDe(uso)).toBe(1142 + 1112 + 1102);
+    // Al terminar, el del evento result (el mismo de «Lo que gastó»)
+    usoDe(`${JSON.stringify({ type: 'result', usage: { input_tokens: 5, cache_creation_input_tokens: 300, cache_read_input_tokens: 3000, output_tokens: 60 } })}\n`, uso);
+    expect(tokensDe(uso)).toBe(3365);
+    expect(tokensDe(usoDe(''))).toBe(0);
+  });
+
+  it('lleva los tokens de la revisión del proyecto mientras su registro crece', () => {
+    const raiz = mkdtempSync(join(tmpdir(), 'stl-tokens-'));
+    try {
+      mkdirSync(join(raiz, '.revisiones'));
+      const log = join(raiz, '.revisiones', 'golf-2026-10-21T13-00-00-000Z.log');
+      const resp = (id: string) => JSON.stringify({ type: 'assistant', message: { id, content: [], usage: { input_tokens: 1, output_tokens: 9 } } });
+      expect(tokensDeProyecto(raiz, 'golf')).toBe(0);
+      writeFileSync(log, `${resp('a')}\n`);
+      expect(tokensDeProyecto(raiz, 'golf')).toBe(10);
+      appendFileSync(log, `${resp('b')}\n${resp('b')}\n`);
+      expect(tokensDeProyecto(raiz, 'golf')).toBe(20);
     } finally {
       rmSync(raiz, { recursive: true, force: true });
     }

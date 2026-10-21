@@ -175,6 +175,8 @@ interface Datos {
    * las líneas iguales seguidas en una sola y su cuenta (`veces`, agruparPasos).
    */
   progreso?: { tipo: 'dice' | 'hace'; texto: string; veces?: number }[] | null;
+  /** Los tokens que lleva el director en esa revisión (revisor.ts › tokensDeProyecto); al terminar, el total exacto. */
+  tokensVivos?: number | null;
   /** «No lo entiendo, explícamelo mejor» de un paso: el director lo aclara al instante, sin el resto de la revisión. */
   aclaracion?: { mision: string; paso: number; nota: string; pedida: string; lanzada?: string; hecha?: string; error?: string } | null;
   /** Las notas urgentes: el director las atiende solas, al instante, y el resultado vuelve en «¿Dónde quedamos?». */
@@ -513,6 +515,33 @@ function urgenciaEnCurso(u: Datos['urgencia']): u is NonNullable<Datos['urgencia
   return !!u && !u.hecha && !u.error;
 }
 
+/** La cifra de tokens que se ve ahora junto a «El director está revisando», mientras sube hacia la nueva. */
+let tokensMostrados: number | null = null;
+let cuentaTokens = 0;
+
+/**
+ * Los tokens del director, en vivo (propuesta aceptada el 21 de octubre de 2026): cada vez que cambia la cifra, sube
+ * hasta la nueva con una cuenta corta; con movimiento reducido, salta. Sin revisión en marcha, se olvida.
+ */
+function contarTokens(meta: number | null) {
+  cancelAnimationFrame(cuentaTokens);
+  if (meta === null) return void (tokensMostrados = null);
+  const desde = tokensMostrados ?? meta;
+  const pintar = (x: number) => {
+    tokensMostrados = x;
+    const el = document.querySelector<HTMLElement>('#segundo-plano .sp-tokens');
+    if (el) el.textContent = `${miles(x)} tokens`;
+  };
+  if (desde === meta || matchMedia('(prefers-reduced-motion: reduce)').matches) return pintar(meta);
+  const inicio = performance.now();
+  const paso = (t: number) => {
+    const k = Math.min(1, (t - inicio) / 700);
+    pintar(Math.round(desde + (meta - desde) * (1 - (1 - k) ** 3)));
+    if (k < 1) cuentaTokens = requestAnimationFrame(paso);
+  };
+  cuentaTokens = requestAnimationFrame(paso);
+}
+
 /**
  * Lo que pasa en segundo plano, siempre a la vista junto a la cara del director: los audios que se están transcribiendo
  * y la revisión pedida (en curso, esperando su vuelta o sin nadie que la mire). Así nunca hay que adivinar.
@@ -528,12 +557,13 @@ function pintarSegundoPlano() {
     ...(procesando ? [`<span class="sp-linea">Transcribiendo ${procesando === 1 ? 'tu audio' : `${procesando} audios`}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     // Lo urgente va solo y se distingue: el director lo atiende aparte, mientras sigues con lo tuyo
     ...(u ? [`<span class="sp-linea alerta">${u.lanzada ? 'El director atiende lo urgente' : 'Lo urgente va al director'}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
-    ...(r.estado === 'en_curso' ? [`<button type="button" class="sp-linea" data-progreso title="Ver lo que va haciendo">El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></button>`] : []),
+    ...(r.estado === 'en_curso' ? [`<button type="button" class="sp-linea" data-progreso title="Ver lo que va haciendo">El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>${d.tokensVivos ? `<span class="sp-tokens" title="Lo que lleva leído y escrito el modelo en esta revisión; el total exacto queda en «Modelo y consumo»">${miles(tokensMostrados ?? d.tokensVivos)} tokens</span>` : ''}</button>`] : []),
     ...(r.estado === 'pedida' ? [`<span class="sp-linea">Revisión pedida · ${hora(d.revision!.pedida)}</span>`] : []),
     ...(r.estado === 'sin_vigilia' ? ['<button type="button" class="sp-linea alerta" data-revision="explicar">⚠ Revisión pedida, sin tomar</button>'] : []),
   ];
   caja.innerHTML = lineas.join('');
   caja.hidden = !lineas.length;
+  contarTokens(r.estado === 'en_curso' ? (d.tokensVivos ?? null) : null);
   // Mientras el director trabaja, se navega, se lee y se avanza en las misiones; lo que cambia la ruta espera (ver
   // libreMientrasRevisa)
   document.body.classList.toggle('director-trabajando', r.estado === 'en_curso');

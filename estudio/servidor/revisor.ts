@@ -174,8 +174,36 @@ export function progresoDe(registro: string, max = 40): PasoRevision[] {
   return pasos.slice(-max);
 }
 
+const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+const sumaUso = (u: Record<string, unknown>) => n(u.input_tokens) + n(u.cache_creation_input_tokens) + n(u.cache_read_input_tokens) + n(u.output_tokens);
+/** La clave del total exacto, el del evento `result` (no es el id de ninguna respuesta). */
+const RESULTADO = '·resultado';
+
+/**
+ * Los tokens que lleva el director, de su registro en stream-json, para verlos subir mientras revisa (propuesta «Los
+ * tokens del director, en vivo», aceptada el 21 de octubre de 2026): cada respuesta del modelo trae los suyos (lo que lee,
+ * lo que toma de la caché y lo que escribe), repetidos en cada parte de la respuesta y con lo escrito un poco atrasado, así
+ * que se cuenta una vez por respuesta, con lo más que haya dicho. Al terminar, el total exacto del evento `result`, el
+ * mismo de «Lo que gastó». Se suma a lo ya contado (`porRespuesta`), para leer el registro de a pedazos.
+ */
+export function usoDe(registro: string, porRespuesta: Map<string, number> = new Map()): Map<string, number> {
+  for (const linea of registro.split('\n')) {
+    if (!linea.startsWith('{')) continue;
+    let ev: { type?: string; usage?: Record<string, unknown>; message?: { id?: string; usage?: Record<string, unknown> } };
+    try { ev = JSON.parse(linea); } catch { continue; }
+    if (ev.type === 'assistant' && ev.message?.id && ev.message.usage) porRespuesta.set(ev.message.id, Math.max(porRespuesta.get(ev.message.id) ?? 0, sumaUso(ev.message.usage)));
+    if (ev.type === 'result' && ev.usage) porRespuesta.set(RESULTADO, sumaUso(ev.usage));
+  }
+  return porRespuesta;
+}
+
+/** El total de lo contado: el exacto, si ya terminó; si no, la suma de cada respuesta. */
+export function tokensDe(porRespuesta: Map<string, number>): number {
+  return porRespuesta.get(RESULTADO) ?? [...porRespuesta.values()].reduce((s, x) => s + x, 0);
+}
+
 /** Lo que se lleva leído de cada registro: así cada consulta lee solo lo nuevo, y nada del principio se pierde. */
-const leidos = new Map<string, { hasta: number; pasos: PasoRevision[] }>();
+const leidos = new Map<string, { hasta: number; pasos: PasoRevision[]; uso: Map<string, number> }>();
 
 /** Cuántos pasos se muestran, como mucho: una revisión entera cabe de sobra. */
 export const MAX_PASOS = 2000;
@@ -195,7 +223,7 @@ export function progresoDeProyecto(raiz: string, proyecto: string): PasoRevision
   if (!leido) {
     // Una revisión nueva de este proyecto: lo de la anterior ya no hace falta
     for (const a of leidos.keys()) if (a.startsWith(join(carpeta, `${proyecto}-`))) leidos.delete(a);
-    leido = { hasta: 0, pasos: [] };
+    leido = { hasta: 0, pasos: [], uso: new Map() };
     leidos.set(archivo, leido);
   }
   // Solo lo nuevo, y hasta la última línea completa: la que aún se escribe se lee en la consulta siguiente
@@ -207,12 +235,22 @@ export function progresoDeProyecto(raiz: string, proyecto: string): PasoRevision
     readSync(fd, buf, 0, buf.length, leido.hasta);
     const fin = buf.lastIndexOf(0x0a);
     if (fin < 0) return leido.pasos;
-    leido.pasos = [...leido.pasos, ...progresoDe(buf.subarray(0, fin).toString('utf-8'), Infinity)].slice(-MAX_PASOS);
+    const nuevo = buf.subarray(0, fin).toString('utf-8');
+    leido.pasos = [...leido.pasos, ...progresoDe(nuevo, Infinity)].slice(-MAX_PASOS);
+    usoDe(nuevo, leido.uso);
     leido.hasta += fin + 1;
     return leido.pasos;
   } finally {
     closeSync(fd);
   }
+}
+
+/** Los tokens que lleva la revisión que lanzó el Studio para un proyecto (su último registro); 0 si aún no hay. */
+export function tokensDeProyecto(raiz: string, proyecto: string): number {
+  progresoDeProyecto(raiz, proyecto);
+  const prefijo = join(raiz, '.revisiones', `${proyecto}-`);
+  const ultimo = [...leidos.keys()].filter((a) => a.startsWith(prefijo) && /^\d{4}-\d\d-\d\dT[\d-]+Z\.log$/.test(a.slice(prefijo.length))).sort().at(-1);
+  return ultimo ? tokensDe(leidos.get(ultimo)!.uso) : 0;
 }
 
 /**
