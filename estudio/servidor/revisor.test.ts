@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, cerroSegunPlan, compararVersion, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, cerroSegunPlan, compararVersion, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -87,6 +87,15 @@ describe('el director que lanza el Studio', () => {
     for (const [texto, minutos] of [[encargo('golf'), MAX_MIN], [aclaracion, MAX_MIN_ACLARAR], [urgencia, MAX_MIN_URGENCIA]] as const) {
       expect(texto).toContain('el aviso de que terminó te despierta solo');
       expect(texto).toContain(`Tienes ${minutos} minutos en total.`);
+    }
+  });
+
+  it('pide en la misión del titular el permiso que le falta, en cada encargo que ejecuta trabajo (nota del titular, 21 de octubre de 2026)', () => {
+    const urgencia = encargoUrgencia({ proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
+    for (const texto of [encargo('golf'), encargo('golf', true), urgencia]) {
+      expect(texto).toContain(SIN_PERMISO);
+      expect(texto).toContain('«Autorizo»');
+      expect(texto).toContain('Nunca te des un permiso tú mismo');
     }
   });
 

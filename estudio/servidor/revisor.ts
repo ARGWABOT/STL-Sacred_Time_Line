@@ -40,6 +40,18 @@ const esperar = (minutos: number) =>
   `minutos en total.`;
 
 /**
+ * Qué hace el director cuando un permiso le falta (nota del titular del 21 de octubre de 2026: que quede en la
+ * estructura fija y no se pierda): ni lo rodea ni se queda sin él en silencio; lo pide en la misión del titular y, con
+ * su «Autorizo», lo hace en la revisión siguiente. Va en cada encargo que ejecuta trabajo (la revisión y la urgencia).
+ */
+export const SIN_PERMISO =
+  ` Si para lo aprobado te falta un permiso (una herramienta o una orden que se te niega), no lo rodees ni lo dejes en ` +
+  `silencio: haz lo demás y convierte lo que no pudiste en un paso de la misión del titular que pida ese permiso (qué ` +
+  `es, para qué, lo que cambia y lo que cuesta, con las opciones «Autorizo» y «No lo autorizo»; si se da fuera del ` +
+  `Studio, con su guía completa), y dilo en la respuesta y en el mensaje. Con su «Autorizo», lo pendiente se ejecuta en ` +
+  `la revisión siguiente. Nunca te des un permiso tú mismo sin ese «Autorizo».`;
+
+/**
  * Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. Con
  * `reintento`, la anterior no se cerró: retoma lo que dejó.
  */
@@ -54,6 +66,7 @@ export const encargo = (proyecto: string, reintento = false) =>
   `por separado. Cierra como siempre: ` +
   `node tools/director/bandeja.ts --proyecto ${proyecto} --listo y el commit en la memoria del proyecto.` +
   (reintento ? ' Es un reintento: la revisión anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).' : '') +
+  SIN_PERMISO +
   esperar(MAX_MIN);
 
 /** Una aclaración es una ida y vuelta corta: si tarda más que esto, se detiene y el pedido queda para la revisión. */
@@ -92,6 +105,7 @@ export const encargoUrgencia = (u: UrgenciaPedida) =>
   `lo necesita, déjalo listo y dilo en la respuesta. Tus permisos no aceptan órdenes encadenadas con &&: para cada commit ` +
   `da cd a la carpeta, luego git add y luego git commit, cada una por separado. Cierra con ` +
   `node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo y el commit en la memoria del proyecto.` +
+  SIN_PERMISO +
   esperar(MAX_MIN_URGENCIA);
 
 /** Lo que se lanza aparte de la revisión: una aclaración o una urgencia. */
