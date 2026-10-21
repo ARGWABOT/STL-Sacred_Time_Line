@@ -717,10 +717,23 @@ async function abrirDocumento(ruta: string, seccion: string | null = null) {
 // ───────────────────────────────────────────── ir a donde dice un paso
 
 /** Un botón que lleva a un destino: dentro del Director (→) o a una página de afuera (↗, en pestaña nueva). */
-function botonIr(dest: Destino, clase = 'ir-paso') {
+function botonIr(dest: Destino, clase = 'ir-paso', extra = '') {
   destinos.push(dest);
   const afuera = !!dest.url;
-  return `<button type="button" class="${clase}" data-destino="${destinos.length - 1}" title="${afuera ? 'Se abre en una pestaña nueva' : 'Te lleva ahí'}">${esc(dest.etiqueta)} ${afuera ? '↗' : '→'}</button>`;
+  return `<button type="button" class="${clase}" data-destino="${destinos.length - 1}"${extra} title="${afuera ? 'Se abre en una pestaña nueva' : 'Te lleva ahí'}">${esc(dest.etiqueta)} ${afuera ? '↗' : '→'}</button>`;
+}
+
+/**
+ * ¿Ya abrió el botón de este paso (su `ir`)? Lo recuerda este navegador. Mientras no, ese botón es lo principal del
+ * paso y sus opciones esperan: no se califica lo que aún no se ha visto.
+ */
+const claveAbierto = (mision: string, i: number) => `estudio.abierto.${d?.activo ?? ''}.${mision}|${i}`;
+const pasoAbierto = (mision: string, i: number) => localStorage.getItem(claveAbierto(mision, i)) === '1';
+
+/** El botón de un paso: en el paso de ahora, mientras no se abre, es lo principal (lo más visible, y late). */
+function irDelPaso(m: Mision, i: number, dest: Destino, deAhora: boolean) {
+  if (!deAhora || d.identidad.rol !== m.para) return botonIr(dest);
+  return botonIr(dest, pasoAbierto(m.id, i) ? 'ir-paso' : 'ir-paso principal', ` data-abre="${esc(m.id)}|${i}"`);
 }
 
 async function ir(dest: Destino) {
@@ -1700,7 +1713,7 @@ function listaPasos(m: Mision) {
 
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? botonIr(p.ir) : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}">${conCasillas ? `<label class="casilla-paso" title="${hechos.has(i) ? 'Hecho: oprímela para desmarcarlo' : typeof p !== 'string' && p.hecho ? 'Se marca solo cuando el Studio vea que lo hiciste (o oprímela tú)' : typeof p !== 'string' && p.comprobar ? 'Oprímela cuando la orden termine: el Studio comprueba que salió bien antes de marcarla' : 'Oprime la estrella cuando lo hagas'}"><input type="checkbox" class="sr-only" data-paso="${esc(m.id)}|${i}"${hechos.has(i) ? ' checked' : ''} aria-label="Paso ${i + 1} hecho" />${icono('estrella')}</label>` : ''}<span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && p.ir ? irDelPaso(m, i, p.ir, conCasillas && !hechos.has(i)) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, p.ir) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas && !hechos.has(i) ? aclararPaso(m, i) : ''}</li>`).join('')}</ol>`;
 }
 
 /**
@@ -1709,10 +1722,15 @@ function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
  * esperar (`esperar`: lo que tarda en verse un cambio), las opciones quedan bloqueadas con su cuenta regresiva, para no
  * responder antes de tiempo; la cuenta empieza la primera vez que el paso se ve en este navegador.
  */
-function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean, esperar?: number): string {
+function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean, esperar?: number, ir?: Destino): string {
   const elegida = eleccionDe(d.estado.notas, m.id, i, m.para)?.sobre.eleccion;
   if (elegida) return `<p class="eleccion-paso">${icono('check')} Elegiste: <b>${esc(elegida)}</b></p>`;
   if (hecho || d.identidad.rol !== m.para) return '';
+  // Si el paso manda a ver algo, primero se ve: las opciones (y su espera) empiezan cuando se abre su botón
+  if (ir && !pasoAbierto(m.id, i)) {
+    return `<p class="espera-paso por-abrir">${icono('info')} <span>Primero oprime «${esc(ir.etiqueta)}»: cuando lo hayas visto, aquí eliges cómo te fue.</span></p>
+      <div class="opciones-paso en-espera" role="group" aria-label="Elige una opción (se abre al ver lo que pide el paso)">${opciones.map((o) => `<button type="button" class="boton-opcion" disabled>${esc(o)}</button>`).join('')}</div>`;
+  }
   const hasta = esperar ? inicioEspera(`${m.id}|${i}`) + esperar * 1000 : 0;
   const bloqueadas = hasta > Date.now();
   const cuenta = bloqueadas
@@ -2996,10 +3014,23 @@ function vistaPropuestas() {
   // Un botón que lleva a una propuesta ya decidida la muestra
   if (anclaPendiente?.startsWith('propuesta-') && propuestaPasada(anclaPendiente.slice(10))) verPropuestasPasadas = true;
   const seVeP = (id: string) => verPropuestasPasadas || !propuestaPasada(id);
+  const porDecidir = abiertas.length - pasadas;
+  // La barra de la sección: cuántas esperan y, si hay decididas, el filtro entre «Por decidir» y «Todas»
+  const filtro = pasadas
+    ? `<div class="filtro-propuestas" role="group" aria-label="Qué propuestas ver">
+        <button type="button" data-ver-pasadas="0" aria-pressed="${!verPropuestasPasadas}">Por decidir <span class="cifra">${porDecidir}</span></button>
+        <button type="button" data-ver-pasadas="1" aria-pressed="${verPropuestasPasadas}">Todas <span class="cifra">${abiertas.length}</span></button>
+      </div>`
+    : '';
+  const barra = abiertas.length
+    ? `<div class="barra-propuestas"><p class="cuenta-propuestas">${porDecidir ? `<b>${porDecidir}</b> ${porDecidir === 1 ? 'espera' : 'esperan'} respuesta` : 'Nada espera respuesta'}${pasadas ? ` · ${pasadas} ya ${pasadas === 1 ? 'decidida' : 'decididas'}` : ''}</p>${filtro}</div>`
+    : '';
+  // Sin nada que decidir a la vista: un estado vacío con su porqué, no una línea suelta
+  const vacio = (titulo: string, texto: string, boton = '') => `<div class="vacio-propuestas">${icono('propuestas', 'icono icono-vacio')}<div><b>${titulo}</b><p>${texto}</p>${boton}</div></div>`;
   return `<p class="intro">El director propone y ${esc(nombreTitular())} decide. Cualquiera puede comentar una propuesta: el director responde con su recomendación. Una aceptada se vuelve trabajo de su fase; una descartada queda marcada, y el director no la vuelve a proponer. Aquí ves solo las que esperan respuesta: lo que decides sigue a la vista, para comentarlo, hasta que vuelvas a abrir el Studio.</p>
-    ${abiertas.length ? '' : '<p class="intro"><b>Todavía no hay propuestas en la fase en curso.</b> El director las trae cuando ve algo que cambiar o decidir.</p>'}
-    ${abiertas.length && abiertas.length === pasadas && !verPropuestasPasadas ? '<p class="intro"><b>Ninguna espera respuesta.</b> Las ya decididas están en «Ver las pasadas».</p>' : ''}
-    ${pasadas ? `<label class="ver-pasadas"><input type="checkbox" data-ver-pasadas${verPropuestasPasadas ? ' checked' : ''} /> Ver las pasadas (${pasadas} ya ${pasadas === 1 ? 'decidida' : 'decididas'})</label>` : ''}
+    ${barra}
+    ${abiertas.length ? '' : vacio('Todavía no hay propuestas en la fase en curso', 'El director las trae cuando ve algo que cambiar o decidir. Mientras tanto, la misión de ahora es lo que sigue.')}
+    ${abiertas.length && !porDecidir && !verPropuestasPasadas ? vacio('Estás al día: ninguna espera respuesta', `Ya decidiste ${pasadas === 1 ? 'la propuesta de esta fase' : `las ${pasadas} propuestas de esta fase`}. Si quieres volver a mirarlas o comentarlas, están en «Todas».`, `<button type="button" class="boton-suave" data-ver-pasadas="1">Ver las decididas</button>`) : ''}
     ${d.plan.fases
       .map((f) => {
         // Lo que espera respuesta, arriba; lo ya decidido (si se pidió verlo), al final
@@ -3424,7 +3455,12 @@ $('vista').addEventListener('change', async (e) => {
       const hechos = pasosHechos(id);
       const sigue = m?.pasos.findIndex((_, k) => !hechos.includes(k)) ?? -1;
       const texto = (p: Paso) => (typeof p === 'string' ? p : p.texto);
-      if (m && sigue >= 0) decir(`¡Bien! Lo que sigue: ${recortar(texto(m.pasos[sigue]), 110)}`, 'feliz');
+      if (m && sigue >= 0) {
+        decir(`¡Bien! Lo que sigue: ${recortar(texto(m.pasos[sigue]), 110)}`, 'feliz');
+        // Por si fue sin querer: deshacerlo está a un clic (después, «Desmarcar» en «Completado»)
+        const comprobado = typeof conComprobar !== 'string' && !!conComprobar?.comprobar;
+        avisar(`${comprobado ? 'Hecho: lo comprobé. ' : ''}Paso ${Number(i) + 1} marcado como hecho.`, true, undefined, { etiqueta: 'Deshacer', hacer: () => { void marcarPaso(id, Number(i), false); pintar(); } });
+      }
       else if (m && (await completarSiToca(id, guardado))) decir('¡Misión completada! La reviso cuando me pidas la revisión.', 'riendo');
     }
     return;
@@ -3432,12 +3468,6 @@ $('vista').addEventListener('change', async (e) => {
   const s = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-consulta]');
   if (s) {
     consulta = s.value || null;
-    pintar();
-    return;
-  }
-  const pasadas = (e.target as HTMLElement).closest<HTMLInputElement>('[data-ver-pasadas]');
-  if (pasadas) {
-    verPropuestasPasadas = pasadas.checked;
     pintar();
     return;
   }
@@ -3522,7 +3552,24 @@ async function clicEnVista(b: HTMLButtonElement) {
     if (ds.ir === 'ruta') faseVista = null;
     irA(ds.ir as Vista);
   } else if (ds.destino !== undefined) {
-    await ir(destinos[Number(ds.destino)]);
+    const dest = destinos[Number(ds.destino)];
+    // El botón de un paso, abierto: desde ahora se pueden elegir sus opciones
+    const abre = ds.abre?.split('|');
+    if (abre) localStorage.setItem(claveAbierto(abre[0], Number(abre[1])), '1');
+    await ir(dest);
+    // Una página de afuera se abre en otra pestaña: el paso se repinta aquí, ya con sus opciones
+    if (abre && dest.url) pintar();
+  } else if (ds.verPasadas !== undefined) {
+    // El filtro de las propuestas: solo las que esperan respuesta, o todas las de la fase (también las decididas)
+    verPropuestasPasadas = ds.verPasadas === '1';
+    pintar();
+  } else if (ds.desmarcarPaso) {
+    // «Desmarcar»: lo mismo que oprimir la estrella de un paso ya hecho, a la vista en «Completado»
+    const casilla = $('vista').querySelector<HTMLInputElement>(`[data-paso="${CSS.escape(ds.desmarcarPaso)}"]`);
+    if (casilla?.checked) {
+      casilla.checked = false;
+      casilla.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   } else if (ds.continuar !== undefined) {
     const [id, i, modo] = ds.continuar.split('|');
     const paso = d.plan.misiones.find((x) => x.id === id)?.pasos[Number(i)];
