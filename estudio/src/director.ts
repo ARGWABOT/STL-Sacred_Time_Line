@@ -4366,8 +4366,10 @@ const ocupado = () =>
 setInterval(() => {
   if (sinServidor && document.visibilityState === 'visible') cargar().then(() => marcarSinServidor(false), () => undefined);
 }, 5_000);
+// La sincronización de fondo espera también mientras hay texto seleccionado (para copiarlo): repintar lo deseleccionaría
+const seleccionando = () => !!document.getSelection()?.toString().trim();
 setInterval(() => {
-  if (document.visibilityState === 'visible' && d && !ocupado()) cargar().then(() => marcarSinServidor(false), (e) => esDeRed(e) && marcarSinServidor(true));
+  if (document.visibilityState === 'visible' && d && !ocupado() && !seleccionando()) cargar().then(() => marcarSinServidor(false), (e) => esDeRed(e) && marcarSinServidor(true));
 }, 30_000);
 
 // La cabecera fija: se compacta al bajar (con margen, para que no tiemble en el borde) y los títulos de los documentos
