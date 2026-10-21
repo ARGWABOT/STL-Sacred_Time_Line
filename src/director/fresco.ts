@@ -3,8 +3,8 @@
 // GitHub con `git fetch` y lee cada archivo de donde esté más nuevo: de la carpeta si tiene cambios propios (sin commit
 // o en commits que GitHub no tiene), y si no, de su rama en GitHub. Lo de un proyecto (`proyectos/<id>/…`) vive en la
 // memoria de su repositorio (`.stl/`, rama `stl`, en GitHub `origin/stl`); lo demás, en el Estudio (`origin/main`). No
-// toca la carpeta de trabajo ni la rama local. Sin remoto (un solo computador), todo se lee de la carpeta. Lo usan el
-// servidor del Director y tools/director/*.ts.
+// toca la carpeta de trabajo ni la rama local. Sin remoto (un solo computador), o si la rama nunca se subió, todo se lee
+// de la carpeta y no se trae nada. Lo usan el servidor del Director y tools/director/*.ts.
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
@@ -56,12 +56,17 @@ export class Traedor {
   private readonly raiz: string;
   private readonly cadaMs: number;
   private readonly rama: string;
+  private readonly seComparte: () => Promise<boolean>;
 
-  /** `raiz`: la carpeta de git que se trae (la memoria de un proyecto o el Estudio); `rama`: la que se trae de GitHub. */
-  constructor(raiz: string, cadaMs = 30_000, rama = RAMA) {
+  /**
+   * `raiz`: la carpeta de git que se trae (la memoria de un proyecto o el Estudio); `rama`: la que se trae de GitHub;
+   * `seComparte`: si el equipo decidió compartirla aunque todavía no esté en GitHub (la subida activa en Proyecto).
+   */
+  constructor(raiz: string, cadaMs = 30_000, rama = RAMA, seComparte: () => Promise<boolean> = async () => false) {
     this.raiz = raiz;
     this.cadaMs = cadaMs;
     this.rama = rama;
+    this.seComparte = seComparte;
   }
 
   traer(forzar = false): Promise<void> {
@@ -70,7 +75,10 @@ export class Traedor {
     this.ultimo = Date.now();
     this.enCurso = (async () => {
       const remoto = existsSync(this.raiz) ? await git(this.raiz, ['remote', 'get-url', 'origin']) : { ok: false };
-      if (!remoto.ok) {
+      // Solo si la rama se comparte: ya está en GitHub (se subió o llegó al clonar) o la subida está activa. La memoria
+      // que nunca se compartió es solo de este computador, y no se le pregunta nada a GitHub (nota del titular, 21 de octubre)
+      const compartida = remoto.ok && ((await git(this.raiz, ['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${this.rama}`])).ok || (await this.seComparte()));
+      if (!compartida) {
         this.estado = { traido: null, error: null, local: true };
         return;
       }

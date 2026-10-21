@@ -256,7 +256,7 @@ export function servidorDirector(): Plugin {
   const traedores = new Map<string, Traedor>();
   const traedorDe = (id: string) => {
     const m = memoriaDe(raiz, id)!;
-    if (!traedores.has(m)) traedores.set(m, new Traedor(m, 30_000, RAMA));
+    if (!traedores.has(m)) traedores.set(m, new Traedor(m, 30_000, RAMA, async () => !!(await leerProyecto(id)).sincronizar));
     return traedores.get(m)!;
   };
   const syncs = new Map<string, Sincronizador>();

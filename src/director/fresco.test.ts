@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { leerFrescosTexto, leerFrescoTexto } from './fresco';
+import { leerFrescosTexto, leerFrescoTexto, Traedor } from './fresco';
 
 const base = mkdtempSync(join(tmpdir(), 'estudio-fresco-'));
 afterAll(() => rmSync(base, { recursive: true, force: true }));
@@ -60,5 +60,47 @@ describe('leer muchos textos de una vez (las transcripciones)', () => {
     expect(lote.get('notas/falta.txt')).toBe('la nota de la otra persona');
     expect(lote.get('notas/c.txt')).toBe('corregida aquí');
     expect(lote.get('notas/d.txt')).toBe('texto de notas/d.txt');
+  });
+});
+
+describe('traer GitHub solo si la memoria se comparte', () => {
+  const tieneRef = (cwd: string) => { try { git(cwd, 'rev-parse', '--verify', '--quiet', 'refs/remotes/origin/stl'); return true; } catch { return false; } };
+  const memoriaConRemoto = (nombre: string) => {
+    const remoto = join(base, `${nombre}.git`);
+    git(base, 'init', '-q', '--bare', '-b', 'stl', remoto);
+    // Alguien ya subió una rama stl, pero esta memoria nunca la trajo ni la subió
+    const otro = join(base, `${nombre}-otro`);
+    mkdirSync(otro);
+    git(otro, 'init', '-q', '-b', 'stl');
+    escribir(otro, 'plan.json', '{}');
+    git(otro, 'add', '-A');
+    git(otro, 'commit', '-q', '-m', 'plan');
+    git(otro, 'push', '-q', remoto, 'stl');
+    const aqui = join(base, nombre);
+    mkdirSync(aqui);
+    git(aqui, 'init', '-q', '-b', 'stl');
+    git(aqui, 'remote', 'add', 'origin', remoto);
+    return aqui;
+  };
+
+  it('la memoria que nunca se compartió es de este computador: no se le pregunta nada a GitHub', async () => {
+    const aqui = memoriaConRemoto('sin-compartir');
+    const t = new Traedor(aqui, 0, 'stl');
+    await t.traer(true);
+    expect(t.estado).toEqual({ traido: null, error: null, local: true });
+    expect(tieneRef(aqui)).toBe(false);
+  });
+
+  it('con la subida activa (o la rama ya en GitHub), se trae', async () => {
+    const aqui = memoriaConRemoto('compartida');
+    const t = new Traedor(aqui, 0, 'stl', async () => true);
+    await t.traer(true);
+    expect(t.estado.local).toBe(false);
+    expect(t.estado.error).toBeNull();
+    expect(tieneRef(aqui)).toBe(true);
+    // Ya en GitHub, se sigue trayendo aunque la subida se apague
+    const despues = new Traedor(aqui, 0, 'stl');
+    await despues.traer(true);
+    expect(despues.estado.local).toBe(false);
   });
 });
