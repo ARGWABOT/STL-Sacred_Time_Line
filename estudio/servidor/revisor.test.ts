@@ -2,7 +2,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, permitido, progresoDe, progresoDeProyecto } from './revisor';
+import { compararVersion, consumoDe, consumoDeRevisiones, encargo, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, trabajoConElPedido } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -76,12 +76,43 @@ describe('el director que lanza el Studio', () => {
       writeFileSync(join(raiz, '.revisiones', 'golf-2026-08-01T08-00-00-000Z.log'), `${init}\n${resultado(9)}\n`);
       const lista = consumoDeRevisiones(raiz, 35, Date.parse('2026-10-21T12:00:00Z'));
       expect(lista).toEqual([
-        { cuando: '2026-10-21T07:00:00.000Z', proyecto: 'stl-studio', tipo: 'aclaracion', modelo: 'claude-opus-5-5', costo: 0.3, entrada: 1094, cache: 50_000, salida: 2000, minutos: 7.2 },
-        { cuando: '2026-10-21T06:03:39.556Z', proyecto: 'stl-studio', tipo: 'revision', modelo: 'claude-opus-5-5', costo: 2.8, entrada: 1094, cache: 50_000, salida: 2000, minutos: 7.2 },
+        { cuando: '2026-10-21T07:00:00.000Z', proyecto: 'stl-studio', tipo: 'aclaracion', modelo: 'claude-opus-5-5', costo: 0.3, entrada: 1094, cache: 50_000, salida: 2000, minutos: 7.2, limites: null },
+        { cuando: '2026-10-21T06:03:39.556Z', proyecto: 'stl-studio', tipo: 'revision', modelo: 'claude-opus-5-5', costo: 2.8, entrada: 1094, cache: 50_000, salida: 2000, minutos: 7.2, limites: null },
       ]);
     } finally {
       rmSync(raiz, { recursive: true, force: true });
     }
+  });
+
+  it('lee lo pedido, el modelo con que trabajó y los límites del plan que da Claude Code', () => {
+    const limite = (cinco: number, semana: number) => JSON.stringify({ type: 'rate_limit_event', rate_limit_info: { status: 'allowed', unifiedWindows: { five_hour: { utilization: cinco, resetsAt: 1792339800 }, seven_day: { utilization: semana, resetsAt: 1792702800 } } } });
+    const registro = [
+      lineaPedido('claude-opus-5-5[1m]', 'high').trim(),
+      JSON.stringify({ type: 'system', subtype: 'init', model: 'claude-opus-5-5[1m]' }),
+      limite(0.1, 0.12),
+      limite(0.11, 0.125),
+      JSON.stringify({ type: 'result', total_cost_usd: 1, duration_ms: 60_000, usage: {} }),
+    ].join('\n');
+    const c = consumoDe(registro)!;
+    expect(c.pedido).toEqual({ modelo: 'claude-opus-5-5[1m]', esfuerzo: 'high', cumplido: true });
+    expect(consumoDe(registro.replace('"modelo":"claude-opus-5-5[1m]"', '"modelo":"sonnet"'))!.pedido!.cumplido).toBe(false);
+    expect(consumoDe(registro.replace('"modelo":"claude-opus-5-5[1m]"', '"modelo":null'))!.pedido!.cumplido).toBeNull();
+    expect(c.modelo).toBe('claude-opus-5-5[1m]');
+    // el último aviso manda, en porcentaje
+    expect(c.limites).toEqual({ cincoHoras: { uso: 11, renueva: new Date(1792339800_000).toISOString() }, semana: { uso: 12.5, renueva: new Date(1792702800_000).toISOString() } });
+    // lo pedido no se confunde con un modelo que la cuenta rechazó, ni con un esfuerzo rechazado
+    expect(fallaDelModelo(lineaPedido('haiku', null))).toBe(false);
+    expect(fallaDelEsfuerzo(lineaPedido(null, 'max'))).toBe(false);
+    // un registro de antes, sin lo pedido, sigue contando
+    expect(consumoDe(registro.split('\n').slice(1).join('\n'))!.pedido).toBeUndefined();
+  });
+
+  it('dice si trabajó con el modelo pedido', () => {
+    expect(trabajoConElPedido('claude-opus-5-5[1m]', 'claude-opus-5-5[1m]')).toBe(true);
+    expect(trabajoConElPedido('claude-opus-5-5[1m]', 'claude-opus-5-5')).toBe(true);
+    expect(trabajoConElPedido('opus', 'claude-opus-5-5')).toBe(true);
+    expect(trabajoConElPedido('sonnet', 'claude-opus-5-5')).toBe(false);
+    expect(trabajoConElPedido('claude-sonnet-5-5', 'claude-opus-5-5[1m]')).toBe(false);
   });
 
   it('reconoce cuando la cuenta no acepta el modelo elegido, y solo entonces', () => {

@@ -51,8 +51,9 @@
 .ir-paso.principal:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
 @media (prefers-reduced-motion: reduce) { .ir-paso.principal { animation: none; } }
 .desmarcar-paso { margin-left: 8px; font-size: 13px; }
-.resaltado { animation: resalte 2.6s ease-out; border-radius: 10px; }
-@keyframes resalte { 0%, 30% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: #fff6d8; } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
+/* 4,6 s: unos tres segundos encendido y después se apaga (antes 2,6 s; el titular pidió dos más, 21 de octubre) */
+.resaltado { animation: resalte 4.6s ease-out; border-radius: 10px; }
+@keyframes resalte { 0%, 60% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: #fff6d8; } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
 @media (prefers-reduced-motion: reduce) { .resaltado { animation: none; outline: 3px solid #f2b828; } }
 
 /* Todo lo que va al Buzón del director lleva el mismo sobre dorado */
@@ -814,6 +815,7 @@ html.enfoque .trozo.actual { background: transparent; }
 .consumo-cifras .tit { font-size: 12px; color: var(--suave); }
 .consumo-cifras b { font-size: 18px; }
 .consumo-cifras small { font-size: 12px; color: var(--suave); }
+.aviso-modelo { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: #fff6d8; border: 1px solid #f2b828; font-size: 14px; }
 .consumo-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .consumo-lista li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; padding-bottom: 6px; border-bottom: 1px solid var(--borde); }
 .consumo-lista li > span:last-child { color: var(--suave); }

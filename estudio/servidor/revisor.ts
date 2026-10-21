@@ -8,7 +8,7 @@
 // Sin Claude Code con su sesión iniciada en este computador, las revisiones pedidas las toma esa sesión con
 // /loop 5m /vigila, como antes.
 import { spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join, relative } from 'node:path';
 import { guardarEsfuerzo, guardarModelo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
@@ -205,38 +205,78 @@ export interface Consumo {
   cuando: string;
   proyecto: string;
   tipo: 'revision' | 'aclaracion' | 'urgencia';
+  /** El modelo con que trabajó de verdad: lo dice Claude Code al empezar (el evento `init`). */
   modelo: string | null;
+  /**
+   * Lo que el Studio pidió al lanzarlo (`--model` y `--effort`; null: el de la cuenta). undefined en los registros de
+   * antes de que el Studio lo anotara.
+   */
+  pedido?: { modelo: string | null; esfuerzo: string | null; cumplido?: boolean | null };
   costo: number;
   /** Tokens de entrada nuevos, los leídos de la caché y los escritos en ella. */
   entrada: number;
   cache: number;
   salida: number;
   minutos: number;
+  /** Cuánto lleva usado el plan en ese momento, como lo ve /usage: el último `rate_limit_event` del registro. */
+  limites: Limites | null;
+}
+
+/** Una ventana de los límites del plan: el porcentaje usado (0 a 100) y cuándo se renueva (ISO). */
+export interface Ventana { uso: number; renueva: string | null }
+export interface Limites { cincoHoras: Ventana | null; semana: Ventana | null }
+
+/** La primera línea de cada registro: lo que el Studio pidió al lanzar al director. */
+export const lineaPedido = (modelo: string | null, esfuerzo: string | null) => `${JSON.stringify({ type: 'studio', pedido: { modelo, esfuerzo } })}\n`;
+
+/** Una ventana de `unifiedWindows` (utilization de 0 a 1, resetsAt en segundos), o null si no viene. */
+function ventanaDe(w: any): Ventana | null {
+  if (!w || typeof w.utilization !== 'number' || !Number.isFinite(w.utilization)) return null;
+  return { uso: Math.round(w.utilization * 1000) / 10, renueva: typeof w.resetsAt === 'number' ? new Date(w.resetsAt * 1000).toISOString() : null };
 }
 
 /** El consumo de un registro en stream-json, o null si el lanzamiento no terminó con su resultado. */
-export function consumoDe(registro: string): Pick<Consumo, 'modelo' | 'costo' | 'entrada' | 'cache' | 'salida' | 'minutos'> | null {
+export function consumoDe(registro: string): Omit<Consumo, 'cuando' | 'proyecto' | 'tipo'> | null {
   let modelo: string | null = null;
+  let pedido: Consumo['pedido'];
   let resultado: any = null;
+  let ventanas: any = null;
   for (const linea of registro.split('\n')) {
     if (!linea.startsWith('{')) continue;
     let ev: any;
     try { ev = JSON.parse(linea); } catch { continue; }
+    if (ev.type === 'studio' && ev.pedido) pedido = { modelo: ev.pedido.modelo ?? null, esfuerzo: ev.pedido.esfuerzo ?? null };
     if (!modelo && ev.type === 'system' && ev.subtype === 'init' && typeof ev.model === 'string') modelo = ev.model;
     if (!modelo && ev.type === 'assistant' && typeof ev.message?.model === 'string') modelo = ev.message.model;
+    if (ev.type === 'rate_limit_event' && ev.rate_limit_info?.unifiedWindows) ventanas = ev.rate_limit_info.unifiedWindows;
     if (ev.type === 'result') resultado = ev;
   }
   if (!resultado) return null;
   const u = resultado.usage ?? {};
   const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+  const limites = ventanas ? { cincoHoras: ventanaDe(ventanas.five_hour), semana: ventanaDe(ventanas.seven_day) } : null;
+  // Si se pidió un modelo, si trabajó con él (null: no se pidió ninguno, o Claude Code no dijo cuál usó)
+  if (pedido) pedido.cumplido = pedido.modelo && modelo ? trabajoConElPedido(pedido.modelo, modelo) : null;
   return {
     modelo,
+    ...(pedido ? { pedido } : {}),
     costo: n(resultado.total_cost_usd),
     entrada: n(u.input_tokens) + n(u.cache_creation_input_tokens),
     cache: n(u.cache_read_input_tokens),
     salida: n(u.output_tokens),
     minutos: Math.round(n(resultado.duration_ms) / 6000) / 10,
+    limites: limites && (limites.cincoHoras || limites.semana) ? limites : null,
   };
+}
+
+/**
+ * Si el modelo con que trabajó es el que se pidió. Un alias («opus») vale por cualquier versión de su familia; una
+ * versión, solo por ella misma (con o sin el sufijo del contexto, «[1m]», que Claude Code puede no repetir).
+ */
+export function trabajoConElPedido(pedido: string, real: string): boolean {
+  const base = (x: string) => x.toLowerCase().replace(/\[[^\]]*\]$/, '');
+  if (!pedido.startsWith('claude-')) return base(real).startsWith(`claude-${base(pedido)}`);
+  return base(real) === base(pedido);
 }
 
 /** «<proyecto>-[aclaracion-|urgencia-]<fecha>.log», con la fecha sin «:» ni «.». */
@@ -439,10 +479,12 @@ export class Revisor {
     // La de una aclaración o una urgencia lleva su nombre: así no se confunde con el registro de la revisión (progresoDeProyecto)
     const archivo = join(carpeta, `${proyecto}-${aparte ? `${aparte.tipo}-` : ''}${new Date().toISOString().replace(/[:.]/g, '-')}.log`);
     const registro = openSync(archivo, 'a');
+    const { modelo, esfuerzo } = await leerLocal(this.raiz);
+    // Lo pedido va primero en el registro: así el Studio compara con el modelo con que de verdad trabajó
+    writeSync(registro, lineaPedido(modelo ?? null, esfuerzo ?? null));
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
     // El modelo elegido en Proyecto, si hay uno; si no, el de la cuenta de Claude Code
-    const { modelo, esfuerzo } = await leerLocal(this.raiz);
     const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');

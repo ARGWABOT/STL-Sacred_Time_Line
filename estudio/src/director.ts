@@ -156,7 +156,11 @@ interface Datos {
   /** Cuánto piensa ese director (`claude --effort`; null: el de la cuenta de Claude Code). */
   esfuerzo?: string | null;
   /** Lo que gastó cada lanzamiento del director en este computador (estudio/servidor/revisor.ts › consumoDeRevisiones). */
-  consumo?: { cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; costo: number; entrada: number; cache: number; salida: number; minutos: number }[];
+  consumo?: {
+    cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; costo: number; entrada: number; cache: number; salida: number; minutos: number;
+    pedido?: { modelo: string | null; esfuerzo: string | null; cumplido?: boolean | null };
+    limites: { cincoHoras: { uso: number; renueva: string | null } | null; semana: { uso: number; renueva: string | null } | null } | null;
+  }[];
   /** Lo que va haciendo el director que lanzó el Studio, mientras revisa (estudio/servidor/revisor.ts › progresoDe). */
   progreso?: { tipo: 'dice' | 'hace'; texto: string }[] | null;
   /** «No lo entiendo, explícamelo mejor» de un paso: el director lo aclara al instante, sin el resto de la revisión. */
@@ -816,15 +820,53 @@ async function ir(dest: Destino) {
   if (!anclaPendiente) window.scrollTo({ top: 0 });
 }
 
+/** Lo que dura el resalte (director.css › .resaltado): un repintado en medio no lo corta. */
+const MS_RESALTE = 4600;
+let resalteVivo: { ancla: string; desde: number } | null = null;
+
+/**
+ * Lleva la ventana hasta que el elemento quede entero a la vista, debajo de la cabecera fija: centrado si cabe y, si es
+ * más alto que la pantalla, con su comienzo arriba. Lo vuelve a comprobar cuando la página termina de acomodarse
+ * (imágenes, un repintado), porque un desplazamiento suave que empieza antes puede quedarse corto (nota del titular:
+ * lo señalado quedaba varias pantallas más abajo y no se veía el resalte).
+ */
+function mostrarEntero(el: HTMLElement) {
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ir = (suave: boolean) => {
+    if (!el.isConnected) return;
+    const cabeza = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alto-cabeza')) || 0;
+    const r = el.getBoundingClientRect();
+    const alto = innerHeight - cabeza - 24;
+    if (r.top >= cabeza + 8 && r.bottom <= innerHeight - 8) return; // ya se ve entero
+    const arriba = r.top + scrollY - cabeza - 12 - (r.height < alto ? (alto - r.height) / 2 : 0);
+    window.scrollTo({ top: Math.max(0, arriba), behavior: suave && !quieto ? 'smooth' : 'auto' });
+  };
+  ir(true);
+  setTimeout(() => ir(false), 700);
+}
+
 /** Muestra y resalta un elemento recién pintado (si es para escribir, lo deja listo). */
 function resaltar(el: HTMLElement | null | undefined) {
   if (!el) return;
-  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  mostrarEntero(el);
   el.classList.remove('resaltado');
+  el.style.animationDelay = '';
   void el.offsetWidth;
   el.classList.add('resaltado');
+  if (el.dataset.ancla) resalteVivo = { ancla: el.dataset.ancla, desde: Date.now() };
   const campo = el.matches('textarea, input') ? el : el.querySelector<HTMLElement>('textarea, input[type="text"]');
   if (campo) setTimeout(() => campo.focus({ preventScroll: true }), 300);
+}
+
+/** Tras un repintado, el resalte que seguía encendido continúa donde iba, sin empezar de nuevo. */
+function seguirResalte(v: HTMLElement) {
+  if (!resalteVivo) return;
+  const pasado = Date.now() - resalteVivo.desde;
+  if (pasado >= MS_RESALTE) return void (resalteVivo = null);
+  const el = v.querySelector<HTMLElement>(`[data-ancla="${CSS.escape(resalteVivo.ancla)}"]`);
+  if (!el || el.classList.contains('resaltado')) return;
+  el.style.animationDelay = `-${pasado}ms`;
+  el.classList.add('resaltado');
 }
 
 // ───────────────────────────────────────────── diálogo
@@ -3066,19 +3108,42 @@ function seccionModelo() {
   const deHoy = suma(lista.filter((x) => dia(new Date(x.cuando)) === dia(hoyLocal)));
   const deSemana = suma(lista.filter((x) => hoyLocal.getTime() - Date.parse(x.cuando) < 7 * 86_400_000));
   const cifra = (titulo: string, s: ReturnType<typeof suma>) => `<div><span class="tit">${titulo}</span><b>${dolares(s.costo)}</b><small>${s.n} ${s.n === 1 ? 'lanzamiento' : 'lanzamientos'} · ${miles(s.tokens)} tokens</small></div>`;
+  const nombreModelo = (id: string) => MODELOS.find((m) => m.id === id)?.nombre ?? id;
+  // Con cuál trabajó de verdad: Claude Code lo dice al empezar cada lanzamiento, y el Studio anota lo que pidió
+  const ultimo = lista.find((x) => x.modelo);
+  const cuandoUltimo = ultimo ? `${fecha(ultimo.cuando)} ${hora(ultimo.cuando)}` : '';
+  const trabajo = !ultimo
+    ? '<p class="como">Con qué modelo trabaja de verdad lo dice Claude Code al empezar cada lanzamiento: aparece aquí después del primero.</p>'
+    : ultimo.pedido?.cumplido === false
+      ? `<p class="aviso-modelo">El último lanzamiento (${cuandoUltimo}) pidió ${esc(nombreModelo(ultimo.pedido.modelo ?? ''))}, pero Claude Code trabajó con <b>${esc(nombreModelo(ultimo.modelo!))}</b>. Revisa en Claude Code qué modelos trae tu plan.</p>`
+      : `<p class="como modelo-real">El último lanzamiento (${cuandoUltimo}) trabajó con <b>${esc(nombreModelo(ultimo.modelo!))}</b>${ultimo.pedido ? (ultimo.pedido.modelo ? ', el que elegiste' : ', el de tu cuenta') : ''}: lo dice Claude Code al empezar.${ultimo.pedido && (ultimo.pedido.modelo ?? '') !== actual ? ' Lo que acabas de elegir se confirma aquí en el próximo lanzamiento.' : ''}</p>`;
+  // Los límites del plan, como los muestra /usage: Claude Code los informa en cada lanzamiento
+  const conLimites = lista.find((x) => x.limites);
+  const ventana = (titulo: string, v: { uso: number; renueva: string | null } | null) => {
+    if (!v) return '';
+    if (v.renueva && Date.parse(v.renueva) < Date.now()) return `<div><span class="tit">${titulo}</span><b>Renovado</b><small>se renovó el ${fecha(v.renueva)} a las ${hora(v.renueva)}</small></div>`;
+    return `<div><span class="tit">${titulo}</span><b>${v.uso.toLocaleString('es')} % usado</b><small>${v.renueva ? `se renueva el ${fecha(v.renueva)} a las ${hora(v.renueva)}` : ''}</small></div>`;
+  };
+  const limites = conLimites?.limites
+    ? `<h3>Los límites de tu plan</h3>
+        <div class="consumo-cifras">${ventana('Cada cinco horas', conLimites.limites.cincoHoras)}${ventana('Semanal', conLimites.limites.semana)}</div>
+        <p class="como">Es lo mismo que muestra <code>/usage</code> en Claude Code, como estaba al terminar el último lanzamiento (${fecha(conLimites.cuando)} ${hora(conLimites.cuando)}): Claude Code lo informa en cada uno, así que no cuenta lo que hayas usado después en otras sesiones.</p>`
+    : '<p class="como">Los límites de tu plan (cada cinco horas y semanal) los informa Claude Code en cada lanzamiento: aparecen aquí después del próximo. Mientras tanto, míralos en Claude Code con <code>/usage</code>.</p>';
   return `<section class="panel-d" data-ancla="p-director">
         <h3>El director en este computador</h3>
         <p class="como">Con qué modelo te revisa el director cuando el Studio lo llama (la revisión, «No lo entiendo» y lo urgente). Es de este computador: no va en git.</p>
         <label class="campo-modelo">Modelo<select data-modelo>${opcionesDe(opciones, actual)}</select></label>
-        <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Lo que acepta cada plan no se puede consultar desde el Studio: si tu cuenta no tiene el que elijas, la revisión lo dice y el Studio vuelve al de tu cuenta.</p>
+        <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Si tu cuenta no acepta el que elijas, el lanzamiento falla antes de trabajar, el Studio vuelve al de tu cuenta y lo dice.</p>
+        ${trabajo}
         <label class="campo-modelo">Esfuerzo<select data-esfuerzo>${opcionesDe(ESFUERZOS, d.esfuerzo ?? '')}</select></label>
-        <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta.</p>
+        <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta. Claude Code no informa el esfuerzo con que trabajó: si no acepta el elegido, falla al empezar y el Studio vuelve al de tu cuenta.</p>
+        ${limites}
         <h3>Lo que gastó</h3>
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
           <details class="detalles-repo"><summary>Cada lanzamiento (últimos 35 días)</summary>
-            <ul class="consumo-lista">${lista.slice(0, 60).map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]}${x.proyecto !== d.activo ? ` de ${esc(x.proyecto)}` : ''}${x.modelo ? ` · ${esc(x.modelo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min</span></li>`).join('')}</ul>
+            <ul class="consumo-lista">${lista.slice(0, 60).map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]}${x.proyecto !== d.activo ? ` de ${esc(x.proyecto)}` : ''}${x.modelo ? ` · ${esc(nombreModelo(x.modelo))}` : ''}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min</span></li>`).join('')}</ul>
           </details>` : '<p class="como">Todavía no hay lanzamientos del director en este computador.</p>'}
-        <p class="como">Son las cifras que Claude Code devuelve al terminar cada lanzamiento. El costo es lo que costaría a precio de API: con un plan de suscripción no se cobra aparte, pero cuenta para sus límites. Esos límites (cada cinco horas y por semana) no se pueden consultar desde el Studio: míralos en Claude Code con <code>/usage</code>.</p>
+        <p class="como">Los tokens son exactos: los cuenta la API y Claude Code los devuelve al terminar cada lanzamiento. Los dólares no son un cobro: Claude Code multiplica esos tokens por el precio de la API. Con un plan de suscripción no pagas eso; lo que gastas de verdad es el porcentaje de tus límites, arriba.</p>
       </section>`;
 }
 
@@ -3426,7 +3491,7 @@ function pintar() {
   if (anclaPendiente) {
     resaltar(v.querySelector<HTMLElement>(`[data-ancla="${CSS.escape(anclaPendiente)}"]`));
     anclaPendiente = null;
-  }
+  } else seguirResalte(v);
   tipoValidacionInicial = null;
 }
 
