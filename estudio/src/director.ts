@@ -496,9 +496,10 @@ function ponerTextoCubierta(texto: string) {
 
 // El servidor retuvo los cambios del Studio mientras el director trabajaba (estudio/servidor/recarga.ts): ahora, una
 // sola recarga. Si la página es de hace un momento, ya los trae: no hace falta
-import.meta.hot?.on('estudio:recargar', (x?: { reinicio?: boolean }) => {
+import.meta.hot?.on('estudio:recargar', (x?: { reinicio?: boolean; abrir?: boolean }) => {
   if (!x?.reinicio && Date.now() - cargadaEn < 10_000) return;
-  recargarConCuenta('El director terminó.', !!x?.reinicio);
+  // Abriste el Studio otra vez (doble clic) con el servidor ya encendido: no se enciende otro, se recarga esta página
+  recargarConCuenta(x?.abrir ? 'Abriste el Studio otra vez.' : 'El director terminó.', !!x?.reinicio);
 });
 
 /** El director terminó: un aviso grande, el sonido (si no sonó ya antes de recargar) y el título de la pestaña. */

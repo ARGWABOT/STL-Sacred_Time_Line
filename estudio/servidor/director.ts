@@ -23,7 +23,8 @@ import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { contenerRecargas } from './recarga';
+import { contenerRecargas, EVENTO_RECARGA } from './recarga';
+import { otroServidor, soltarCandado, tomarCandado, yaEncendido } from './unico';
 import {
   aclaracionesDe,
   agendaDe,
@@ -940,7 +941,30 @@ export function servidorDirector(): Plugin {
     configResolved(config) {
       raiz = config.root;
     },
-    configureServer(server) {
+    async configureServer(server) {
+      // Un solo servidor del Studio en este computador (unico.ts): si ya hay otro vivo, este no arranca
+      const otro = await otroServidor(raiz);
+      if (otro) throw new Error(yaEncendido(otro));
+      // Y uno solo por proceso: si Vite se reinicia y el servidor anterior siguiera escuchando, se cierra antes de que
+      // este escuche (el 20 de octubre quedó vivo en el 5180 y el nuevo se subió al 5181, con su propio lanzador)
+      const g = globalThis as { __estudioServidor?: typeof server };
+      const previo = g.__estudioServidor;
+      if (previo && previo !== server) {
+        try {
+          (previo.httpServer as { closeAllConnections?: () => void } | null)?.closeAllConnections?.();
+          previo.httpServer?.close(() => {});
+        } catch {
+          /* ya estaba cerrado */
+        }
+      }
+      g.__estudioServidor = server;
+      tomarCandado(raiz, server.config.server.port ?? 5180);
+      server.httpServer?.once('listening', () => {
+        const a = server.httpServer?.address();
+        if (a && typeof a === 'object') tomarCandado(raiz, a.port);
+      });
+      server.httpServer?.on('close', () => { if (g.__estudioServidor === server) soltarCandado(raiz); });
+      process.once('exit', () => soltarCandado(raiz));
       // Cada 15 segundos mira si hay una revisión pedida que nadie tomó: es leer un archivo, no gasta nada
       revisor = new Revisor(raiz);
       const reloj = setInterval(() => void revisor?.mirar().catch(() => {}), 15_000);
@@ -960,6 +984,13 @@ export function servidorDirector(): Plugin {
           if ((origen && !propio(origen)) || (sitio && sitio !== 'same-origin' && sitio !== 'none')) return responder(res, 403, { error: 'Esa petición no viene del Studio.' });
         }
         try {
+          // Abrir el Studio cuando ya estaba encendido (encender.ts): no se enciende otro servidor; la página que esté
+          // abierta se recarga (con su cuenta, sin cortar a quien escribe o graba) y se dice cuántas hay
+          if (ruta === '/recargar' && req.method === 'POST') {
+            const abiertas = server.ws.clients.size;
+            server.ws.send({ type: 'custom', event: EVENTO_RECARGA, data: { abrir: true } });
+            return responder(res, 200, { abiertas });
+          }
           if (ruta === '/' && req.method === 'GET') {
             // Lo que tarda cada parte de la carga: si pasa de 3 s, queda en el registro del servidor (.estudio/servidor.log),
             // para ver qué crece antes de que la página parezca colgada (así se encontraron las transcripciones, el 21 de octubre)
