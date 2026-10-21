@@ -154,6 +154,10 @@ body.director-trabajando .aclarar-paso { opacity: 0.45; cursor: not-allowed; }
 .opciones-paso { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .opciones-paso .boton-opcion { min-height: 36px; padding: 6px 18px; border-radius: 999px; background: var(--panel); border: 1px solid var(--tinta); color: var(--texto); font-weight: 600; }
 .opciones-paso .boton-opcion:hover, .opciones-paso .boton-opcion:focus-visible { background: var(--tinta); color: #f6e7b4; }
+/* «Ya te lo dije en mi comentario»: otra salida, más discreta que las opciones del director (pedido del titular) */
+.opciones-paso .boton-opcion.ya-lo-dije { border-style: dashed; color: var(--suave); font-weight: 500; }
+.opciones-paso .boton-opcion.ya-lo-dije:hover, .opciones-paso .boton-opcion.ya-lo-dije:focus-visible { color: #f6e7b4; }
+.opciones-paso.en-espera .boton-opcion.ya-lo-dije:hover { color: var(--suave); }
 .eleccion-paso { display: flex; gap: 5px; align-items: center; margin: 8px 0 0; font-size: 14px; color: var(--ok); }
 .eleccion-paso .icono { width: 16px; height: 16px; }
 /* Un paso que pide esperar antes de responder: la cuenta regresiva, y las opciones bloqueadas hasta que llegue a cero */

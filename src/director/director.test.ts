@@ -14,6 +14,8 @@ import {
   cumpleComprobacion,
   ordenDeComprobacion,
   eleccionDe,
+  comentarioDe,
+  YA_LO_DIJE,
   MAX_ESPERAR,
   opcionConDetalle,
   destinoDelPaso,
@@ -869,6 +871,32 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     expect(con({ texto: 'Elige', opciones: ['Sí', 'sí'] })).toHaveLength(1);
     expect(con({ texto: 'Elige', opciones: ['Sí', ''] })).toHaveLength(1);
     expect(con({ texto: 'Elige', opciones: ['Sí', 'No'], hecho: { que: 'nota' } })).toHaveLength(1);
+  });
+
+  it('«Ya te lo dije en mi comentario»: el último ✉ a secas del paso lo responde, y el paso se marca (pedido del titular)', () => {
+    const m = mision(['Lee', { texto: '¿Funciona?', opciones: ['Sí', 'No'] }]);
+    const nota = (id: string, cuando: string, de: string, sobre: Partial<Nota['sobre']>, resto: Partial<Nota> = { texto: 'Todo funciona' }): Nota =>
+      ({ id, cuando, quien: de, de, sobre: { tipo: 'mision', id: 't_meta', seccion: 'Paso 2', ...sobre }, ...resto });
+    const notas = [
+      nota('c1', '2026-10-21T09:00:00Z', 'titular', {}),
+      nota('c2', '2026-10-21T10:00:00Z', 'titular', {}, { audio: 'notas/a.webm' }),
+      nota('e', '2026-10-21T11:00:00Z', 'titular', { eleccion: 'Sí' }),
+      nota('h', '2026-10-21T11:01:00Z', 'titular', { hazlo: true }),
+      nota('a', '2026-10-21T11:02:00Z', 'titular', { aclarar: true }),
+      nota('ana', '2026-10-21T11:03:00Z', 'ana', {}),
+      nota('p1', '2026-10-21T11:04:00Z', 'titular', { seccion: 'Paso 1' }),
+      nota('vacia', '2026-10-21T11:05:00Z', 'titular', {}, { texto: '  ' }),
+    ];
+    expect(comentarioDe(notas, 't_meta', 1, 'titular')?.id).toBe('c2');
+    expect(comentarioDe(notas, 't_meta', 0, 'titular')?.id).toBe('p1');
+    expect(comentarioDe(notas, 't_meta', 1, 'ana')?.id).toBe('ana');
+    expect(comentarioDe(notas, 'otra', 1, 'titular')).toBeUndefined();
+    expect(comentarioDe([nota('vacia', '2026-10-21T11:05:00Z', 'titular', {}, { texto: '' })], 't_meta', 1, 'titular')).toBeUndefined();
+    // Con adjuntos y sin texto también es algo dicho
+    expect(comentarioDe([nota('img', '2026-10-21T11:06:00Z', 'titular', {}, { adjuntos: [{ ruta: 'notas/x.png', nombre: 'x.png', bytes: 10 }] })], 't_meta', 1, 'titular')?.id).toBe('img');
+    // La elección YA_LO_DIJE marca el paso, como cualquier opción
+    expect(pasosVistos(m, proyecto(), { ...estadoVacio(), notas: [notas[0], nota('y', '2026-10-21T12:00:00Z', 'titular', { eleccion: YA_LO_DIJE })] })).toEqual([1]);
+    expect(pasosVistos(m, proyecto(), { ...estadoVacio(), notas: [notas[0]] })).toEqual([]);
   });
 
   it('un paso puede pedir esperar antes de responder (la cuenta regresiva), y una opción «te cuento» abre el comentario', () => {

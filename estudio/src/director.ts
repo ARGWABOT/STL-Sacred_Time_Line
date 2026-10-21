@@ -14,6 +14,7 @@ import {
   claveIdea,
   claveLeido,
   coincideBusqueda,
+  comentarioDe,
   decideDecision,
   decisionesDe,
   documentosEnOrden,
@@ -53,6 +54,7 @@ import {
   trozosDeParte,
   urgenciasDeLaSemana,
   xpDe,
+  YA_LO_DIJE,
   type Contexto,
   type Criterio,
   type Destino,
@@ -751,10 +753,26 @@ function libreMientrasRevisa(cuerpo: Record<string, unknown>): boolean {
   return false;
 }
 
+/** Tras un ✉ de la persona de la misión en un paso con opciones aún sin responder: cómo darlo por respondido con eso. */
+function pistaYaLoDije(sobre: Nota['sobre'] | undefined): string {
+  if (sobre?.tipo !== 'mision' || sobre.eleccion || sobre.hazlo || sobre.aclarar) return '';
+  const m = d.plan.misiones.find((x) => x.id === sobre.id);
+  const i = m ? m.pasos.findIndex((_, k) => seccionPaso(k) === sobre.seccion) : -1;
+  const p = m?.pasos[i];
+  if (!m || !p || typeof p === 'string' || !p.opciones?.length || d.identidad.rol !== m.para) return '';
+  if (eleccionDe(d.estado.notas, m.id, i, m.para) || pasosHechos(m.id).includes(i)) return '';
+  // Las mismas condiciones que `opcionesPaso`: el botón no se usa antes de abrir el paso ni mientras corre su cuenta
+  const cuando = p.ir && !pasoAbierto(m.id, i) ? ` cuando oprimas «${p.ir.etiqueta}»,`
+    : p.esperar && !p.ir && inicioEspera(`${m.id}|${i}`) + p.esperar * 1000 > Date.now() ? ' al terminar la cuenta,' : '';
+  return ` Si con eso respondiste el paso,${cuando} márcalo con «${YA_LO_DIJE}».`;
+}
+
 async function accion(cuerpo: Record<string, unknown>, hecho = 'Guardado.') {
   if (!libreMientrasRevisa(cuerpo) && esperaAlDirector()) return false;
   if (cuerpo.tipo === 'comentar' && revisando() && hecho) hecho = cuerpo.urgente
     ? 'Lo urgente va solo al director en cuanto termine la revisión que está haciendo (las dos escriben el plan). Lo demás del Buzón espera la siguiente.'
+    : (cuerpo.sobre as { eleccion?: string } | undefined)?.eleccion === YA_LO_DIJE
+    ? 'Listo: el paso queda con lo que le contaste en tu comentario. Entra en la revisión siguiente, porque el director ya empezó esta.'
     : (cuerpo.sobre as { eleccion?: string } | undefined)?.eleccion
     ? `Elegiste «${(cuerpo.sobre as { eleccion: string }).eleccion}»: queda para la revisión siguiente, porque el director ya empezó esta.`
     : 'Quedó en el Buzón para la revisión siguiente: el director ya empezó esta y no la incluye.';
@@ -786,7 +804,7 @@ async function accion(cuerpo: Record<string, unknown>, hecho = 'Guardado.') {
     if (cuerpo.tipo === 'comentar') {
       const sobre = cuerpo.sobre as { tipo?: string } | undefined;
       const donde: Vista = sobre?.tipo === 'pregunta' ? 'preguntas' : 'buzon';
-      avisar(`${hecho}${cuerpo.audio ? ' Tu audio ya se está transcribiendo: te aviso cuando esté.' : ''}`, true, undefined, { etiqueta: donde === 'preguntas' ? 'Ver en Preguntas' : 'Ver en el Buzón', hacer: () => irA(donde) });
+      avisar(`${hecho}${pistaYaLoDije(cuerpo.sobre as Nota['sobre'] | undefined)}${cuerpo.audio ? ' Tu audio ya se está transcribiendo: te aviso cuando esté.' : ''}`, true, undefined, { etiqueta: donde === 'preguntas' ? 'Ver en Preguntas' : 'Ver en el Buzón', hacer: () => irA(donde) });
       pintarSegundoPlano();
     } else if (hecho) avisar(hecho, true);
     marcarSinServidor(false);
@@ -1924,14 +1942,20 @@ function marcaPaso(m: Mision, i: number, p: Paso, hecho: boolean): string {
 
 /**
  * Un paso que pide elegir (sí o no, una de pocas): las opciones como botones, en el paso mismo. Un clic deja la
- * elección en el Buzón, firmada, y el paso se marca solo; para otra respuesta está el ✉ del paso. Si el paso pide
- * esperar (`esperar`: lo que tarda en verse un cambio), las opciones quedan bloqueadas con su cuenta regresiva, para no
- * responder antes de tiempo; la cuenta empieza la primera vez que el paso se ve en este navegador.
+ * elección en el Buzón, firmada, y el paso se marca solo; para otra respuesta está el ✉ del paso. Si ya respondió con
+ * el ✉, va también «Ya te lo dije en mi comentario» (`YA_LO_DIJE`), que marca el paso sin elegir una opción que no le
+ * calza (pedido del titular). Si el paso pide esperar (`esperar`: lo que tarda en verse un cambio), las opciones quedan
+ * bloqueadas con su cuenta regresiva, para no responder antes de tiempo; la cuenta empieza la primera vez que el paso se
+ * ve en este navegador.
  */
 function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean, esperar?: number, ir?: Destino): string {
   const elegida = eleccionDe(d.estado.notas, m.id, i, m.para)?.sobre.eleccion;
+  if (elegida === YA_LO_DIJE) return `<p class="eleccion-paso">${icono('check')} Lo respondiste con tu comentario</p>`;
   if (elegida) return `<p class="eleccion-paso">${icono('check')} Elegiste: <b>${esc(elegida)}</b></p>`;
   if (hecho || d.identidad.rol !== m.para) return '';
+  // Lo que ya contó con el ✉ del paso también lo responde: un botón más, discreto, al final de las opciones
+  const yaLoDijo = comentarioDe(d.estado.notas, m.id, i, m.para);
+  const yaLoDije = (atributos: string) => (yaLoDijo ? `<button type="button" class="boton-opcion ya-lo-dije" ${atributos} title="Marca el paso con lo que ya le contaste al director en tu comentario, sin elegir otra opción">${esc(YA_LO_DIJE)}</button>` : '');
   // Si el paso manda a ver algo, primero se ve: las opciones se abren cuando se abre su botón (y, si el paso pide
   // esperar, la espera bloquea ese botón: al abrirlo ya pasó, así que las opciones no esperan otra vez)
   // Mientras su botón espera, nada de esto se ve: aparece con él, al terminar la cuenta
@@ -1939,12 +1963,12 @@ function opcionesPaso(m: Mision, i: number, opciones: string[], hecho: boolean, 
   if (ir && !pasoAbierto(m.id, i)) {
     const esperando = !!esperar && inicioEspera(clave) + esperar * 1000 > Date.now();
     return `<div class="tras-espera" data-tras-espera="${esc(clave)}"${esperando ? ' hidden' : ''}><p class="espera-paso por-abrir">${icono('info')} <span>Primero oprime «${esc(ir.etiqueta)}»: cuando lo hayas visto, aquí eliges cómo te fue.</span></p>
-      <div class="opciones-paso en-espera" role="group" aria-label="Elige una opción (se abre al ver lo que pide el paso)">${opciones.map((o) => `<button type="button" class="boton-opcion" disabled>${esc(o)}</button>`).join('')}</div></div>`;
+      <div class="opciones-paso en-espera" role="group" aria-label="Elige una opción (se abre al ver lo que pide el paso)">${opciones.map((o) => `<button type="button" class="boton-opcion" disabled>${esc(o)}</button>`).join('')}${yaLoDije('disabled')}</div></div>`;
   }
   const hasta = esperar && !ir ? inicioEspera(clave) + esperar * 1000 : 0;
   const bloqueadas = hasta > Date.now();
   const cuenta = bloqueadas ? cuentaGrande(hasta, clave, 'Al terminar, aquí aparecen las opciones para responder.') : '';
-  return `${cuenta}<div class="opciones-paso" role="group" aria-label="Elige una opción"${bloqueadas ? ` data-espera="${esc(clave)}" hidden` : ''}>${opciones.map((o, k) => `<button type="button" class="boton-opcion" data-elegir="${esc(m.id)}|${i}|${k}">${esc(o)}</button>`).join('')}</div>`;
+  return `${cuenta}<div class="opciones-paso" role="group" aria-label="Elige una opción"${bloqueadas ? ` data-espera="${esc(clave)}" hidden` : ''}>${opciones.map((o, k) => `<button type="button" class="boton-opcion" data-elegir="${esc(m.id)}|${i}|${k}">${esc(o)}</button>`).join('')}${yaLoDije(`data-ya-lo-dije="${esc(m.id)}|${i}"`)}</div>`;
 }
 
 /**
@@ -4155,6 +4179,12 @@ async function clicEnVista(b: HTMLButtonElement) {
       ? await accion({ tipo: 'comentar', sobre, texto: detalle.texto ?? '', audio: detalle.audio, ...(detalle.adjuntos?.length ? { adjuntos: detalle.adjuntos } : {}) }, `Elegiste «${eleccion}» y se lo contaste: quedó en el Buzón para el director.`)
       : await accion({ tipo: 'comentar', sobre }, `Elegiste «${eleccion}»: quedó en el Buzón para el director.`);
     if (!hecho) b.removeAttribute('disabled');
+  } else if (ds.yaLoDije) {
+    // «Ya te lo dije en mi comentario»: el paso queda respondido con lo que ya dijo con su ✉, sin elegir otra opción
+    const [id, i] = ds.yaLoDije.split('|');
+    b.setAttribute('disabled', '');
+    const sobre = { tipo: 'mision' as const, id, seccion: seccionPaso(Number(i)), eleccion: YA_LO_DIJE };
+    if (!(await accion({ tipo: 'comentar', sobre }, 'Listo: el paso queda con lo que le contaste en tu comentario.'))) b.removeAttribute('disabled');
   } else if (ds.hazlo) {
     // «Hazlo tú»: primero, qué hará el director; con el segundo clic, el encargo queda en el Buzón y el paso se marca solo.
     // No se ejecuta ahora: lo hace en su revisión siguiente

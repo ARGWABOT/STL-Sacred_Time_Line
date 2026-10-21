@@ -272,6 +272,9 @@ export const MAX_ESPERAR = 900;
 /** Una opción que pide contar algo más («te cuento con ✉»): al elegirla, el Studio abre el comentario del paso. */
 export const opcionConDetalle = (opcion: string) => /✉|te cuento|te copio|te explico/i.test(opcion);
 
+/** La elección de quien ya respondió el paso con su ✉: lo marca sin elegir una de las opciones del director. */
+export const YA_LO_DIJE = 'Ya te lo dije en mi comentario';
+
 /**
  * Adónde lleva el botón de un paso. Un paso que se cumple al cruzar una puerta lleva siempre a esa puerta, en su fase de
  * la Ruta, y la resalta: quien aún no conoce la interfaz ve en qué vista está y dónde queda «Cruzar la puerta», abajo de
@@ -339,6 +342,11 @@ export const MAX_OPCIONES = 6;
 /** La última opción que eligió la persona en un paso con `opciones` (la nota que la guarda), si ya eligió. */
 export const eleccionDe = (notas: Nota[], mision: string, i: number, persona: Persona) =>
   notas.filter((n) => n.de === persona && n.sobre.tipo === 'mision' && n.sobre.id === mision && n.sobre.seccion === seccionPaso(i) && !!n.sobre.eleccion).at(-1);
+
+/** El último comentario a secas de la persona en un paso (su ✉: sin elegir, encargar ni pedir aclarar), si dijo algo. */
+export const comentarioDe = (notas: Nota[], mision: string, i: number, persona: Persona) =>
+  notas.filter((n) => n.de === persona && n.sobre.tipo === 'mision' && n.sobre.id === mision && n.sobre.seccion === seccionPaso(i)
+    && !n.sobre.eleccion && !n.sobre.hazlo && !n.sobre.aclarar && (!!n.texto?.trim() || !!n.audio || !!n.adjuntos?.length)).at(-1);
 
 /** El último encargo («Hazlo tú») de la persona en un paso con `hazlo` (la nota que lo guarda), si ya se lo encargó. */
 export const encargoDe = (notas: Nota[], mision: string, i: number, persona: Persona) =>
@@ -787,7 +795,8 @@ export interface Nota {
    * cosa, la que dice la nota) o `comenta` (una duda o un comentario que no la decide). Sin postura, la nota la responde.
    * `aclarar`, en un paso de una misión: «No lo entiendo, explícamelo mejor» (un clic); el director lo atiende al
    * instante, sin el resto de la revisión, y reescribe ese paso con más detalle. `eleccion`, en un paso con `opciones`:
-   * la opción que eligió con un clic (el paso queda hecho). `hazlo`, en un paso con `hazlo`: le encargó el paso al
+   * la opción que eligió con un clic (el paso queda hecho); `YA_LO_DIJE` si lo dio por respondido con su ✉ de ese paso
+   * (`comentarioDe`). `hazlo`, en un paso con `hazlo`: le encargó el paso al
    * director («Hazlo tú», confirmado); el paso queda hecho y el director lo hace en su revisión siguiente.
    */
   sobre: { tipo: TipoSobre; id?: string; seccion?: string; decision?: string; fragmento?: string; postura?: Postura; aclarar?: boolean; eleccion?: string; hazlo?: boolean };

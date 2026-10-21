@@ -24,6 +24,7 @@ import {
   aclaracionesDe,
   archivar,
   archivoVacio,
+  comentarioDe,
   mensajeRepite,
   misionesPorVigilar,
   unirArchivo,
@@ -47,6 +48,7 @@ import {
   validarEstado,
   validarPlan,
   validarProyecto,
+  YA_LO_DIJE,
 } from '../../src/director/director.ts';
 import { fechaDeCambio, leerFresco } from '../../src/director/fresco.ts';
 import { corteDeRevision, enDisco as enDiscoDe, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, urgenciaActiva } from '../../src/director/proyectos.ts';
@@ -410,6 +412,13 @@ for (const n of comentarios) {
   if (s.tipo === 'mision' && s.aclarar) {
     const veces = aclaracionesDe(estado.notas, s.id ?? '', Number(/\d+/.exec(s.seccion ?? '')?.[0] ?? 1) - 1).length;
     linea(`  «No lo entiendo, explícamelo mejor» (${veces === 1 ? 'la primera vez' : `${veces} veces`}): el Studio no pudo aclararlo al instante. Reescribe ese paso con más contexto (\`texto\` y, si son varias acciones, \`detalle\`), sin cambiar su número, y responde con su \`destino\` en la misión.`);
+  } else if (s.tipo === 'mision' && s.eleccion === YA_LO_DIJE) {
+    // Ninguna opción le calzaba: el paso lo responde lo que ya dijo con su ✉ de ese paso (el último antes de este clic)
+    const c = n.de ? comentarioDe(estado.notas.filter((x) => x.cuando <= n.cuando), s.id ?? '', Number(/\d+/.exec(s.seccion ?? '')?.[0] ?? 1) - 1, n.de) : undefined;
+    // Un audio sin voz deja su .txt vacío: no es «solo adjuntos»
+    const oido = c?.audio ? (transcripcion(c.audio) ?? '(audio sin transcribir)') || '(audio sin voz)' : '';
+    const dicho = c ? [c.texto?.trim(), oido].filter(Boolean).join(' · ').replace(/\s+/g, ' ').slice(0, 400) || '(solo adjuntos)' : '';
+    linea(`  Dio el paso por respondido con su comentario de ese paso («${YA_LO_DIJE}», con un clic; el paso quedó hecho)${c ? `: [${c.id}] «${dicho}»` : ', pero no encontré ese comentario: búscalo en el Buzón'}. Llévalo al plan como cualquier respuesta.`);
   } else if (s.tipo === 'mision' && s.eleccion) {
     linea(`  Eligió «${s.eleccion}» entre las opciones del paso, con un clic (el paso quedó hecho): llévalo al plan como cualquier respuesta.`);
   } else if (s.tipo === 'mision' && s.hazlo) {
@@ -453,7 +462,7 @@ const fuera = pedidoFueraDelStudio(plan, estado.notas, new Date(Date.now() - 7 *
 if (fuera.length) {
   linea('\n## Lo que pediste hacer fuera del Studio (misiones aprobadas, últimos 7 días)');
   linea('Lo hicieron porque tú lo pediste: si hablas de ello, dilo como tuyo. Es lo que cambió afuera (ramas, cuentas, configuración, lo subido).');
-  for (const x of fuera) linea(`- ${x.aprobada.slice(0, 10)} · ${x.mision.id}, paso ${x.paso + 1}: ${x.texto.replace(/\s+/g, ' ').slice(0, 200)}${x.eleccion ? ` → eligió «${x.eleccion}»` : ''}`);
+  for (const x of fuera) linea(`- ${x.aprobada.slice(0, 10)} · ${x.mision.id}, paso ${x.paso + 1}: ${x.texto.replace(/\s+/g, ' ').slice(0, 200)}${x.eleccion === YA_LO_DIJE ? ' → lo respondió con su comentario del paso' : x.eleccion ? ` → eligió «${x.eleccion}»` : ''}`);
 }
 
 // El freno del director: lo revisado queda sellado. Si cambió, va un documento nuevo con lo que cambió, como paso siguiente.
