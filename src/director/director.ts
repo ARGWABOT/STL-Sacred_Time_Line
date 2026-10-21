@@ -562,6 +562,35 @@ export function mensajeRepite(mensaje: string, avanzamos: string[]): { frase: st
   return salida;
 }
 
+/** Un texto como se compara al buscar: sin tildes, sin mayúsculas y con los espacios seguidos en uno. */
+const comoSeBusca = (texto: string) => texto.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ');
+
+/**
+ * Lo que se busca, en piezas: cada palabra suelta (sin la puntuación que la rodea) y lo que va entre comillas ("…", “…”
+ * o «…») como una frase tal cual. Sin tildes ni mayúsculas.
+ */
+export function palabrasDeBusqueda(busqueda: string): string[] {
+  const salida: string[] = [];
+  for (const m of comoSeBusca(busqueda).matchAll(/"([^"]+)"|“([^”]+)”|«([^»]+)»|(\S+)/g)) {
+    const pieza = m[4] !== undefined ? m[4].replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '') : (m[1] ?? m[2] ?? m[3]).trim();
+    if (pieza) salida.push(pieza);
+  }
+  return salida;
+}
+
+/**
+ * Si unos textos (lo que dice una nota, lo que se entendió de su audio, lo que respondió el director) traen todas las
+ * piezas de una búsqueda, en cualquier orden y sin importar tildes ni mayúsculas: «caritas automaticas» encuentra «¿Las
+ * caritas del director son automáticas?». Una pieza vale también como comienzo de palabra («carita» encuentra «caritas»).
+ * Sin nada que buscar, todo coincide.
+ */
+export function coincideBusqueda(textos: (string | null | undefined)[], busqueda: string): boolean {
+  const piezas = palabrasDeBusqueda(busqueda);
+  if (!piezas.length) return true;
+  const todo = comoSeBusca(textos.filter(Boolean).join('\n'));
+  return piezas.every((p) => todo.includes(p));
+}
+
 export interface EvaluacionCriterio {
   fecha: string;
   estado: 'cumplido' | 'no_aplica';

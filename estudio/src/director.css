@@ -468,6 +468,11 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 /* ── El Buzón y las notas ── */
 .explica-buzon { margin-bottom: 14px; background: var(--sobre); border-color: var(--sobre-borde); }
 .explica-buzon p { margin: 8px 0 0; font-size: 15px; line-height: 1.6; max-width: var(--lectura); }
+/* «Buscar en el Buzón»: el campo arriba de las notas, del ancho de lectura */
+.buscar-buzon { display: grid; gap: 6px; max-width: var(--lectura); margin: 0 0 16px; }
+.buscar-buzon label { font-weight: 650; }
+.buscar-buzon .como { margin: 0; font-size: 13.5px; }
+.hallado-en { color: var(--acento-texto); font-weight: 600; }
 .redactar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .redactar .botones { display: flex; justify-content: flex-end; }
 .grabadora { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }

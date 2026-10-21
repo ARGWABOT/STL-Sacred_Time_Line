@@ -7,6 +7,8 @@ import {
   archivar,
   archivoVacio,
   mensajeRepite,
+  coincideBusqueda,
+  palabrasDeBusqueda,
   misionesPorVigilar,
   unirArchivo,
   cumpleComprobacion,
@@ -421,6 +423,22 @@ describe('el plan no pesa: lo cerrado sale a su archivo', () => {
     expect(mensajeRepite('Publiqué la portada: ya no arranca sola, da la bienvenida y la rueda la adelanta.', avanzamos)).toHaveLength(1);
     expect(mensajeRepite('No pude abrir el navegador en esta revisión; los anchos móviles quedan por mirar.', avanzamos)).toEqual([]);
     expect(mensajeRepite('Bien.', avanzamos)).toEqual([]);
+  });
+
+  it('la búsqueda del Buzón: todas las palabras, sin tildes ni mayúsculas, en lo dicho o en la respuesta', () => {
+    const nota = 'Sobre las caritas del director, ¿son aleatorias?';
+    const respuesta = 'No son al azar: cada carita sale del ánimo del momento, y son automáticas.';
+    expect(coincideBusqueda([nota, respuesta], 'caritas AUTOMATICAS')).toBe(true);
+    expect(coincideBusqueda([nota, undefined, respuesta], 'carita animo')).toBe(true);
+    expect(coincideBusqueda([nota], 'caritas automáticas')).toBe(false);
+    // Entre comillas, la frase tal cual; la puntuación que rodea una palabra no cuenta
+    expect(coincideBusqueda([nota], '"las caritas"')).toBe(true);
+    expect(coincideBusqueda([nota], '«caritas las»')).toBe(false);
+    expect(coincideBusqueda([nota], '¿aleatorias?')).toBe(true);
+    expect(palabrasDeBusqueda('  «Del  Director»  ¿caritas? ')).toEqual(['del director', 'caritas']);
+    // Sin nada que buscar, todo coincide
+    expect(coincideBusqueda([nota], '  ')).toBe(true);
+    expect(coincideBusqueda([], '¿?')).toBe(true);
   });
 });
 

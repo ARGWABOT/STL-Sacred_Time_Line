@@ -13,6 +13,7 @@ import {
   bloqueosPuerta,
   claveIdea,
   claveLeido,
+  coincideBusqueda,
   decideDecision,
   decisionesDe,
   documentosEnOrden,
@@ -37,6 +38,7 @@ import {
   opcionConDetalle,
   destinoDelPaso,
   partesDeDocumento,
+  palabrasDeBusqueda,
   pasosVistos,
   pendientesDelDirector,
   repartoPorFrente,
@@ -338,6 +340,7 @@ async function cargar(fresco = false) {
     borradorObjetivo = null;
     consulta = null;
     celda = null;
+    busquedaBuzon = '';
   }
   // Si no llegó nada nuevo, no se repinta (no se pierde la lectura ni lo que suena): solo la hora de la sincronización
   const huella = (x: Datos) => JSON.stringify([x.activo, x.proyectos, x.plan, x.estado, x.transcripciones, x.transcribiendo, x.sinTranscribir, x.identidad, x.errores, x.proyecto, x.repositorio, x.arranque, x.revision, x.aclaracion, x.urgencia]);
@@ -2198,8 +2201,11 @@ const plegable = (clave: string, porDefecto = false) => ` data-recuerda="${esc(c
 /** Dónde quedó lo que dijo la nota (la misión, la propuesta, la fase o la parte de un documento), con su botón: para comprobarlo de un vistazo. */
 const quedoEn = (r: Respuesta) => (r.destino ? `<p class="quedo-en">Quedó en: ${botonIr(r.destino, 'enlace')}</p>` : '');
 
-/** `plegada`: en el Buzón cada nota se ve en una línea y se despliega la que se quiera revisar (sin scroll de más). */
-function tarjetaNota(n: Nota, conSobre = true, plegada = false) {
+/**
+ * `plegada`: en el Buzón cada nota se ve en una línea y se despliega la que se quiera revisar (sin scroll de más).
+ * `enRespuesta`: lo buscado está en lo que respondió el director, no en la línea que se ve: la línea lo dice.
+ */
+function tarjetaNota(n: Nota, conSobre = true, plegada = false, enRespuesta = false) {
   const r = d.plan.respuestas[n.id];
   const mia = n.de === d.identidad.rol;
   const puedeBorrar = !r && (titular() || mia);
@@ -2209,7 +2215,7 @@ function tarjetaNota(n: Nota, conSobre = true, plegada = false) {
     ${r ? `<div class="respuesta-dir"><b>El director (${momento(r.cuando)}):</b>${r.tratamiento ? ` <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''} ${esc(r.texto)}${quedoEn(r)}</div>` : '<p class="esperando">Esperando al director. Hasta que lo lea, puedes corregirla o borrarla.</p>'}`;
   if (plegada) {
     return `<li class="nota-d plegable${r ? ' respondida' : ''}"><details data-nota="${esc(n.id)}"${notasAbiertas.has(n.id) ? ' open' : ''}>
-      <summary>${n.urgente ? `<span class="urgente-s" title="Urgente">${icono('urgente')}</span>` : ''}<span class="asunto">${esc(asuntoDe(n))}</span><span class="como">${esc(n.quien)} · ${momento(n.cuando)}${conSobre ? ` · sobre ${sobreDe(n)}` : ''}${r?.tratamiento ? ` · <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}</span></summary>
+      <summary>${n.urgente ? `<span class="urgente-s" title="Urgente">${icono('urgente')}</span>` : ''}<span class="asunto">${esc(asuntoDe(n))}</span><span class="como">${esc(n.quien)} · ${momento(n.cuando)}${conSobre ? ` · sobre ${sobreDe(n)}` : ''}${r?.tratamiento ? ` · <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}${enRespuesta ? ' · <span class="hallado-en">está en la respuesta del director</span>' : ''}</span></summary>
       <div class="cuerpo-nota">${botones ? `<div class="botones-nota">${botones}</div>` : ''}${urgente}${cuerpo}</div>
     </details></li>`;
   }
@@ -2225,16 +2231,47 @@ function tarjetaNota(n: Nota, conSobre = true, plegada = false) {
  * propio: se le escribe desde el comentario junto a su cara, o con «Comentar al director» en cada cosa.
  */
 function vistaBuzon() {
-  const notas = [...d.estado.notas].reverse().filter((n) => seVe(n.de) && !esPregunta(n));
-  const esperando = notas.filter((n) => !d.plan.respuestas[n.id]);
-  const respondidas = notas.filter((n) => d.plan.respuestas[n.id]);
   return `<details class="explica-buzon panel-d">
       <summary>¿Qué es el Buzón del director?</summary>
       <p>Es donde llega <b>todo lo que le dicen al director</b>: el comentario junto a la cara del director (su globo, «Comentario») y cada <span class="al-director-chip">✉ Comentar al director</span> de las misiones, las propuestas, los criterios, el diagnóstico y las partes de los documentos.</p>
       <p><b>Piensa, corrige y luego envía:</b> lo que dejas espera, y lo puedes corregir o borrar. El director solo lo lee cuando se pide la revisión (<b>«Pedir revisión»</b>, arriba): entonces transcribe los audios, lee todo junto, responde en cada nota y, si hace falta, cambia la ruta o las misiones.</p>
-      <p>Cada nota se ve en una línea: ábrela para leerla con su respuesta. Las <b>preguntas</b> van aparte, en <button type="button" class="enlace" data-vista="preguntas">Preguntas</button>: allí el director te las responde todas juntas, como un informe.</p>
+      <p>Cada nota se ve en una línea: ábrela para leerla con su respuesta. Para encontrar una, escribe en <b>«Buscar en el Buzón»</b> palabras de lo que dijiste o de lo que respondió el director. Las <b>preguntas</b> van aparte, en <button type="button" class="enlace" data-vista="preguntas">Preguntas</button>: allí el director te las responde todas juntas, como un informe.</p>
     </details>
-    ${filtroVisible()}<h3>Esperando respuesta del director <small>· ${esperando.length}</small></h3>
+    ${filtroVisible()}<div class="buscar-buzon" role="search">
+      <label for="buscar-buzon">Buscar en el Buzón</label>
+      <input id="buscar-buzon" type="search" data-buscar-buzon value="${esc(busquedaBuzon)}" placeholder="Palabras de lo que dijiste o de lo que respondió el director" autocomplete="off" spellcheck="false">
+      <p class="como">Sin importar tildes ni mayúsculas, y en cualquier orden. Entre comillas, una frase tal cual.</p>
+    </div>
+    <div id="resultados-buzon">${notasDelBuzon()}</div>`;
+}
+
+/** Lo que se escribió en «Buscar en el Buzón»: se queda mientras no cambies de proyecto. */
+let busquedaBuzon = '';
+
+/** Lo que dice una nota (su texto, lo que se entendió de su audio, lo que eligió) y, con `conRespuesta`, lo que respondió el director. */
+function textosDeNota(n: Nota, conRespuesta = true) {
+  return [n.texto, n.audio && d.transcripciones[n.audio], n.sobre.eleccion, n.sobre.fragmento, conRespuesta ? d.plan.respuestas[n.id]?.texto : undefined];
+}
+
+/**
+ * Las notas del Buzón: lo que espera al director y, plegado, lo ya respondido. Con algo en «Buscar en el Buzón», solo
+ * las que lo dicen (en la nota o en su respuesta), todas juntas, de la más nueva a la más vieja. Se repinta sola al
+ * escribir, sin tocar el campo de búsqueda.
+ */
+function notasDelBuzon() {
+  const notas = [...d.estado.notas].reverse().filter((n) => seVe(n.de) && !esPregunta(n));
+  if (palabrasDeBusqueda(busquedaBuzon).length) {
+    const halladas = notas.filter((n) => coincideBusqueda(textosDeNota(n), busquedaBuzon));
+    const enPreguntas = d.estado.notas.filter((n) => seVe(n.de) && esPregunta(n) && coincideBusqueda(textosDeNota(n), busquedaBuzon)).length;
+    const tambien = enPreguntas ? ` ${enPreguntas === 1 ? 'Hay una' : `Hay ${enPreguntas}`} en <button type="button" class="enlace" data-vista="preguntas">Preguntas</button>, que van aparte.` : '';
+    return `<h3>Lo que encontré <small>· ${halladas.length}</small></h3>
+      ${halladas.length
+        ? `${tambien ? `<p class="como">${tambien.trim()}</p>` : ''}<ul class="notas-lista">${halladas.map((n) => tarjetaNota(n, true, true, !coincideBusqueda(textosDeNota(n, false), busquedaBuzon))).join('')}</ul>`
+        : `<p class="intro">Ninguna nota del Buzón dice «${esc(busquedaBuzon.trim())}», ni en lo que se dijo ni en lo que respondió el director. Prueba con menos palabras o con otras.${tambien}</p>`}`;
+  }
+  const esperando = notas.filter((n) => !d.plan.respuestas[n.id]);
+  const respondidas = notas.filter((n) => d.plan.respuestas[n.id]);
+  return `<h3>Esperando respuesta del director <small>· ${esperando.length}</small></h3>
     ${esperando.length ? `<ul class="notas-lista">${esperando.map((n) => tarjetaNota(n, true, true)).join('')}</ul>` : '<p class="intro">Nada esperando: el director está al día.</p>'}
     ${respondidas.length
       // Lo ya respondido va plegado: al entrar, la atención queda en lo que espera
@@ -3597,7 +3634,15 @@ function pintar() {
     proyectos: vistaProyectos, proyecto: vistaProyecto, diagnostico: vistaProyecto, frentes: vistaFrentes, validaciones: vistaValidaciones, esfuerzo: vistaEsfuerzo,
     metodo: vistaMetodo, bitacora: vistaBitacora, stl: () => vistaStl(true), preguntas: vistaPreguntas, modelo: vistaModelo,
   }[vista]();
+  // Si estabas escribiendo en «Buscar en el Buzón», el repintado no te saca del campo ni te mueve el cursor
+  const buscando = document.activeElement instanceof HTMLInputElement && document.activeElement.dataset.buscarBuzon !== undefined ? document.activeElement : null;
+  const cursor = buscando ? [buscando.selectionStart, buscando.selectionEnd] : null;
   v.innerHTML = errores + html;
+  if (cursor) {
+    const campo = v.querySelector<HTMLInputElement>('[data-buscar-buzon]');
+    campo?.focus();
+    campo?.setSelectionRange(cursor[0], cursor[1]);
+  }
   // El modo enfoque solo vale en un documento abierto: en otra sección se apaga
   if (enfoque && (vista !== 'documentos' || !doc)) enfoque = false;
   aplicarEnfoque();
@@ -3799,6 +3844,15 @@ async function dejarNota(sobre: { tipo: string; id?: string; seccion?: string; d
   }
   return ok;
 }
+
+// «Buscar en el Buzón»: cada letra filtra las notas al momento, sin repintar el campo
+$('vista').addEventListener('input', (e) => {
+  const campo = (e.target as HTMLElement).closest<HTMLInputElement>('[data-buscar-buzon]');
+  if (!campo) return;
+  busquedaBuzon = campo.value;
+  const resultados = document.getElementById('resultados-buzon');
+  if (resultados) resultados.innerHTML = notasDelBuzon();
+});
 
 $('vista').addEventListener('change', async (e) => {
   const casilla = (e.target as HTMLElement).closest<HTMLInputElement>('[data-paso]');
