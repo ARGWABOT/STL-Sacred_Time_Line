@@ -8,7 +8,30 @@
   --apoyo-fondo: #e6f1fb;
   --espera: #7a4a06;
   --espera-fondo: #faeeda;
-  --oro: #b7860b;
+  /* el dorado de los logros, también como texto: 4,5:1 sobre el blanco y sobre el verde claro (antes #b7860b: 3:1) */
+  --oro: #8a6a00;
+  /* el azul marino de «Qué es STL» (títulos y cifras) y el gris de sus flechas */
+  --marino: #1f2a5a;
+  --flecha: #5b6475;
+  /* El resalte de lo que se señala (.resaltado): un fondo del tema, nunca claro bajo un texto claro */
+  --resalte-fondo: #fff6d8;
+  --latido-fondo: #f8d4d4;
+}
+/* Las mismas, en el tema oscuro: los textos claros sobre fondos oscuros tintados (cada pareja llega a 4,5:1; se
+   comprueba en estilos.test.ts). Antes no había: el foco, el apoyo y la espera quedaban en tinta oscura sobre el
+   panel oscuro, y el resalte, claro bajo el texto claro */
+html.oscuro {
+  --foco: #8fd3a8;
+  --foco-fondo: #1c3326;
+  --apoyo: #a9c4f2;
+  --apoyo-fondo: #1e2a40;
+  --espera: #f0cf98;
+  --espera-fondo: #33281a;
+  --oro: #e0b445;
+  --marino: #b4bff0;
+  --flecha: #a3abbb;
+  --resalte-fondo: #332c16;
+  --latido-fondo: #4a2623;
 }
 
 /* ── Piezas comunes ── */
@@ -52,8 +75,11 @@
 @media (prefers-reduced-motion: reduce) { .ir-paso.principal { animation: none; } }
 .desmarcar-paso { margin-left: 8px; font-size: 13px; }
 /* 4,6 s: unos tres segundos encendido y después se apaga (antes 2,6 s; el titular pidió dos más, 21 de octubre) */
+/* El fondo sale del tema (--resalte-fondo): en oscuro, un dorado oscuro bajo el texto claro, que se lee en todo momento
+   del efecto (antes era #fff6d8 en los dos temas y, en oscuro, el texto no se leía hasta que se apagaba). El anillo
+   dorado va por fuera de la caja y no tapa nada */
 .resaltado { animation: resalte 4.6s ease-out; border-radius: 10px; }
-@keyframes resalte { 0%, 60% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: #fff6d8; } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
+@keyframes resalte { 0%, 60% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: var(--resalte-fondo); } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
 @media (prefers-reduced-motion: reduce) { .resaltado { animation: none; outline: 3px solid #f2b828; } }
 
 /* Todo lo que va al Buzón del director lleva el mismo sobre dorado */
@@ -214,7 +240,7 @@ button.esperando::after { content: ''; display: inline-block; width: 0.8em; heig
 .mision-c.sigue { border-color: var(--acento-borde); border-left-color: var(--acento); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.1), var(--sombra); }
 .mision-c .num-m { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; font-weight: 700; background: var(--acento); color: var(--texto-en-color); }
 .fila-sigue { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
-.sigue-esta { justify-self: start;font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; background: var(--acento); padding: 3px 12px; border-radius: 999px; }
+.sigue-esta { justify-self: start;font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--texto-en-color); background: var(--acento); padding: 3px 12px; border-radius: 999px; }
 .mision-c .estado-texto { margin: 0; font-size: 14px; color: var(--espera); line-height: 1.5; }
 .mision-c .nota-entrega { margin: 0; font-size: 14px; font-style: italic; }
 .mision-c.cola { padding: 10px 14px; background: var(--panel-suave); border-left-color: #cfccc3; box-shadow: none; }
@@ -484,7 +510,7 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .grabadora .ayuda-g { font-size: 13px; color: var(--suave); }
 .grabadora .esperando-mic { color: var(--aviso-texto); font-weight: 600; }
 .grabadora .audio-listo { flex-basis: 100%; margin: 0; font-size: 13.5px; color: var(--ok-texto); font-weight: 600; }
-@keyframes latido-g { 50% { background: #f8d4d4; } }
+@keyframes latido-g { 50% { background: var(--latido-fondo); } }
 /* Grabando: imposible no verlo. Un punto rojo que late, el tiempo y un medidor que se mueve con la voz */
 .grabadora.en-grabacion { padding: 8px 12px; border: 2px solid var(--peligro); border-radius: 14px; background: #fff7f6; }
 .punto-grabando { flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--peligro); animation: punto-g 1s ease-in-out infinite; }
@@ -879,6 +905,9 @@ html.enfoque-mision .progreso-director { z-index: 46; }
 .cifras-p { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; color: var(--suave); font-size: 13px; }
 .cifras-p b { color: var(--texto); font-size: 15px; }
 .alerta-p { margin: 0; padding: 8px 12px; border-radius: var(--radio); background: var(--peligro-fondo); color: var(--peligro-texto); font-size: 14px; line-height: 1.45; }
+/* «Qué pasó con la revisión»: lo último que alcanzó a hacer, con la misma lista del progreso en vivo, sin su marco */
+.falla-revision .pasos-progreso { padding: 0; max-height: 220px; }
+.falla-revision .botones { flex-wrap: wrap; }
 .bienvenida { max-width: 1080px; margin: 24px auto; padding: 28px 32px; font-size: 16px; line-height: 1.6; }
 .bienvenida h1 { margin: 6px 0 10px; font-size: 28px; }
 .bienvenida .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
@@ -1140,14 +1169,14 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
   .paradas-stl label > span:last-child { display: none; }
 }
 .num-parada { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: #1f2a5a; color: #fff; font-size: 15px; font-weight: 800; }
-.parada-stl > h2 { display: flex; align-items: center; gap: 10px; color: #1f2a5a; }
+.parada-stl > h2 { display: flex; align-items: center; gap: 10px; color: var(--marino); }
 .pie-parada { display: none; justify-content: space-between; gap: 12px; margin-top: 18px; }
 .pie-parada label { padding: 9px 16px; border-radius: 12px; font-weight: 700; font-size: 14.5px; cursor: pointer; }
 .parada-antes { color: var(--suave); border: 1px solid var(--borde); background: var(--panel); }
 .parada-sigue { margin-left: auto; color: #fff; background: #1f2a5a; }
 .parada-sigue:hover { background: #2c3a78; }
 .entrada-parada { font-size: 16px !important; }
-.grafico-t { display: block; margin-bottom: 12px; font-size: 16px; font-weight: 800; color: #1f2a5a; }
+.grafico-t { display: block; margin-bottom: 12px; font-size: 16px; font-weight: 800; color: var(--marino); }
 /* Una insignia en HTML: el ícono blanco sobre su círculo de color, como en el gráfico de la idea */
 .ficha-stl { display: inline-grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 50%; background: var(--c); color: #fff; }
 .ficha-stl .icono { width: 22px; height: 22px; }
@@ -1160,9 +1189,9 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .nodo-stl small { font-size: 12.5px; line-height: 1.35; color: var(--suave); }
 .tramo-stl { display: grid; gap: 14px; }
 .flecha-stl { position: relative; display: block; font-size: 12.5px; line-height: 1.35; color: var(--texto); text-align: center; }
-.flecha-stl i { display: none; font-style: normal; font-weight: 800; color: #5b6475; margin-right: 6px; }
-.flecha-stl.ida { padding-bottom: 6px; border-bottom: 2.5px solid #5b6475; }
-.flecha-stl.ida::after { content: ''; position: absolute; right: -2px; bottom: -7px; border: 6px solid transparent; border-left: 10px solid #5b6475; border-right: 0; }
+.flecha-stl i { display: none; font-style: normal; font-weight: 800; color: var(--flecha); margin-right: 6px; }
+.flecha-stl.ida { padding-bottom: 6px; border-bottom: 2.5px solid var(--flecha); }
+.flecha-stl.ida::after { content: ''; position: absolute; right: -2px; bottom: -7px; border: 6px solid transparent; border-left: 10px solid var(--flecha); border-right: 0; }
 .flecha-stl.vuelta { padding-top: 6px; border-top: 2.5px solid #a9b1c0; color: var(--suave); }
 .flecha-stl.vuelta::after { content: ''; position: absolute; left: -2px; top: -7px; border: 6px solid transparent; border-right: 10px solid #a9b1c0; border-left: 0; }
 @media (max-width: 760px) {
@@ -1182,7 +1211,7 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 @media (max-width: 560px) { .golpes-stl { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .cifras-stl { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .cifras-stl li { display: grid; align-content: start; gap: 4px; padding: 14px; border: 1px solid #c9cdf0; border-radius: var(--radio-g); background: #f7f7fe; }
-.cifras-stl b { font-size: 26px; line-height: 1.1; font-weight: 800; color: #1f2a5a; }
+.cifras-stl b { font-size: 26px; line-height: 1.1; font-weight: 800; color: var(--marino); }
 .cifras-stl span { font-size: 13px; line-height: 1.45; color: var(--texto); }
 .cifras-stl small { font-size: 12px; }
 @media (max-width: 1000px) { .cifras-stl { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -1190,7 +1219,7 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 /* Una secuencia de pasos con su insignia, unidos por flechas */
 .tira-stl { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 22px; }
 .tira-stl li { position: relative; display: grid; justify-items: center; align-content: start; gap: 4px; padding: 14px 10px; border: 1px solid var(--borde); border-radius: var(--radio-g); background: var(--panel-suave); text-align: center; }
-.tira-stl li:not(:last-child)::after { content: '→'; position: absolute; right: -18px; top: 50%; transform: translateY(-50%); font-weight: 800; color: #5b6475; }
+.tira-stl li:not(:last-child)::after { content: '→'; position: absolute; right: -18px; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--flecha); }
 .tira-stl b { font-size: 14.5px; line-height: 1.3; }
 .tira-stl span { font-size: 13px; line-height: 1.4; color: var(--suave); }
 @media (max-width: 760px) {
@@ -1200,12 +1229,12 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 /* Los principios, cada uno en el momento del flujo donde actúa */
 .momentos-stl { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 20px; }
 .momentos-stl > li { position: relative; display: grid; justify-items: center; align-content: start; gap: 8px; padding: 14px 10px; border: 1px solid var(--borde); border-top: 4px solid var(--c); border-radius: var(--radio-g); background: var(--panel-suave); }
-.momentos-stl > li:not(:last-child)::after { content: '→'; position: absolute; right: -16px; top: 30px; font-weight: 800; color: #5b6475; }
+.momentos-stl > li:not(:last-child)::after { content: '→'; position: absolute; right: -16px; top: 30px; font-weight: 800; color: var(--flecha); }
 .momento-n { font-size: 15px; color: var(--c); }
 .principio-chip { display: grid; gap: 2px; width: 100%; padding: 8px 9px; border-radius: 10px; background: var(--panel); border: 1px solid var(--borde); font-size: 12.5px; line-height: 1.35; color: var(--suave); }
 .principio-chip b { font-size: 13px; color: var(--texto); }
 .num-principio { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--c); color: #fff; font-size: 11px; font-weight: 800; }
-.vuelta-stl { margin: 14px 0 0; font-size: 14.5px; font-weight: 700; color: #1f2a5a; text-align: center; }
+.vuelta-stl { margin: 14px 0 0; font-size: 14.5px; font-weight: 700; color: var(--marino); text-align: center; }
 .vuelta-stl span { font-size: 18px; margin-right: 4px; }
 @media (max-width: 1100px) {
   .momentos-stl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1217,7 +1246,7 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 }
 /* Lo que se pliega: el glosario */
 .plegable-stl { margin: 14px 0 6px; padding: 12px 16px; border: 1px solid var(--borde); border-radius: var(--radio-g); background: var(--panel); }
-.plegable-stl summary { cursor: pointer; font-weight: 800; font-size: 15.5px; color: #1f2a5a; }
+.plegable-stl summary { cursor: pointer; font-weight: 800; font-size: 15.5px; color: var(--marino); }
 .plegable-stl[open] summary { margin-bottom: 10px; }
 /* Cuándo no aplica */
 .no-aplica-stl, .uso-stl { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -1248,13 +1277,13 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .grafico-linea { display: grid; gap: 14px; }
 .grafico-linea .solo-movil svg { max-width: 420px; margin: 0 auto; }
 .idea-cabecera { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) auto minmax(0, 0.8fr); gap: 14px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--borde); }
-.idea-titulo { display: block; font-size: 24px; line-height: 1.2; font-weight: 800; color: #1f2a5a; }
+.idea-titulo { display: block; font-size: 24px; line-height: 1.2; font-weight: 800; color: var(--marino); }
 .idea-intro p { margin: 6px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--suave); }
 .idea-suma { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 12px; border: 1px solid #c9cdf0; border-radius: var(--radio-g); background: #f7f7fe; }
 .idea-actor, .idea-rol { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; }
 .idea-actor b, .idea-rol b { display: block; font-size: 15.5px; }
 .idea-actor span { font-size: 13px; line-height: 1.45; color: var(--suave); }
-.idea-signo { font-size: 24px; font-weight: 800; color: #1f2a5a; }
+.idea-signo { font-size: 24px; font-weight: 800; color: var(--marino); }
 .idea-juntos { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; padding: 12px 14px; border: 1px solid #d6d0f5; border-radius: var(--radio-g); background: #f3f0fd; font-size: 13.5px; line-height: 1.45; }
 .idea-icono { display: block; width: 42px; height: 42px; }
 .idea-resultado { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 14px 16px; border: 1px solid #cfe5c4; border-radius: var(--radio-g); background: var(--ok-fondo); }
@@ -1262,8 +1291,8 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .idea-resultado > div > b { font-size: 16px; }
 .idea-resultado > div > b span { color: var(--ok-texto); }
 .idea-resultado p { margin: 4px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--suave); }
-.idea-cada-t { display: block; margin: 4px 0 10px; font-size: 18px; color: #1f2a5a; }
-.idea-cada-t span { color: #1f2a5a; }
+.idea-cada-t { display: block; margin: 4px 0 10px; font-size: 18px; color: var(--marino); }
+.idea-cada-t span { color: var(--marino); }
 .idea-roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 0.9fr); gap: 12px; }
 .idea-rol { padding: 12px 14px; border: 1px solid var(--borde); border-radius: var(--radio-g); background: var(--panel-suave); }
 .idea-rol ul { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.5; color: var(--suave); }
@@ -1432,13 +1461,32 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 html.oscuro :is(.dialogo-director, .dialogo-director .botones, .menu-proyectos, .item-nav.sel, .candidato, .tipo-proyecto, .opcion, .ficha-unidad, .candidatos-e li, .mision-c.cola[open], .pasos-arranque li.actual, .lista-preguntas li.editando, .cerrar-grande, .puerta) { background: var(--panel); color: var(--texto); }
 html.oscuro .item-nav:hover { background: rgba(255, 255, 255, 0.06); }
 html.oscuro :is(code, .lector pre) { background: #2f2d28; color: var(--texto); }
-html.oscuro :is(.chip, .cifra, .insignia.quien, .nota-letra, .icono-m, .pasos-arranque .num-a, .ruta .estado-fase, .salud .icono-s, .logro, .objetivo-cabeza.sin, .opcion.apagado .estado-opcion, .excepciones li.cerrada) { background: #34322c; color: var(--suave); }
+/* .cifra.accion queda fuera: conserva su acento (antes esta regla, más específica, la dejaba gris) */
+html.oscuro :is(.chip, .cifra:not(.accion), .insignia.quien, .nota-letra, .icono-m, .pasos-arranque .num-a, .ruta .estado-fase, .salud .icono-s, .logro, .objetivo-cabeza.sin, .opcion.apagado .estado-opcion, .excepciones li.cerrada) { background: #34322c; color: var(--suave); }
 html.oscuro :is(.barra-medida, .barra-xp, .fila-barra .pista-b, .dq-barra) { background: #34322c; }
 html.oscuro :is(.criterio.cumplido, .puerta.abierta, .ruta li.superada .estado-fase, .veredicto.aprobada, .carpetas-e li.git, .chip.estado-doc.leido, .chip.estado-doc.revisado) { background: var(--ok-fondo); color: var(--ok-texto); }
 html.oscuro :is(.veredicto.rehacer, .chip.estado-m.rehacer, .icono-m.rehacer, .grabadora.en-grabacion, .urgente-campo:has(input:checked)) { background: var(--peligro-fondo); color: var(--peligro-texto); }
 html.oscuro :is(.chip.estado-m.entregada, .icono-m.entregada, .mision-c .xp, .logro.ganado, .botones-parte > .leido-parte.hecho, button.al-director:hover) { background: var(--sobre); color: var(--sobre-texto); border-color: var(--sobre-borde); }
 html.oscuro :is(.golpes-stl li, .cifras-stl li, .idea-suma, .idea-juntos) { background: var(--panel-suave); border-color: var(--borde-fuerte); }
-html.oscuro .cifra.accion { background: var(--acento); color: #10151f; }
 html.oscuro .doc-l.revisado b { text-decoration-color: rgba(255, 255, 255, 0.3); }
+/* La verificación de contrastes del tema oscuro (nota del titular, 21 de octubre de 2026): lo que quedaba claro bajo
+   un texto claro, o oscuro bajo uno oscuro. Las parejas de variables se comprueban en estilos.test.ts */
+html.oscuro .ir-paso:not(.principal):hover { background: #26375a; border-color: #4a6aa0; }
+/* la marca blanca sobre el verde claro no llegaba a 3:1 */
+html.oscuro :is(.criterio .marca, .dq-check) { color: var(--texto-en-color); }
+html.oscuro .grabadora button.grabar { border-color: #7a3a36; color: var(--peligro-texto); }
+html.oscuro .grabadora button.grabando { background: var(--peligro-fondo); border-color: #7a3a36; color: var(--peligro-texto); }
+html.oscuro .aviso-modelo { background: var(--aviso-fondo); border-color: #6b4f1f; color: var(--aviso-texto); }
+html.oscuro .carpetas-e li:hover { background: var(--panel); }
+html.oscuro :is(.sube-nivel, .logros-nuevos) { color: var(--sobre-texto); }
+/* Las opciones de un paso: su borde era la tinta, casi negra sobre el panel oscuro */
+html.oscuro .opciones-paso .boton-opcion { border-color: var(--borde-control); }
+html.oscuro .mision-c .pasos li { border-color: var(--borde); }
+html.oscuro :is(.mision-c .pasos li.hecho, .criterio.cumplido, .pasos-arranque li.hecho) { border-color: #2f4a26; }
+html.oscuro .ruta .hito { background: conic-gradient(var(--ok) calc(var(--av, 0) * 1turn), var(--borde-fuerte) 0); }
+html.oscuro .ruta li.futura .hito::before { background: radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--panel) 90%, transparent), color-mix(in srgb, var(--panel) 25%, transparent) 60%, transparent 70%); }
+/* El gráfico de la idea (stl.ts › graficoSTL) dibuja sus cajas y sus textos con los colores del tema claro: en oscuro
+   va sobre su propio papel claro, con las variables del tema claro, y se lee igual que de día */
+html.oscuro .lienzo-stl { --panel: #ffffff; --panel-suave: #fbfaf7; --borde: #e2ded4; --texto: #23221f; --suave: #5c5b55; --tenue: #6a6862; --tinta: #2c2c2a; --acento: #2f5fb3; --acento-fondo: #eaf1fb; --acento-texto: #0c447c; --ok: #3b7d2a; --ok-texto: #27500a; padding: 10px; border-radius: var(--radio); background: #fbfaf7; }
 html.oscuro .parte-doc > h2:first-child { box-shadow: 0 6px 6px -6px rgba(0, 0, 0, 0.5); }
 html.oscuro img:not([src$='.svg']) { filter: brightness(0.92); }

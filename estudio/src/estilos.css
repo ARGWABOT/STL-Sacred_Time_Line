@@ -8,9 +8,12 @@
   --panel-suave: #fbfaf7;
   --borde: #e2ded4;
   --borde-fuerte: #cdc8bc;
+  /* el borde de un campo (texto, área, desplegable): lo único que lo dibuja, así que llega a 3:1 con su fondo */
+  --borde-control: #8a857a;
   --texto: #23221f;
   --suave: #5c5b55;
-  --tenue: #73716a;
+  /* el más tenue de los textos, y aun así 4,5:1 sobre la barra lateral (antes #73716a: 4,1:1) */
+  --tenue: #6a6862;
   --tinta: #2c2c2a;
   /* la acción y los estados */
   --acento: #2f5fb3;
@@ -61,9 +64,11 @@ html.oscuro {
   --panel-suave: #2c2a25;
   --borde: #3a3832;
   --borde-fuerte: #4a4740;
+  --borde-control: #7a756c;
   --texto: #e8e3d6;
   --suave: #b5afa0;
-  --tenue: #8f897c;
+  /* antes #8f897c: 4,1:1 sobre --panel-suave; los contrastes de cada pareja se comprueban en estilos.test.ts */
+  --tenue: #9a9486;
   --tinta: #121110;
   --acento: #6f9be3;
   --acento-oscuro: #8db0ea;
@@ -123,7 +128,7 @@ button.enlace:hover { background: none; color: var(--acento-oscuro); }
 .boton-suave { background: var(--panel-suave); }
 
 input:where([type='text'], [type='url'], [type='search'], [type='number'], [type='date'], [type='email'], :not([type])), textarea, select {
-  font: inherit; font-size: 15px; color: var(--texto); background: var(--panel); border: 1px solid var(--borde-fuerte); border-radius: 8px;
+  font: inherit; font-size: 15px; color: var(--texto); background: var(--panel); border: 1px solid var(--borde-control); border-radius: 8px;
   padding: 8px 11px; min-height: 40px;
 }
 input:where([type='text'], [type='url'], [type='search'], [type='number'], [type='date'], [type='email'], :not([type])), textarea { width: 100%; }
@@ -138,6 +143,8 @@ select {
   background: var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235f5e5a' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 12px center;
 }
 select:hover { background-color: var(--panel-suave); }
+/* en oscuro, la flecha clara: la gris del tema claro no llegaba a 3:1 sobre el fondo oscuro */
+html.oscuro select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23b5afa0' stroke-width='1.6'/%3E%3C/svg%3E"); }
 
 .barra-medida { display: block; height: 6px; border-radius: 3px; background: #e6e2d8; overflow: hidden; }
 .barra-medida > * { display: block; height: 100%; background: var(--ok); }
@@ -328,8 +335,10 @@ body.sin-servidor .cabeza-proyecto::before { content: '⚠ El servidor del Studi
 /* Con el director trabajando, el servidor caído casi siempre es él reiniciándolo: vuelve solo */
 body.sin-servidor.director-trabajando .cabeza-proyecto::before { content: '↻ El director está trabajando y el servidor del Studio se reinicia con sus cambios: vuelve solo en unos segundos.'; background: var(--aviso-fondo); color: var(--aviso-texto); }
 /* El director terminó la revisión: el aviso se ve grande y late unos segundos */
-.aviso-flotante.termino { bottom: 50%; translate: 0 50%; padding: 18px 16px 18px 22px; font-size: 17px; font-weight: 600; background: var(--acento); box-shadow: 0 0 0 6px color-mix(in srgb, var(--acento) 30%, transparent), var(--sombra-alta); animation: termino-late 1.2s ease-in-out 3; }
-.aviso-flotante.termino::before { font-size: 22px; color: #fff; }
+/* Sobre el acento, la tinta del texto en color: en oscuro el acento es claro y el blanco no llegaba a 3:1 */
+.aviso-flotante.termino { bottom: 50%; translate: 0 50%; padding: 18px 16px 18px 22px; font-size: 17px; font-weight: 600; background: var(--acento); color: var(--texto-en-color); box-shadow: 0 0 0 6px color-mix(in srgb, var(--acento) 30%, transparent), var(--sombra-alta); animation: termino-late 1.2s ease-in-out 3; }
+.aviso-flotante.termino::before { font-size: 22px; color: inherit; }
+.aviso-flotante.termino button { color: inherit; border-color: color-mix(in srgb, currentColor 35%, transparent); }
 @keyframes termino-late { 0%, 100% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--acento) 30%, transparent), var(--sombra-alta); } 50% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--acento) 0%, transparent), var(--sombra-alta); } }
 /* Mientras el director trabaja y la página aún no tiene datos (una recarga, un reinicio del servidor) */
 .pantalla-trabajando { display: grid; justify-items: center; gap: 12px; max-width: 520px; margin: 12vh auto 0; text-align: center; }

@@ -5,6 +5,8 @@
 .vista-equipo { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 38px; padding: 4px 6px 4px 10px; background: #e9e6dd; color: var(--suave); cursor: pointer; border-radius: 8px; }
 .vista-equipo .ve-etiqueta { flex: none; font-size: 12.5px; }
 .vista-equipo select { flex: 1; width: 100%; min-width: 0; text-overflow: ellipsis; min-height: 30px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--texto); border: 0; background-color: transparent; padding: 2px 26px 2px 4px; background-position: right 6px center; }
+/* en oscuro, el fondo gris claro dejaba su texto claro sin contraste */
+html.oscuro .vista-equipo:not(.otro) { background: #34322c; }
 .vista-equipo.otro { background: var(--aviso-fondo); color: var(--aviso-texto); box-shadow: inset 0 0 0 1.5px #e0b45a; }
 .vista-equipo .ve-solo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 600; color: var(--texto); }
 
