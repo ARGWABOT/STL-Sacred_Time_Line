@@ -1,6 +1,6 @@
 // El modelo y el esfuerzo de Claude Code en este computador: los de su configuración (~/.claude/settings.json, o la de
 // CLAUDE_CONFIG_DIR), los mismos que cambian /model y /effort. El Studio los lee y los escribe ahí, así que elegir en
-// Proyecto es lo mismo que usar /model o /effort en cualquier sesión de Claude Code, y al revés. Solo toca esas dos
+// «Modelo y consumo» es lo mismo que usar /model o /effort en cualquier sesión de Claude Code, y al revés. Solo toca esas dos
 // claves (y el esfuerzo del modelo elegido en `modelSettings`, si Claude Code ya lo guarda ahí): lo demás queda intacto,
 // y si el archivo no es JSON válido no lo toca.
 import { existsSync } from 'node:fs';

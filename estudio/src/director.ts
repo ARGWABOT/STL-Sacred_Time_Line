@@ -88,15 +88,16 @@ import { celebracion, destinoDeMision, logrosDe, PARA_QUE_SIRVE, seccionesConAlg
 
 cerrarConClicFuera();
 
-type Vista = 'misiones' | 'buzon' | 'documentos' | 'ruta' | 'propuestas' | 'proyectos' | 'proyecto' | 'diagnostico' | 'frentes' | 'validaciones' | 'esfuerzo' | 'metodo' | 'bitacora' | 'stl' | 'preguntas';
-const VISTAS: Vista[] = ['misiones', 'buzon', 'documentos', 'ruta', 'propuestas', 'proyectos', 'proyecto', 'diagnostico', 'frentes', 'validaciones', 'esfuerzo', 'metodo', 'bitacora', 'stl', 'preguntas'];
+type Vista = 'misiones' | 'buzon' | 'documentos' | 'ruta' | 'propuestas' | 'proyectos' | 'proyecto' | 'diagnostico' | 'frentes' | 'validaciones' | 'esfuerzo' | 'metodo' | 'bitacora' | 'stl' | 'preguntas' | 'modelo';
+const VISTAS: Vista[] = ['misiones', 'buzon', 'documentos', 'ruta', 'propuestas', 'proyectos', 'proyecto', 'diagnostico', 'frentes', 'validaciones', 'esfuerzo', 'metodo', 'bitacora', 'stl', 'preguntas', 'modelo'];
 
 /**
  * La barra lateral, solo con lo de todos los días: Hoy, el Buzón, las preguntas, la ruta, los documentos y las
  * propuestas. El seguimiento salió (decidido en «Un Studio más simple», 19 de octubre): los frentes viven solo en el
  * plan del director, las validaciones, el esfuerzo y la bitácora eran reportes, y el método está en «Qué es STL».
  * Proyecto (la configuración) está en la barra solo mientras el proyecto arranca; después, se abre con el engranaje
- * del selector de proyectos. El diagnóstico sigue en la barra hasta que pase a Proyecto. Preguntas, la ruta, los
+ * del selector de proyectos. «Modelo y consumo» no es de ningún proyecto (es Claude Code en este computador): va en el
+ * pie de la barra, aparte (pedido del titular, 21 de octubre). El diagnóstico sigue en la barra hasta que pase a Proyecto. Preguntas, la ruta, los
  * documentos y las propuestas aparecen cuando tienen algo (o si estás en ellas); la primera vez, el director dice para
  * qué sirven (`avisarSeccionesNuevas`).
  */
@@ -129,11 +130,11 @@ const recortar = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1).
 const NOMBRE_VISTA: Record<Vista, string> = {
   misiones: 'Hoy', buzon: 'Buzón del director', documentos: 'Documentos', ruta: 'La ruta', propuestas: 'Propuestas', proyectos: 'Todos los proyectos',
   proyecto: 'Proyecto', diagnostico: 'Diagnóstico', frentes: 'Frentes', validaciones: 'Validaciones', esfuerzo: 'Esfuerzo', metodo: 'Método',
-  bitacora: 'Bitácora', stl: 'Qué es STL', preguntas: 'Preguntas',
+  bitacora: 'Bitácora', stl: 'Qué es STL', preguntas: 'Preguntas', modelo: 'Modelo y consumo',
 };
 const ICONO_VISTA: Record<Vista, Icono> = {
   misiones: 'hoy', buzon: 'buzon', documentos: 'documentos', ruta: 'ruta', propuestas: 'propuestas', proyectos: 'proyectos', proyecto: 'proyecto',
-  diagnostico: 'diagnostico', frentes: 'frentes', validaciones: 'validaciones', esfuerzo: 'esfuerzo', metodo: 'metodo', bitacora: 'bitacora', stl: 'stl', preguntas: 'pregunta',
+  diagnostico: 'diagnostico', frentes: 'frentes', validaciones: 'validaciones', esfuerzo: 'esfuerzo', metodo: 'metodo', bitacora: 'bitacora', stl: 'stl', preguntas: 'pregunta', modelo: 'modelo',
 };
 
 interface Identidad { nombre: string; correo: string; rol: Persona | null; problema?: string; nuevo?: boolean }
@@ -812,6 +813,8 @@ async function ir(dest: Destino) {
   if (dest.doc) return abrirDocumento(dest.doc, dest.seccion ?? null);
   // «Escribirle al director» abre el comentario, como el atajo junto a su cara: el Buzón ya no tiene formulario
   if (dest.vista === 'buzon' && dest.ancla === 'escribir') return escribirAlDirector();
+  // «El director en este computador» salió de Proyecto: los botones de antes llevan a «Modelo y consumo»
+  if (dest.vista === 'proyecto' && dest.ancla === 'p-director') dest = { ...dest, vista: 'modelo', ancla: 'm-director' };
   if (dest.fase) faseVista = dest.fase;
   if (dest.tipoValidacion) tipoValidacionInicial = dest.tipoValidacion;
   anclaPendiente = dest.ancla ?? null;
@@ -1733,6 +1736,12 @@ function pintarNavegacion() {
       return `<details class="grupo-nav plegable"${abierto ? ' open' : ''}><summary class="titulo-grupo">${g.titulo}${pide ? '<span class="punto-pide" title="Algo aquí espera algo tuyo"></span>' : ''}</summary>${g.vistas.map(boton).join('')}</details>`;
     })
     .join('');
+  // «Modelo y consumo», en el pie: no es de un proyecto, pero se marca igual cuando estás en ella
+  const pie = $('ir-modelo');
+  pie.innerHTML = `${icono(ICONO_VISTA.modelo)}<span>${NOMBRE_VISTA.modelo}</span>`;
+  pie.classList.toggle('sel', vista === 'modelo');
+  if (vista === 'modelo') pie.setAttribute('aria-current', 'page');
+  else pie.removeAttribute('aria-current');
   avisarSeccionesNuevas();
 }
 
@@ -3087,7 +3096,6 @@ function vistaProyecto() {
         <label class="interruptor-s"><input type="checkbox" data-sincronizar${p.sincronizar ? ' checked' : ''}${t ? '' : ' disabled'} /> Subir solo a GitHub lo que decide cada persona</label>
         <p class="como">${esc(d.sincronizacion.subida?.mensaje ?? '')}</p>
       </section>
-      ${seccionModelo()}
     </div>
   </div>`;
 }
@@ -3131,11 +3139,13 @@ const dolares = (n: number) => `US$ ${n.toLocaleString('es', { minimumFractionDi
 const NOMBRE_LANZAMIENTO = { revision: 'Revisión', aclaracion: '«No lo entiendo»', urgencia: 'Urgencia' } as const;
 
 /**
- * El director en este computador: con qué modelo lo lanza el Studio y lo que gastó cada vez, por día y por semana.
- * Solo datos verdaderos: lo que Claude Code devuelve al terminar. Los límites del plan no se pueden consultar desde
- * fuera, así que se mandan a /usage de Claude Code en vez de inventar un número.
+ * Modelo y consumo: con qué modelo y cuánto piensa el director que lanza el Studio, y lo que gastó cada vez, por día,
+ * por semana y por proyecto. No es de ningún proyecto: es la configuración de Claude Code en este computador (la de
+ * /model y /effort), la misma para todos, así que va aparte, en el pie de la barra, y no en Proyecto (pedido del
+ * titular, 21 de octubre). Solo datos verdaderos: lo que Claude Code dice al empezar y devuelve al terminar cada
+ * lanzamiento, también los límites del plan (los mismos de /usage).
  */
-function seccionModelo() {
+function vistaModelo() {
   const actual = d.modelo ?? '';
   const lista = d.consumo ?? [];
   const elegido = MODELOS.find((m) => m.id === actual);
@@ -3144,9 +3154,13 @@ function seccionModelo() {
   const dia = (x: Date) => `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`;
   const suma = (xs: typeof lista) => ({ n: xs.length, costo: xs.reduce((s, x) => s + x.costo, 0), tokens: xs.reduce((s, x) => s + x.entrada + x.cache + x.salida, 0) });
   const deHoy = suma(lista.filter((x) => dia(new Date(x.cuando)) === dia(hoyLocal)));
-  const deSemana = suma(lista.filter((x) => hoyLocal.getTime() - Date.parse(x.cuando) < 7 * 86_400_000));
+  const semana = lista.filter((x) => hoyLocal.getTime() - Date.parse(x.cuando) < 7 * 86_400_000);
+  const deSemana = suma(semana);
   const cifra = (titulo: string, s: ReturnType<typeof suma>) => `<div><span class="tit">${titulo}</span><b>${dolares(s.costo)}</b><small>${s.n} ${s.n === 1 ? 'lanzamiento' : 'lanzamientos'} · ${miles(s.tokens)} tokens</small></div>`;
   const nombreModelo = (id: string) => MODELOS.find((m) => m.id === id)?.nombre ?? id;
+  const nombreProyecto = (id: string) => d.proyectos.find((p) => p.id === id)?.nombre || id;
+  // Lo de cada proyecto en la semana, del que más gastó al que menos: solo si el director trabajó en más de uno
+  const porProyecto = [...new Set(semana.map((x) => x.proyecto))].map((id) => ({ id, ...suma(semana.filter((x) => x.proyecto === id)) })).sort((a, b) => b.costo - a.costo);
   // Con cuál trabajó de verdad: Claude Code lo dice al empezar cada lanzamiento, y el Studio anota lo que pidió
   const ultimo = lista.find((x) => x.modelo);
   const cuandoUltimo = ultimo ? `${fecha(ultimo.cuando)} ${hora(ultimo.cuando)}` : '';
@@ -3163,13 +3177,15 @@ function seccionModelo() {
     return `<div><span class="tit">${titulo}</span><b>${v.uso.toLocaleString('es')} % usado</b><small>${v.renueva ? `se renueva el ${fecha(v.renueva)} a las ${hora(v.renueva)}` : ''}</small></div>`;
   };
   const limites = conLimites?.limites
-    ? `<h3>Los límites de tu plan</h3>
-        <div class="consumo-cifras">${ventana('Cada cinco horas', conLimites.limites.cincoHoras)}${ventana('Semanal', conLimites.limites.semana)}</div>
-        <p class="como">Es lo mismo que muestra <code>/usage</code> en Claude Code, como estaba al terminar el último lanzamiento (${fecha(conLimites.cuando)} ${hora(conLimites.cuando)}): Claude Code lo informa en cada uno, así que no cuenta lo que hayas usado después en otras sesiones.</p>`
-    : '<p class="como">Los límites de tu plan (cada cinco horas y semanal) los informa Claude Code en cada lanzamiento: aparecen aquí después del próximo. Mientras tanto, míralos en Claude Code con <code>/usage</code>.</p>';
-  return `<section class="panel-d" data-ancla="p-director">
-        <h3>El director en este computador</h3>
-        <p class="como">Con qué modelo te revisa el director cuando el Studio lo llama (la revisión, «No lo entiendo» y lo urgente). Es la configuración de Claude Code en este computador, la misma que cambian <code>/model</code> y <code>/effort</code>: lo que elijas aquí vale también para tus sesiones nuevas de Claude Code, y lo que cambies allá se ve aquí. No va en git.</p>
+    ? `<div class="consumo-cifras">${ventana('Cada cinco horas', conLimites.limites.cincoHoras)}${ventana('Semanal', conLimites.limites.semana)}</div>
+        <p class="como">Son de tu cuenta de Claude, no de un proyecto: lo mismo que muestra <code>/usage</code> en Claude Code, como estaba al terminar el último lanzamiento (${fecha(conLimites.cuando)} ${hora(conLimites.cuando)}). Claude Code lo informa en cada uno, así que no cuenta lo que hayas usado después en otras sesiones.</p>`
+    : '<p class="como">Son de tu cuenta de Claude, no de un proyecto: cuánto llevas de tu límite de cada cinco horas y del semanal. Claude Code los informa en cada lanzamiento, así que aparecen aquí después del próximo. Mientras tanto, míralos en Claude Code con <code>/usage</code>.</p>';
+  return `<p class="intro">Con qué modelo trabaja el director y lo que gasta, en este computador. No es de ningún proyecto: es la configuración de Claude Code, la misma que cambian <code>/model</code> y <code>/effort</code>, y vale igual para todos tus proyectos y para tus sesiones nuevas de Claude Code. No va en git.</p>
+  <div class="dos-columnas">
+    <div>
+      <section class="panel-d" data-ancla="m-director">
+        <h3>El director</h3>
+        <p class="como">Con qué modelo te revisa el director cuando el Studio lo llama (la revisión, «No lo entiendo» y lo urgente), en cualquiera de tus proyectos. Lo que elijas aquí vale también para tus sesiones nuevas de Claude Code, y lo que cambies allá con <code>/model</code> o <code>/effort</code> se ve aquí.</p>
         <label class="campo-modelo">Modelo<select data-modelo>${opcionesDe(opciones, actual)}</select></label>
         <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Si tu cuenta no acepta el que elijas, el lanzamiento falla antes de trabajar, el Studio lo quita de la configuración de Claude Code, vuelve al de tu cuenta y lo dice.</p>
         ${trabajo}
@@ -3177,14 +3193,24 @@ function seccionModelo() {
         <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta. Claude Code no informa el esfuerzo con que trabajó: si no acepta el elegido, falla al empezar y el Studio vuelve al de tu cuenta.</p>
         <div class="abrir-claude"><button type="button" class="boton-suave" data-abrir-claude>Abrir Claude Code en una terminal</button>
           <p class="como">Abre una ventana nueva con Claude Code como lo lanza el Studio: en la carpeta del Studio, con la del proyecto activo a la vista, y con este modelo y este esfuerzo. Sirve para lo que solo se hace allí, como <code>/usage</code> o iniciar sesión. Es una sesión tuya, aparte: te pide permiso para cada cosa, y lo del proyecto sigue yendo por el Buzón.</p></div>
+      </section>
+    </div>
+    <div>
+      <section class="panel-d" data-ancla="m-limites">
+        <h3>Los límites de tu plan</h3>
         ${limites}
-        <h3>Lo que gastó</h3>
+      </section>
+      <section class="panel-d" data-ancla="m-consumo">
+        <h3>Lo que gastó el director</h3>
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
+          ${porProyecto.length > 1 ? `<ul class="consumo-proyectos" aria-label="Por proyecto, en los últimos 7 días">${porProyecto.map((p) => `<li><span>${esc(nombreProyecto(p.id))}</span><span>${dolares(p.costo)} · ${p.n} ${p.n === 1 ? 'lanzamiento' : 'lanzamientos'}</span></li>`).join('')}</ul>` : ''}
           <details class="detalles-repo"><summary>Cada lanzamiento (últimos 35 días)</summary>
-            <ul class="consumo-lista">${lista.slice(0, 60).map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]}${x.proyecto !== d.activo ? ` de ${esc(x.proyecto)}` : ''}${x.modelo ? ` · ${esc(nombreModelo(x.modelo))}` : ''}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min</span></li>`).join('')}</ul>
+            <ul class="consumo-lista">${lista.slice(0, 60).map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]} de ${esc(nombreProyecto(x.proyecto))}${x.modelo ? ` · ${esc(nombreModelo(x.modelo))}` : ''}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min</span></li>`).join('')}</ul>
           </details>` : '<p class="como">Todavía no hay lanzamientos del director en este computador.</p>'}
-        <p class="como">Los tokens son exactos: los cuenta la API y Claude Code los devuelve al terminar cada lanzamiento. Los dólares no son un cobro: Claude Code multiplica esos tokens por el precio de la API. Con un plan de suscripción no pagas eso; lo que gastas de verdad es el porcentaje de tus límites, arriba.</p>
-      </section>`;
+        <p class="como">Los tokens son exactos: los cuenta la API y Claude Code los devuelve al terminar cada lanzamiento. Los dólares no son un cobro: Claude Code multiplica esos tokens por el precio de la API. Con un plan de suscripción no pagas eso; lo que gastas de verdad es el porcentaje de tus límites.</p>
+      </section>
+    </div>
+  </div>`;
 }
 
 // ───────────────────────────────────────────── diagnóstico
@@ -3506,7 +3532,7 @@ function pintar() {
   const html = {
     misiones: vistaMisiones, buzon: vistaBuzon, documentos: vistaDocumentos, ruta: vistaRuta, propuestas: vistaPropuestas,
     proyectos: vistaProyectos, proyecto: vistaProyecto, diagnostico: vistaDiagnostico, frentes: vistaFrentes, validaciones: vistaValidaciones, esfuerzo: vistaEsfuerzo,
-    metodo: vistaMetodo, bitacora: vistaBitacora, stl: () => vistaStl(true), preguntas: vistaPreguntas,
+    metodo: vistaMetodo, bitacora: vistaBitacora, stl: () => vistaStl(true), preguntas: vistaPreguntas, modelo: vistaModelo,
   }[vista]();
   v.innerHTML = errores + html;
   // El modo enfoque solo vale en un documento abierto: en otra sección se apaga

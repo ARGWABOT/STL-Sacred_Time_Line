@@ -818,7 +818,7 @@ html.enfoque-mision .progreso-director { z-index: 46; }
 .detalles-repo > summary, .mas-datos > summary { cursor: pointer; color: var(--acento-texto); font-weight: 500; width: max-content; max-width: 100%; }
 .detalles-repo .fila-form { margin-top: 8px; }
 .mas-datos .form-proyecto { margin-top: 8px; }
-/* El director en este computador: el modelo y lo que gastó */
+/* Modelo y consumo (en el pie de la barra): el modelo del director, los límites del plan y lo que gastó */
 .campo-modelo { display: grid; gap: 6px; font-size: 14px; font-weight: 600; margin-top: 10px; max-width: 320px; }
 .campo-modelo select { width: 100%; }
 .abrir-claude { margin-top: 14px; }
@@ -832,6 +832,9 @@ html.enfoque-mision .progreso-director { z-index: 46; }
 .consumo-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .consumo-lista li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; padding-bottom: 6px; border-bottom: 1px solid var(--borde); }
 .consumo-lista li > span:last-child { color: var(--suave); }
+.consumo-proyectos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.consumo-proyectos li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13.5px; }
+.consumo-proyectos li > span:last-child { color: var(--suave); }
 .form-proyecto { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; font-size: 14px; margin-top: 12px; }
 .form-proyecto label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-weight: 600; }
 .form-proyecto label.ancho { grid-column: 1 / -1; }

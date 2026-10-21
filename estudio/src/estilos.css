@@ -233,6 +233,9 @@ details.grupo-nav > summary:focus-visible { outline: 2px solid var(--acento); ou
 .cifra { flex: none; display: inline-grid; place-items: center; min-width: 22px; height: 21px; padding: 0 7px; border-radius: 999px; background: #e1ddd2; color: var(--suave); font-size: 12px; font-weight: 700; font-style: normal; }
 .cifra.accion { background: var(--acento); color: var(--texto-en-color); }
 .pie-lateral { margin-top: auto; position: sticky; bottom: -14px; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-inline: -12px; padding: 12px 12px 14px; background: var(--lateral-fondo); border-top: 1px solid var(--borde); }
+/* «Modelo y consumo»: como una sección más, pero en el pie, porque es de este computador y no del proyecto */
+.item-pie { margin-bottom: 2px; }
+body.sin-proyectos .item-pie { display: none; }
 .identidad { display: flex; flex-wrap: wrap; gap: 6px; }
 .identidad.con-vista #quien:not(.sin) { display: none; }
 .fila-pie { display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap; }

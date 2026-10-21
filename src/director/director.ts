@@ -204,7 +204,7 @@ export interface Adelantado {
 }
 
 /** Las pestañas del Director asistente a las que puede llevar un paso. */
-export const VISTAS_DIRECTOR = ['misiones', 'buzon', 'documentos', 'ruta', 'propuestas', 'proyectos', 'proyecto', 'diagnostico', 'frentes', 'validaciones', 'esfuerzo', 'metodo', 'bitacora', 'stl', 'preguntas'] as const;
+export const VISTAS_DIRECTOR = ['misiones', 'buzon', 'documentos', 'ruta', 'propuestas', 'proyectos', 'proyecto', 'diagnostico', 'frentes', 'validaciones', 'esfuerzo', 'metodo', 'bitacora', 'stl', 'preguntas', 'modelo'] as const;
 export type VistaDirector = (typeof VISTAS_DIRECTOR)[number];
 
 /**

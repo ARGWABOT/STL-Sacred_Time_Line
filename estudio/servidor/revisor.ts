@@ -360,7 +360,7 @@ const comoComando = (programa: string) => {
 /**
  * La orden que abre Claude Code en una terminal como lo lanza el Studio: en la carpeta del Studio (donde están las reglas
  * del director), con la del proyecto activo a la vista, y con el modelo y el esfuerzo de su configuración, que son los
- * que elige Proyecto. Es una sesión de quien la abre: pide permiso para lo que haga. Sin las variables de una sesión de
+ * que elige «Modelo y consumo». Es una sesión de quien la abre: pide permiso para lo que haga. Sin las variables de una sesión de
  * Claude Code desde la que se haya encendido el Studio, que le harían creer que está dentro de ella.
  */
 export function ordenAbrirClaude(programa: string, raiz: string, repositorio: string | null): string {
@@ -495,7 +495,7 @@ export class Revisor {
     // La de una aclaración o una urgencia lleva su nombre: así no se confunde con el registro de la revisión (progresoDeProyecto)
     const archivo = join(carpeta, `${proyecto}-${aparte ? `${aparte.tipo}-` : ''}${new Date().toISOString().replace(/[:.]/g, '-')}.log`);
     const registro = openSync(archivo, 'a');
-    // El modelo y el esfuerzo de Claude Code (los de /model y /effort, que también se eligen en Proyecto): se pasan
+    // El modelo y el esfuerzo de Claude Code (los de /model y /effort, que también se eligen en «Modelo y consumo»): se pasan
     // explícitos para que el registro diga qué se pidió
     const { modelo, esfuerzo } = await leerAjustesClaude(this.ajustes);
     // Lo pedido va primero en el registro: así el Studio compara con el modelo con que de verdad trabajó
@@ -521,7 +521,7 @@ export class Revisor {
       // arrancaría), y el aviso lo dice
       if (modelo && fallaDelModelo(readFileSync(archivo, 'utf-8'))) {
         await guardarModeloClaude(null, this.ajustes).catch(() => {});
-        problema = `Tu cuenta de Claude Code no aceptó el modelo «${modelo}», así que el Studio lo quitó de la configuración de Claude Code y volvió al de tu cuenta: pide la revisión otra vez. En Proyecto puedes elegir otro.`;
+        problema = `Tu cuenta de Claude Code no aceptó el modelo «${modelo}», así que el Studio lo quitó de la configuración de Claude Code y volvió al de tu cuenta: pide la revisión otra vez. En «Modelo y consumo», al pie de la barra, puedes elegir otro.`;
       } else if (esfuerzo && fallaDelEsfuerzo(readFileSync(archivo, 'utf-8'))) {
         await guardarEsfuerzoClaude(null, this.ajustes).catch(() => {});
         problema = `Claude Code no aceptó el esfuerzo «${esfuerzo}» (puede que su versión no lo traiga, o que el modelo no lo use), así que el Studio lo quitó de la configuración de Claude Code y volvió al de tu cuenta: pide la revisión otra vez.`;
