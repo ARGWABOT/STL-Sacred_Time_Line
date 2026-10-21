@@ -40,6 +40,7 @@ import {
   faseActual,
   misionesAbiertas,
   pasosPorComprobar,
+  pedidoFueraDelStudio,
   pendientesDelDirector,
   respuestasSinDestino,
   selladosQueCambiaron,
@@ -434,6 +435,14 @@ for (const x of estado.excepciones) if (nuevas(x.fecha)) linea(`- Excepción en 
 for (const v of estado.validaciones) if (nuevas(v.fecha)) linea(`- Validación ${v.tipo}: ${v.personas} personas, lo lograron ${v.lograron}, lo aprueban ${v.aprueban}${v.hallazgos ? ` · ${v.hallazgos}` : ''} (${v.quien})`);
 for (const [id, e] of Object.entries(estado.empezadas)) if (e.cuando >= desde) linea(`- Empezó la misión ${id} (${e.quien})`);
 for (const b of estado.bitacora) if (nuevas(b.fecha) && /objetivo|proyecto|equipo/i.test(b.texto)) linea(`- ${b.texto} (${b.quien})`);
+
+// Lo que el director pidió hacer afuera en los últimos días: lo hicieron porque él lo pidió, y así lo dice cuando hable de ello
+const fuera = pedidoFueraDelStudio(plan, estado.notas, new Date(Date.now() - 7 * 864e5).toISOString());
+if (fuera.length) {
+  linea('\n## Lo que pediste hacer fuera del Studio (misiones aprobadas, últimos 7 días)');
+  linea('Lo hicieron porque tú lo pediste: si hablas de ello, dilo como tuyo. Es lo que cambió afuera (ramas, cuentas, configuración, lo subido).');
+  for (const x of fuera) linea(`- ${x.aprobada.slice(0, 10)} · ${x.mision.id}, paso ${x.paso + 1}: ${x.texto.replace(/\s+/g, ' ').slice(0, 200)}${x.eleccion ? ` → eligió «${x.eleccion}»` : ''}`);
+}
 
 // El freno del director: lo revisado queda sellado. Si cambió, va un documento nuevo con lo que cambió, como paso siguiente.
 const cambiado: Record<string, string> = {};

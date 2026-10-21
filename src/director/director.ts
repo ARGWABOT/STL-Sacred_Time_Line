@@ -837,6 +837,38 @@ export function pasosPorComprobar(m: { pasos: Paso[] }, hechos: number[]): numbe
   });
 }
 
+export interface PedidoFuera {
+  mision: Mision;
+  /** El número del paso, desde 0. */
+  paso: number;
+  texto: string;
+  /** Lo que eligió la persona en ese paso, si tenía opciones. */
+  eleccion?: string;
+  /** Cuándo se aprobó la misión. */
+  aprobada: string;
+}
+
+/**
+ * Lo que el director pidió hacer fuera del Studio en las misiones aprobadas desde `desde`: los pasos que solo puede
+ * hacer la persona (`soloTu`), los de una orden de terminal y los que llevan a una página de afuera, con lo que eligió.
+ * El director empieza cada revisión sin memoria y la bandeja solo muestra las misiones abiertas: así sabe qué cambió
+ * afuera porque él lo pidió (renombrar una rama, correr una orden) y no lo trata como idea de otro (propuesta aceptada
+ * «Que cada revisión empiece sabiendo lo que el director te pidió hacer fuera del Studio», 20 de octubre).
+ */
+export function pedidoFueraDelStudio(plan: Plan, notas: Nota[], desde: string): PedidoFuera[] {
+  const fuera: PedidoFuera[] = [];
+  for (const m of plan.misiones) {
+    const r = plan.revisiones?.[m.id];
+    if (!r || r.veredicto !== 'aprobada' || r.cuando < desde) continue;
+    m.pasos.forEach((p, i) => {
+      if (typeof p === 'string' || (p.soloTu === undefined && !p.terminal && !p.ir?.url)) return;
+      const eleccion = notas.filter((n) => n.sobre.tipo === 'mision' && n.sobre.id === m.id && n.sobre.seccion === `Paso ${i + 1}` && n.sobre.eleccion).at(-1)?.sobre.eleccion;
+      fuera.push({ mision: m, paso: i, texto: p.terminal ? `${p.texto} (orden: ${p.terminal})` : p.texto, ...(eleccion ? { eleccion } : {}), aprobada: r.cuando });
+    });
+  }
+  return fuera.sort((a, b) => b.aprobada.localeCompare(a.aprobada) || a.paso - b.paso);
+}
+
 export interface PartesLeidas {
   /** Los títulos de las partes (`##`) marcadas; la entrada del documento es ''. */
   partes: string[];

@@ -15,6 +15,7 @@ import {
   MAX_ESPERAR,
   opcionConDetalle,
   destinoDelPaso,
+  pedidoFueraDelStudio,
   encargoDe,
   pasoHecho,
   pasosPorComprobar,
@@ -437,6 +438,17 @@ describe('llevar de la mano', () => {
     const otro = { vista: 'proyecto' as const, ancla: 'p-objetivo', etiqueta: 'Ir' };
     expect(destinoDelPaso({ texto: 'Fija la meta', ir: otro })).toBe(otro);
     expect(destinoDelPaso('Un paso sin botón')).toBeUndefined();
+  });
+
+  it('la bandeja recuerda lo que el director pidió hacer fuera del Studio en las misiones aprobadas recientes, con lo elegido', () => {
+    const p = planEjemplo();
+    const m = { ...p.misiones[0], pasos: ['Lee esto', { texto: 'Renombra la rama', soloTu: 'Es tu cuenta', opciones: ['Hecho', 'No pude'] }, { texto: 'Sube', terminal: 'node subir.ts' }, { texto: 'Mira la página', ir: { url: 'https://ejemplo.co', etiqueta: 'Ver' } }] };
+    p.misiones = [m, { ...m, id: 'vieja' }, { ...m, id: 'abierta' }];
+    p.revisiones = { [m.id]: { cuando: '2026-10-20T10:00:00Z', veredicto: 'aprobada', comentario: '' }, vieja: { cuando: '2026-10-01T10:00:00Z', veredicto: 'aprobada', comentario: '' } };
+    const notas = [{ id: 'n1', cuando: '2026-10-20T09:00:00Z', quien: 'x', sobre: { tipo: 'mision' as const, id: m.id, seccion: 'Paso 2', eleccion: 'Hecho' } }];
+    const fuera = pedidoFueraDelStudio(p, notas, '2026-10-13T00:00:00Z');
+    expect(fuera.map((x) => [x.mision.id, x.paso, x.eleccion])).toEqual([[m.id, 1, 'Hecho'], [m.id, 2, undefined], [m.id, 3, undefined]]);
+    expect(fuera[1].texto).toContain('node subir.ts');
   });
 });
 
