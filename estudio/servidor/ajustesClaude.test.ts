@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AJUSTES_DEL_DIRECTOR, archivoAjustesClaude, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
+import { AJUSTES_DEL_DIRECTOR, ajustesDelDirector, archivoAjustesClaude, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
 import { ordenAbrirClaude } from './revisor';
 
 let carpeta: string;
@@ -63,8 +63,15 @@ describe('la configuración de Claude Code (lo mismo que /model y /effort)', () 
     expect((await leerAjustesClaude(archivo)).ultracode).toBe(true);
     await guardarUltracodeClaude(false, archivo);
     expect(await leer()).toEqual({ model: 'opus' });
-    // el director que lanza el Studio, siempre sin él
+    // el director que lanza el Studio, sin él salvo que el titular le dé el permiso
     expect(AJUSTES_DEL_DIRECTOR).toEqual({ ultracode: false });
+  });
+
+  it('el director lanzado sigue a ultracode solo con él encendido y con el permiso del titular', () => {
+    expect(ajustesDelDirector(true, true)).toEqual({ ajustes: {}, flujos: true });
+    expect(ajustesDelDirector(true, false)).toEqual({ ajustes: { ultracode: false }, flujos: false });
+    expect(ajustesDelDirector(false, true)).toEqual({ ajustes: { ultracode: false }, flujos: false });
+    expect(ajustesDelDirector(false, false)).toEqual({ ajustes: { ultracode: false }, flujos: false });
   });
 
   it('crea el archivo si no está, y no toca uno que no es JSON ni acepta lo que Claude Code no aceptaría', async () => {

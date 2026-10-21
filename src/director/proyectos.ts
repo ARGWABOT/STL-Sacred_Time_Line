@@ -82,6 +82,12 @@ export interface Local {
   agente?: false;
   // El modelo y el esfuerzo del director ya no van aquí: son los de Claude Code (estudio/servidor/ajustesClaude.ts),
   // los mismos que cambian /model y /effort
+  /**
+   * Los permisos que el titular le dio al director lanzado, más allá de los de siempre (revisor.ts › permitido). Los pide el
+   * Studio cuando hacen falta y el titular los da con «Autorizo»: `ultracode`, que el director siga a ultracode cuando está
+   * encendido, con los flujos de varios agentes (Workflow) que eso necesita.
+   */
+  permisos?: { ultracode?: true };
 }
 
 /** Un modelo que acepta `claude --model`: un alias (opus, sonnet, haiku) o un id completo. */
@@ -154,6 +160,7 @@ const normal = (x: any): Local => ({
   ...(x?.urgencia && typeof x.urgencia.proyecto === 'string' && Array.isArray(x.urgencia.notas) && typeof x.urgencia.pedida === 'string' ? { urgencia: x.urgencia as UrgenciaPedida } : {}),
   ...(typeof x?.vigilia === 'string' ? { vigilia: x.vigilia } : {}),
   ...(x?.agente === false ? { agente: false as const } : {}),
+  ...(x?.permisos?.ultracode === true ? { permisos: { ultracode: true as const } } : {}),
 });
 
 /** Cada cuánto mira la sesión del director (/loop 5m /vigila), y desde cuándo se considera que nadie está mirando. */
@@ -219,6 +226,15 @@ async function guardarLocal(raiz: string, l: Local): Promise<void> {
 export async function guardarActivo(raiz: string, id: string): Promise<void> {
   const l = await leerLocal(raiz);
   await guardarLocal(raiz, { ...l, activo: id });
+}
+
+/** Da o quita un permiso del director lanzado (Local › permisos). Sin permisos, la clave sale del archivo. */
+export async function guardarPermiso(raiz: string, permiso: 'ultracode', activo: boolean): Promise<void> {
+  const { permisos, ...l } = await leerLocal(raiz);
+  const otros = { ...permisos };
+  if (activo) otros[permiso] = true;
+  else delete otros[permiso];
+  await guardarLocal(raiz, { ...l, ...(Object.keys(otros).length ? { permisos: otros } : {}) });
 }
 
 export async function guardarRutaRepositorio(raiz: string, id: string, ruta: string): Promise<void> {

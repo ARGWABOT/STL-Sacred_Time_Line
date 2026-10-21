@@ -20,6 +20,9 @@ describe('el director que lanza el Studio', () => {
     // nada que suba, despliegue o borre, ni escribir fuera del repositorio
     expect(p.some((x) => /push|deploy|rm\b|reset|clean/.test(x))).toBe(false);
     expect(p.filter((x) => /^(Edit|Write)/.test(x)).every((x) => x.includes('//c/repos/golf/'))).toBe(true);
+    // los flujos de varios agentes, solo con el permiso del titular (ultracode)
+    expect(p).not.toContain('Workflow');
+    expect(permitido(String.raw`C:\repos\golf`, true)).toEqual([...p.slice(0, p.indexOf('Task') + 1), 'Workflow', ...p.slice(p.indexOf('Task') + 1)]);
   });
 
   it('le encarga la revisión de un proyecto, con su id en las herramientas', () => {

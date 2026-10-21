@@ -11,7 +11,7 @@ import { spawn } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join, relative, resolve } from 'node:path';
-import { AJUSTES_DEL_DIRECTOR, archivoAjustesClaude, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { ajustesDelDirector, archivoAjustesClaude, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
 import { leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
 
 /** Lo que el Studio muestra del revisor: si revisa solo, o por qué no puede. */
@@ -81,9 +81,10 @@ type Aparte = { tipo: 'aclaracion'; a: AclaracionPedida } | { tipo: 'urgencia'; 
  * urgencia aprobada se arregle al instante), correr sus pruebas y hacer commits locales. Desde el 19 de octubre, también
  * investigar en internet (buscar y leer páginas, propuesta «El director puede buscar en internet») y repartir la
  * lectura entre ayudantes (subagentes), que heredan los mismos límites. Nada que suba,
- * despliegue o borre: eso queda listo para el titular.
+ * despliegue o borre: eso queda listo para el titular. Con `flujos` (ultracode encendido y el permiso del titular, del 21
+ * de octubre de 2026), también los flujos de varios agentes (Workflow), cuyos agentes tienen estos mismos límites.
  */
-export function permitido(repositorio: string): string[] {
+export function permitido(repositorio: string, flujos = false): string[] {
   // «//ruta» es una ruta absoluta en las reglas de permisos de Claude Code
   // En Windows, Claude Code compara las rutas en forma POSIX: C:\repos\x es /c/repos/x. Una regla Edit cubre también
   // la escritura de archivos nuevos
@@ -96,6 +97,7 @@ export function permitido(repositorio: string): string[] {
     // repartir una lectura grande entre ayudantes (un repositorio grande, los historiales de IA de la cola de
     // diagnósticos): cada ayudante hereda esta misma lista, ni un permiso más (decisión del 19 de octubre de 2026)
     'Agent', 'Task',
+    ...(flujos ? ['Workflow'] : []),
     'Bash(node tools/director/bandeja.ts:*)', 'Bash(node tools/director/diagnosticar.ts:*)', 'Bash(node tools/director/estado.ts:*)',
     'Bash(npm test)', 'Bash(npm run typecheck)',
     // mirar en un navegador sin pantalla lo que cambió de la interfaz (propuesta aceptada el 20 de octubre de 2026):
@@ -513,16 +515,17 @@ export class Revisor {
     const registro = openSync(archivo, 'a');
     // El modelo y el esfuerzo de Claude Code (los de /model y /effort, que también se eligen en «Modelo y consumo»): se pasan
     // explícitos para que el registro diga qué se pidió
-    const { modelo, esfuerzo } = await leerAjustesClaude(this.ajustes);
+    const { modelo, esfuerzo, ultracode } = await leerAjustesClaude(this.ajustes);
     // Lo pedido va primero en el registro: así el Studio compara con el modelo con que de verdad trabajó
     writeSync(registro, lineaPedido(modelo, esfuerzo));
-    // Sin ultracode aunque tus sesiones lo tengan (AJUSTES_DEL_DIRECTOR): en un archivo y no en el argumento, porque las
-    // comillas del JSON no pasan bien por la consola de Windows
+    // Sin ultracode aunque tus sesiones lo tengan, salvo que el titular le haya dado ese permiso (ajustesDelDirector): en
+    // un archivo y no en el argumento, porque las comillas del JSON no pasan bien por la consola de Windows
+    const director = ajustesDelDirector(ultracode, (await leerLocal(this.raiz)).permisos?.ultracode === true);
     const ajustes = join(carpeta, 'ajustes-del-director.json');
-    writeFileSync(ajustes, JSON.stringify(AJUSTES_DEL_DIRECTOR));
+    writeFileSync(ajustes, JSON.stringify(director.ajustes));
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio)];
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--allowedTools', ...permitido(repositorio, director.flujos)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');

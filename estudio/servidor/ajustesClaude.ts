@@ -109,6 +109,14 @@ export async function guardarUltracodeClaude(activo: boolean, archivo = archivoA
 /**
  * Lo que el Studio le suma a la configuración del director que lanza (--settings): sin ultracode, aunque tus sesiones lo
  * tengan, porque sus permisos no incluyen los flujos de varios agentes (Workflow) y nadie está mirando lo que gastan.
- * Darle ese permiso es una decisión del titular.
+ * Darle ese permiso es una decisión del titular: con «Autorizo» en «Modelo y consumo» (ajustesDelDirector).
  */
 export const AJUSTES_DEL_DIRECTOR = { ultracode: false } as const;
+
+/**
+ * La configuración del director lanzado y si puede correr flujos de varios agentes: con el permiso del titular y
+ * ultracode encendido, sigue a ultracode como tus sesiones (y necesita Workflow); si falta cualquiera de los dos, sin él.
+ */
+export function ajustesDelDirector(ultracode: boolean, permitido: boolean): { ajustes: Record<string, unknown>; flujos: boolean } {
+  return ultracode && permitido ? { ajustes: {}, flujos: true } : { ajustes: { ...AJUSTES_DEL_DIRECTOR }, flujos: false };
+}

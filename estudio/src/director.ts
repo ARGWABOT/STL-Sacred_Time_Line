@@ -156,8 +156,10 @@ interface Datos {
   modelo?: string | null;
   /** Cuánto piensa (el esfuerzo de Claude Code, el de /effort; null: el de la cuenta). */
   esfuerzo?: string | null;
-  /** Ultracode en las sesiones nuevas de Claude Code de este computador (el director que lanza el Studio sigue sin él). */
+  /** Ultracode en las sesiones nuevas de Claude Code de este computador. */
   ultracode?: boolean;
+  /** Si el titular le dio al director que lanza el Studio el permiso de seguir a ultracode (sin él, trabaja sin ultracode). */
+  ultracodeDirector?: boolean;
   /** Lo que gastó cada lanzamiento del director en este computador (estudio/servidor/revisor.ts › consumoDeRevisiones). */
   consumo?: {
     cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; costo: number; entrada: number; cache: number; salida: number; minutos: number;
@@ -3170,6 +3172,41 @@ const dolares = (n: number) => `US$ ${n.toLocaleString('es', { minimumFractionDi
 const NOMBRE_LANZAMIENTO = { revision: 'Revisión', aclaracion: '«No lo entiendo»', urgencia: 'Urgencia' } as const;
 
 /**
+ * Desde cuándo rige un cambio de modelo o de esfuerzo: el Studio lo escribe en la configuración de Claude Code y lo pasa
+ * al lanzar al director cada vez, así que no hay que reiniciar nada (duda del titular, 21 de octubre de 2026).
+ */
+const CUANDO_RIGE = 'Ya quedó: el director lo usa desde lo próximo que le pidas (la revisión, una urgencia o «No lo entiendo»), sin reiniciar nada; si está revisando ahora, termina con el de antes. También tus sesiones nuevas de Claude Code.';
+
+/** Lo que el director necesita para trabajar con ultracode, dicho en el diálogo que pide el permiso. */
+const PERMISO_ULTRACODE =
+  'El director que lanza el Studio trabaja hoy sin ultracode porque le falta un permiso: correr flujos de varios agentes (la herramienta Workflow de Claude Code).\n\n' +
+  'Si se lo das, desde su próximo lanzamiento (la próxima revisión, urgencia o «No lo entiendo») planea esos flujos para las tareas de peso, como tus sesiones. Cada agente del flujo tiene sus mismos límites: no sube, no despliega ni borra nada.\n\n' +
+  'Lo que cambia es el gasto: un flujo puede gastar varias veces lo de una revisión, y lo verás en «Lo que gastó el director». Puedes quitárselo aquí mismo cuando quieras.';
+
+/** El permiso del director para seguir a ultracode: si lo tiene, si le falta (con «Darle el permiso») y cómo quitarlo. */
+function permisoUltracode() {
+  if (d.ultracodeDirector)
+    return `<p class="como">El director que lanza el Studio ${d.ultracode ? 'también trabaja con ultracode' : 'trabajará con ultracode cuando lo enciendas'}: le diste el permiso de correr flujos de varios agentes.</p>
+        <button type="button" class="boton-suave" data-permiso-ultracode="no">Quitarle el permiso al director</button>`;
+  if (d.ultracode)
+    return `<p class="como">El director que lanza el Studio trabaja sin ultracode: le falta el permiso de correr flujos de varios agentes.</p>
+        <button type="button" class="boton-suave" data-permiso-ultracode="si">Darle el permiso al director</button>`;
+  return '<p class="como">El director que lanza el Studio trabaja sin ultracode, salvo que le des ese permiso: al encenderlo, el Studio te lo pide.</p>';
+}
+
+/** Da o quita el permiso del director para seguir a ultracode; al darlo, primero lo explica y espera «Autorizo». */
+async function cambiarPermisoUltracode(dar: boolean): Promise<void> {
+  if (dar && !(await confirmar({ titulo: '¿Ultracode también para el director?', texto: PERMISO_ULTRACODE, boton: 'Autorizo', cancelar: 'Solo para mis sesiones' }))) return;
+  const r = await fetch('/__estudio/director/ultracode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ director: dar }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+  if (r instanceof Error) return avisar('No se pudo guardar el permiso: el Studio no respondió.');
+  const x = await r.json().catch(() => ({}));
+  if (!r.ok) return avisar(x.error ?? 'No se pudo guardar el permiso.');
+  d.ultracodeDirector = x.ultracodeDirector === true;
+  pintar();
+  avisar(d.ultracodeDirector ? `Permiso dado: el director ${d.ultracode ? 'trabaja con ultracode' : 'trabajará con ultracode cuando lo enciendas'} desde su próximo lanzamiento.` : 'Permiso quitado: el director vuelve a trabajar sin ultracode desde su próximo lanzamiento.', true);
+}
+
+/**
  * Modelo y consumo: con qué modelo y cuánto piensa el director que lanza el Studio, y lo que gastó cada vez, por día,
  * por semana y por proyecto. No es de ningún proyecto: es la configuración de Claude Code en este computador (la de
  * /model y /effort), la misma para todos, así que va aparte, en el pie de la barra, y no en Proyecto (pedido del
@@ -3223,7 +3260,8 @@ function vistaModelo() {
         <label class="campo-modelo">Esfuerzo<select data-esfuerzo>${opcionesDe(ESFUERZOS, d.esfuerzo ?? '')}</select></label>
         <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta. Claude Code no informa el esfuerzo con que trabajó: si no acepta el elegido, falla al empezar y el Studio vuelve al de tu cuenta.</p>
         <label class="interruptor-s"><input type="checkbox" data-ultracode${d.ultracode ? ' checked' : ''} /> Ultracode</label>
-        <p class="como">Con ultracode, Claude planea un flujo de varios agentes para cada tarea de peso, en vez de esperar a que se lo pidas, y gasta bastante más. Es la clave <code>ultracode</code> de la configuración de Claude Code: vale para tus sesiones nuevas de este computador (<code>/effort ultracode</code> lo enciende solo en una). El director que lanza el Studio trabaja sin ultracode, porque sus permisos no incluyen esos flujos.</p>
+        <p class="como">Con ultracode, Claude planea un flujo de varios agentes para cada tarea de peso, en vez de esperar a que se lo pidas, y gasta bastante más. Es la clave <code>ultracode</code> de la configuración de Claude Code: vale para tus sesiones nuevas de este computador (<code>/effort ultracode</code> lo enciende solo en una).</p>
+        ${permisoUltracode()}
         <div class="abrir-claude"><button type="button" class="boton-suave" data-abrir-claude>Abrir Claude Code en una terminal</button>
           <p class="como">Abre una ventana nueva con Claude Code como lo lanza el Studio: en la carpeta del Studio, con la del proyecto activo a la vista, y con este modelo y este esfuerzo. Sirve para lo que solo se hace allí, como <code>/usage</code> o iniciar sesión. Es una sesión tuya, aparte: te pide permiso para cada cosa, y lo del proyecto sigue yendo por el Buzón.</p></div>
       </section>
@@ -3822,7 +3860,7 @@ $('vista').addEventListener('change', async (e) => {
     if (!r.ok) return avisar(x.error ?? 'No se pudo guardar el modelo.');
     Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null });
     pintar();
-    return avisar(d.modelo ? `Claude Code trabaja con ${MODELOS.find((m) => m.id === d.modelo)?.nombre ?? d.modelo}: el director desde su próximo lanzamiento, y tus sesiones nuevas de Claude Code, como con /model.` : 'Claude Code vuelve al modelo de tu cuenta: el director y tus sesiones nuevas.', true);
+    return avisar(`${d.modelo ? `Claude Code trabaja con ${MODELOS.find((m) => m.id === d.modelo)?.nombre ?? d.modelo}, como con /model.` : 'Claude Code vuelve al modelo de tu cuenta.'} ${CUANDO_RIGE}`, true);
   }
   const se = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-esfuerzo]');
   if (se) {
@@ -3832,7 +3870,7 @@ $('vista').addEventListener('change', async (e) => {
     if (!r.ok) return avisar(x.error ?? 'No se pudo guardar el esfuerzo.');
     Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null });
     pintar();
-    return avisar(d.esfuerzo ? `Claude Code trabaja con esfuerzo ${ESFUERZOS.find((x) => x.id === d.esfuerzo)?.nombre.toLowerCase() ?? d.esfuerzo}: el director desde su próximo lanzamiento, y tus sesiones nuevas de Claude Code, como con /effort.` : 'Claude Code vuelve al esfuerzo de tu cuenta: el director y tus sesiones nuevas.', true);
+    return avisar(`${d.esfuerzo ? `Claude Code trabaja con esfuerzo ${ESFUERZOS.find((x) => x.id === d.esfuerzo)?.nombre.toLowerCase() ?? d.esfuerzo}, como con /effort.` : 'Claude Code vuelve al esfuerzo de tu cuenta.'} ${CUANDO_RIGE}`, true);
   }
   const su = (e.target as HTMLElement).closest<HTMLInputElement>('[data-ultracode]');
   if (su) {
@@ -3841,8 +3879,11 @@ $('vista').addEventListener('change', async (e) => {
     const x = await r.json().catch(() => ({}));
     if (!r.ok) return avisar(x.error ?? 'No se pudo guardar ultracode.');
     d.ultracode = x.ultracode === true;
+    d.ultracodeDirector = x.ultracodeDirector === true;
     pintar();
-    return avisar(d.ultracode ? 'Ultracode encendido para tus sesiones nuevas de Claude Code en este computador. El director que lanza el Studio sigue sin él.' : 'Ultracode apagado para tus sesiones nuevas de Claude Code en este computador.', true);
+    // Al encenderlo, si al director le falta el permiso, el Studio se lo pide (lo que el director necesita, se pide)
+    if (d.ultracode && !d.ultracodeDirector) return cambiarPermisoUltracode(true).then(() => { if (!d.ultracodeDirector) avisar('Ultracode encendido para tus sesiones nuevas de Claude Code en este computador. El director sigue sin él: «Darle el permiso al director» está debajo.', true); });
+    return avisar(d.ultracode ? 'Ultracode encendido para tus sesiones nuevas de Claude Code y para el director desde su próximo lanzamiento.' : `Ultracode apagado para tus sesiones nuevas de Claude Code en este computador${d.ultracodeDirector ? ' y para el director' : ''}.`, true);
   }
   const sync = (e.target as HTMLElement).closest<HTMLInputElement>('[data-sincronizar]');
   if (sync) await accion({ tipo: 'sincronizar', activo: sync.checked }, sync.checked ? 'Desde ahora, lo que decide cada persona sube solo a GitHub.' : 'La subida a GitHub quedó apagada: todo queda en commits locales.');
@@ -3987,6 +4028,9 @@ async function clicEnVista(b: HTMLButtonElement) {
     if (r instanceof Error) return avisar('No se pudo hablar con el servidor del Studio.');
     if (!r.ok) return avisar((await r.json().catch(() => ({}))).error ?? 'No se pudo abrir la terminal.');
     avisar('Se abrió una ventana de terminal con Claude Code, con el mismo modelo y el mismo esfuerzo. Lo que hagas ahí es tuyo: te pide permiso para cada cosa.', true);
+  } else if (ds.permisoUltracode) {
+    // El permiso del director para seguir a ultracode: darlo pide «Autorizo», quitarlo no
+    await cambiarPermisoUltracode(ds.permisoUltracode === 'si');
   } else if (ds.yaHice) {
     // «Ya lo hice»: lo mismo que «Listo, ya lo hice» (con su comprobación, si la tiene), a la vista junto a la orden
     const casilla = $('vista').querySelector<HTMLInputElement>(`[data-paso="${CSS.escape(ds.yaHice)}"]`);

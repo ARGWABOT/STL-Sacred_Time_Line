@@ -70,7 +70,7 @@ import {
   type Validacion,
 } from '../../src/director/director';
 import { leerFresco, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
+import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
@@ -1008,6 +1008,8 @@ export function servidorDirector(): Plugin {
               // El modelo y el esfuerzo de Claude Code (los de /model y /effort, con los que el Studio lanza al
               // director), y lo que gastó cada lanzamiento
               ...(await leerAjustesClaude()),
+              // Si el titular le dio al director el permiso de seguir a ultracode (con sus flujos de varios agentes)
+              ultracodeDirector: (await leerLocal(raiz)).permisos?.ultracode === true,
               consumo: consumoDeRevisiones(raiz),
               // Lo que va haciendo el director que lanzó el Studio, mientras revisa (el Studio lo muestra en vivo)
               progreso: await (async () => {
@@ -1122,16 +1124,17 @@ export function servidorDirector(): Plugin {
             }
             return responder(res, 200, await leerAjustesClaude());
           }
-          // Ultracode en las sesiones nuevas de Claude Code (la clave `ultracode`); el director que lanza el Studio sigue
-          // sin él (AJUSTES_DEL_DIRECTOR)
+          // Ultracode en las sesiones nuevas de Claude Code (la clave `ultracode`); el director que lanza el Studio lo sigue
+          // solo con el permiso del titular (`director`: lo da o lo quita, con «Autorizo» en «Modelo y consumo»)
           if (ruta === '/ultracode' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);
             try {
-              await guardarUltracodeClaude(cuerpo.activo === true);
+              if (typeof cuerpo.activo === 'boolean') await guardarUltracodeClaude(cuerpo.activo);
+              if (typeof cuerpo.director === 'boolean') await guardarPermiso(raiz, 'ultracode', cuerpo.director);
             } catch (e) {
               return responder(res, 400, { error: (e as Error).message });
             }
-            return responder(res, 200, await leerAjustesClaude());
+            return responder(res, 200, { ...(await leerAjustesClaude()), ultracodeDirector: (await leerLocal(raiz)).permisos?.ultracode === true });
           }
           // «Abrir Claude Code»: una terminal nueva con Claude Code como lo lanza el Studio (en su carpeta, con la del
           // proyecto activo a la vista y la misma configuración). La orden la arma el servidor, nunca la petición

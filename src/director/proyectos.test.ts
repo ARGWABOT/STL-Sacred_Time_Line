@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { validarPlan, validarProyecto } from './director';
-import { abrirMemoria, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -125,6 +125,12 @@ describe('la memoria de cada proyecto, en su repositorio', () => {
     expect(await leerRutaRepositorio(raiz, 'tesis')).toBe(join(raiz, 'repos', 'tesis'));
     // Un activo que ya no existe cae al primero
     expect(elegirActivo({ activo: 'borrado', repositorios: {} }, ids)).toBe('api-pedidos');
+    // El permiso del director para seguir a ultracode: se da y se quita sin tocar lo demás
+    await guardarPermiso(raiz, 'ultracode', true);
+    expect((await leerLocal(raiz)).permisos).toEqual({ ultracode: true });
+    expect((await leerLocal(raiz)).activo).toBe('tesis');
+    await guardarPermiso(raiz, 'ultracode', false);
+    expect((await leerLocal(raiz)).permisos).toBeUndefined();
     // Sacarlo del Estudio no toca su memoria
     await olvidarProyecto(raiz, 'tesis');
     expect(await proyectosLocales(raiz)).toEqual(['api-pedidos', 'app-citas']);
