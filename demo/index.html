@@ -4,9 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>STL Studio · Director asistente</title>
-    <script type="module" crossorigin src="./assets/index-PC903tGt.js"></script>
+    <!-- El tema y la barra plegada, antes de pintar: sin un destello claro al abrir en oscuro -->
+    <script>
+      try {
+        const h = document.documentElement;
+        if ((localStorage.getItem('estudio.tema') ?? localStorage.getItem('estudio.lector.tema')) === 'oscuro') h.classList.add('oscuro');
+        if (localStorage.getItem('estudio.lateral') === 'plegada') h.classList.add('lateral-plegada');
+      } catch {}
+    </script>
+    <script type="module" crossorigin src="./assets/index-C_aqLOeQ.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-CRzLMJPS.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-DbK7qgTO.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-BJsDS8OB.css">
   </head>
   <body>
     <div class="app">
@@ -16,6 +24,7 @@
           <span class="logo" aria-hidden="true">STL</span>
           <span class="nombre-marca"><b>STL Studio</b><small>Director asistente</small></span>
           <button type="button" class="cerrar-menu" id="cerrar-menu" aria-label="Cerrar el menú">✕</button>
+          <button type="button" class="plegar-lateral" id="plegar-lateral" title="Plegar el menú: más espacio para lo que haces" aria-label="Plegar el menú" aria-controls="lateral"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15M15.5 10l-2 2 2 2"/></svg></button>
         </div>
         <div class="selector-proyecto" id="selector-proyecto" hidden>
           <button type="button" id="proyecto-activo" class="boton-proyecto" aria-haspopup="true" aria-expanded="false" aria-controls="menu-proyectos"></button>
@@ -26,12 +35,14 @@
           <div class="identidad" id="identidad"><span id="quien" class="insignia quien">…</span></div>
           <div class="fila-pie">
             <button type="button" id="sincronizacion" class="insignia sync">↻ …</button>
-            <button type="button" class="enlace-stl" data-vista="stl">Qué es STL</button>
           </div>
+          <!-- La versión pública de «Qué es STL», en GitHub Pages: la que se comparte (tools/publicar-stl.ts la publica) -->
+          <a class="enlace-stl" href="https://argwabot.github.io/STL-Sacred_Time_Line/" target="_blank" rel="noopener" title="Abre en una pestaña nueva la página pública, la que puedes compartir">Qué es STL Studio <span aria-hidden="true">↗</span></a>
         </div>
       </aside>
       <div class="velo-menu" id="velo-menu" hidden></div>
       <div class="principal">
+        <button type="button" class="desplegar-lateral" id="desplegar-lateral" title="Ver el menú" aria-label="Ver el menú" aria-controls="lateral"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15M13.5 10l2 2-2 2"/></svg></button>
         <header class="barra-movil">
           <button type="button" id="abrir-menu" aria-controls="lateral" aria-expanded="false">☰ Menú</button>
           <b id="titulo-movil">STL Studio</b>
