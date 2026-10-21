@@ -389,6 +389,11 @@ export interface Mision {
   /** Criterios de la fase que esta misión hace avanzar. */
   criterios?: string[];
   xp: number;
+  /**
+   * Cuándo comprobó el director (ISO) que nada de lo que pide esta misión ya se hizo o se decidió por otro camino. Si
+   * desde la última revisión hubo trabajo (commits, «Hazlo tú», notas sobre ella), la bandeja no cierra sin esta fecha.
+   */
+  vigente?: string;
 }
 
 export const VEREDICTOS = ['aprobada', 'rehacer'] as const;
@@ -434,6 +439,111 @@ export function respuestasSinDestino(plan: Plan, notas: Nota[], desde: string): 
     .filter(([id, r]) => r.cuando >= desde && !r.destino
       && (TRATAMIENTOS_CON_DESTINO.includes(r.tratamiento!) || (decisiones.has(id) && r.tratamiento !== 'rechazada')))
     .map(([id]) => id);
+}
+
+// ───────────────────────────────────────────────────────────── el archivo del plan
+
+/**
+ * Lo que sale del plan para que no pese (director/archivo.json, en la memoria del proyecto): las respuestas a notas
+ * cerradas y los veredictos de misiones aprobadas. Nada se pierde: el Studio y las herramientas leen el plan unido con
+ * su archivo (`unirArchivo`), así que todo se sigue viendo igual; solo deja de estar en lo que el director lee entero
+ * en cada revisión. Si necesita algo de lo dicho antes, lo busca ahí.
+ */
+export interface ArchivoPlan {
+  respuestas: Record<string, Respuesta>;
+  revisiones: Record<string, Revision>;
+}
+
+export const archivoVacio = (): ArchivoPlan => ({ respuestas: {}, revisiones: {} });
+
+/** El plan con lo archivado: lo del plan manda (una respuesta o un veredicto nuevos reemplazan a los archivados). */
+export function unirArchivo(plan: Plan, archivo?: Partial<ArchivoPlan> | null): Plan {
+  if (!archivo) return plan;
+  return { ...plan, respuestas: { ...archivo.respuestas, ...plan.respuestas }, revisiones: { ...archivo.revisiones, ...plan.revisiones } };
+}
+
+/**
+ * Archiva lo cerrado antes de `antes` (la revisión anterior: lo de la revisión de ahora se queda una vuelta más, para
+ * que el director lo vea al volver): las respuestas a notas que no son de una misión abierta o entregada, y los
+ * veredictos de las misiones aprobadas. `plan` es el de plan.json, sin unir.
+ */
+export function archivar(plan: Plan, archivo: ArchivoPlan, estado: EstadoDirector, antes: string): { plan: Plan; archivo: ArchivoPlan; movidas: number } {
+  const completo = unirArchivo(plan, archivo);
+  const misiones = new Map(plan.misiones.map((m) => [m.id, m]));
+  const viva = (id?: string) => { const m = id ? misiones.get(id) : undefined; return !!m && [...ABIERTAS, 'entregada'].includes(estadoMision(m, completo, estado)); };
+  const notas = new Map(estado.notas.map((n) => [n.id, n]));
+  const respuestas = { ...plan.respuestas }, revisiones = { ...plan.revisiones };
+  const nuevo: ArchivoPlan = { respuestas: { ...archivo.respuestas }, revisiones: { ...archivo.revisiones } };
+  let movidas = 0;
+  for (const [id, r] of Object.entries(plan.respuestas ?? {})) {
+    const n = notas.get(id);
+    if (!(r.cuando < antes) || (n?.sobre.tipo === 'mision' && viva(n.sobre.id))) continue;
+    nuevo.respuestas[id] = r;
+    delete respuestas[id];
+    movidas++;
+  }
+  for (const [id, r] of Object.entries(plan.revisiones ?? {})) {
+    const m = misiones.get(id);
+    if (!(r.cuando < antes) || r.veredicto !== 'aprobada' || !m || estadoMision(m, completo, estado) !== 'aprobada') continue;
+    nuevo.revisiones[id] = r;
+    delete revisiones[id];
+    movidas++;
+  }
+  return { plan: { ...plan, respuestas, revisiones }, archivo: nuevo, movidas };
+}
+
+// ───────────────────────────────────────────────────────────── los controles del cierre
+
+/** Algo que pasó desde la última revisión y que puede dejar hecho lo que pide una misión. */
+export interface CommitReciente {
+  hash: string;
+  cuando: string;
+  asunto: string;
+}
+
+/**
+ * Lo que ya se hizo no se vuelve a pedir: por cada misión abierta, lo que pasó desde `desde` (la última revisión) que
+ * puede haberla dejado hecha: los commits del repositorio, los «Hazlo tú» encargados y las notas sobre ella. Si hubo
+ * algo y el director no la comprobó en esta revisión (`vigente`), queda en la lista: la revisión no se cierra.
+ */
+export function misionesPorVigilar(plan: Plan, estado: EstadoDirector, desde: string, commits: CommitReciente[]): { mision: Mision; hubo: string[] }[] {
+  const recientes = estado.notas.filter((n) => n.cuando >= desde);
+  const encargos = recientes.filter((n) => n.sobre.tipo === 'mision' && n.sobre.hazlo);
+  const salida: { mision: Mision; hubo: string[] }[] = [];
+  for (const m of plan.misiones) {
+    if (!ABIERTAS.includes(estadoMision(m, plan, estado)) || (m.vigente && m.vigente >= desde)) continue;
+    const suyas = recientes.filter((n) => n.sobre.tipo === 'mision' && n.sobre.id === m.id && !n.sobre.hazlo);
+    const hubo = [
+      ...commits.map((c) => `commit ${c.hash}: ${c.asunto}`),
+      ...encargos.map((n) => `«Hazlo tú» ${n.id} (${n.sobre.id}${n.sobre.seccion ? ` › ${n.sobre.seccion}` : ''})`),
+      ...suyas.map((n) => `nota ${n.id}${n.sobre.seccion ? ` (${n.sobre.seccion})` : ''}`),
+    ];
+    if (hubo.length) salida.push({ mision: m, hubo });
+  }
+  return salida;
+}
+
+const PALABRAS_VACIAS = new Set('para como pero porque cuando donde desde hasta sobre entre este esta estos estas tiene tienen hace hacer quedo queda sigue todo toda todos todas cada otra otro otros otras solo tambien ahora antes despues mismo misma sino nada algo ellos ella esto eso aqui alla muy mas menos siempre nunca'.split(' '));
+/** Las palabras con peso de una frase, sin tildes y por su raíz corta (así «publicada» y «publicado» son la misma). */
+function palabrasDe(texto: string): Set<string> {
+  const ws = texto.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().match(/[a-z0-9]{4,}/g) ?? [];
+  return new Set(ws.filter((w) => !PALABRAS_VACIAS.has(w)).map((w) => w.slice(0, 6)));
+}
+
+/**
+ * «Comentarios del director» no vuelve a contar «Lo que avanzamos» (CLAUDE.md › Dónde quedamos): las frases del mensaje
+ * que dicen casi lo mismo que una línea de lo avanzado (al menos cuatro palabras con peso en común, y la mitad de las suyas).
+ */
+export function mensajeRepite(mensaje: string, avanzamos: string[]): { frase: string; linea: string }[] {
+  const lineas = avanzamos.map((l) => ({ l, p: palabrasDe(l) }));
+  const salida: { frase: string; linea: string }[] = [];
+  for (const frase of mensaje.split(/(?<=[.!?:;])\s+/).map((f) => f.trim()).filter(Boolean)) {
+    const p = palabrasDe(frase);
+    if (p.size < 4) continue;
+    const igual = lineas.find((x) => { const comunes = [...p].filter((w) => x.p.has(w)).length; return comunes >= 4 && comunes / p.size >= 0.5; });
+    if (igual) salida.push({ frase, linea: igual.l });
+  }
+  return salida;
 }
 
 export interface EvaluacionCriterio {
@@ -1610,6 +1720,7 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
     if (!frentes.has(m.frente)) errores.push(`La misión «${m.id}» nombra el frente «${m.frente}», que no está.`);
     if (!m.pasos?.length) errores.push(`La misión «${m.id}» no dice sus pasos.`);
     if (!(m.xp > 0)) errores.push(`La misión «${m.id}» no da experiencia.`);
+    if (m.vigente !== undefined && Number.isNaN(Date.parse(m.vigente))) errores.push(`La misión «${m.id}» dice que se comprobó vigente en una fecha que no se entiende («${m.vigente}»).`);
     for (const c of m.criterios ?? []) if (!criterios.has(c)) errores.push(`La misión «${m.id}» nombra el criterio «${c}», que no está.`);
     for (const d of m.documentos ?? []) if (!esDocumento(d)) errores.push(`La misión «${m.id}» nombra un documento que no es de docs/ ni repo: («${d}»).`);
     for (const p of m.pasos ?? []) if (typeof p !== 'string' && p.ir) destinoValido(p.ir, `Un paso de la misión «${m.id}»`);

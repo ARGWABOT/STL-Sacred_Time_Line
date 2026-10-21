@@ -5,6 +5,7 @@
 //
 //   <repositorio>/.stl/proyecto.json              el contexto, el objetivo y el equipo (lo escribe el titular)
 //   <repositorio>/.stl/director/plan.json         la ruta y lo que dice el director (lo escribe la sesión del director)
+//   <repositorio>/.stl/director/archivo.json      lo cerrado que salió del plan para que no pese (la bandeja, al cerrar)
 //   <repositorio>/.stl/director/equipo/<p>.json   lo que hace cada persona: entregas, notas, decisiones (el Estudio)
 //   <repositorio>/.stl/director/notas/            los audios y sus transcripciones
 //   <repositorio>/.stl/docs/                      los documentos del director para ese proyecto
@@ -35,6 +36,8 @@ export function rutasDe(id: string) {
     base,
     proyecto: `${base}/proyecto.json`,
     plan: `${base}/director/plan.json`,
+    /** Lo que salió del plan para que no pese: respuestas y veredictos cerrados (director › `unirArchivo`). */
+    archivo: `${base}/director/archivo.json`,
     equipo: `${base}/director/equipo`,
     persona: (p: string) => `${base}/director/equipo/${p}.json`,
     notas: `${base}/director/notas`,

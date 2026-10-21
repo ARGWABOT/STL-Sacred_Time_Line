@@ -4,6 +4,11 @@ import planPlantilla from '../../plantilla/plan.json';
 import proyectoPlantilla from '../../plantilla/proyecto.json';
 import {
   aclaracionesDe,
+  archivar,
+  archivoVacio,
+  mensajeRepite,
+  misionesPorVigilar,
+  unirArchivo,
   cumpleComprobacion,
   ordenDeComprobacion,
   eleccionDe,
@@ -354,6 +359,58 @@ describe('misiones', () => {
     e.entregas.t_alcance = { cuando: '2026-10-15T09:00:00.000Z', quien: 'Laura' };
     p.revisiones = { t_alcance: { cuando: '2026-10-15T10:00:00.000Z', veredicto: 'rehacer', comentario: '' } };
     expect(misionesAbiertas(p, e, 'titular')[0].id).toBe('t_alcance');
+  });
+});
+
+describe('el plan no pesa: lo cerrado sale a su archivo', () => {
+  const nota = (id: string, cuando: string, sobre: Nota['sobre'] = { tipo: 'general' }): Nota => ({ id, cuando, quien: 'Laura', sobre, texto: 'x' });
+  const resp = (cuando: string) => ({ cuando, texto: 'Hecho', tratamiento: 'informada' as const });
+
+  it('archiva las respuestas cerradas y los veredictos aprobados de antes de esta revisión, y unido se ve igual', () => {
+    const p = planEjemplo();
+    const e = estadoVacio();
+    e.notas = [nota('vieja', '2026-10-10T10:00:00Z'), nota('de_abierta', '2026-10-10T11:00:00Z', { tipo: 'mision', id: 't_alcance' }), nota('nueva', '2026-10-15T10:00:00Z')];
+    e.entregas.t_diag = { cuando: '2026-10-11T09:00:00.000Z', quien: 'Laura' };
+    p.respuestas = { vieja: resp('2026-10-11T10:00:00Z'), de_abierta: resp('2026-10-11T10:00:00Z'), nueva: resp('2026-10-15T11:00:00Z') };
+    p.revisiones = { t_diag: { cuando: '2026-10-11T10:00:00Z', veredicto: 'aprobada', comentario: 'Bien' } };
+    const a = archivar(p, archivoVacio(), e, '2026-10-12T00:00:00Z');
+    expect(Object.keys(a.plan.respuestas).sort()).toEqual(['de_abierta', 'nueva']);
+    expect(Object.keys(a.archivo.respuestas)).toEqual(['vieja']);
+    expect(Object.keys(a.archivo.revisiones)).toEqual(['t_diag']);
+    expect(a.movidas).toBe(2);
+    // Unido con su archivo, el plan es el mismo: nada se pierde, y lo del plan manda
+    const unido = unirArchivo(a.plan, a.archivo);
+    expect(unido.respuestas).toEqual(p.respuestas);
+    expect(estadoMision(p.misiones.find((m) => m.id === 't_diag')!, unido, e)).toBe('aprobada');
+    expect(validarPlan(unido, ['titular', 'ana'])).toEqual([]);
+    expect(unirArchivo(p, { respuestas: { vieja: resp('2026-10-01T00:00:00Z') } }).respuestas.vieja).toEqual(p.respuestas.vieja);
+    expect(unirArchivo(p, null)).toBe(p);
+  });
+
+  it('una misión abierta con trabajo nuevo alrededor se comprueba antes de cerrar la revisión', () => {
+    const p = planEjemplo();
+    const e = estadoVacio();
+    const desde = '2026-10-12T00:00:00Z';
+    expect(misionesPorVigilar(p, e, desde, [])).toEqual([]);
+    const commits = [{ hash: 'abc123', cuando: '2026-10-12T10:00:00Z', asunto: 'STL: el alcance ya hecho' }];
+    expect(misionesPorVigilar(p, e, desde, commits).map((x) => x.mision.id)).toEqual(['t_conectar', 't_diag', 't_alcance']);
+    // Una nota sobre una misión cuenta solo para ella; las de antes de la revisión, no
+    e.notas = [nota('n1', '2026-10-12T09:00:00Z', { tipo: 'mision', id: 't_diag' }), nota('n0', '2026-10-01T09:00:00Z', { tipo: 'mision', id: 't_alcance' })];
+    expect(misionesPorVigilar(p, e, desde, []).map((x) => x.mision.id)).toEqual(['t_diag']);
+    // Un «Hazlo tú» puede dejar hecha cualquier otra
+    e.notas.push(nota('h1', '2026-10-12T09:30:00Z', { tipo: 'mision', id: 't_conectar', seccion: 'Paso 1', hazlo: true }));
+    expect(misionesPorVigilar(p, e, desde, []).map((x) => x.mision.id)).toEqual(['t_conectar', 't_diag', 't_alcance']);
+    // Comprobada en esta revisión (`vigente`), sale de la lista; una fecha que no se entiende es un error del plan
+    p.misiones = p.misiones.map((m) => ({ ...m, vigente: '2026-10-12T11:00:00Z' }));
+    expect(misionesPorVigilar(p, e, desde, commits)).toEqual([]);
+    expect(validarPlan({ ...p, misiones: [{ ...p.misiones[0], vigente: 'ayer' }, ...p.misiones.slice(1)] }, ['titular', 'ana'])).toHaveLength(1);
+  });
+
+  it('el mensaje no vuelve a contar lo avanzado', () => {
+    const avanzamos = ['La portada pública ya no arranca sola: da la bienvenida, la rueda la adelanta y el clic central la pausa.'];
+    expect(mensajeRepite('Publiqué la portada: ya no arranca sola, da la bienvenida y la rueda la adelanta.', avanzamos)).toHaveLength(1);
+    expect(mensajeRepite('No pude abrir el navegador en esta revisión; los anchos móviles quedan por mirar.', avanzamos)).toEqual([]);
+    expect(mensajeRepite('Bien.', avanzamos)).toEqual([]);
   });
 });
 

@@ -22,6 +22,14 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'no
 import { dirname, join } from 'node:path';
 import {
   aclaracionesDe,
+  archivar,
+  archivoVacio,
+  mensajeRepite,
+  misionesPorVigilar,
+  unirArchivo,
+  type ArchivoPlan,
+  type CommitReciente,
+  type Plan,
   documentosDeMision,
   documentosEnOrden,
   esPregunta,
@@ -185,27 +193,68 @@ if (args.includes('--urgente')) {
 if (args.includes('--listo')) {
   const elegido = await proyectoElegido(pedido);
   const rutaPlan = enDiscoDe(raiz, rutasDe(elegido).plan);
-  const plan = JSON.parse(readFileSync(rutaPlan, 'utf-8'));
+  const rutaArchivo = enDiscoDe(raiz, rutasDe(elegido).archivo);
+  const plan: Plan = JSON.parse(readFileSync(rutaPlan, 'utf-8'));
+  const archivo: ArchivoPlan = { ...archivoVacio(), ...(existsSync(rutaArchivo) ? JSON.parse(readFileSync(rutaArchivo, 'utf-8')) : {}) };
+  const completo = unirArchivo(plan, archivo);
   // El doble check: lo que esta revisión llevó al plan dice dónde quedó; si no, la revisión no se cierra
-  const { estado, proyecto } = await leerTodo(pedido, false);
-  const sinDestino = respuestasSinDestino(plan, estado.notas, plan.revisado ?? '');
+  const { estado, proyecto, repo } = await leerTodo(pedido, false);
+  const desde = plan.revisado ?? '';
+  const sinDestino = respuestasSinDestino(plan, estado.notas, desde);
   if (sinDestino.length) {
     console.error('No se cerró la revisión: estas respuestas llevan algo al plan pero no dicen dónde quedó (`destino`: la misión, la propuesta, la fase o la parte del documento):');
     for (const id of sinDestino) console.error(`- ${id}`);
     process.exit(1);
   }
   // Un plan con errores no sale de la revisión: el titular nunca debe verlos en el Studio
-  const errores = validarPlan(plan, proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : undefined);
+  const errores = validarPlan(completo, proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : undefined);
   if (errores.length) {
     console.error('No se cerró la revisión: el plan tiene errores. Corrígelos y vuelve a cerrar:');
     for (const e of errores) console.error(`- ${e}`);
     process.exit(1);
   }
+  // Lo que ya se hizo no se vuelve a pedir: cada misión abierta con trabajo nuevo alrededor se comprobó en esta revisión
+  const porVigilar = misionesPorVigilar(completo, estado, desde, commitsDesde(repo?.ruta, desde));
+  if (porVigilar.length) {
+    console.error('No se cerró la revisión: desde la última hubo trabajo que puede dejar hecho algo de estas misiones abiertas. Por cada una, comprueba que nada de sus pasos ni de sus documentos ya se hizo o se decidió (si sí, sácalo), y ponle `"vigente": "<ISO ahora>"`:');
+    for (const { mision, hubo } of porVigilar) console.error(`- ${mision.id} («${mision.titulo}»): ${hubo.length} cosa(s), como ${hubo.slice(0, 3).join('; ')}`);
+    process.exit(1);
+  }
+  // «Comentarios del director» no repite «Lo que avanzamos»
+  const repetidas = mensajeRepite(plan.mensaje?.texto ?? '', plan.resumen?.avanzamos ?? []);
+  if (repetidas.length) {
+    console.error('No se cerró la revisión: el mensaje («Comentarios del director») vuelve a contar lo que ya está en «Lo que avanzamos». Quítalo del mensaje, o di ahí solo lo que no es un avance (por qué, una advertencia, lo que no se pudo):');
+    for (const r of repetidas) console.error(`- «${r.frase}» repite «${r.linea.slice(0, 120)}»`);
+    process.exit(1);
+  }
   plan.revisado = new Date().toISOString();
-  writeFileSync(rutaPlan, JSON.stringify(plan, null, 2) + '\n', 'utf-8');
+  // El plan no crece sin fin: pasado el tope, lo cerrado antes de esta revisión sale solo al archivo
+  let final = plan;
+  const pesa = (p: Plan) => Math.round(Buffer.byteLength(JSON.stringify(p, null, 2)) / 1024);
+  if (pesa(plan) > TOPE_PLAN_KB) {
+    const a = archivar(plan, archivo, estado, desde);
+    if (a.movidas) {
+      final = a.plan;
+      writeFileSync(rutaArchivo, JSON.stringify(a.archivo, null, 2) + '\n', 'utf-8');
+      console.log(`Archivadas ${a.movidas} respuestas y veredictos cerrados en director/archivo.json: el plan pasó de ${pesa(plan)} KB a ${pesa(final)} KB. Agrega director/archivo.json al commit.`);
+    }
+    if (pesa(final) > TOPE_PLAN_KB) console.log(`⚠ El plan sigue pesando ${pesa(final)} KB (el tope es ${TOPE_PLAN_KB} KB): lo que queda no es respuesta ni veredicto cerrado; mira qué más sobra (misiones viejas, propuestas descartadas).`);
+  }
+  writeFileSync(rutaPlan, JSON.stringify(final, null, 2) + '\n', 'utf-8');
   await marcarRevision(raiz, elegido, 'hecha');
   console.log(`Revisión marcada: ${plan.revisado}`);
   process.exit(0);
+}
+
+/** Los commits del repositorio del proyecto desde la última revisión: lo hecho que puede dejar atrás una misión. */
+function commitsDesde(ruta: string | undefined, desde: string): CommitReciente[] {
+  if (!ruta || !desde) return [];
+  try {
+    return execFileSync('git', ['log', `--since=${desde}`, '--format=%h%x09%cI%x09%s'], { cwd: ruta, encoding: 'utf8' })
+      .split('\n').filter(Boolean).map((l) => { const [hash, cuando, ...asunto] = l.split('\t'); return { hash, cuando, asunto: asunto.join('\t').slice(0, 140) }; });
+  } catch {
+    return [];
+  }
 }
 
 // Si la pidieron desde el Studio, allá se ve que el director ya está revisando
@@ -412,6 +461,18 @@ for (const p of personas) {
     avisarPorComprobar(m);
   }
 }
+// Lo que ya se hizo no se vuelve a pedir: lo que pasó desde la última revisión alrededor de cada misión abierta
+const commits = commitsDesde(repo?.ruta, desde);
+const porVigilar = misionesPorVigilar(plan, estado, desde, commits);
+if (porVigilar.length) {
+  linea('\n## Lo hecho desde la última revisión: ¿deja atrás algo de las misiones abiertas?');
+  if (commits.length) linea(`Commits del repositorio: ${commits.map((c) => `${c.hash} ${c.asunto}`).join(' | ')}`);
+  for (const { mision, hubo } of porVigilar) {
+    const propio = hubo.filter((h) => !h.startsWith('commit '));
+    linea(`- ${mision.id} («${mision.titulo}»)${propio.length ? `: ${propio.join('; ')}` : ''}`);
+  }
+  linea('Por cada una: si un paso o un documento suyo ya se hizo o se decidió por otro camino, sácalo (y dilo en la respuesta); después ponle `"vigente": "<ISO ahora>"`. Sin eso, --listo no cierra. Esto vale también para las misiones que escribas en esta revisión.');
+}
 
 // Lo que viene recoge todo lo dicho: antes de cerrar, cada documento que aún no se revisa debe llevar el feedback de
 // esta revisión, y la misión siguiente de cada uno se decide de nuevo con él
@@ -454,8 +515,12 @@ linea(`\nPara responder: en ${enDisco(rutas.plan)}, \`revisiones\` (aprobada o r
 linea('integrada, rechazada, aplazada, decision o informada; si es integrada, aplazada o decision, o responde una decisión de un documento,');
 linea('con su `destino`: el lugar donde quedó, como el botón de un paso; sin él, --listo no cierra la revisión),');
 linea('`evaluacion` (criterios cumplidos), `misiones` nuevas, `mensaje`, `boletin` y el resumen «Dónde quedamos» (`resumen`, CLAUDE.md);');
-linea(`luego \`node tools/director/bandeja.ts --listo\` y el commit en la memoria (rama stl), solo con lo del director (lo del equipo lo guarda el Studio): \`cd "${memoria(id)}" && git add director/plan.json docs director/radiografia.md && git commit -m "Director (${id}): …" -- director/plan.json docs director/radiografia.md\`.`);
-if (!plan.resumen) linea('⚠ Este proyecto aún no tiene resumen «Dónde quedamos»: escríbelo antes de cerrar.');
-// El plan crece con cada revisión: pasado el tope, que se note (las respuestas viejas pueden salir a un archivo sellado)
+// El plan crece con cada revisión: pasado el tope, --listo archiva solo lo cerrado (director/archivo.json)
 const kb = Math.round(statSync(enDisco(rutas.plan)).size / 1024);
-if (kb > TOPE_PLAN_KB) linea(`⚠ El plan pesa ${kb} KB (el tope es ${TOPE_PLAN_KB} KB): cada revisión lo lee entero. Conviene archivar lo viejo, sobre todo las respuestas.`);
+const archivado = existsSync(enDisco(rutas.archivo)) || kb > TOPE_PLAN_KB;
+const suyos = `director/plan.json${archivado ? ' director/archivo.json' : ''} docs director/radiografia.md`;
+linea(`luego \`node tools/director/bandeja.ts --listo\` y el commit en la memoria (rama stl), solo con lo del director (lo del equipo lo guarda el Studio): \`cd "${memoria(id)}" && git add ${suyos} && git commit -m "Director (${id}): …" -- ${suyos}\`.`);
+if (!plan.resumen) linea('⚠ Este proyecto aún no tiene resumen «Dónde quedamos»: escríbelo antes de cerrar.');
+if (kb > TOPE_PLAN_KB) linea(`El plan pesa ${kb} KB (el tope es ${TOPE_PLAN_KB} KB): al cerrar, --listo archiva solo las respuestas y los veredictos cerrados antes de esta revisión.`);
+// El puntero a lo archivado: no se carga en cada revisión, pero el director puede volver a consultarlo
+if (existsSync(enDisco(rutas.archivo))) linea(`Lo dicho antes (respuestas a notas cerradas y veredictos de misiones aprobadas) está en ${enDisco(rutas.archivo)}: no lo leas entero; búscalo ahí (por id de nota o de misión) si necesitas lo que ya respondiste. Las herramientas y el Studio ya lo cuentan.`);

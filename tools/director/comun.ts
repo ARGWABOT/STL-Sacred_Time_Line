@@ -3,7 +3,7 @@
 // memoria, <repositorio>/.stl, o su rama stl en GitHub, sin pull) y saber dónde está su repositorio en este computador.
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { estadoMision, etapaArranque, pendientesDelDirector, proyectoVacio, TITULAR, unirEstados, type EstadoDirector, type Persona, type Plan, type Proyecto } from '../../src/director/director.ts';
+import { estadoMision, etapaArranque, pendientesDelDirector, proyectoVacio, TITULAR, unirArchivo, unirEstados, type EstadoDirector, type Persona, type Plan, type Proyecto } from '../../src/director/director.ts';
 import { leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco.ts';
 import { elegirActivo, enDisco, leerLocal, leerRutaRepositorio, memoriaDe, proyectosLocales, RAMA, rutasDe } from '../../src/director/proyectos.ts';
 import { comprobarRepositorio, type InfoRepositorio } from '../../src/director/repositorio.ts';
@@ -52,7 +52,8 @@ export interface Todo {
 /** Lee todo lo de un proyecto. */
 export async function leerProyecto(id: string): Promise<Todo> {
   const rutas = rutasDe(id);
-  const plan: Plan = JSON.parse((await leerFrescoTexto(raiz, rutas.plan)) ?? '{}');
+  // El plan con lo archivado: lo cerrado salió a archivo.json para que el plan no pese, pero cuenta igual
+  const plan: Plan = unirArchivo(JSON.parse((await leerFrescoTexto(raiz, rutas.plan)) ?? '{}'), JSON.parse((await leerFrescoTexto(raiz, rutas.archivo)) ?? 'null'));
   const proyecto: Proyecto = { ...proyectoVacio(), ...JSON.parse((await leerFrescoTexto(raiz, rutas.proyecto)) ?? '{}') };
   const ids = new Set<Persona>([TITULAR, ...proyecto.equipo.map((i) => i.id)]);
   const dir = enDisco(raiz, rutas.equipo);

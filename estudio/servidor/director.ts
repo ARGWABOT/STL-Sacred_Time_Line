@@ -52,6 +52,7 @@ import {
   TIPOS_SOBRE,
   TIPOS_VALIDACION,
   TITULAR,
+  unirArchivo,
   unirEstados,
   validarEstado,
   validarPlan,
@@ -264,7 +265,9 @@ export function servidorDirector(): Plugin {
   const enMemoria = (rutas: string[]) => rutas.map((x) => ubicar(raiz, x)).filter((u) => u.memoria).map((u) => u.ruta);
 
   const activo = async (): Promise<string | null> => elegirActivo(await leerLocal(raiz), await listarIds());
-  const leerPlan = async (id: string): Promise<Plan> => JSON.parse((await leerFrescoTexto(raiz, rutasDe(id).plan)) ?? '{}');
+  // El plan con lo archivado (director/archivo.json): el Studio lo muestra todo igual, aunque el plan ya no lo cargue
+  const leerPlan = async (id: string): Promise<Plan> =>
+    unirArchivo(JSON.parse((await leerFrescoTexto(raiz, rutasDe(id).plan)) ?? '{}'), JSON.parse((await leerFrescoTexto(raiz, rutasDe(id).archivo)) ?? 'null'));
   const leerProyecto = async (id: string): Promise<Proyecto> => ({ ...proyectoVacio(), ...JSON.parse((await leerFrescoTexto(raiz, rutasDe(id).proyecto)) ?? '{}') });
 
   // ─────────────────────────────────────────── el repositorio de cada proyecto (con caché de un minuto)
