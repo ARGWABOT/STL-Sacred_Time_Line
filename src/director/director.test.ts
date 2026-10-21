@@ -58,6 +58,8 @@ import {
   ideasSueltas,
   marcasAlDia,
   misionesAbiertas,
+  reservaDeMisiones,
+  RESERVA_MINIMA,
   partesDeDocumento,
   trozosDeParte,
   pendientesDelDirector,
@@ -377,6 +379,35 @@ describe('misiones', () => {
     e.entregas.t_alcance = { cuando: '2026-10-15T09:00:00.000Z', quien: 'Laura' };
     p.revisiones = { t_alcance: { cuando: '2026-10-15T10:00:00.000Z', veredicto: 'rehacer', comentario: '' } };
     expect(misionesAbiertas(p, e, 'titular')[0].id).toBe('t_alcance');
+  });
+
+  it('la reserva: cada persona tiene su misión y por lo menos cuatro más, contando las de la fase siguiente', () => {
+    const p = planEjemplo();
+    const e = estadoVacio();
+    expect(RESERVA_MINIMA).toBe(5);
+    // En el arranque, la titular tiene tres abiertas y ninguna en la fase siguiente: faltan dos
+    const titular = reservaDeMisiones(p, e, 'titular');
+    expect(titular.abiertas.map((m) => m.id)).toEqual(['t_conectar', 't_diag', 't_alcance']);
+    expect(titular.siguientes).toEqual([]);
+    expect(titular.faltan).toBe(2);
+    // Ana no tiene nada abierto, pero la del MVP (bajo niebla) cuenta como reserva
+    const ana = reservaDeMisiones(p, e, 'ana');
+    expect(ana.abiertas).toEqual([]);
+    expect(ana.siguientes.map((m) => m.id)).toEqual(['c_endpoints']);
+    expect(ana.faltan).toBe(4);
+    // Cruzada la puerta del arranque: la del MVP está abierta y la de la beta es la siguiente; la beta, por ser la
+    // última fase de la ruta, no exige reserva
+    e.cierres.arranque = firma;
+    expect(reservaDeMisiones(p, e, 'ana')).toMatchObject({ faltan: 3 });
+    expect(reservaDeMisiones(p, e, 'ana').siguientes.map((m) => m.id)).toEqual(['c_panel']);
+    e.cierres.mvp = { fecha: '2026-10-16', quien: 'Laura' };
+    expect(reservaDeMisiones(p, e, 'ana').faltan).toBe(0);
+    // Y una fase de mantenimiento tampoco: una sola misión ligera, por diseño
+    const m = planEjemplo();
+    m.fases[1] = { ...m.fases[1], etapa: 'Mantenimiento' };
+    const em = estadoVacio();
+    em.cierres.arranque = firma;
+    expect(reservaDeMisiones(m, em, 'ana').faltan).toBe(0);
   });
 });
 

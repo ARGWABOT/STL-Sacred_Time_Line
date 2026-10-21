@@ -42,6 +42,8 @@ import {
   etapaArranque,
   faseActual,
   misionesAbiertas,
+  reservaDeMisiones,
+  RESERVA_MINIMA,
   pasosPorComprobar,
   pedidoFueraDelStudio,
   pendientesDelDirector,
@@ -223,6 +225,15 @@ if (args.includes('--listo')) {
   if (porVigilar.length) {
     console.error('No se cerró la revisión: desde la última hubo trabajo que puede dejar hecho algo de estas misiones abiertas. Por cada una, comprueba que nada de sus pasos ni de sus documentos ya se hizo o se decidió (si sí, sácalo), y ponle `"vigente": "<ISO ahora>"`:');
     for (const { mision, hubo } of porVigilar) console.error(`- ${mision.id} («${mision.titulo}»): ${hubo.length} cosa(s), como ${hubo.slice(0, 3).join('; ')}`);
+    process.exit(1);
+  }
+  // La reserva de misiones (regla del titular, 21 de octubre de 2026): nadie se queda sin misión esperando al director
+  const sinReserva = (proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : ['titular'])
+    .map((p) => ({ p, ...reservaDeMisiones(completo, estado, p) }))
+    .filter((r) => r.faltan && (r.abiertas.length || r.siguientes.length || completo.misiones.some((m) => m.para === r.p)));
+  if (sinReserva.length) {
+    console.error(`No se cerró la revisión: la reserva de misiones está corta. Cada persona tiene su misión de ahora y por lo menos cuatro más (${RESERVA_MINIMA} en total), de la fase en curso o de la siguiente (bajo niebla hasta cruzar la puerta), para que nunca se quede sin misión esperando al director:`);
+    for (const r of sinReserva) console.error(`- ${nombreDe(proyecto, r.p)}: ${r.abiertas.length} abierta(s) y ${r.siguientes.length} de la fase siguiente; faltan ${r.faltan}`);
     process.exit(1);
   }
   // «Comentarios del director» no repite «Lo que avanzamos»
@@ -526,10 +537,12 @@ if (sellados.length) {
 
 linea('\n## Misiones abiertas (una a la vez: la primera es la que ve completa)');
 for (const p of personas) {
-  const abiertas = misionesAbiertas(plan, estado, p);
-  // La cola: de dos a tres misiones detrás de la de ahora, para que nadie pida la revisión por quedarse sin misión
-  const cola = abiertas.length > 4 ? '  ⚠ demasiadas en cola: deja dos o tres' : abiertas.length && abiertas.length < 3 ? '  ⚠ cola corta: deja dos o tres misiones detrás de la de ahora, salvo que lo que sigue dependa de esta revisión' : '';
-  linea(`- ${nombre(p)}: ${abiertas.map((m) => `${m.id} (${estadoMision(m, plan, estado)})`).join(', ') || 'ninguna: asígnale la siguiente y dos o tres en cola'}${cola}`);
+  // La reserva (regla del titular, 21 de octubre de 2026): la de ahora y por lo menos cuatro más, contando las de la
+  // fase siguiente (bajo niebla hasta cruzar la puerta), para que nadie se quede sin misión esperando al director
+  const reserva = reservaDeMisiones(plan, estado, p);
+  const { abiertas } = reserva;
+  const cola = reserva.faltan ? `  ⚠ reserva corta: faltan ${reserva.faltan} para las ${RESERVA_MINIMA} (la de ahora y cuatro más; pueden ser de la fase siguiente). Sin la reserva, --listo no cierra.` : '';
+  linea(`- ${nombre(p)}: ${abiertas.map((m) => `${m.id} (${estadoMision(m, plan, estado)})`).join(', ') || `ninguna: asígnale la siguiente y la reserva (${RESERVA_MINIMA} en total)`}${reserva.siguientes.length ? ` · en la fase siguiente: ${reserva.siguientes.map((m) => m.id).join(', ')}` : ''}${cola}`);
   for (const m of abiertas) {
     const marcados = estado.pasos?.[m.id]?.hechos.filter((i) => i < m.pasos.length) ?? [];
     if (!marcados.length) continue;

@@ -1521,6 +1521,35 @@ export function misionesAbiertas(plan: Plan, estado: EstadoDirector, persona: Pe
   return [...abiertas.filter((m) => estadoMision(m, plan, estado) === 'rehacer'), ...abiertas.filter((m) => estadoMision(m, plan, estado) !== 'rehacer')];
 }
 
+/**
+ * La reserva de misiones (regla del titular, 21 de octubre de 2026): entre revisión y revisión, cada persona tiene
+ * siempre su misión de ahora y por lo menos cuatro más detrás (RESERVA_MINIMA en total), para que nunca se quede sin
+ * misión esperando al director. Cuentan las abiertas de la fase en curso y las de la fase siguiente, que están bajo
+ * niebla hasta cruzar la puerta y aparecen solas al cruzarla. Solo se acepta menos en la última fase de la ruta (ya no
+ * hay más trabajo que repartir) y en la fase de mantenimiento (una sola misión ligera, por diseño).
+ */
+export const RESERVA_MINIMA = 5;
+
+export interface ReservaDeMisiones {
+  /** Las abiertas de ahora (la primera es la que ve completa). */
+  abiertas: Mision[];
+  /** Las de la fase siguiente, bajo niebla hasta cruzar la puerta. */
+  siguientes: Mision[];
+  /** Cuántas faltan para la reserva mínima (0 si está completa o si la fase no la exige). */
+  faltan: number;
+}
+
+export function reservaDeMisiones(plan: Plan, estado: EstadoDirector, persona: Persona): ReservaDeMisiones {
+  const abiertas = misionesAbiertas(plan, estado, persona);
+  const actual = plan.fases.indexOf(faseActual(plan, estado));
+  const siguiente = plan.fases[actual + 1];
+  const siguientes = siguiente ? plan.misiones.filter((m) => m.para === persona && m.fase === siguiente.id && estadoMision(m, plan, estado) === 'bloqueada') : [];
+  const ultima = actual >= plan.fases.length - 1;
+  const mantenimiento = /mantenimiento/i.test(plan.fases[actual]?.etapa ?? '');
+  const faltan = ultima || mantenimiento ? 0 : Math.max(0, RESERVA_MINIMA - abiertas.length - siguientes.length);
+  return { abiertas, siguientes, faltan };
+}
+
 /** La experiencia de una persona: la de sus misiones aprobadas. */
 export function xpDe(plan: Plan, estado: EstadoDirector, persona: Persona): number {
   return plan.misiones.filter((m) => m.para === persona && estadoMision(m, plan, estado) === 'aprobada').reduce((s, m) => s + m.xp, 0);
