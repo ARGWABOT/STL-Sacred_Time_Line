@@ -14,9 +14,9 @@
     </script>
     <!-- La cubierta de carga, aquí y no en los estilos: se ve desde el primer instante, nunca el Studio a medio cargar -->
     <style>.cubierta-carga{z-index:2147483000;color:#3b3a36;background:#f7f3ea;place-items:center;font-family:system-ui,-apple-system,Segoe UI,sans-serif;transition:opacity .35s;display:grid;position:fixed;inset:0}html.oscuro .cubierta-carga{color:#e9e4d6;background:#16161a}.cubierta-carga[hidden]{display:none}.cubierta-carga.saliendo{opacity:0;pointer-events:none}.cubierta-centro{text-align:center;justify-items:center;gap:18px;padding:24px;display:grid}.cubierta-logo{letter-spacing:.12em;color:#f5d27a;background:#2a2926;border-radius:14px;padding:10px 16px;font-size:22px;font-weight:800}html.oscuro .cubierta-logo{color:#16161a;background:#f5d27a}.cubierta-linea{width:min(260px,60vw);height:14px;position:relative}.cubierta-linea:before{content:"";opacity:.18;background:currentColor;border-radius:2px;height:2px;position:absolute;top:6px;left:0;right:0}.cubierta-linea i{background:#d9a92e;border-radius:50%;width:10px;height:10px;animation:2.4s cubic-bezier(.45,0,.25,1) infinite cubierta-paso;position:absolute;top:2px;left:0;box-shadow:0 0 10px #f5d27a}.cubierta-linea i:nth-child(2){animation-delay:.8s}.cubierta-linea i:nth-child(3){animation-delay:1.6s}@keyframes cubierta-paso{0%{opacity:0;left:0;transform:scale(.6)}15%{opacity:1;transform:scale(1)}85%{opacity:1;transform:scale(1)}to{opacity:0;left:calc(100% - 10px);transform:scale(.6)}}.cubierta-texto{opacity:.8;min-height:1.4em;margin:0;font-size:15px}.cubierta-ya{font:inherit;color:inherit;cursor:pointer;background:0 0;border:1px solid;border-radius:999px;padding:6px 18px;font-size:14px;font-weight:600}.cubierta-ya[hidden]{display:none}@media (prefers-reduced-motion:reduce){.cubierta-linea i{animation:none}.cubierta-linea i:first-child{left:0}.cubierta-linea i:nth-child(2){left:calc(50% - 5px)}.cubierta-linea i:nth-child(3){left:calc(100% - 10px)}.cubierta-carga{transition:none}}</style>
-    <script type="module" crossorigin src="./assets/index-CzwgLfi4.js"></script>
+    <script type="module" crossorigin src="./assets/index-BBaendji.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-CRzLMJPS.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-DPrFDUxC.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-CDoWjCSq.css">
   </head>
   <body>
     <div class="cubierta-carga" id="cubierta-carga" role="status" aria-live="polite">
@@ -42,6 +42,8 @@
         </div>
         <nav class="navegacion" id="navegacion" aria-label="Las secciones del proyecto"></nav>
         <div class="pie-lateral">
+          <!-- Modelo y consumo es de este computador, no de un proyecto: por eso va aquí y no entre sus secciones -->
+          <button type="button" class="item-nav item-pie" id="ir-modelo" data-vista="modelo"><span>Modelo y consumo</span></button>
           <div class="identidad" id="identidad"><span id="quien" class="insignia quien">…</span></div>
           <div class="fila-pie">
             <button type="button" id="sincronizacion" class="insignia sync">↻ …</button>

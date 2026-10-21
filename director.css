@@ -50,11 +50,10 @@
 .ir-paso.principal { min-height: 36px; padding: 6px 18px; font-size: 14.5px; background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); animation: latido 2.4s ease-in-out infinite; }
 .ir-paso.principal:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
 @media (prefers-reduced-motion: reduce) { .ir-paso.principal { animation: none; } }
-/* Mientras corre la espera del paso, su botón no lleva a nada todavía: se ve apagado, sin latir */
-.ir-paso.en-espera { opacity: .55; cursor: not-allowed; }
 .desmarcar-paso { margin-left: 8px; font-size: 13px; }
-.resaltado { animation: resalte 2.6s ease-out; border-radius: 10px; }
-@keyframes resalte { 0%, 30% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: #fff6d8; } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
+/* 4,6 s: unos tres segundos encendido y después se apaga (antes 2,6 s; el titular pidió dos más, 21 de octubre) */
+.resaltado { animation: resalte 4.6s ease-out; border-radius: 10px; }
+@keyframes resalte { 0%, 60% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: #fff6d8; } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
 @media (prefers-reduced-motion: reduce) { .resaltado { animation: none; outline: 3px solid #f2b828; } }
 
 /* Todo lo que va al Buzón del director lleva el mismo sobre dorado */
@@ -119,7 +118,7 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 .mision-c .pasos { margin: 0; padding-left: 4px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; list-style: none; counter-reset: paso; }
 .mision-c .pasos li { counter-increment: paso; display: block; position: relative; padding: 8px 10px 8px 40px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid #efece5; line-height: 1.55; }
 .mision-c .pasos li::before { content: counter(paso); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-size: 12px; font-weight: 700; background: var(--acento-fondo); color: var(--acento-texto); }
-.mision-c .pasos li:has(.casilla-paso)::before { display: none; }
+.mision-c .pasos li.con-marca::before { display: none; }
 .mision-c .pasos li > span { margin-right: 6px; }
 .mision-c .pasos li.hecho { background: var(--ok-fondo); border-color: #d6e8c8; }
 .mision-c .pasos li.hecho > span { color: var(--suave); text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, 0.3); }
@@ -130,15 +129,14 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 /* Lo ya marcado baja a «Completado», plegado: la tarjeta muestra solo lo que falta */
 .pasos-completados > summary { cursor: pointer; width: fit-content; margin: 2px 0 6px; font-size: 14px; font-weight: 600; color: var(--ok); }
 .pasos-completados > summary .cifra { margin-left: 4px; }
-/* Cada paso se marca con su estrella: gris mientras falta, dorada al hacerlo */
-/* La estrella del paso, a la derecha, más grande y centrada en vertical con su caja (pedido del titular) */
-.mision-c .pasos li:has(.casilla-paso) { padding: 10px 58px 10px 14px; }
-.casilla-paso { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: inline-flex; cursor: pointer; border-radius: 50%; }
-.casilla-paso .icono { width: 32px; height: 32px; fill: none; stroke: #b9b5ab; transition: transform 0.15s, fill 0.15s, stroke 0.15s; }
-.casilla-paso:hover .icono { stroke: #c9a227; transform: scale(1.12); }
-.casilla-paso:has(input:checked) .icono { fill: #e8b923; stroke: #c9a227; }
-.casilla-paso:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .casilla-paso .icono { transition: none; } .casilla-paso:hover .icono { transform: none; } }
+/* Cada paso se marca con «Listo, ya lo hice», abajo a la derecha de su caja (pedido del titular: la estrella no se entendía) */
+.mision-c .pasos li.con-marca { padding: 10px 14px; }
+.pie-paso { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.pie-paso:empty { display: none; }
+.listo-paso { margin: 10px 0 0 auto; display: inline-flex; gap: 6px; align-items: center; min-height: 36px; padding: 4px 18px; border-radius: 999px; background: var(--ok-fondo); border: 1px solid var(--ok); color: var(--ok-texto); font-size: 14px; font-weight: 600; cursor: pointer; }
+.listo-paso .icono { width: 16px; height: 16px; }
+.listo-paso:hover { background: var(--ok); color: var(--texto-en-color); }
+.listo-paso:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
 .comentar-paso { min-height: 24px; margin-left: 4px; padding: 0 8px; font-size: 12px; line-height: 20px; border-radius: 999px; background: var(--sobre); border-color: var(--sobre-borde); color: var(--sobre-texto); opacity: 0.6; vertical-align: baseline; }
 .mision-c .pasos li:hover .comentar-paso, .comentar-paso:focus-visible { opacity: 1; }
 /* El paso explicado en acciones más pequeñas, y «No lo entiendo, explícamelo mejor» debajo, discreto */
@@ -149,25 +147,36 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 .aclarar-paso:hover, .aclarar-paso:focus-visible { border-style: solid; color: inherit; }
 .aclaracion-paso { margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 14px; line-height: 1.5; white-space: pre-line; }
 .aclarando-paso { margin: 8px 0 0; font-size: 13px; color: var(--suave); }
+/* Mientras el director revisa, lo único de un paso que espera es «No lo entiendo»: marcar, elegir, «Hazlo tú» y «Ya lo
+   hice» se ven y se usan como siempre, y quedan para la revisión siguiente (nota del titular, 21 de octubre de 2026) */
 body.director-trabajando .aclarar-paso { opacity: 0.45; cursor: not-allowed; }
 /* Un paso que pide elegir: las opciones como botones, en el paso mismo (un clic responde y marca el paso) */
 .opciones-paso { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .opciones-paso .boton-opcion { min-height: 36px; padding: 6px 18px; border-radius: 999px; background: var(--panel); border: 1px solid var(--tinta); color: var(--texto); font-weight: 600; }
 .opciones-paso .boton-opcion:hover, .opciones-paso .boton-opcion:focus-visible { background: var(--tinta); color: #f6e7b4; }
-body.director-trabajando .boton-opcion { opacity: 0.45; cursor: not-allowed; }
+/* «Ya te lo dije en mi comentario»: otra salida, más discreta que las opciones del director (pedido del titular) */
+.opciones-paso .boton-opcion.ya-lo-dije { border-style: dashed; color: var(--suave); font-weight: 500; }
+.opciones-paso .boton-opcion.ya-lo-dije:hover, .opciones-paso .boton-opcion.ya-lo-dije:focus-visible { color: #f6e7b4; }
+.opciones-paso.en-espera .boton-opcion.ya-lo-dije:hover { color: var(--suave); }
 .eleccion-paso { display: flex; gap: 5px; align-items: center; margin: 8px 0 0; font-size: 14px; color: var(--ok); }
 .eleccion-paso .icono { width: 16px; height: 16px; }
 /* Un paso que pide esperar antes de responder: la cuenta regresiva, y las opciones bloqueadas hasta que llegue a cero */
 .espera-paso { display: flex; gap: 6px; align-items: center; margin: 10px 0 0; font-size: 14px; color: var(--suave); }
 .espera-paso .icono { width: 16px; height: 16px; flex: none; }
 .espera-paso .cifra { font-variant-numeric: tabular-nums; color: var(--texto); }
-.espera-paso.lista { color: var(--ok); }
+.espera-paso.lista { color: var(--ok); font-weight: 600; }
+/* La cuenta, grande: lo que espera no se ve hasta que llega a cero (pedido del titular) */
+.espera-paso.grande { gap: 12px; padding: 10px 14px; border-radius: var(--radio); background: var(--acento-fondo); color: var(--texto); line-height: 1.45; }
+.espera-paso.grande .icono { width: 26px; height: 26px; }
+.espera-paso.grande .cifra { flex: none; font-size: 30px; font-weight: 700; line-height: 1; }
+/* Lo que la espera retenía aparece resaltado: es lo que sigue */
+.recien-libre { outline: 3px solid var(--ok); outline-offset: 3px; border-radius: 999px; }
+.opciones-paso.recien-libre { border-radius: var(--radio); }
 .opciones-paso.en-espera .boton-opcion { opacity: .5; cursor: not-allowed; }
 .opciones-paso.en-espera .boton-opcion:hover { background: var(--panel); color: var(--texto); }
 /* «Hazlo tú»: el director puede hacer el paso con tu permiso; si solo puedes tú, el paso lo dice */
 .hazlo-paso { display: inline-block; margin-top: 10px; min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-weight: 600; }
 .hazlo-paso:hover, .hazlo-paso:focus-visible { background: #45443f; border-color: #45443f; color: #f6e7b4; }
-body.director-trabajando .hazlo-paso { opacity: 0.45; cursor: not-allowed; }
 .solo-tu { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--suave); }
 .solo-tu .icono { flex: none; width: 16px; height: 16px; margin-top: 1px; }
 /* La orden de terminal de un paso: a la vista, con «Abrir la terminal» y «Copiar» */
@@ -180,7 +189,6 @@ body.director-trabajando .hazlo-paso { opacity: 0.45; cursor: not-allowed; }
 .boton-ya-hice { min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--ok-fondo); border: 1px solid var(--ok); color: var(--ok-texto); font-weight: 600; }
 .boton-ya-hice .icono { width: 16px; height: 16px; }
 .boton-ya-hice:hover, .boton-ya-hice:focus-visible { background: var(--ok); border-color: var(--ok); color: var(--texto-en-color); }
-body.director-trabajando .boton-ya-hice { opacity: 0.45; cursor: not-allowed; }
 /* Un botón que hace esperar lo dice en él mismo, hasta que termina */
 button.esperando { cursor: progress; opacity: 0.75; }
 button.esperando::after { content: ''; display: inline-block; width: 0.8em; height: 0.8em; margin-left: 6px; vertical-align: -0.1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: girar 0.8s linear infinite; }
@@ -205,7 +213,8 @@ button.esperando::after { content: ''; display: inline-block; width: 0.8em; heig
 .mision-c.plegada { gap: 8px; }
 .mision-c.sigue { border-color: var(--acento-borde); border-left-color: var(--acento); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.1), var(--sombra); }
 .mision-c .num-m { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; font-weight: 700; background: var(--acento); color: var(--texto-en-color); }
-.sigue-esta { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; background: var(--acento); padding: 3px 12px; border-radius: 999px; }
+.fila-sigue { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.sigue-esta { justify-self: start;font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; background: var(--acento); padding: 3px 12px; border-radius: 999px; }
 .mision-c .estado-texto { margin: 0; font-size: 14px; color: var(--espera); line-height: 1.5; }
 .mision-c .nota-entrega { margin: 0; font-size: 14px; font-style: italic; }
 .mision-c.cola { padding: 10px 14px; background: var(--panel-suave); border-left-color: #cfccc3; box-shadow: none; }
@@ -280,10 +289,11 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .pasos-arranque li:not(.actual) { align-items: center; padding: 10px 12px; }
 
 /* ── La ruta: las fases como un mapa con niebla, el tablero y la fase abierta ── */
-.ruta { list-style: none; display: grid; grid-template-columns: repeat(var(--fases, 7), minmax(130px, 1fr)); gap: 0; margin: 0 0 20px; padding: 16px 8px 10px; position: relative; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); overflow-x: auto; }
-.ruta::before { content: ''; position: absolute; left: 8%; right: 8%; top: 43px; height: 4px; border-radius: 2px; background: repeating-linear-gradient(90deg, #cfccc3 0 10px, transparent 10px 16px); }
+.ruta { list-style: none; display: grid; grid-template-columns: repeat(var(--fases, 7), minmax(130px, 1fr)); gap: 0; margin: 0 0 20px; padding: 6px 8px 10px; position: relative; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); overflow-x: auto; }
+/* El botón deja 14px arriba: el anillo que late en la fase actual (hasta 9px) cabe dentro del recuadro de la fase vista */
+.ruta::before { content: ''; position: absolute; left: 8%; right: 8%; top: 46px; height: 4px; border-radius: 2px; background: repeating-linear-gradient(90deg, #cfccc3 0 10px, transparent 10px 16px); }
 .ruta li { position: relative; display: flex; justify-content: center; }
-.ruta button { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; min-height: 0; border: 0; background: none; padding: 0 6px 8px; border-radius: 10px; text-align: center; }
+.ruta button { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; min-height: 0; border: 0; background: none; padding: 14px 6px 8px; border-radius: 10px; text-align: center; }
 .ruta button:hover { background: rgba(0, 0, 0, 0.03); }
 .ruta .hito { position: relative; width: 56px; height: 56px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-weight: 700; font-size: 18px; color: var(--suave); background: conic-gradient(var(--ok) calc(var(--av, 0) * 1turn), #e2ded4 0); }
 .ruta .hito::after { content: attr(data-n); position: absolute; inset: 5px; border-radius: 50%; background: var(--panel); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; }
@@ -303,7 +313,8 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 @keyframes latido { 0%, 100% { box-shadow: 0 0 0 4px rgba(47, 95, 179, 0.18); } 50% { box-shadow: 0 0 0 9px rgba(47, 95, 179, 0.06); } }
 @media (prefers-reduced-motion: reduce) { .ruta li.actual .hito { animation: none; } }
 
-.marcador { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+/* auto-fit: las cifras que haya se reparten todo el ancho (con auto-fill quedaban columnas vacías a la derecha) */
+.marcador { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
 .marcador .kpi { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; text-align: left; font: inherit; box-shadow: var(--sombra); }
 .marcador .kpi:hover { border-color: var(--acento); background: var(--panel); }
 .marcador .kpi b { font-size: 24px; line-height: 1.2; }
@@ -347,21 +358,23 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .frentes-fase li span.t { grid-column: 1 / -1; color: var(--suave); font-size: 13.5px; line-height: 1.45; }
 .adelantado { margin: 0; padding-left: 20px; font-size: 14.5px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; line-height: 1.5; }
 
-/* ── El diagnóstico ── */
+/* ── El diagnóstico, dentro de Proyecto: abierto mientras no hay meta, plegado después ── */
 .resumen-d { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 15.5px; line-height: 1.65; max-width: var(--lectura); }
-.rejilla-frentes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-.tarjeta-frente { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--sombra); }
-.tarjeta-frente header { display: flex; align-items: center; gap: 8px; }
-.tarjeta-frente header b { flex: 1; font-size: 16px; }
-.estrellas { color: var(--oro); letter-spacing: 1px; font-size: 15px; white-space: nowrap; }
-.estrellas .vacia { color: #d9d5ca; }
-.tarjeta-frente .veredicto-f { font-size: 14.5px; font-style: italic; margin: 0; line-height: 1.5; }
-.tarjeta-frente .listas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13.5px; line-height: 1.45; }
-.tarjeta-frente .listas ul { margin: 4px 0 0; padding-left: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; }
-.tarjeta-frente .listas .tit { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--suave); }
-.tarjeta-frente .pie { font-size: 12.5px; color: var(--suave); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.tarjeta-frente .pie button { min-height: 32px; font-size: 13px; padding: 4px 10px; }
+.plegable-d > summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; cursor: pointer; list-style: none; }
+.plegable-d > summary::-webkit-details-marker { display: none; }
+.plegable-d > summary h3 { margin: 0; }
+.plegable-d > summary small { color: var(--suave); font-size: 13px; }
+.plegable-d > summary::after { content: ''; width: 7px; height: 7px; margin-left: auto; align-self: center; border: solid var(--suave); border-width: 0 1.8px 1.8px 0; transform: rotate(45deg); transition: transform 0.15s; }
+.plegable-d[open] > summary::after { transform: rotate(-135deg); }
+.plegable-d > summary:focus-visible { outline: 2px solid var(--acento); outline-offset: 4px; border-radius: 4px; }
+.plegable-d[open] > summary { margin-bottom: 14px; }
+.plegable-d h4 { margin: 18px 0 6px; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); }
+.compilado-frentes, .plegable-d .texto-d { margin: 14px 0 0; font-size: 15px; line-height: 1.6; max-width: var(--lectura); }
+.plegable-d h4 + .texto-d { margin-top: 0; }
+.plegable-d .acciones-p { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+.metas-anteriores .cifra { margin-left: 4px; }
 .boletin-equipo { margin-bottom: 16px; }
+.boletin-equipo .etiqueta-boletin { margin: 0 0 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); }
 .notas-boletin { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; }
 .notas-boletin > span { display: flex; align-items: center; gap: 6px; }
 .boletin-equipo p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; }
@@ -457,6 +470,11 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 /* ── El Buzón y las notas ── */
 .explica-buzon { margin-bottom: 14px; background: var(--sobre); border-color: var(--sobre-borde); }
 .explica-buzon p { margin: 8px 0 0; font-size: 15px; line-height: 1.6; max-width: var(--lectura); }
+/* «Buscar en el Buzón»: el campo arriba de las notas, del ancho de lectura */
+.buscar-buzon { display: grid; gap: 6px; max-width: var(--lectura); margin: 0 0 16px; }
+.buscar-buzon label { font-weight: 650; }
+.buscar-buzon .como { margin: 0; font-size: 13.5px; }
+.hallado-en { color: var(--acento-texto); font-weight: 600; }
 .redactar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .redactar .botones { display: flex; justify-content: flex-end; }
 .grabadora { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -774,9 +792,21 @@ html.enfoque .lector .parte-doc.por-leer { border-bottom: 0; padding-block: 4px 
    encima del enfoque: así no tapan el texto */
 @media (max-width: 760px) { html.enfoque .docs > .lector { inset: 8px; width: calc(100vw - 84px); max-height: calc(100dvh - 16px); margin-inline: 0 auto; } }
 html.enfoque .trozo.actual { background: transparent; }
+/* El modo enfoque de la misión: el mismo velo, y la tarjeta de ahora donde está, nítida y por encima (la página se
+   sigue desplazando, porque una misión puede ser más alta que la pantalla). Lo demás de Hoy queda bajo el velo */
+.boton-enfoque.en-mision { min-height: 30px; font-size: 13px; }
+html.enfoque-mision :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral) { filter: blur(3px); opacity: 0.3; pointer-events: none; user-select: none; }
+html.enfoque-mision #vista { pointer-events: none; user-select: none; }
+html.enfoque-mision .velo-zen { opacity: 1; visibility: visible; transition: opacity 0.6s ease; }
+/* La tarjeta se selecciona y se copia (rutas, direcciones, órdenes): «text» y no «auto», que bajo un padre con
+   user-select: none también vale none */
+html.enfoque-mision .mision-c.sigue { position: relative; z-index: 40; pointer-events: auto; -webkit-user-select: text; user-select: text; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12); }
+html.enfoque-mision :is(.director-flotante, .atajos-director, .segundo-plano) { z-index: 45; }
+html.enfoque-mision .progreso-director { z-index: 46; }
 @media (prefers-reduced-motion: reduce) {
   .trozo.llega { animation: none; }
   :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { transition: none; }
+  html.enfoque-mision .velo-zen { transition: none; }
   .zen-niebla { animation: none; }
   .zen-luz { display: none; }
   .velo-zen, html.enfoque .velo-zen { transition: none; }
@@ -799,15 +829,29 @@ html.enfoque .trozo.actual { background: transparent; }
 .detalles-repo > summary, .mas-datos > summary { cursor: pointer; color: var(--acento-texto); font-weight: 500; width: max-content; max-width: 100%; }
 .detalles-repo .fila-form { margin-top: 8px; }
 .mas-datos .form-proyecto { margin-top: 8px; }
+/* Modelo y consumo (en el pie de la barra): el modelo del director, los límites del plan y lo que gastó */
+.campo-modelo { display: grid; gap: 6px; font-size: 14px; font-weight: 600; margin-top: 10px; max-width: 320px; }
+.campo-modelo select { width: 100%; }
+.abrir-claude { margin-top: 14px; }
+.abrir-claude button { min-height: 36px; }
+.consumo-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+.consumo-cifras > div { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px; }
+.consumo-cifras .tit { font-size: 12px; color: var(--suave); }
+.consumo-cifras b { font-size: 18px; }
+.consumo-cifras small { font-size: 12px; color: var(--suave); }
+.aviso-modelo { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: #fff6d8; border: 1px solid #f2b828; font-size: 14px; }
+.consumo-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.consumo-lista li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; padding-bottom: 6px; border-bottom: 1px solid var(--borde); }
+.consumo-lista li > span:last-child { color: var(--suave); }
+.consumo-proyectos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.consumo-proyectos li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13.5px; }
+.consumo-proyectos li > span:last-child { color: var(--suave); }
 .form-proyecto { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; font-size: 14px; margin-top: 12px; }
 .form-proyecto label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-weight: 600; }
 .form-proyecto label.ancho { grid-column: 1 / -1; }
 .form-proyecto .detectado { font-weight: 500; font-size: 13px; color: var(--sobre-texto); }
-/* Mientras el director trabaja, el Studio espera: se puede leer, pero no escribir, grabar ni decidir (lo que el
-   director cambia puede recargar la página, y se perdería) */
-/* Mientras el director revisa: se navega y se lee todo, y lo que le agrega información queda apagado (director.ts ›
-   revisando). Al tocarlo, un aviso dice por qué */
-body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas], [data-seguir-hilo], .redactar) { opacity: 0.45; cursor: not-allowed; }
+/* Mientras el director revisa, se le sigue hablando (comentarios, audios y preguntas, para la revisión siguiente): solo
+   lo que cambia lo que él está leyendo queda apagado (director.ts › libreMientrasRevisa). Al escribir, este aviso lo dice */
 .aviso-revisando { margin: 0 0 8px; padding: 8px 12px; border-radius: 10px; background: var(--aviso-fondo); color: var(--aviso-texto); font-size: 14px; }
 .tarjeta-trabajando b { color: #f6e7b4; }
 .form-proyecto .botones { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
@@ -895,6 +939,10 @@ body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas],
 .dq-barra i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--ok); transition: width 0.35s ease-out; }
 .dq-seccion[hidden] { display: none; }
 .donde-quedamos ul.dq-lista { list-style: none; padding-left: 0; gap: 2px; }
+.dq-lista > li { display: flex; align-items: flex-start; gap: 2px; }
+/* El ✉ de cada línea: comentarla o preguntar sobre ella al director */
+.dq-comentar { flex: none; min-height: 0; margin: 2px 0 0; padding: 3px 7px; font-size: 14px; line-height: 1.4; color: var(--suave); background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.dq-comentar:hover, .dq-comentar:focus-visible { color: var(--acento); border-color: var(--borde); background: var(--panel); }
 .dq-item { position: relative; display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 0; margin: 0; padding: 5px 8px; text-align: left; font: inherit; font-size: 15px; line-height: 1.5; color: var(--texto); background: transparent; border: 0; border-radius: 8px; cursor: pointer; }
 .dq-item:hover { background: var(--ok-fondo); }
 .dq-item:focus-visible { outline: 2px solid var(--ok); outline-offset: 1px; }
@@ -968,6 +1016,7 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .celebracion .cumplidas li > span { flex: 1; min-width: 0; }
 .celebracion .cumplidas .icono { width: 18px; height: 18px; color: var(--ok); flex: none; }
 .celebracion .cumplidas b { color: var(--oro); white-space: nowrap; }
+.celebracion .todas-hechas { margin: 0; padding: 10px 14px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 15px; line-height: 1.5; }
 .celebracion .barra-xp > div { animation: celebra-barra 1.2s ease-out both; }
 .sube-nivel, .logros-nuevos { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; color: #7a5a06; }
 .sube-nivel .icono { width: 20px; height: 20px; color: var(--oro); fill: #f2c94c; }
@@ -1291,7 +1340,6 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
   .fila-barra { grid-template-columns: 120px minmax(0, 1fr) 48px; }
   .bitacora li { grid-template-columns: 80px minmax(0, 1fr); }
   .bitacora li .q { display: none; }
-  .tarjeta-frente .listas { grid-template-columns: minmax(0, 1fr); }
   .mision-c { padding: 14px; }
   .cabeza-proyecto h1 { font-size: 22px; }
 }

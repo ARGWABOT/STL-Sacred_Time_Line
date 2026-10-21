@@ -233,6 +233,9 @@ details.grupo-nav > summary:focus-visible { outline: 2px solid var(--acento); ou
 .cifra { flex: none; display: inline-grid; place-items: center; min-width: 22px; height: 21px; padding: 0 7px; border-radius: 999px; background: #e1ddd2; color: var(--suave); font-size: 12px; font-weight: 700; font-style: normal; }
 .cifra.accion { background: var(--acento); color: var(--texto-en-color); }
 .pie-lateral { margin-top: auto; position: sticky; bottom: -14px; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-inline: -12px; padding: 12px 12px 14px; background: var(--lateral-fondo); border-top: 1px solid var(--borde); }
+/* «Modelo y consumo»: como una sección más, pero en el pie, porque es de este computador y no del proyecto */
+.item-pie { margin-bottom: 2px; }
+body.sin-proyectos .item-pie { display: none; }
 .identidad { display: flex; flex-wrap: wrap; gap: 6px; }
 .identidad.con-vista #quien:not(.sin) { display: none; }
 .fila-pie { display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
@@ -286,6 +289,8 @@ body.director-trabajando .segundo-plano { bottom: 310px; }
 .sp-linea { pointer-events: auto; display: inline-flex; align-items: baseline; gap: 0; padding: 5px 12px; border-radius: 999px; background: var(--tinta); color: #f6f2e6; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2); }
 button.sp-linea { width: auto; min-height: 0; border: 0; font-weight: 600; cursor: pointer; }
 .sp-linea.alerta { background: var(--peligro); color: var(--texto-en-color); }
+/* Los tokens que lleva el director, junto a «El director está revisando»: suben con una cuenta corta */
+.sp-tokens { margin-left: 10px; padding-left: 10px; border-left: 1px solid rgba(246, 242, 230, 0.3); font-weight: 400; font-variant-numeric: tabular-nums; color: #f6e7b4; }
 body.sin-proyectos .segundo-plano { display: none !important; }
 /* Lo que va haciendo el director mientras revisa: un panel junto a sus atajos, que avanza en vivo */
 .progreso-director { position: fixed; right: 90px; bottom: 99px; z-index: 7; width: min(440px, calc(100vw - var(--lateral) - 130px)); max-height: min(60vh, 520px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--borde-fuerte); border-radius: var(--radio-g); box-shadow: var(--sombra-alta); font-size: 14px; }
@@ -300,6 +305,8 @@ body.sin-proyectos .segundo-plano { display: none !important; }
 .pasos-progreso li.hace::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 5px; height: 5px; border-radius: 50%; background: var(--borde-fuerte); }
 .pasos-progreso li.dice { padding: 6px 10px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); }
 .pasos-progreso li.ultimo.hace::before { background: var(--acento); }
+/* Las líneas iguales seguidas van en una, con cuántas veces */
+.pasos-progreso .veces { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px; border-radius: 9px; background: var(--panel-suave); border: 1px solid var(--borde); font-size: 11px; line-height: 16px; text-align: center; color: var(--suave); font-variant-numeric: tabular-nums; }
 body.sin-proyectos .progreso-director { display: none !important; }
 
 /* ── Los avisos: abajo, sin mover la página ── */
