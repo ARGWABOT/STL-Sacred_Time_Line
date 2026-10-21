@@ -3,6 +3,7 @@
 // servidores son dos lanzadores de revisiones, dos traídas de GitHub y dos guardados a la vez. El 20 de octubre, un
 // reinicio de Vite dejó un servidor en el 5180 y otro en el 5181 (en el mismo proceso), y la revisión del 21 se lanzó
 // dos veces. El candado vive en .estudio/servidor.json (solo de este computador, fuera de git).
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { join } from 'node:path';
@@ -37,6 +38,21 @@ export function procesoVivo(pid: number): boolean {
   }
 }
 
+/**
+ * Con qué comando se lanzó un proceso, o null si no se puede saber. Sirve para no confundir al Studio con otro programa
+ * que, después de reiniciar el computador, quedó con el mismo número de proceso que un candado viejo.
+ */
+export function comandoDe(pid: number): string | null {
+  try {
+    const r = process.platform === 'win32'
+      ? spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CommandLine`], { encoding: 'utf8', windowsHide: true, timeout: 15_000 })
+      : spawnSync('ps', ['-o', 'args=', '-p', String(pid)], { encoding: 'utf8', timeout: 5000 });
+    return r.status === 0 ? r.stdout.trim() || null : null;
+  } catch {
+    return null;
+  }
+}
+
 /** ¿Algo escucha en ese puerto de este computador? (localhost: Vite escucha en IPv6 o en IPv4, según el sistema.) */
 export function puertoOcupado(puerto: number, ms = 1500): Promise<boolean> {
   return new Promise((listo) => {
@@ -58,15 +74,41 @@ export function puertoOcupado(puerto: number, ms = 1500): Promise<boolean> {
 export async function otroServidor(raiz: string, ahora = Date.now()): Promise<Candado | null> {
   const c = leerCandado(raiz);
   if (!c || c.pid === process.pid || !procesoVivo(c.pid)) return null;
+  // Un número de proceso que ahora es de otro programa (después de reiniciar el computador): el candado es viejo
+  const cmd = comandoDe(c.pid);
+  if (cmd !== null && !/vite/i.test(cmd)) return null;
   if (ahora - Date.parse(c.desde) < ARRANCANDO_MS) return c;
   return (await puertoOcupado(c.puerto)) ? c : null;
 }
 
-export function tomarCandado(raiz: string, puerto: number): void {
+/**
+ * Toma el candado, sin carreras: el archivo se crea solo si no existe (de dos servidores que arrancan al mismo tiempo,
+ * solo uno lo crea). Lo retoma el mismo proceso (un reinicio de Vite) y lo reemplaza si es viejo: de un proceso que ya
+ * no existe, o de uno que otroServidor ya juzgó que no sirve (vivo, pero sin servidor desde hace rato). Devuelve false
+ * si otro acaba de tomarlo.
+ */
+export function tomarCandado(raiz: string, puerto: number, ahora = Date.now()): boolean {
   mkdirSync(join(raiz, '.estudio'), { recursive: true });
-  const previo = leerCandado(raiz);
-  const desde = previo?.pid === process.pid ? previo.desde : new Date().toISOString();
-  writeFileSync(rutaCandado(raiz), JSON.stringify({ pid: process.pid, puerto, desde }) + '\n');
+  const ruta = rutaCandado(raiz);
+  const datos = (desde: string) => JSON.stringify({ pid: process.pid, puerto, desde }) + '\n';
+  for (let intento = 0; intento < 3; intento++) {
+    try {
+      writeFileSync(ruta, datos(new Date(ahora).toISOString()), { flag: 'wx' });
+      return true;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
+      const c = leerCandado(raiz);
+      if (c?.pid === process.pid) {
+        writeFileSync(ruta, datos(c.desde));
+        return true;
+      }
+      // Otro servidor vivo que lo tomó hace un momento: está arrancando, se le deja (si su número de proceso es ahora
+      // de otro programa, el candado es viejo)
+      if (c && procesoVivo(c.pid) && ahora - Date.parse(c.desde) < ARRANCANDO_MS && ((cmd) => cmd === null || /vite/i.test(cmd))(comandoDe(c.pid))) return false;
+      rmSync(ruta, { force: true });
+    }
+  }
+  return false;
 }
 
 /** Solo lo suelta quien lo tiene. */

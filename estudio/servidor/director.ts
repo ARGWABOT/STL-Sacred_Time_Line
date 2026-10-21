@@ -24,7 +24,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { contenerRecargas, EVENTO_RECARGA } from './recarga';
-import { otroServidor, soltarCandado, tomarCandado, yaEncendido } from './unico';
+import { leerCandado, otroServidor, soltarCandado, tomarCandado, yaEncendido } from './unico';
 import {
   aclaracionesDe,
   agendaDe,
@@ -957,8 +957,11 @@ export function servidorDirector(): Plugin {
           /* ya estaba cerrado */
         }
       }
+      if (!tomarCandado(raiz, server.config.server.port ?? 5180)) {
+        const c = leerCandado(raiz);
+        throw new Error(c ? yaEncendido(c) : 'Otro servidor de STL Studio está arrancando en este momento: no se enciende otro.');
+      }
       g.__estudioServidor = server;
-      tomarCandado(raiz, server.config.server.port ?? 5180);
       server.httpServer?.once('listening', () => {
         const a = server.httpServer?.address();
         if (a && typeof a === 'object') tomarCandado(raiz, a.port);

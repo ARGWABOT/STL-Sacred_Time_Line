@@ -4,7 +4,7 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { leerCandado, otroServidor, puertoOcupado, rutaCandado, soltarCandado, tomarCandado } from './unico';
+import { comandoDe, leerCandado, otroServidor, puertoOcupado, rutaCandado, soltarCandado, tomarCandado } from './unico';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-unico-'));
 afterAll(() => rmSync(raiz, { recursive: true, force: true }));
@@ -50,4 +50,32 @@ describe('un solo servidor del Studio', () => {
     await new Promise((r) => servidor.close(r));
     expect(await puertoOcupado(puerto)).toBe(false);
   });
+});
+
+describe('el candado, sin carreras y sin confundirse después de reiniciar el computador', () => {
+  it('si otro servidor vivo acaba de tomarlo, no se toma; si su proceso ya no existe, se reemplaza', async () => {
+    escribirCandado({ pid: process.ppid, puerto: 5180, desde: new Date().toISOString() });
+    expect(tomarCandado(raiz, 5180)).toBe(false);
+    expect(leerCandado(raiz)?.pid).toBe(process.ppid);
+    const hijo = spawn(process.execPath, ['-e', '0']);
+    await new Promise((r) => hijo.on('exit', r));
+    escribirCandado({ pid: hijo.pid, puerto: 5180, desde: new Date().toISOString() });
+    expect(tomarCandado(raiz, 5180)).toBe(true);
+    expect(leerCandado(raiz)?.pid).toBe(process.pid);
+    soltarCandado(raiz);
+  });
+
+  it('un número de proceso que ahora es de otro programa no cuenta como el Studio', async () => {
+    // Un programa vivo que no es vite (este mismo test lanza uno): su candado es viejo
+    const otro = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 20000)']);
+    try {
+      expect(comandoDe(otro.pid!)).toMatch(/setTimeout/);
+      escribirCandado({ pid: otro.pid, puerto: 5180, desde: new Date().toISOString() });
+      expect(await otroServidor(raiz)).toBeNull();
+      expect(tomarCandado(raiz, 5180)).toBe(true);
+      soltarCandado(raiz);
+    } finally {
+      otro.kill();
+    }
+  }, 30_000);
 });

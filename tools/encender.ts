@@ -11,7 +11,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { leerCandado, procesoVivo, puertoOcupado } from '../estudio/servidor/unico.ts';
+import { comandoDe, leerCandado, procesoVivo, puertoOcupado } from '../estudio/servidor/unico.ts';
 
 const raiz = join(import.meta.dirname, '..');
 const puerto = Number(process.env.PORT) || 5180;
@@ -40,7 +40,10 @@ async function yaHayStudio(): Promise<string | null> {
   if (await encendido()) return 'responde';
   if (pidVigilante()) return 'su vigilante está vivo';
   const c = leerCandado(raiz);
-  if (c && procesoVivo(c.pid)) return `su servidor está vivo (proceso ${c.pid})`;
+  if (c && procesoVivo(c.pid)) {
+    const cmd = comandoDe(c.pid);
+    if (cmd === null || /vite/i.test(cmd)) return `su servidor está vivo (proceso ${c.pid})`;
+  }
   if (await puertoOcupado(puerto)) return `algo ocupa el puerto ${puerto}`;
   return null;
 }
@@ -59,10 +62,17 @@ function vivo(n: number): boolean {
   try { process.kill(n, 0); return true; } catch { return false; }
 }
 
+/**
+ * El vigilante que está corriendo, si lo hay. Después de reiniciar el computador, su número de proceso puede ser de otro
+ * programa: solo cuenta si su comando es el del vigilante (si no se puede saber, se le cree).
+ */
 function pidVigilante(): number | null {
   if (!existsSync(pid)) return null;
   const n = Number(readFileSync(pid, 'utf8').trim());
-  return n && vivo(n) ? n : null;
+  if (!n || !vivo(n)) return null;
+  if (n === process.pid) return n;
+  const cmd = comandoDe(n);
+  return cmd === null || (/encender/.test(cmd) && /--vigilar/.test(cmd)) ? n : null;
 }
 
 // El vigilante: corre vite y, si se cae, lo relanza. Si se cae más de 5 veces en 2 minutos, se rinde y lo deja dicho
@@ -86,6 +96,11 @@ async function vigilar() {
     hijo = spawn(process.execPath, [join(raiz, 'node_modules', 'vite', 'bin', 'vite.js')], { cwd: raiz, stdio: ['ignore', fd, fd], windowsHide: true });
     const codigo = await new Promise<number | null>(r => hijo!.on('exit', c => r(c)));
     if (parar) break;
+    // Si el Studio responde, lo sirve otro (este servidor no arrancó porque ya había uno): este vigilante se retira
+    if (await encendido()) {
+      anotar('Ya hay otro servidor del Studio encendido: este vigilante se retira (nunca dos).');
+      break;
+    }
     anotar(`El servidor se cayó (código ${codigo}).`);
     const ahora = Date.now();
     caidas.push(ahora);
@@ -96,7 +111,8 @@ async function vigilar() {
     }
     await esperar(2000);
   }
-  rmSync(pid, { force: true });
+  // Solo borra su número si es el suyo (el de otro vigilante, se deja)
+  if (existsSync(pid) && readFileSync(pid, 'utf8').trim() === String(process.pid)) rmSync(pid, { force: true });
 }
 
 // Lanzar el vigilante desprendido de quien lo llama. En Windows se crea por WMI: así queda fuera del grupo de procesos
