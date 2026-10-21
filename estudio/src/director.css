@@ -137,7 +137,6 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 .listo-paso .icono { width: 16px; height: 16px; }
 .listo-paso:hover { background: var(--ok); color: var(--texto-en-color); }
 .listo-paso:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
-body.director-trabajando .listo-paso { opacity: 0.45; cursor: not-allowed; }
 .comentar-paso { min-height: 24px; margin-left: 4px; padding: 0 8px; font-size: 12px; line-height: 20px; border-radius: 999px; background: var(--sobre); border-color: var(--sobre-borde); color: var(--sobre-texto); opacity: 0.6; vertical-align: baseline; }
 .mision-c .pasos li:hover .comentar-paso, .comentar-paso:focus-visible { opacity: 1; }
 /* El paso explicado en acciones más pequeñas, y «No lo entiendo, explícamelo mejor» debajo, discreto */
@@ -148,12 +147,13 @@ body.director-trabajando .listo-paso { opacity: 0.45; cursor: not-allowed; }
 .aclarar-paso:hover, .aclarar-paso:focus-visible { border-style: solid; color: inherit; }
 .aclaracion-paso { margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 14px; line-height: 1.5; white-space: pre-line; }
 .aclarando-paso { margin: 8px 0 0; font-size: 13px; color: var(--suave); }
+/* Mientras el director revisa, lo único de un paso que espera es «No lo entiendo»: marcar, elegir, «Hazlo tú» y «Ya lo
+   hice» se ven y se usan como siempre, y quedan para la revisión siguiente (nota del titular, 21 de octubre de 2026) */
 body.director-trabajando .aclarar-paso { opacity: 0.45; cursor: not-allowed; }
 /* Un paso que pide elegir: las opciones como botones, en el paso mismo (un clic responde y marca el paso) */
 .opciones-paso { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .opciones-paso .boton-opcion { min-height: 36px; padding: 6px 18px; border-radius: 999px; background: var(--panel); border: 1px solid var(--tinta); color: var(--texto); font-weight: 600; }
 .opciones-paso .boton-opcion:hover, .opciones-paso .boton-opcion:focus-visible { background: var(--tinta); color: #f6e7b4; }
-body.director-trabajando .boton-opcion { opacity: 0.45; cursor: not-allowed; }
 .eleccion-paso { display: flex; gap: 5px; align-items: center; margin: 8px 0 0; font-size: 14px; color: var(--ok); }
 .eleccion-paso .icono { width: 16px; height: 16px; }
 /* Un paso que pide esperar antes de responder: la cuenta regresiva, y las opciones bloqueadas hasta que llegue a cero */
@@ -173,7 +173,6 @@ body.director-trabajando .boton-opcion { opacity: 0.45; cursor: not-allowed; }
 /* «Hazlo tú»: el director puede hacer el paso con tu permiso; si solo puedes tú, el paso lo dice */
 .hazlo-paso { display: inline-block; margin-top: 10px; min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-weight: 600; }
 .hazlo-paso:hover, .hazlo-paso:focus-visible { background: #45443f; border-color: #45443f; color: #f6e7b4; }
-body.director-trabajando .hazlo-paso { opacity: 0.45; cursor: not-allowed; }
 .solo-tu { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--suave); }
 .solo-tu .icono { flex: none; width: 16px; height: 16px; margin-top: 1px; }
 /* La orden de terminal de un paso: a la vista, con «Abrir la terminal» y «Copiar» */
@@ -186,7 +185,6 @@ body.director-trabajando .hazlo-paso { opacity: 0.45; cursor: not-allowed; }
 .boton-ya-hice { min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--ok-fondo); border: 1px solid var(--ok); color: var(--ok-texto); font-weight: 600; }
 .boton-ya-hice .icono { width: 16px; height: 16px; }
 .boton-ya-hice:hover, .boton-ya-hice:focus-visible { background: var(--ok); border-color: var(--ok); color: var(--texto-en-color); }
-body.director-trabajando .boton-ya-hice { opacity: 0.45; cursor: not-allowed; }
 /* Un botón que hace esperar lo dice en él mismo, hasta que termina */
 button.esperando { cursor: progress; opacity: 0.75; }
 button.esperando::after { content: ''; display: inline-block; width: 0.8em; height: 0.8em; margin-left: 6px; vertical-align: -0.1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: girar 0.8s linear infinite; }

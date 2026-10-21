@@ -534,7 +534,8 @@ function pintarSegundoPlano() {
   ];
   caja.innerHTML = lineas.join('');
   caja.hidden = !lineas.length;
-  // Mientras el director trabaja, se navega y se lee todo; lo que le agrega información queda apagado (ver revisando)
+  // Mientras el director trabaja, se navega, se lee y se avanza en las misiones; lo que cambia la ruta espera (ver
+  // libreMientrasRevisa)
   document.body.classList.toggle('director-trabajando', r.estado === 'en_curso');
   // El atajo de revisión dice su estado
   const atajo = document.querySelector<HTMLElement>('.atajo[data-revision]');
@@ -2032,7 +2033,7 @@ function tarjetaMision(m: Mision, compacta = false, numero = 0) {
   const acciones: string[] = [];
   const todos = m.pasos.length > 0 && m.pasos.every((_, k) => hechos.has(k));
   // La misión se entrega sola al marcar su último paso; el botón queda solo si no tiene pasos o si esa entrega no se
-  // pudo hacer (sin servidor, o el director revisando)
+  // pudo hacer (sin servidor). Con el director revisando también se entrega: queda para la revisión siguiente
   if (['pendiente', 'en_curso', 'rehacer'].includes(e) && (todos || !m.pasos.length)) acciones.push(`<button type="button" class="primario${todos ? ' llamada' : ''}" data-entregar="${esc(m.id)}">Entregar al director</button>`);
   acciones.push(`<button type="button" class="al-director" data-comentar="mision|${esc(m.id)}">✉ Comentar al director</button>`);
   // Si lo que sigue es leer o decidir en un documento, se continúa de un clic: directo a lo que toca, o en el modo
