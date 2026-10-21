@@ -383,6 +383,8 @@ function recargarConCuenta(motivo: string, reinicio = false) {
     let falta = SEGUNDOS_CUENTA;
     const texto = () => `${motivo} El Studio se actualiza en ${falta}…`;
     mostrarCubierta(texto(), reinicio ? undefined : () => recargarYa());
+    // El servidor espera esta señal para reiniciarse: así nunca se lleva lo que alguien escribe o graba (recarga.ts)
+    if (reinicio) import.meta.hot?.send('estudio:libre-para-reiniciar');
     const cuenta = setInterval(() => {
       falta -= 1;
       if (falta > 0) return void ponerTextoCubierta(texto());
@@ -633,18 +635,46 @@ function marcarSinServidor(si: boolean) {
 }
 
 /**
- * Mientras el director revisa, no se le agrega nada (comentarios, audios, preguntas, entregas ni decisiones): lo leería a
- * medias o se perdería. Se puede navegar y leer todo. Dice por qué y devuelve true si hay que esperar.
+ * Mientras el director revisa, se navega, se lee y se le sigue hablando (comentarios, audios y preguntas): lo que llega
+ * después de empezar no entra en esa revisión, espera la siguiente (bandeja.ts › corteDeRevision). Lo que cambia lo que
+ * él ya está leyendo (entregas, decisiones, elecciones, encargos, o corregir una nota de antes) espera a que termine.
+ * Dice por qué y devuelve true si hay que esperar.
  */
 const revisando = () => !!d && 'plan' in d && estadoRevision().estado === 'en_curso';
 function esperaAlDirector(): boolean {
   if (!revisando()) return false;
-  avisar('El director está revisando. Mientras termina, puedes moverte y leer todo, pero no agregar nada nuevo: comentarios, audios, preguntas, entregas ni decisiones. Al terminar, se habilita solo.', true);
+  avisar('El director está revisando. Mientras termina, puedes leer, comentar, grabar y preguntar (queda para la revisión siguiente), pero no entregar, decidir ni cambiar lo que él ya está leyendo. Al terminar, se habilita solo.', true);
   return true;
 }
 
+/** Desde cuándo lo que se deja ya no entra en la revisión en marcha (src/director/proyectos.ts › corteDeRevision). */
+function corteRevision(): string | null {
+  const r = d?.revision;
+  if (!r || r.hecha || r.error) return null;
+  return [r.lanzada, r.enCurso].filter((x): x is string => !!x).sort()[0] ?? null;
+}
+/** ¿La nota llegó después de empezar la revisión en marcha? Entonces el director no la está leyendo: se corrige o se quita. */
+function notaTrasCorte(n: Nota | undefined): boolean {
+  const c = corteRevision();
+  return !!n && !!c && n.cuando > c;
+}
+/** Lo que se le dice a quien escribe mientras el director revisa. */
+const AVISO_REVISANDO = '<b>El director está revisando.</b> Lo que dejes ahora no entra en esta revisión: queda en el Buzón para la siguiente. ';
+const avisoRevisando = () => (revisando() ? AVISO_REVISANDO : '');
+
+/** ¿Esta acción puede hacerse mientras el director revisa? Leer, marcar pasos y hablarle sí; lo demás espera. */
+function libreMientrasRevisa(cuerpo: Record<string, unknown>): boolean {
+  if (cuerpo.tipo === 'paso' || cuerpo.tipo === 'leido' || cuerpo.tipo === 'comentar') return true;
+  if (cuerpo.tipo === 'editar_nota' || cuerpo.tipo === 'borrar_nota') return notaTrasCorte(d.estado.notas.find((n) => n.id === cuerpo.id));
+  if (cuerpo.tipo === 'corregir_transcripcion') return notaTrasCorte(d.estado.notas.find((n) => n.audio === cuerpo.audio));
+  return false;
+}
+
 async function accion(cuerpo: Record<string, unknown>, hecho = 'Guardado.') {
-  if (cuerpo.tipo !== 'paso' && cuerpo.tipo !== 'leido' && esperaAlDirector()) return false;
+  if (!libreMientrasRevisa(cuerpo) && esperaAlDirector()) return false;
+  if (cuerpo.tipo === 'comentar' && revisando() && hecho) hecho = cuerpo.urgente
+    ? 'Lo urgente va solo al director en cuanto termine la revisión que está haciendo (las dos escriben el plan). Lo demás del Buzón espera la siguiente.'
+    : 'Quedó en el Buzón para la revisión siguiente: el director ya empezó esta y no la incluye.';
   const turno = ++cambiosLocales;
   enVuelo++;
   const antes = colaAcciones;
@@ -2177,7 +2207,6 @@ function vistaPreguntas() {
 
 /** El diálogo de las preguntas (estudio/src/preguntas.ts), con lo que necesita del Studio. */
 function formularPreguntas() {
-  if (esperaAlDirector()) return;
   const yo = d.identidad.rol;
   return abrirPreguntas({
     pendientes: () => d.estado.notas.filter((n) => esPregunta(n) && n.de === yo && !d.plan.respuestas[n.id]),
@@ -2187,6 +2216,7 @@ function formularPreguntas() {
     quitar: (id) => accion({ tipo: 'borrar_nota', id }, 'Pregunta quitada.'),
     verRespuestas: () => irA('preguntas'),
     audio: (n) => audioYTexto(n.audio) + adjuntosDeNota(n),
+    aviso: avisoRevisando,
   });
 }
 
@@ -3427,10 +3457,9 @@ $('mando').addEventListener('click', (e) => {
 });
 
 async function comentar(sobre: { tipo: string; id?: string; seccion?: string; decision?: string; fragmento?: string; postura?: string },titulo: string) {
-  if (esperaAlDirector()) return false;
   const r = await pedir({
     titulo,
-    ayuda: 'Tu comentario queda en el <b>Buzón del director</b>, donde lo puedes corregir o borrar. Cuando se pida la revisión, él lo lee junto con todo lo demás y te responde ahí y debajo de este mismo lugar, con su recomendación; el titular decide.',
+    ayuda: avisoRevisando() + 'Tu comentario queda en el <b>Buzón del director</b>, donde lo puedes corregir o borrar. Cuando se pida la revisión, él lo lee junto con todo lo demás y te responde ahí y debajo de este mismo lugar, con su recomendación; el titular decide.',
     campos: [{ id: 'texto', etiqueta: 'Tu comentario (o graba un audio, o pega una imagen)', tipo: 'area' }],
     boton: 'Dejarlo en el Buzón',
     audio: true,
@@ -3589,9 +3618,8 @@ async function clicEnVista(b: HTMLButtonElement) {
     const hilo = hilosDePreguntas(d.estado.notas).find((h) => h.raiz.id === ds.copiarHilo);
     if (hilo) await navigator.clipboard.writeText(hiloEnTexto(hilo.notas)).then(() => avisar('Conversación copiada, en Markdown.', true), () => avisar('No se pudo copiar.'));
   } else if (ds.seguirHilo) {
-    if (esperaAlDirector()) return;
     // Lo que se sigue preguntando o comentando sobre una respuesta queda en su misma conversación
-    const r = await pedir({ titulo: 'Seguir la conversación', ayuda: 'Pregunta algo más o comenta la respuesta: queda en esta misma conversación y el director lo responde en su próxima revisión.', campos: [{ id: 'texto', etiqueta: 'Lo que quieres agregar (o graba un audio, o pega una imagen)', tipo: 'area' }], boton: 'Agregar a la conversación', audio: true, adjuntos: true });
+    const r = await pedir({ titulo: 'Seguir la conversación', ayuda: avisoRevisando() + 'Pregunta algo más o comenta la respuesta: queda en esta misma conversación y el director lo responde en su próxima revisión.', campos: [{ id: 'texto', etiqueta: 'Lo que quieres agregar (o graba un audio, o pega una imagen)', tipo: 'area' }], boton: 'Agregar a la conversación', audio: true, adjuntos: true });
     if (r) {
       hilosAbiertos.add(raizDePregunta(d.estado.notas.find((n) => n.id === ds.seguirHilo)!, d.estado.notas).id);
       await accion({ tipo: 'comentar', sobre: { tipo: 'pregunta', id: ds.seguirHilo }, texto: r.texto ?? '', audio: r.audio, ...(r.adjuntos?.length ? { adjuntos: r.adjuntos } : {}) },'Agregado a la conversación: el director lo responde en su próxima revisión.');
@@ -3869,10 +3897,9 @@ document.addEventListener('click', async (e) => {
 
 /** El comentario al director: lo único que se le escribe en general (el Buzón ya no tiene su propio formulario). */
 async function escribirAlDirector() {
-  if (esperaAlDirector()) return;
   const r = await pedir({
     titulo: 'Un comentario para el director',
-    ayuda: 'Plantéale un comentario o una idea que quieras que tenga en cuenta. No entra de golpe al proyecto: el director decide <b>cómo y dónde</b> administrarlo según lo que le digas (una misión, una propuesta, un documento o la ruta) y te responde en el <b>Buzón</b>. Hasta que lo lea, lo puedes corregir o borrar.',
+    ayuda: avisoRevisando() + 'Plantéale un comentario o una idea que quieras que tenga en cuenta. No entra de golpe al proyecto: el director decide <b>cómo y dónde</b> administrarlo según lo que le digas (una misión, una propuesta, un documento o la ruta) y te responde en el <b>Buzón</b>. Hasta que lo lea, lo puedes corregir o borrar.',
     campos: [{ id: 'texto', etiqueta: 'Tu comentario o idea (o graba un audio, o pega una imagen)', tipo: 'area' }],
     boton: 'Dejarlo en el Buzón',
     audio: true,

@@ -49,7 +49,7 @@ import {
   validarProyecto,
 } from '../../src/director/director.ts';
 import { fechaDeCambio, leerFresco } from '../../src/director/fresco.ts';
-import { enDisco as enDiscoDe, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { corteDeRevision, enDisco as enDiscoDe, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { comandoTranscripcion } from '../../src/director/transcripcion.ts';
 import { argumentos, colaDeDiagnosticos, leerTodo, memoria, nombreDe, otrosProyectos, POR_REVISION, proyectoElegido, raiz } from './comun.ts';
 
@@ -296,7 +296,13 @@ const etapa = etapaArranque(plan, proyecto, !!repo);
 const fase = faseActual(plan, estado);
 const desde = plan.revisado ?? '';
 const desdeDia = desde.slice(0, 10);
-const { entregas, notas } = pendientesDelDirector(plan, estado);
+const pendientes = pendientesDelDirector(plan, estado);
+const { entregas } = pendientes;
+// Lo que llega después de empezar la revisión (se puede comentar, grabar y preguntar mientras el director trabaja) no
+// entra en ella: espera la siguiente
+const corte = corteDeRevision(await leerLocal(raiz), id) ?? new Date().toISOString();
+const notas = pendientes.notas.filter((n) => n.cuando <= corte);
+const despues = pendientes.notas.length - notas.length;
 
 linea(`# Bandeja del director · ${proyecto.nombre || '(proyecto sin nombre)'} (${id}) · ${new Date().toLocaleString('es-CO')}`);
 linea(`Solo este proyecto. Su memoria está en su repositorio: ${memoria(id)} (rama stl). Ahí escribes: el plan en director/plan.json y los documentos en docs/ (el plan los nombra docs/…).`);
@@ -425,6 +431,7 @@ for (const n of preguntas) {
   if (n.audio) linea(`  Audio (${n.audio}): ${transcripcion(n.audio) ?? '(sin transcribir)'}`);
   adjuntosDe(n);
 }
+if (despues) linea(`\n(${despues} ${despues === 1 ? 'nota llegó' : 'notas llegaron'} después de empezar esta revisión: ${despues === 1 ? 'espera' : 'esperan'} la siguiente. No ${despues === 1 ? 'la' : 'las'} respondas ahora.)`);
 
 linea('\n## Decisiones del equipo desde la última revisión');
 const nuevas = (f?: string) => !!f && f >= desdeDia;

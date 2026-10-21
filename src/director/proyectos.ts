@@ -189,6 +189,17 @@ export function directorTrabajando(l: Local): boolean {
   return (!!r && !r.hecha && !r.error && !!(r.enCurso || r.lanzada)) || corriendo(l.aclaracion) || corriendo(l.urgencia);
 }
 
+/**
+ * Desde cuándo lo que llega ya no entra en la revisión en marcha de este proyecto: cuando el Studio lanzó al director o,
+ * sin lanzarlo, cuando la revisión empezó. Lo que se deja después espera la revisión siguiente. Sin revisión en marcha, null.
+ */
+export function corteDeRevision(l: Local, proyecto: string): string | null {
+  const r = l.revision;
+  if (!r || r.proyecto !== proyecto || r.hecha || r.error) return null;
+  const marcas = [r.lanzada, r.enCurso].filter((x): x is string => !!x).sort();
+  return marcas[0] ?? null;
+}
+
 async function guardarLocal(raiz: string, l: Local): Promise<void> {
   const x = { nota: 'Lo de este computador, fuera de git: el proyecto activo y la carpeta del repositorio de cada proyecto (su memoria está en <repositorio>/.stl, rama stl).', ...l };
   await writeFile(join(raiz, ARCHIVO_LOCAL), JSON.stringify(x, null, 2) + '\n', 'utf-8');

@@ -10,6 +10,10 @@ import { directorTrabajando, leerLocalYa } from '../../src/director/proyectos';
 export const EVENTO_RECARGA = 'estudio:recargar';
 /** Lo que se da a la página para su cuenta antes de reiniciar el servidor (ella cuenta tres segundos). */
 const ANTES_DE_REINICIAR_MS = 3500;
+/** La página avisa que quedó libre (nadie escribe ni graba) y empieza su cuenta: entonces se reinicia. */
+export const EVENTO_LIBRE = 'estudio:libre-para-reiniciar';
+/** Si ninguna página responde en este tiempo, el servidor se reinicia igual (no se queda con el código viejo). */
+const TOPE_ESPERA_PAGINA_MS = 30 * 60_000;
 
 export function contenerRecargas(server: ViteDevServer, raiz: string, trabajandoAqui: () => boolean): void {
   const ocupado = () => trabajandoAqui() || directorTrabajando(leerLocalYa(raiz));
@@ -34,12 +38,26 @@ export function contenerRecargas(server: ViteDevServer, raiz: string, trabajando
     }
     await reiniciar(forzar);
   };
+  // El reinicio se lleva la página, y con ella lo que alguien esté escribiendo o grabando: espera a que la página diga
+  // que quedó libre (empieza su cuenta). Sin ninguna página abierta, o si ninguna responde en un buen rato, va igual
+  let esperandoPagina = 0;
+  const reiniciarYa = () => {
+    esperandoPagina = 0;
+    setTimeout(() => void reiniciar().catch(() => {}), ANTES_DE_REINICIAR_MS).unref?.();
+  };
+  hot.on(EVENTO_LIBRE, () => { if (esperandoPagina) reiniciarYa(); });
+  // Una página que se abrió (o se recargó) mientras tanto no recibió el aviso: se le repite
+  hot.on('vite:client:connect', () => { if (esperandoPagina) enviar({ type: 'custom', event: EVENTO_RECARGA, data: { reinicio: true } }); });
   const reloj = setInterval(() => {
+    if (esperandoPagina) {
+      if (!server.ws.clients.size || Date.now() - esperandoPagina > TOPE_ESPERA_PAGINA_MS) reiniciarYa();
+      return;
+    }
     if ((!recarga && !reinicio) || ocupado()) return;
     const conReinicio = reinicio;
     recarga = reinicio = false;
     enviar({ type: 'custom', event: EVENTO_RECARGA, data: { reinicio: conReinicio } });
-    if (conReinicio) setTimeout(() => void reiniciar().catch(() => {}), ANTES_DE_REINICIAR_MS).unref?.();
+    if (conReinicio) esperandoPagina = Date.now();
   }, 2000);
   reloj.unref?.();
   server.httpServer?.on('close', () => clearInterval(reloj));

@@ -810,11 +810,8 @@ html.enfoque .trozo.actual { background: transparent; }
 .form-proyecto label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-weight: 600; }
 .form-proyecto label.ancho { grid-column: 1 / -1; }
 .form-proyecto .detectado { font-weight: 500; font-size: 13px; color: var(--sobre-texto); }
-/* Mientras el director trabaja, el Studio espera: se puede leer, pero no escribir, grabar ni decidir (lo que el
-   director cambia puede recargar la página, y se perdería) */
-/* Mientras el director revisa: se navega y se lee todo, y lo que le agrega información queda apagado (director.ts ›
-   revisando). Al tocarlo, un aviso dice por qué */
-body.director-trabajando :is([data-comentar], [data-escribir], [data-preguntas], [data-seguir-hilo], .redactar) { opacity: 0.45; cursor: not-allowed; }
+/* Mientras el director revisa, se le sigue hablando (comentarios, audios y preguntas, para la revisión siguiente): solo
+   lo que cambia lo que él está leyendo queda apagado (director.ts › libreMientrasRevisa). Al escribir, este aviso lo dice */
 .aviso-revisando { margin: 0 0 8px; padding: 8px 12px; border-radius: 10px; background: var(--aviso-fondo); color: var(--aviso-texto); font-size: 14px; }
 .tarjeta-trabajando b { color: #f6e7b4; }
 .form-proyecto .botones { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }

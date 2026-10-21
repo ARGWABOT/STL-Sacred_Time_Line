@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { validarPlan, validarProyecto } from './director';
-import { abrirMemoria, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, enDisco, guardarActivo, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, olvidarProyecto, pedirRevision, pedirUrgencia, proyectosLocales, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -27,6 +27,20 @@ describe('el director trabajando (el Studio no se recarga a pedazos mientras tan
     expect(directorTrabajando({ ...base, aclaracion: { ...r, mision: 'm', paso: 0, nota: 'n' } })).toBe(false);
     expect(directorTrabajando({ ...base, urgencia: { ...r, notas: ['n'], lanzada: 'a' } })).toBe(true);
     expect(directorTrabajando({ ...base, urgencia: { ...r, notas: ['n'], lanzada: 'a', hecha: 'b' } })).toBe(false);
+  });
+});
+
+describe('el corte de la revisión (lo que llega después espera la siguiente)', () => {
+  it('desde que el Studio lanzó al director o, si no, desde que empezó; solo para ese proyecto y mientras no termine', () => {
+    const base = { activo: 'x', repositorios: {} };
+    const r = { proyecto: 'x', quien: 'titular', pedida: '2026-10-20T10:00:00Z' };
+    expect(corteDeRevision(base, 'x')).toBe(null);
+    expect(corteDeRevision({ ...base, revision: r }, 'x')).toBe(null);
+    expect(corteDeRevision({ ...base, revision: { ...r, lanzada: '2026-10-20T10:00:05Z', enCurso: '2026-10-20T10:00:40Z' } }, 'x')).toBe('2026-10-20T10:00:05Z');
+    expect(corteDeRevision({ ...base, revision: { ...r, enCurso: '2026-10-20T10:01:00Z' } }, 'x')).toBe('2026-10-20T10:01:00Z');
+    expect(corteDeRevision({ ...base, revision: { ...r, lanzada: 'a' } }, 'otro')).toBe(null);
+    expect(corteDeRevision({ ...base, revision: { ...r, lanzada: 'a', hecha: 'b' } }, 'x')).toBe(null);
+    expect(corteDeRevision({ ...base, revision: { ...r, lanzada: 'a', error: 'no' } }, 'x')).toBe(null);
   });
 });
 

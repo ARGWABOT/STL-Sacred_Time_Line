@@ -20,6 +20,8 @@ export interface Manejadores {
   verRespuestas: () => void;
   /** Una nota de voz: lo que se entendió (o «Transcribiendo…») y su audio; y lo adjunto, si lo hay. */
   audio: (n: Nota) => string;
+  /** Lo que conviene saber al preguntar ahora (por ejemplo, que el director está revisando), en HTML; vacío si nada. */
+  aviso?: () => string;
 }
 
 export function abrirPreguntas(m: Manejadores): Promise<void> {
@@ -66,7 +68,7 @@ export function abrirPreguntas(m: Manejadores): Promise<void> {
       void grabadora?.terminar();
       dlg.innerHTML = `<form method="dialog" data-form="preguntas">
         <header class="cabeza-dialogo"><h2>${icono('pregunta', 'icono icono-titulo')} Preguntas para el director</h2>
-          <p>Anótalas cuando se te ocurran, sin cortar lo que estás haciendo: cada una queda guardada al instante. El director las responde todas juntas, como un informe, en su próxima revisión. Hasta entonces, las corriges o las quitas.</p></header>
+          <p>Anótalas cuando se te ocurran, sin cortar lo que estás haciendo: cada una queda guardada al instante. El director las responde todas juntas, como un informe, en su próxima revisión. Hasta entonces, las corriges o las quitas.</p>${m.aviso?.() ? `<p class="aviso-revisando" role="status">${m.aviso()}</p>` : ''}</header>
         <section class="pendientes-preguntas" aria-label="Preguntas esperando respuesta">${lista()}</section>
         <div class="nueva-pregunta">
           <label class="campo"><span class="etiqueta-campo">Una pregunta más</span><textarea name="pregunta" rows="2" placeholder="Ej.: ¿Por qué el diagnóstico pone la seguridad antes que los pagos?">${esc(texto)}</textarea></label>
