@@ -158,6 +158,8 @@ interface Datos {
   modelo?: string | null;
   /** Cuánto piensa (el esfuerzo de Claude Code, el de /effort; null: el de la cuenta). */
   esfuerzo?: string | null;
+  /** El que tiene guardado Claude Code para ese modelo: el mismo, salvo con «Máximo», que Claude Code no guarda. */
+  esfuerzoGuardado?: string | null;
   /** Ultracode en las sesiones nuevas de Claude Code de este computador. */
   ultracode?: boolean;
   /** Si el titular le dio al director que lanza el Studio el permiso de seguir a ultracode (sin él, trabaja sin ultracode). */
@@ -3189,7 +3191,7 @@ const MODELOS: { id: string; nombre: string; que: string; grupo?: string }[] = [
 
 /** Cuánto piensa el director antes de responder (`claude --effort`). */
 const ESFUERZOS: { id: string; nombre: string; que: string }[] = [
-  { id: '', nombre: 'El de tu cuenta', que: 'El que Claude Code tenga por defecto.' },
+  { id: '', nombre: 'El de tu cuenta', que: 'El que trae el modelo por defecto (en Opus, Sonnet y Haiku 5.5, medio).' },
   { id: 'low', nombre: 'Bajo', que: 'Piensa poco: más rápido y gasta menos, para revisiones cortas.' },
   { id: 'medium', nombre: 'Medio', que: 'Un término medio.' },
   { id: 'high', nombre: 'Alto', que: 'Piensa más en cada decisión: tarda y gasta más.' },
@@ -3295,7 +3297,7 @@ function vistaModelo() {
         <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Si tu cuenta no acepta el que elijas, el lanzamiento falla antes de trabajar, el Studio lo quita de la configuración de Claude Code, vuelve al de tu cuenta y lo dice.</p>
         ${trabajo}
         <label class="campo-modelo">Esfuerzo<select data-esfuerzo>${opcionesDe(ESFUERZOS, d.esfuerzo ?? '')}</select></label>
-        <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta. Claude Code no informa el esfuerzo con que trabajó: si no acepta el elegido, falla al empezar y el Studio vuelve al de tu cuenta.</p>
+        <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} ${d.esfuerzo === 'max' ? `Claude Code no guarda «Máximo» en su configuración (lo aplica solo a una sesión): el Studio lo recuerda y lo usa para el director y para la terminal que abres aquí abajo. Tus otras sesiones de Claude Code siguen con ${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzoGuardado ?? ''))?.nombre.toLowerCase() ?? 'el de tu cuenta')}; en ellas, <code>/effort max</code>. ` : 'Cada modelo guarda su propio esfuerzo, como en Claude Code: al cambiar de modelo, aquí se ve el suyo. '}Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta. Claude Code no informa el esfuerzo con que trabajó: si no acepta el elegido, falla al empezar y el Studio vuelve al de tu cuenta.</p>
         <label class="interruptor-s"><input type="checkbox" data-ultracode${d.ultracode ? ' checked' : ''} /> Ultracode</label>
         <p class="como">Con ultracode, Claude planea un flujo de varios agentes para cada tarea de peso, en vez de esperar a que se lo pidas, y gasta bastante más. Es la clave <code>ultracode</code> de la configuración de Claude Code: vale para tus sesiones nuevas de este computador (<code>/effort ultracode</code> lo enciende solo en una).</p>
         ${permisoUltracode()}
@@ -3912,7 +3914,7 @@ $('vista').addEventListener('change', async (e) => {
     if (r instanceof Error) return avisar('No se pudo guardar el modelo: el Studio no respondió.');
     const x = await r.json().catch(() => ({}));
     if (!r.ok) return avisar(x.error ?? 'No se pudo guardar el modelo.');
-    Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null });
+    Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null, esfuerzoGuardado: x.esfuerzoGuardado ?? null });
     pintar();
     return avisar(`${d.modelo ? `Claude Code trabaja con ${MODELOS.find((m) => m.id === d.modelo)?.nombre ?? d.modelo}, como con /model.` : 'Claude Code vuelve al modelo de tu cuenta.'} ${CUANDO_RIGE}`, true);
   }
@@ -3922,8 +3924,9 @@ $('vista').addEventListener('change', async (e) => {
     if (r instanceof Error) return avisar('No se pudo guardar el esfuerzo: el Studio no respondió.');
     const x = await r.json().catch(() => ({}));
     if (!r.ok) return avisar(x.error ?? 'No se pudo guardar el esfuerzo.');
-    Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null });
+    Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null, esfuerzoGuardado: x.esfuerzoGuardado ?? null });
     pintar();
+    if (d.esfuerzo === 'max') return avisar('El director y la terminal que abres aquí trabajan con esfuerzo máximo. Claude Code no lo guarda en su configuración, así que tus otras sesiones siguen con el que tenían (en ellas, /effort max). El director lo usa desde lo próximo que le pidas, sin reiniciar nada.', true);
     return avisar(`${d.esfuerzo ? `Claude Code trabaja con esfuerzo ${ESFUERZOS.find((x) => x.id === d.esfuerzo)?.nombre.toLowerCase() ?? d.esfuerzo}, como con /effort.` : 'Claude Code vuelve al esfuerzo de tu cuenta.'} ${CUANDO_RIGE}`, true);
   }
   const su = (e.target as HTMLElement).closest<HTMLInputElement>('[data-ultracode]');

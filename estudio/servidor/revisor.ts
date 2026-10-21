@@ -11,8 +11,8 @@ import { spawn } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join, relative, resolve } from 'node:path';
-import { ajustesDelDirector, archivoAjustesClaude, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
-import { leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
+import { ajustesDelDirector, archivoAjustesClaude, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarUrgencia, pedirRevision, urgenciaActiva, type AclaracionPedida, type UrgenciaPedida } from '../../src/director/proyectos';
 
 /** Lo que el Studio muestra del revisor: si revisa solo, o por qué no puede. */
 export interface EstadoRevisor {
@@ -378,15 +378,16 @@ const comoComando = (programa: string) => {
 /**
  * La orden que abre Claude Code en una terminal como lo lanza el Studio: en la carpeta del Studio (donde están las reglas
  * del director), con la del proyecto activo a la vista, y con el modelo y el esfuerzo de su configuración, que son los
- * que elige «Modelo y consumo». Es una sesión de quien la abre: pide permiso para lo que haga. Sin las variables de una sesión de
- * Claude Code desde la que se haya encendido el Studio, que le harían creer que está dentro de ella.
+ * que elige «Modelo y consumo» (y «Máximo», que Claude Code no guarda, con --effort max). Es una sesión de quien la abre:
+ * pide permiso para lo que haga. Sin las variables de una sesión de Claude Code desde la que se haya encendido el Studio,
+ * que le harían creer que está dentro de ella.
  */
-export function ordenAbrirClaude(programa: string, raiz: string, repositorio: string | null): string {
+export function ordenAbrirClaude(programa: string, raiz: string, repositorio: string | null, maximo = false): string {
   const q = (s: string) => `'${s.replace(/\\/g, '/').replace(/'/g, `'\\''`)}'`;
   // El .cmd de npm no corre en bash: ahí basta su nombre, porque se encontró en el PATH
   const claude = /\.cmd$/i.test(programa) ? 'claude' : q(programa);
   const otro = repositorio && resolve(repositorio) !== resolve(raiz) ? ` --add-dir ${q(repositorio)}` : '';
-  return `env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT ${claude}${otro}`;
+  return `env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT ${claude}${otro}${maximo ? ' --effort max' : ''}`;
 }
 
 /** Lanza Claude Code. El .cmd de npm, en Windows, solo corre dentro de una consola. */
@@ -568,7 +569,9 @@ export class Revisor {
     const registro = openSync(archivo, 'a');
     // El modelo y el esfuerzo de Claude Code (los de /model y /effort, que también se eligen en «Modelo y consumo»): se pasan
     // explícitos para que el registro diga qué se pidió
-    const { modelo, esfuerzo, ultracode } = await leerAjustesClaude(this.ajustes);
+    // («Máximo», que Claude Code no guarda, lo recuerda el Studio: conMaximo)
+    const maximo = (await leerLocal(this.raiz)).esfuerzoMaximo === true;
+    const { modelo, esfuerzo, ultracode } = conMaximo(await leerAjustesClaude(this.ajustes), maximo);
     // Lo pedido va primero en el registro: así el Studio compara con el modelo con que de verdad trabajó
     writeSync(registro, lineaPedido(modelo, esfuerzo));
     // Sin ultracode aunque tus sesiones lo tengan, salvo que el titular le haya dado ese permiso (ajustesDelDirector): en
@@ -600,7 +603,7 @@ export class Revisor {
         await guardarModeloClaude(null, this.ajustes).catch(() => {});
         problema = `Tu cuenta de Claude Code no aceptó el modelo «${modelo}», así que el Studio lo quitó de la configuración de Claude Code y volvió al de tu cuenta: pide la revisión otra vez. En «Modelo y consumo», al pie de la barra, puedes elegir otro.`;
       } else if (esfuerzo && fallaDelEsfuerzo(readFileSync(archivo, 'utf-8'))) {
-        await guardarEsfuerzoClaude(null, this.ajustes).catch(() => {});
+        await (maximo ? guardarEsfuerzoMaximo(this.raiz, false) : guardarEsfuerzoClaude(null, this.ajustes)).catch(() => {});
         problema = `Claude Code no aceptó el esfuerzo «${esfuerzo}» (puede que su versión no lo traiga, o que el modelo no lo use), así que el Studio lo quitó de la configuración de Claude Code y volvió al de tu cuenta: pide la revisión otra vez.`;
       }
       if (aparte?.tipo === 'aclaracion') {

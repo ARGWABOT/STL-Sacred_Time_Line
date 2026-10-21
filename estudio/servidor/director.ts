@@ -70,11 +70,11 @@ import {
   type Validacion,
 } from '../../src/director/director';
 import { leerFresco, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
+import { abrirMemoria, crearProyecto, elegirActivo, enDisco, guardarActivo, guardarEsfuerzoMaximo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
 import { transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
-import { guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
+import { conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
 import { agruparPasos, buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor } from './revisor';
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
 import { abrirTerminal, comprobarPaso } from './terminal';
@@ -1007,7 +1007,7 @@ export function servidorDirector(): Plugin {
               revisor: revisor?.estado() ?? null,
               // El modelo y el esfuerzo de Claude Code (los de /model y /effort, con los que el Studio lanza al
               // director), y lo que gastó cada lanzamiento
-              ...(await leerAjustesClaude()),
+              ...conMaximo(await leerAjustesClaude(), (await leerLocal(raiz)).esfuerzoMaximo === true),
               // Si el titular le dio al director el permiso de seguir a ultracode (con sus flujos de varios agentes)
               ultracodeDirector: (await leerLocal(raiz)).permisos?.ultracode === true,
               consumo: consumoDeRevisiones(raiz),
@@ -1113,16 +1113,20 @@ export function servidorDirector(): Plugin {
             } catch (e) {
               return responder(res, 400, { error: (e as Error).message });
             }
-            return responder(res, 200, await leerAjustesClaude());
+            // El esfuerzo guardado es de cada modelo: al cambiar de modelo, se ve el suyo
+            return responder(res, 200, conMaximo(await leerAjustesClaude(), (await leerLocal(raiz)).esfuerzoMaximo === true));
           }
           if (ruta === '/esfuerzo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);
+            const esfuerzo = textoDe(cuerpo.esfuerzo, 10) || null;
             try {
-              await guardarEsfuerzoClaude(textoDe(cuerpo.esfuerzo, 10) || null);
+              // «Máximo» Claude Code no lo guarda: lo recuerda el Studio, y el guardado de tus sesiones queda como estaba
+              if (esfuerzo !== 'max') await guardarEsfuerzoClaude(esfuerzo);
+              await guardarEsfuerzoMaximo(raiz, esfuerzo === 'max');
             } catch (e) {
               return responder(res, 400, { error: (e as Error).message });
             }
-            return responder(res, 200, await leerAjustesClaude());
+            return responder(res, 200, conMaximo(await leerAjustesClaude(), esfuerzo === 'max'));
           }
           // Ultracode en las sesiones nuevas de Claude Code (la clave `ultracode`); el director que lanza el Studio lo sigue
           // solo con el permiso del titular (`director`: lo da o lo quita, con «Autorizo» en «Modelo y consumo»)
@@ -1142,7 +1146,7 @@ export function servidorDirector(): Plugin {
             const programa = buscarClaude();
             if (!programa) return responder(res, 400, { error: 'No encontré Claude Code en este computador. Instálalo (https://claude.com/claude-code) y vuelve a intentarlo.' });
             const activoAhora = await activo();
-            const r = await abrirTerminal(ordenAbrirClaude(programa, raiz, activoAhora ? await leerRutaRepositorio(raiz, activoAhora) : null), raiz);
+            const r = await abrirTerminal(ordenAbrirClaude(programa, raiz, activoAhora ? await leerRutaRepositorio(raiz, activoAhora) : null, (await leerLocal(raiz)).esfuerzoMaximo === true), raiz);
             return r.ok ? responder(res, 200, {}) : responder(res, 400, { error: r.error });
           }
           if (ruta === '/activo' && req.method === 'POST') {

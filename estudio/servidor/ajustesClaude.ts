@@ -1,13 +1,25 @@
 // El modelo y el esfuerzo de Claude Code en este computador: los de su configuración (~/.claude/settings.json, o la de
 // CLAUDE_CONFIG_DIR), los mismos que cambian /model y /effort. El Studio los lee y los escribe ahí, así que elegir en
-// «Modelo y consumo» es lo mismo que usar /model o /effort en cualquier sesión de Claude Code, y al revés. Solo toca esas dos
-// claves (y el esfuerzo del modelo elegido en `modelSettings`, si Claude Code ya lo guarda ahí) y la de ultracode: lo demás
-// queda intacto, y si el archivo no es JSON válido no lo toca.
+// «Modelo y consumo» es lo mismo que usar /model o /effort en cualquier sesión de Claude Code, y al revés. Solo toca el
+// modelo, el esfuerzo de ese modelo (en `modelSettings`, donde lo guarda /effort) y la clave de ultracode: lo demás queda
+// intacto, y si el archivo no es JSON válido no lo toca.
+//
+// Como /effort (https://code.claude.com/docs/en/settings-reference#modelsettings): el esfuerzo se guarda por modelo, con
+// su nombre canónico; la clave general `effortLevel` del archivo del usuario ya no cuenta para Opus 5.5 ni para los
+// modelos posteriores; y «max» no se guarda nunca (Claude Code lo aplica solo a una sesión y rechaza el archivo que lo
+// tenga), así que el Studio lo recuerda aparte (estudio.local.json › esfuerzoMaximo) y lo pasa con --effort a lo que lanza.
+// Lo encontró el titular el 21 de octubre de 2026: con Sonnet y «Máximo», Claude Code seguía en medio.
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { esEsfuerzo, MODELO_VALIDO, type Esfuerzo } from '../../src/director/proyectos';
+
+/** Los esfuerzos que Claude Code guarda en su configuración: todos menos «max», que vale solo para una sesión. */
+export const esEsfuerzoGuardable = (x: unknown): x is Exclude<Esfuerzo, 'max'> => esEsfuerzo(x) && x !== 'max';
+
+/** La versión más nueva de cada familia, para un alias sin entrada en `modelSettings` (los mismos de «Modelo y consumo»). */
+const MAS_NUEVO: Record<string, string> = { opus: 'claude-opus-5-5', sonnet: 'claude-sonnet-5-5', haiku: 'claude-haiku-5-5', fable: 'claude-fable-5-1' };
 
 /** Dónde guarda Claude Code su configuración de usuario. */
 export const archivoAjustesClaude = (env: NodeJS.ProcessEnv = process.env) => join(env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'settings.json');
@@ -39,12 +51,33 @@ export function entradaDelModelo(porModelo: Json, modelo: string | null): string
   return claves.filter((k) => k.startsWith(`claude-${base}-`)).sort((a, b) => a.localeCompare(b, 'en', { numeric: true })).at(-1) ?? null;
 }
 
+/**
+ * El nombre con que Claude Code guarda el esfuerzo de un modelo en `modelSettings`: su entrada si ya la tiene; si no, el
+ * id sin «[1m]» ni fecha, o, para un alias, la versión más nueva de su familia.
+ */
+export function nombreCanonico(porModelo: Json, modelo: string | null): string | null {
+  const entrada = entradaDelModelo(porModelo, modelo);
+  if (entrada) return entrada;
+  const base = modelo?.replace(/\[1m\]$/i, '').replace(/-\d{8}$/, '') ?? null;
+  if (!base) return null;
+  return /^[a-z]+$/.test(base) ? (MAS_NUEVO[base] ?? null) : base;
+}
+
+/** Si la clave general `effortLevel` del archivo del usuario ya no cuenta para ese modelo: Opus, Sonnet y Haiku desde la 5.5. */
+export function ignoraEsfuerzoGeneral(canonico: string | null): boolean {
+  const v = canonico?.match(/^claude-(?:opus|sonnet|haiku)-(\d+)-(\d+)$/);
+  return !!v && (Number(v[1]) > 5 || (Number(v[1]) === 5 && Number(v[2]) >= 5));
+}
+
 async function leerJson(archivo: string): Promise<Json> {
   if (!existsSync(archivo)) return {};
   return objeto(JSON.parse(await readFile(archivo, 'utf-8')));
 }
 
-/** Lo que Claude Code tiene elegido. Si el archivo no está o no se entiende, el de la cuenta. */
+/**
+ * Lo que Claude Code tiene elegido: el esfuerzo guardado para el modelo o, si ese modelo todavía la usa, la clave general;
+ * null, el que trae el modelo por defecto. Si el archivo no está o no se entiende, el de la cuenta.
+ */
 export async function leerAjustesClaude(archivo = archivoAjustesClaude()): Promise<AjustesClaude> {
   let j: Json;
   try {
@@ -54,9 +87,10 @@ export async function leerAjustesClaude(archivo = archivoAjustesClaude()): Promi
   }
   const modelo = typeof j.model === 'string' && MODELO_VALIDO.test(j.model) ? j.model : null;
   const porModelo = objeto(j.modelSettings);
-  const entrada = entradaDelModelo(porModelo, modelo);
-  const propio = entrada ? objeto(porModelo[entrada]).effortLevel : undefined;
-  return { modelo, esfuerzo: esEsfuerzo(propio) ? propio : esEsfuerzo(j.effortLevel) ? j.effortLevel : null, ultracode: j.ultracode === true };
+  const canonico = nombreCanonico(porModelo, modelo);
+  const propio = canonico ? objeto(porModelo[canonico]).effortLevel : undefined;
+  const general = !ignoraEsfuerzoGeneral(canonico) && esEsfuerzoGuardable(j.effortLevel) ? j.effortLevel : null;
+  return { modelo, esfuerzo: esEsfuerzoGuardable(propio) ? propio : general, ultracode: j.ultracode === true };
 }
 
 /** Cambia la configuración de Claude Code. Si el archivo no es JSON válido, no lo toca y lo dice. */
@@ -84,18 +118,37 @@ export async function guardarModeloClaude(modelo: string | null, archivo = archi
   });
 }
 
-/** Como /effort: el esfuerzo de Claude Code en este computador (y el del modelo elegido, si lo tiene aparte); null lo quita. */
+/**
+ * Como /effort: el esfuerzo guardado para el modelo elegido, en su entrada de `modelSettings`; null lo quita (/effort
+ * auto). Sin modelo elegido, la clave general, como antes. «max» no se guarda: Claude Code no lo acepta en su archivo (el
+ * Studio lo recuerda aparte). Quita también un «max» que haya quedado de antes, que haría que Claude Code rechazara el archivo.
+ */
 export async function guardarEsfuerzoClaude(esfuerzo: string | null, archivo = archivoAjustesClaude()): Promise<void> {
-  if (esfuerzo && !esEsfuerzo(esfuerzo)) throw new Error(`«${esfuerzo}» no es un esfuerzo que acepte Claude Code.`);
+  if (esfuerzo === 'max') throw new Error('Claude Code no guarda el esfuerzo «max»: lo aplica solo a una sesión.');
+  if (esfuerzo && !esEsfuerzoGuardable(esfuerzo)) throw new Error(`«${esfuerzo}» no es un esfuerzo que acepte Claude Code.`);
   await cambiar(archivo, (j) => {
-    if (esfuerzo) j.effortLevel = esfuerzo;
-    else delete j.effortLevel;
     const porModelo = objeto(j.modelSettings);
-    const entrada = entradaDelModelo(porModelo, typeof j.model === 'string' ? j.model : null);
-    if (!entrada || !('effortLevel' in objeto(porModelo[entrada]))) return;
-    if (esfuerzo) porModelo[entrada].effortLevel = esfuerzo;
-    else delete porModelo[entrada].effortLevel;
+    if (j.effortLevel === 'max') delete j.effortLevel;
+    for (const k of Object.keys(porModelo)) if (objeto(porModelo[k]).effortLevel === 'max') delete porModelo[k].effortLevel;
+    const canonico = nombreCanonico(porModelo, typeof j.model === 'string' ? j.model : null);
+    if (!canonico) {
+      if (esfuerzo) j.effortLevel = esfuerzo;
+      else delete j.effortLevel;
+    } else if (esfuerzo) porModelo[canonico] = { ...objeto(porModelo[canonico]), effortLevel: esfuerzo };
+    else if (porModelo[canonico]) delete porModelo[canonico].effortLevel;
+    // Sin entradas vacías: así queda como lo deja /effort auto
+    for (const k of Object.keys(porModelo)) if (!Object.keys(objeto(porModelo[k])).length) delete porModelo[k];
+    if (Object.keys(porModelo).length) j.modelSettings = porModelo;
+    else delete j.modelSettings;
   });
+}
+
+/**
+ * El esfuerzo con que el Studio lanza: «max» si se eligió (Claude Code no lo guarda, el Studio sí), o el guardado. Junto
+ * con el guardado, que es con el que siguen tus otras sesiones de Claude Code.
+ */
+export function conMaximo(a: AjustesClaude, maximo: boolean): AjustesClaude & { esfuerzoGuardado: Esfuerzo | null } {
+  return { ...a, esfuerzo: maximo ? 'max' : a.esfuerzo, esfuerzoGuardado: a.esfuerzo };
 }
 
 /** Ultracode en las sesiones nuevas de Claude Code de este computador; apagado quita la clave (sin ella, está apagado). */

@@ -83,6 +83,11 @@ export interface Local {
   // El modelo y el esfuerzo del director ya no van aquí: son los de Claude Code (estudio/servidor/ajustesClaude.ts),
   // los mismos que cambian /model y /effort
   /**
+   * Salvo «Máximo», que Claude Code no guarda en su configuración (lo aplica solo a una sesión): elegido en «Modelo y
+   * consumo», el Studio lo recuerda aquí y lo pasa con --effort max al director y a la terminal que abre.
+   */
+  esfuerzoMaximo?: true;
+  /**
    * Los permisos que el titular le dio al director lanzado, más allá de los de siempre (revisor.ts › permitido). Los pide el
    * Studio cuando hacen falta y el titular los da con «Autorizo»: `ultracode`, que el director siga a ultracode cuando está
    * encendido, con los flujos de varios agentes (Workflow) que eso necesita.
@@ -161,6 +166,7 @@ const normal = (x: any): Local => ({
   ...(typeof x?.vigilia === 'string' ? { vigilia: x.vigilia } : {}),
   ...(x?.agente === false ? { agente: false as const } : {}),
   ...(x?.permisos?.ultracode === true ? { permisos: { ultracode: true as const } } : {}),
+  ...(x?.esfuerzoMaximo === true ? { esfuerzoMaximo: true as const } : {}),
 });
 
 /** Cada cuánto mira la sesión del director (/loop 5m /vigila), y desde cuándo se considera que nadie está mirando. */
@@ -235,6 +241,12 @@ export async function guardarPermiso(raiz: string, permiso: 'ultracode', activo:
   if (activo) otros[permiso] = true;
   else delete otros[permiso];
   await guardarLocal(raiz, { ...l, ...(Object.keys(otros).length ? { permisos: otros } : {}) });
+}
+
+/** «Máximo» para el director y la terminal que abre el Studio (Local › esfuerzoMaximo); sin él, la clave sale del archivo. */
+export async function guardarEsfuerzoMaximo(raiz: string, activo: boolean): Promise<void> {
+  const { esfuerzoMaximo, ...l } = await leerLocal(raiz);
+  await guardarLocal(raiz, { ...l, ...(activo ? { esfuerzoMaximo: true as const } : {}) });
 }
 
 export async function guardarRutaRepositorio(raiz: string, id: string, ruta: string): Promise<void> {
