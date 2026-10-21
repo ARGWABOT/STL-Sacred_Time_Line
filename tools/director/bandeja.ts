@@ -461,7 +461,9 @@ if (sellados.length) {
 linea('\n## Misiones abiertas (una a la vez: la primera es la que ve completa)');
 for (const p of personas) {
   const abiertas = misionesAbiertas(plan, estado, p);
-  linea(`- ${nombre(p)}: ${abiertas.map((m) => `${m.id} (${estadoMision(m, plan, estado)})`).join(', ') || 'ninguna: asígnale la siguiente'}${abiertas.length > 3 ? '  ⚠ demasiadas en cola: deja una o dos' : ''}`);
+  // La cola: de dos a tres misiones detrás de la de ahora, para que nadie pida la revisión por quedarse sin misión
+  const cola = abiertas.length > 4 ? '  ⚠ demasiadas en cola: deja dos o tres' : abiertas.length && abiertas.length < 3 ? '  ⚠ cola corta: deja dos o tres misiones detrás de la de ahora, salvo que lo que sigue dependa de esta revisión' : '';
+  linea(`- ${nombre(p)}: ${abiertas.map((m) => `${m.id} (${estadoMision(m, plan, estado)})`).join(', ') || 'ninguna: asígnale la siguiente y dos o tres en cola'}${cola}`);
   for (const m of abiertas) {
     const marcados = estado.pasos?.[m.id]?.hechos.filter((i) => i < m.pasos.length) ?? [];
     if (!marcados.length) continue;

@@ -3993,7 +3993,10 @@ cargarAlArrancar()
     }
     // Al volver al Studio después de un rato, lo primero: dónde quedamos en el proyecto activo
     // Y después, si el director aprobó algo tuyo, se celebra
-    if (tocaResumen() && (d.plan.resumen || d.arranque === 'en_marcha')) void mostrarDondeQuedamos().then(celebrarSiToca);
+    // (?mirar: el director lo mira sin pantalla y el resumen taparía la vista; no cuenta como visita)
+    if (pedido.has('mirar')) {
+      /* nada que mostrar encima */
+    } else if (tocaResumen() && (d.plan.resumen || d.arranque === 'en_marcha')) void mostrarDondeQuedamos().then(celebrarSiToca);
     else {
       localStorage.setItem(claveVisto(d.activo), new Date().toISOString());
       void celebrarSiToca();

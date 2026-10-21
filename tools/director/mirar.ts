@@ -2,7 +2,8 @@
 // tres anchos (teléfono, tableta y escritorio). Guarda cada captura en la memoria del proyecto y dice los errores de la
 // consola; el director abre las imágenes (las lee como cualquier imagen) y cuenta en su respuesta qué vio. Usa el Edge o
 // el Chrome del computador, así que no hay nada que instalar (STL_NAVEGADOR, si está en otro lugar).
-// Uso: node tools/director/mirar.ts                                → el Studio encendido (http://localhost:5180/)
+// Uso: node tools/director/mirar.ts                                → el Studio encendido, sin «Dónde quedamos» encima (?mirar)
+//      node tools/director/mirar.ts "http://localhost:5180/?mirar&vista=ruta" → otra vista del Studio, sin el resumen encima
 //      node tools/director/mirar.ts https://argwabot.github.io/…   → otra página (https, o de este computador)
 //      … --anchos telefono,escritorio                              → solo esos anchos
 //      … --proyecto <id>                                           → guarda las capturas en la memoria de ese proyecto
@@ -18,7 +19,7 @@ const { args, pedido } = argumentos();
 const iAnchos = args.indexOf('--anchos');
 const pedidos = iAnchos >= 0 ? (args[iAnchos + 1] ?? '').split(',') : null;
 const resto = iAnchos >= 0 ? [...args.slice(0, iAnchos), ...args.slice(iAnchos + 2)] : args;
-const url = urlPermitida(resto[0] ?? 'http://localhost:5180/');
+const url = urlPermitida(resto[0] ?? 'http://localhost:5180/?mirar');
 if (!url) {
   console.error('Solo miro páginas https o de este computador (http://localhost…).');
   process.exit(1);

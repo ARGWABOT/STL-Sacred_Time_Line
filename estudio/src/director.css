@@ -285,10 +285,11 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .pasos-arranque li:not(.actual) { align-items: center; padding: 10px 12px; }
 
 /* ── La ruta: las fases como un mapa con niebla, el tablero y la fase abierta ── */
-.ruta { list-style: none; display: grid; grid-template-columns: repeat(var(--fases, 7), minmax(130px, 1fr)); gap: 0; margin: 0 0 20px; padding: 16px 8px 10px; position: relative; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); overflow-x: auto; }
-.ruta::before { content: ''; position: absolute; left: 8%; right: 8%; top: 43px; height: 4px; border-radius: 2px; background: repeating-linear-gradient(90deg, #cfccc3 0 10px, transparent 10px 16px); }
+.ruta { list-style: none; display: grid; grid-template-columns: repeat(var(--fases, 7), minmax(130px, 1fr)); gap: 0; margin: 0 0 20px; padding: 6px 8px 10px; position: relative; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); overflow-x: auto; }
+/* El botón deja 14px arriba: el anillo que late en la fase actual (hasta 9px) cabe dentro del recuadro de la fase vista */
+.ruta::before { content: ''; position: absolute; left: 8%; right: 8%; top: 46px; height: 4px; border-radius: 2px; background: repeating-linear-gradient(90deg, #cfccc3 0 10px, transparent 10px 16px); }
 .ruta li { position: relative; display: flex; justify-content: center; }
-.ruta button { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; min-height: 0; border: 0; background: none; padding: 0 6px 8px; border-radius: 10px; text-align: center; }
+.ruta button { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; min-height: 0; border: 0; background: none; padding: 14px 6px 8px; border-radius: 10px; text-align: center; }
 .ruta button:hover { background: rgba(0, 0, 0, 0.03); }
 .ruta .hito { position: relative; width: 56px; height: 56px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-weight: 700; font-size: 18px; color: var(--suave); background: conic-gradient(var(--ok) calc(var(--av, 0) * 1turn), #e2ded4 0); }
 .ruta .hito::after { content: attr(data-n); position: absolute; inset: 5px; border-radius: 50%; background: var(--panel); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; }
