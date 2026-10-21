@@ -84,7 +84,7 @@ import { activarRecorrido, paginaSTL, restaurarParada } from './stl';
 import { clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
 import { marcarTrabajando, pantallaTrabajando, sonarTermino, trabajandoGuardado, tituloTermino } from './trabajando';
 import './zen';
-import { celebracion, destinoDeMision, logrosDe } from '../../src/director/animo';
+import { celebracion, destinoDeMision, logrosDe, PARA_QUE_SIRVE, seccionesConAlgo } from '../../src/director/animo';
 
 cerrarConClicFuera();
 
@@ -96,14 +96,33 @@ const VISTAS: Vista[] = ['misiones', 'buzon', 'documentos', 'ruta', 'propuestas'
  * propuestas. El seguimiento salió (decidido en «Un Studio más simple», 19 de octubre): los frentes viven solo en el
  * plan del director, las validaciones, el esfuerzo y la bitácora eran reportes, y el método está en «Qué es STL».
  * Proyecto (la configuración) está en la barra solo mientras el proyecto arranca; después, se abre con el engranaje
- * del selector de proyectos. El diagnóstico sigue en la barra hasta que pase a Proyecto.
+ * del selector de proyectos. El diagnóstico sigue en la barra hasta que pase a Proyecto. Preguntas, la ruta, los
+ * documentos y las propuestas aparecen cuando tienen algo (o si estás en ellas); la primera vez, el director dice para
+ * qué sirven (`avisarSeccionesNuevas`).
  */
 function gruposNav(): { titulo: string; vistas: Vista[]; plegable?: boolean }[] {
   const arranca = d.arranque !== 'en_marcha';
+  const conAlgo = seccionesConAlgo({ plan: d.plan, estado: d.estado }) as Vista[];
+  const sirve = (v: Vista) => !(v in PARA_QUE_SIRVE) || conAlgo.includes(v) || vista === v;
   return [
-    { titulo: '', vistas: ['misiones', 'buzon', 'preguntas'] },
-    { titulo: 'El proyecto', vistas: ['ruta', 'documentos', 'propuestas', 'diagnostico', ...(arranca ? (['proyecto'] as Vista[]) : [])] },
+    { titulo: '', vistas: (['misiones', 'buzon', 'preguntas'] as Vista[]).filter(sirve) },
+    { titulo: 'El proyecto', vistas: (['ruta', 'documentos', 'propuestas', 'diagnostico', ...(arranca ? ['proyecto'] : [])] as Vista[]).filter(sirve) },
   ];
+}
+
+/**
+ * La primera vez que aparece una sección en este navegador, el director dice para qué sirve. La primera carga solo
+ * anota las que ya están: quien ya usaba el Studio no recibe avisos de lo que conoce.
+ */
+const CLAVE_SECCIONES = 'estudio.nav.vistas';
+function avisarSeccionesNuevas() {
+  const ahora = seccionesConAlgo({ plan: d.plan, estado: d.estado });
+  const guardadas = localStorage.getItem(CLAVE_SECCIONES);
+  const vistas: string[] = guardadas ? JSON.parse(guardadas) : [];
+  const nuevas = guardadas ? ahora.filter((s) => !vistas.includes(s)) : [];
+  if (guardadas && !nuevas.length) return;
+  localStorage.setItem(CLAVE_SECCIONES, JSON.stringify([...new Set([...vistas, ...ahora])]));
+  if (nuevas.length) decir(PARA_QUE_SIRVE[nuevas[0]], 'sorprendido');
 }
 const CLAVE_SEGUIMIENTO = 'estudio.nav.seguimiento';
 const recortar = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
@@ -1666,6 +1685,7 @@ function pintarNavegacion() {
       return `<details class="grupo-nav plegable"${abierto ? ' open' : ''}><summary class="titulo-grupo">${g.titulo}${pide ? '<span class="punto-pide" title="Algo aquí espera algo tuyo"></span>' : ''}</summary>${g.vistas.map(boton).join('')}</details>`;
     })
     .join('');
+  avisarSeccionesNuevas();
 }
 
 /** El arranque, paso a paso: del repositorio a la ruta. Va en «Hoy» mientras el proyecto arranca. */

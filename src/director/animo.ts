@@ -1,7 +1,7 @@
 // El director asistente en persona: su cara flota en el Estudio, dice frases de ánimo y de empuje y, al tocarla,
 // lleva a la persona elegida a su siguiente pendiente sin completar (en el arranque, a conectar el repositorio o a
 // fijar la meta). Aquí está lo que dice y adónde lleva; el dibujo y el clic, en estudio/src/equipo.ts.
-import { documentosEnOrden, estadoMision, faseActual, misionesAbiertas, nivelDe, TITULAR, xpDe, type Contexto, type Destino, type EtapaArranque, type Integrante, type Mision, type Persona } from './director';
+import { documentosEnOrden, esPregunta, estadoMision, faseActual, misionesAbiertas, nivelDe, TITULAR, xpDe, type Contexto, type Destino, type EtapaArranque, type Integrante, type Mision, type Persona } from './director';
 
 /** Las caras de la pantalla del director. */
 export type Emocion = 'feliz' | 'riendo' | 'sorprendido' | 'pensativo' | 'picaro' | 'enamorado' | 'tranquilo';
@@ -42,6 +42,31 @@ export function destinoDeMision(m: Mision, hechos: number[]): Destino {
   const p = m.pasos.find((_, i) => !hechos.includes(i));
   if (p && typeof p !== 'string' && p.ir?.doc) return p.ir;
   return { vista: 'misiones', ancla: `mision-${m.id}`, etiqueta: m.titulo };
+}
+
+/**
+ * Las secciones de la barra que aparecen cuando sirven («Las secciones aparecen cuando sirven», 21 de octubre): en un
+ * Studio recién instalado no se muestran vacías. Hoy y el Buzón están siempre. Lo que dice el director flotante la
+ * primera vez que aparece cada una, para qué sirve, en una frase.
+ */
+export const PARA_QUE_SIRVE = {
+  preguntas: 'Apareció «Preguntas»: ahí te respondo, juntas y como un informe, lo que me preguntes con el «?» junto a mi cara.',
+  ruta: 'Apareció «La ruta»: las fases hasta tu meta, cada una con su puerta y lo que debe estar listo para cruzarla.',
+  documentos: 'Apareció «Documentos»: lo que te escribo para leer de a una idea, comentar y decidir.',
+  propuestas: 'Apareció «Propuestas»: lo que sugiero hacer, con su porqué; tú lo aceptas o lo descartas.',
+} as const;
+export type SeccionQueAparece = keyof typeof PARA_QUE_SIRVE;
+
+/** Las secciones que ya tienen algo: preguntas hechas, la ruta trazada, documentos escritos o propuestas. */
+export function seccionesConAlgo(ctx: Pick<Contexto, 'plan' | 'estado'>): SeccionQueAparece[] {
+  const { plan, estado } = ctx;
+  const hay: Record<SeccionQueAparece, boolean> = {
+    preguntas: estado.notas.some(esPregunta),
+    ruta: plan.fases.length > 1,
+    documentos: plan.documentos.length > 0,
+    propuestas: plan.propuestas.length > 0 || Object.keys(estado.propuestas).length > 0,
+  };
+  return (Object.keys(hay) as SeccionQueAparece[]).filter((s) => hay[s]);
 }
 
 /** Frases de ánimo que no dependen del momento: cortas, con humor y para cualquier proyecto. */

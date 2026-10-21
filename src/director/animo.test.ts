@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import planPlantilla from '../../plantilla/plan.json';
-import { ANIMO, celebracion, destinoDeMision, frasesDelDirector, logrosDe, siguientePendiente } from './animo';
+import { ANIMO, celebracion, destinoDeMision, frasesDelDirector, logrosDe, PARA_QUE_SIRVE, seccionesConAlgo, siguientePendiente } from './animo';
 import { estadoVacio, type Integrante, type Mision, type Plan } from './director';
 
 const plan = planPlantilla as unknown as Plan;
@@ -63,5 +63,20 @@ describe('el director asistente flotante', () => {
     const todos = frasesDelDirector(ctx(), null, equipo, 'en_marcha');
     expect(todos.some((f) => f.texto.startsWith('Laura'))).toBe(true);
     expect(todos.some((f) => f.texto.startsWith('Ana'))).toBe(true);
+  });
+
+  it('las secciones aparecen cuando tienen algo: preguntas hechas, la ruta trazada, documentos o propuestas', () => {
+    const vacio: Plan = { ...plan, fases: plan.fases.slice(0, 1), documentos: [], propuestas: [] };
+    expect(seccionesConAlgo(ctx(vacio))).toEqual([]);
+    const lleno: Plan = {
+      ...vacio,
+      fases: [...vacio.fases, { ...vacio.fases[0], id: 'mvp' }],
+      documentos: [{ ruta: 'docs/director/diagnostico.md', titulo: 'Diagnóstico', porQue: '' }],
+      propuestas: [{ id: 'p1', area: 'Producto', titulo: 'Cobrar', problema: '', propuesta: '', conecta: '', fase: 'arranque' }],
+    };
+    const estado = estadoVacio();
+    estado.notas.push({ id: 'n1', cuando: '2026-10-21T00:00:00Z', quien: 'Laura', texto: '¿Cuánto falta?', sobre: { tipo: 'pregunta' } } as (typeof estado.notas)[number]);
+    expect(seccionesConAlgo({ plan: lleno, estado })).toEqual(['preguntas', 'ruta', 'documentos', 'propuestas']);
+    expect(Object.keys(PARA_QUE_SIRVE)).toEqual(['preguntas', 'ruta', 'documentos', 'propuestas']);
   });
 });
