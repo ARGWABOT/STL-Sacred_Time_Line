@@ -339,6 +339,12 @@ export const textoPaso = (p: Paso) => (typeof p === 'string' ? p : p.texto);
 /** Cuántas opciones puede tener un paso: pocas, para elegir de un vistazo. */
 export const MAX_OPCIONES = 6;
 
+/**
+ * Lo más que mide una opción de un paso, y la elección que la guarda en el Buzón: el servidor la guarda entera o la
+ * rechaza, nunca la corta. validarPlan no deja escribir una más larga, así que elegirla nunca se rechaza.
+ */
+export const MAX_ELECCION = 200;
+
 /** La última opción que eligió la persona en un paso con `opciones` (la nota que la guarda), si ya eligió. */
 export const eleccionDe = (notas: Nota[], mision: string, i: number, persona: Persona) =>
   notas.filter((n) => n.de === persona && n.sobre.tipo === 'mision' && n.sobre.id === mision && n.sobre.seccion === seccionPaso(i) && !!n.sobre.eleccion).at(-1);
@@ -884,6 +890,14 @@ export interface Adjunto {
   nombre: string;
   bytes: number;
 }
+
+/**
+ * El tope de todo texto libre que se escribe en el Studio (una nota, un comentario, la corrección de una transcripción,
+ * la nota de una entrega, un motivo, el contexto, la meta, cuándo está terminado, el papel de alguien): uno solo y
+ * generoso, más que un dictado de una hora (de 55.000 a 65.000 caracteres), y que el director lee entero en su revisión.
+ * El servidor guarda cada texto entero o lo rechaza, nunca lo corta (estudio/servidor/topes.ts).
+ */
+export const MAX_TEXTO = 100_000;
 
 /** Lo que pesa como máximo cada adjunto: lo que entra a la historia de git se queda. */
 export const MAX_ADJUNTO = 10 * 1024 * 1024;
@@ -1963,9 +1977,12 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
       const donde = `Un paso de la misión «${m.id}» («${p.texto.slice(0, 40)}…»)`;
       if (p.opciones !== undefined) {
         const o = p.opciones;
+        // Medida sin los espacios de los extremos, como la guarda el servidor al elegirla
+        const larga = Array.isArray(o) ? o.find((x) => typeof x === 'string' && x.trim().length > MAX_ELECCION)?.trim() : undefined;
         if (!Array.isArray(o) || o.some((x) => typeof x !== 'string' || !x.trim())) errores.push(`${donde} tiene opciones que no son una lista de frases.`);
         else if (o.length < 2 || o.length > MAX_OPCIONES) errores.push(`${donde} da ${o.length} opciones: deben ser de 2 a ${MAX_OPCIONES}.`);
         else if (new Set(o.map((x) => x.trim().toLowerCase())).size !== o.length) errores.push(`${donde} repite una opción.`);
+        else if (larga) errores.push(`${donde} tiene una opción de ${larga.length} caracteres («${larga.slice(0, 40)}…»): el tope es ${MAX_ELECCION}, porque el Studio guarda la elección entera o no la guarda. Acórtala y lleva lo demás al texto del paso.`);
         if (p.hecho) errores.push(`${donde} tiene opciones y \`hecho\`: con opciones se marca solo al elegir; quita el \`hecho\`.`);
       }
       if (p.esperar !== undefined) {

@@ -43,6 +43,8 @@ import {
   hoy,
   MAX_ADJUNTO,
   MAX_ADJUNTOS,
+  MAX_ELECCION,
+  MAX_TEXTO,
   misionesAbiertas,
   pendientesDelDirector,
   POSTURAS,
@@ -81,20 +83,18 @@ import { actividadDeProyecto, agruparPasos, buscarClaude, consumoDeRevisiones, o
 import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
 import { abrirTerminal, comprobarPaso } from './terminal';
 import { leerSonido, leerSonidos } from './sonidos';
+import { MAX_AUDIO, MAX_CUERPO, MAX_NOMBRE_ARCHIVO, Rechazo, textoDe } from './topes';
 
 const DIAS_ESFUERZO = 7;
 const ESPERA_COMMIT_MS = 15_000;
 const CACHE_MS = 60_000;
-// los audios y los adjuntos llegan en base64 desde el navegador (un tercio más que su peso)
-const MAX_CUERPO = 30 * 1024 * 1024 + Math.ceil((MAX_ADJUNTOS * MAX_ADJUNTO * 4) / 3);
-const MAX_AUDIO = 15 * 1024 * 1024;
 const MAX_DOCS_REPO = 400;
 
 async function leerCuerpo(req: IncomingMessage): Promise<any> {
   let datos = '';
   for await (const trozo of req) {
     datos += trozo;
-    if (datos.length > MAX_CUERPO) throw new Error('El envío es demasiado grande');
+    if (datos.length > MAX_CUERPO) throw new Rechazo(`El envío pesa más de ${Math.round(MAX_CUERPO / 1024 / 1024)} MB, lo más que recibe el Studio de una vez: manda el audio o los adjuntos en notas aparte.`);
   }
   return JSON.parse(datos || '{}');
 }
@@ -105,22 +105,18 @@ function responder(res: ServerResponse, codigo: number, cuerpo: unknown) {
   res.end(JSON.stringify(cuerpo));
 }
 
-/** Texto corto y limpio de lo que manda el navegador. */
-const textoDe = (v: unknown, max = 2000) => String(v ?? '').trim().slice(0, max);
 /** El título de un documento: su `#`, o el nombre del archivo. */
 const tituloMd = (texto: string, ruta: string) => /^#\s+(.+)$/m.exec(texto)?.[1]?.trim() ?? ruta.split('/').pop()!;
 /** ¿Dos rutas son la misma carpeta? (sin importar las barras ni las mayúsculas) */
 const misma = (a: string, b: string) => a.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase() === b.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
 const enteroDe = (v: unknown) => Math.max(0, Math.round(Number(v) || 0));
 
-class Rechazo extends Error {}
-
 /** Guarda un audio grabado en el navegador (data URL de WebM, Ogg o MP4) en la carpeta de notas y devuelve su ruta. */
 async function guardarAudio(raiz: string, carpeta: string, id: string, datos: unknown): Promise<string> {
   const m = /^data:audio\/(webm|ogg|mp4|x-m4a|mpeg)(?:;[^,]*)?;base64,([A-Za-z0-9+/=]+)$/.exec(String(datos ?? ''));
   if (!m) throw new Rechazo('El audio debe ser WebM, Ogg o MP4.');
   const bytes = Buffer.from(m[2], 'base64');
-  if (bytes.length > MAX_AUDIO) throw new Rechazo('El audio pesa más de 15 MB: grábalo en partes.');
+  if (bytes.length > MAX_AUDIO) throw new Rechazo(`El audio pesa más de ${MAX_AUDIO / 1024 / 1024} MB: grábalo en partes.`);
   if (bytes.length < 64) throw new Rechazo('El audio está vacío.');
   const firma = bytes.subarray(0, 12);
   const tipo = m[1];
@@ -148,7 +144,8 @@ async function guardarAdjunto(raiz: string, carpeta: string, id: string, x: unkn
   const m = /^data:[^,]*?;base64,([A-Za-z0-9+/=]*)$/.exec(String(a.datos ?? ''));
   if (!m) throw new Rechazo('Un adjunto llegó dañado: vuelve a adjuntarlo.');
   const bytes = Buffer.from(m[1], 'base64');
-  const nombre = textoDe(a.nombre, 160).replace(/[\\/]/g, '_') || 'archivo';
+  // Entero: cortado, perdería su extensión y una imagen ya no se vería como imagen
+  const nombre = textoDe(a.nombre, MAX_NOMBRE_ARCHIVO, 'El nombre de un adjunto', 'Cámbiale el nombre al archivo y vuelve a adjuntarlo.').replace(/[\\/]/g, '_') || 'archivo';
   if (bytes.length > MAX_ADJUNTO) throw new Rechazo(`«${nombre}» pesa más de ${MAX_ADJUNTO / 1024 / 1024} MB.`);
   if (!bytes.length) throw new Rechazo(`«${nombre}» está vacío.`);
   const ext = (/\.([a-z0-9]{1,8})$/i.exec(nombre)?.[1] ?? 'bin').toLowerCase();
@@ -440,6 +437,7 @@ export function servidorDirector(): Plugin {
       for (const [id, { que: lista, archivos }] of porProyecto) {
         if (!memoriaDe(raiz, id)) continue;
         const resumen = lista.length === 1 ? lista[0] : `${lista.length} decisiones: ${lista.join('; ')}`;
+        // Solo el mensaje del commit se acota: lo que cada quien escribió va entero en los archivos que guarda
         syncDe(id).registrar(enMemoria([...archivos]), `Estudio (${id}): ${quienGuarda} ${resumen}`.slice(0, 300)).catch(() => undefined);
       }
       porProyecto.clear();
@@ -514,7 +512,7 @@ export function servidorDirector(): Plugin {
       case 'entregar': {
         const m = mision(cuerpo.mision);
         if (estadoMision(m, plan, estado) === 'bloqueada') throw new Rechazo('Esa misión es de una fase que todavía está bajo niebla.');
-        const nota = textoDe(cuerpo.nota, 4000);
+        const nota = textoDe(cuerpo.nota, MAX_TEXTO, 'Lo que cuentas de la entrega');
         const audio = cuerpo.audio ? await guardarAudio(raiz, rutas.notas, `e_${m.id}_${Date.now().toString(36)}`, cuerpo.audio) : undefined;
         if (audio) archivos.push(audio);
         propio.entregas[m.id] = { cuando, quien: yo.nombre, ...(nota ? { nota } : {}), ...(audio ? { audio } : {}) };
@@ -536,11 +534,24 @@ export function servidorDirector(): Plugin {
         // En una decisión de un documento: si aprueba lo que recomienda el director (un clic, sin escribir), si decide
         // otra cosa o si solo la comenta (queda abierta)
         const postura = sobre.tipo === 'documento' && sobre.decision && POSTURAS.includes(sobre.postura) ? sobre.postura : undefined;
-        // En un paso con opciones: la que eligió con un clic (es la nota misma)
-        const eleccion = sobre.tipo === 'mision' && typeof sobre.eleccion === 'string' ? textoDe(sobre.eleccion, 200) : '';
+        // En un paso con opciones: la que eligió con un clic (es la nota misma). Cabe entera: validarPlan no deja
+        // escribir una opción más larga que MAX_ELECCION
+        const eleccion = sobre.tipo === 'mision' && typeof sobre.eleccion === 'string' ? textoDe(sobre.eleccion, MAX_ELECCION, 'La opción elegida', 'Cuéntale al director lo que elegiste con el ✉ del paso.') : '';
         // «Hazlo tú», confirmado: le encarga el paso al director (lo hace en su revisión siguiente)
         const hazlo = sobre.tipo === 'mision' && sobre.hazlo === true;
-        const texto = textoDe(cuerpo.texto, 6000) || (postura === 'aprueba' ? 'Apruebo lo que recomiendas.' : eleccion);
+        const texto = textoDe(cuerpo.texto, MAX_TEXTO, 'La nota') || (postura === 'aprueba' ? 'Apruebo lo que recomiendas.' : eleccion);
+        // Sobre qué es: los nombres que pone la página (la misión, la parte, la decisión), enteros o rechazados antes de
+        // guardar el audio y los adjuntos. Solo `fragmento` se acota: es el comienzo de la idea que se comenta, un
+        // localizador que arma la página (ya recortado allá), no contenido; lo que la persona dice va entero en el texto
+        const general = 'Déjalo como comentario general y di ahí sobre qué es.';
+        const donde = {
+          tipo: sobre.tipo,
+          ...(sobre.id ? { id: textoDe(sobre.id, 200, 'El nombre de lo que comentas', general) } : {}),
+          ...(sobre.seccion ? { seccion: textoDe(sobre.seccion, 200, 'El nombre de la parte que comentas', general) } : {}),
+          ...(sobre.decision ? { decision: textoDe(sobre.decision, 200, 'El nombre de la decisión que respondes', general) } : {}),
+          ...(sobre.fragmento ? { fragmento: String(sobre.fragmento).trim().slice(0, 200) } : {}),
+          ...(postura ? { postura } : {}), ...(sobre.tipo === 'mision' && sobre.aclarar === true ? { aclarar: true } : {}), ...(eleccion ? { eleccion } : {}), ...(hazlo ? { hazlo } : {}),
+        };
         const nid = `n${Date.now().toString(36)}${yo.rol.slice(0, 3).replace(/-/g, '')}`;
         const lista: unknown[] = Array.isArray(cuerpo.adjuntos) ? cuerpo.adjuntos : [];
         if (lista.length > MAX_ADJUNTOS) throw new Rechazo(`Una nota lleva como mucho ${MAX_ADJUNTOS} adjuntos.`);
@@ -555,8 +566,7 @@ export function servidorDirector(): Plugin {
         // Urgente: una casilla, el porqué ya va en la nota (las preguntas no lo son: se responden en la revisión, como un informe)
         const urgente = sobre.tipo !== 'pregunta' && (cuerpo.urgente === true || cuerpo.urgente === 'on' || cuerpo.urgente === '1');
         propio.notas.push({
-          id: nid, cuando, quien: yo.nombre,
-          sobre: { tipo: sobre.tipo, ...(sobre.id ? { id: textoDe(sobre.id, 200) } : {}), ...(sobre.seccion ? { seccion: textoDe(sobre.seccion, 200) } : {}), ...(sobre.decision ? { decision: textoDe(sobre.decision, 200) } : {}), ...(sobre.fragmento ? { fragmento: textoDe(sobre.fragmento, 200) } : {}), ...(postura ? { postura } : {}), ...(sobre.tipo === 'mision' && sobre.aclarar === true ? { aclarar: true } : {}), ...(eleccion ? { eleccion } : {}), ...(hazlo ? { hazlo } : {}) },
+          id: nid, cuando, quien: yo.nombre, sobre: donde,
           ...(texto ? { texto } : {}), ...(audio ? { audio } : {}), ...(adjuntos.length ? { adjuntos } : {}), ...(urgente ? { urgente } : {}),
         });
         que = eleccion ? `elige «${eleccion}» en el ${String(sobre.seccion ?? 'paso').toLowerCase()} de la misión ${sobre.id ?? ''}`.trim()
@@ -578,7 +588,7 @@ export function servidorDirector(): Plugin {
         const n = propio.notas.find((x) => x.id === cuerpo.id);
         if (!n) throw new Rechazo('Solo puedes corregir tus propias notas.');
         if (plan.respuestas?.[n.id]) throw new Rechazo('El director ya respondió esa nota: queda en el historial.');
-        const texto = textoDe(cuerpo.texto, 6000);
+        const texto = textoDe(cuerpo.texto, MAX_TEXTO, 'La nota');
         if (!texto && !n.audio && !n.adjuntos?.length) throw new Rechazo('La nota quedaría vacía: mejor bórrala.');
         if (texto) n.texto = texto;
         else delete n.texto;
@@ -593,7 +603,8 @@ export function servidorDirector(): Plugin {
         if (!nota && !entrega) throw new Rechazo('Solo puedes corregir lo que se entendió de tus propios audios.');
         if (nota && plan.respuestas?.[nota.id]) throw new Rechazo('El director ya respondió esa nota: queda en el historial.');
         if (entrega && estadoMision(mision(entrega[0]), plan, estado) !== 'entregada') throw new Rechazo('El director ya revisó esa entrega: queda en el historial.');
-        const texto = textoDe(cuerpo.texto, 6000);
+        // Entera: un dictado de diez minutos ya pasa de los 6.000 caracteres que antes se guardaban
+        const texto = textoDe(cuerpo.texto, MAX_TEXTO, 'Lo que dijiste');
         if (!texto) throw new Rechazo('Escribe lo que dijiste: la transcripción no puede quedar vacía.');
         const txt = audio.replace(/\.[a-z0-9]+$/i, '.txt');
         await writeFile(enDisco(raiz, txt), texto + '\n', 'utf-8');
@@ -605,7 +616,7 @@ export function servidorDirector(): Plugin {
         soloTitular('tomar la decisión final sobre un criterio');
         const c = criterio(cuerpo.criterio);
         const valor = cuerpo.estado === 'no_aplica' ? 'no_aplica' : 'cumplido';
-        const nota = textoDe(cuerpo.nota, 600);
+        const nota = textoDe(cuerpo.nota, MAX_TEXTO, 'El porqué');
         if (valor === 'no_aplica' && !nota) throw new Rechazo('Para decir que no aplica, escribe por qué.');
         propio.marcas[c.id] = { estado: valor, ...firma, ...(nota ? { nota } : {}) };
         que = `decide que ${valor === 'no_aplica' ? 'no aplica' : 'está cumplido'} «${c.texto}»`;
@@ -623,7 +634,7 @@ export function servidorDirector(): Plugin {
         const f = faseDe(cuerpo.fase);
         const bloqueos = bloqueosPuerta(f, { plan, estado, senales: await senales(id, plan, proyecto) });
         if (bloqueos.length) throw new Rechazo(bloqueos.join(' '));
-        const nota = textoDe(cuerpo.nota, 1000);
+        const nota = textoDe(cuerpo.nota, MAX_TEXTO, 'Lo que dijo la revisión de la puerta');
         propio.cierres[f.id] = { ...firma, ...(nota ? { nota } : {}) };
         que = `cruza la puerta «${f.puerta.nombre}» de la fase «${f.nombre}»`;
         break;
@@ -631,7 +642,7 @@ export function servidorDirector(): Plugin {
       case 'reabrir': {
         soloTitular('reabrir una puerta');
         const f = faseDe(cuerpo.fase);
-        const motivo = textoDe(cuerpo.nota, 1000);
+        const motivo = textoDe(cuerpo.nota, MAX_TEXTO, 'El porqué');
         if (!motivo) throw new Rechazo('Para reabrir una puerta, escribe por qué.');
         // Reabrir una fase reabre también las que vinieron después
         for (const g of plan.fases.slice(plan.fases.indexOf(f))) delete propio.cierres[g.id];
@@ -641,7 +652,7 @@ export function servidorDirector(): Plugin {
       case 'excepcion': {
         const frente = plan.frentes.find((x) => x.id === cuerpo.frente);
         if (!frente) throw new Rechazo('Ese frente no está en la ruta.');
-        const motivo = textoDe(cuerpo.motivo, 600);
+        const motivo = textoDe(cuerpo.motivo, MAX_TEXTO, 'La razón de la excepción');
         if (!motivo) throw new Rechazo('Una excepción necesita su razón.');
         const dias = Math.min(30, Math.max(1, enteroDe(cuerpo.dias) || 7));
         const fase = faseActual(plan, estado);
@@ -675,8 +686,9 @@ export function servidorDirector(): Plugin {
           aprueban: Math.min(personas, enteroDe(v.aprueban)),
           quien: yo.nombre,
         };
+        const campos = { contexto: 'El contexto', loMejor: '«Lo mejor, según ellos»', hallazgos: '«Lo que se vio»', cambios: '«Qué cambiamos por esto»' } as const;
         for (const k of ['contexto', 'loMejor', 'hallazgos', 'cambios'] as const) {
-          const t = textoDe(v[k]);
+          const t = textoDe(v[k], MAX_TEXTO, campos[k]);
           if (t) nueva[k] = t;
         }
         propio.validaciones.push(nueva);
@@ -701,7 +713,7 @@ export function servidorDirector(): Plugin {
           break;
         }
         if (!RESPUESTAS.includes(cuerpo.estado)) throw new Rechazo('Respuesta desconocida.');
-        const nota = textoDe(cuerpo.nota, 1000);
+        const nota = textoDe(cuerpo.nota, MAX_TEXTO, 'El porqué');
         propio.propuestas[p.id] = { estado: cuerpo.estado, ...firma, ...(nota ? { nota } : {}) };
         que = `${cuerpo.estado === 'aceptada' ? 'acepta' : cuerpo.estado === 'descartada' ? 'descarta' : 'deja en estudio'} la propuesta «${p.titulo}»`;
         break;
@@ -723,6 +735,7 @@ export function servidorDirector(): Plugin {
         // Las partes de un documento que ya leyó: solo una bandera de quien lee
         const ruta = typeof cuerpo.doc === 'string' ? cuerpo.doc : '';
         if (!esDocumento(ruta)) throw new Rechazo('Ese documento no se puede marcar.');
+        // Localizadores que arma la página (el nombre de cada parte, la huella de cada idea), no contenido: se acotan
         const textos = (x: unknown, max: number) => [...new Set((Array.isArray(x) ? (x as unknown[]) : []).filter((y): y is string => typeof y === 'string').map((y) => y.slice(0, 310)))].slice(0, max);
         const partes = textos(cuerpo.partes, 200);
         // Y las ideas de cada parte que ya marcó como entendidas
@@ -735,7 +748,7 @@ export function servidorDirector(): Plugin {
         break;
       }
       case 'anotar': {
-        const texto = textoDe(cuerpo.texto, 1000);
+        const texto = textoDe(cuerpo.texto, MAX_TEXTO, 'La nota de la bitácora');
         if (!texto) throw new Rechazo('La nota está vacía.');
         que = `anota en la bitácora: ${texto}`;
         break;
@@ -743,11 +756,11 @@ export function servidorDirector(): Plugin {
       // ── Lo del proyecto: solo el titular
       case 'proyecto': {
         soloTitular('cambiar lo del proyecto');
-        proyecto.nombre = textoDe(cuerpo.nombre, 120);
-        proyecto.contexto = textoDe(cuerpo.contexto, 8000);
-        proyecto.metaInicial = textoDe(cuerpo.metaInicial, 4000);
-        if (cuerpo.terminado !== undefined) proyecto.terminado = textoDe(cuerpo.terminado, 4000);
-        proyecto.repositorio = { url: textoDe(cuerpo.url, 300).replace(/\/\/[^/@]+@/, '//'), rama: textoDe(cuerpo.rama, 100) };
+        proyecto.nombre = textoDe(cuerpo.nombre, 120, 'El nombre del proyecto');
+        proyecto.contexto = textoDe(cuerpo.contexto, MAX_TEXTO, 'El contexto del proyecto');
+        proyecto.metaInicial = textoDe(cuerpo.metaInicial, MAX_TEXTO, 'Lo que quieres lograr');
+        if (cuerpo.terminado !== undefined) proyecto.terminado = textoDe(cuerpo.terminado, MAX_TEXTO, 'Cuándo se considera completo');
+        proyecto.repositorio = { url: textoDe(cuerpo.url, 300, 'La dirección en la web').replace(/\/\/[^/@]+@/, '//'), rama: textoDe(cuerpo.rama, 100, 'La rama principal') };
         if (!proyecto.nombre) throw new Rechazo('Ponle un nombre al proyecto.');
         cambiaProyecto = true;
         que = `cuenta qué es el proyecto «${proyecto.nombre}» y qué busca`;
@@ -756,11 +769,12 @@ export function servidorDirector(): Plugin {
       case 'objetivo': {
         soloTitular('firmar el objetivo');
         if (proyecto.objetivo?.firmado) throw new Rechazo('Ya hay un objetivo firmado: para cambiarlo, primero reábrelo con su razón.');
-        const texto = textoDe(cuerpo.texto, 1000);
-        const exito = textoDe(cuerpo.exito, 1000);
+        const texto = textoDe(cuerpo.texto, MAX_TEXTO, 'La meta');
+        const exito = textoDe(cuerpo.exito, MAX_TEXTO, 'Cómo sabremos que se cumplió');
         if (!texto || !exito) throw new Rechazo('Un objetivo claro dice qué se logra y cómo se sabe que se logró.');
-        const horizonte = textoDe(cuerpo.horizonte, 200);
-        const candidato = textoDe(cuerpo.candidato, 60);
+        const horizonte = textoDe(cuerpo.horizonte, MAX_TEXTO, 'El horizonte');
+        // El candidato que se usó no es un texto: vale solo si es uno de los del plan (si no, no se guarda)
+        const candidato = String(cuerpo.candidato ?? '').trim();
         proyecto.objetivo = { texto, exito, ...(horizonte ? { horizonte } : {}), ...(candidato && plan.objetivos?.some((o) => o.id === candidato) ? { candidato } : {}), firmado: firma };
         cambiaProyecto = true;
         que = `firma el objetivo: ${texto}`;
@@ -769,7 +783,7 @@ export function servidorDirector(): Plugin {
       case 'reabrir_objetivo': {
         soloTitular('reabrir el objetivo');
         if (!proyecto.objetivo) throw new Rechazo('No hay un objetivo firmado.');
-        const motivo = textoDe(cuerpo.motivo, 1000);
+        const motivo = textoDe(cuerpo.motivo, MAX_TEXTO, 'El porqué');
         if (!motivo) throw new Rechazo('Para reabrir el objetivo, escribe por qué: queda en el historial.');
         proyecto.objetivosAnteriores = [...(proyecto.objetivosAnteriores ?? []), { ...proyecto.objetivo, reabierto: { ...firma, nota: motivo } }];
         proyecto.objetivo = null;
@@ -781,11 +795,11 @@ export function servidorDirector(): Plugin {
         // «Replantear la meta»: la de ahora pasa al historial (con el porqué, si lo hay) y la nueva queda fijada de una vez
         soloTitular('replantear la meta');
         if (!proyecto.objetivo) throw new Rechazo('No hay una meta fijada que replantear.');
-        const texto = textoDe(cuerpo.texto, 1000);
-        const exito = textoDe(cuerpo.exito, 1000);
+        const texto = textoDe(cuerpo.texto, MAX_TEXTO, 'La meta');
+        const exito = textoDe(cuerpo.exito, MAX_TEXTO, 'Cómo sabremos que se cumplió');
         if (!texto || !exito) throw new Rechazo('Una meta clara dice qué se logra y cómo se sabe que se logró.');
-        const horizonte = textoDe(cuerpo.horizonte, 200);
-        const motivo = textoDe(cuerpo.motivo, 1000);
+        const horizonte = textoDe(cuerpo.horizonte, MAX_TEXTO, 'El horizonte');
+        const motivo = textoDe(cuerpo.motivo, MAX_TEXTO, 'El porqué');
         proyecto.objetivosAnteriores = [...(proyecto.objetivosAnteriores ?? []), { ...proyecto.objetivo, reabierto: { ...firma, ...(motivo ? { nota: motivo } : {}) } }];
         proyecto.objetivo = { texto, exito, ...(horizonte ? { horizonte } : {}), firmado: firma };
         cambiaProyecto = true;
@@ -794,12 +808,12 @@ export function servidorDirector(): Plugin {
       }
       case 'integrante': {
         soloTitular('cambiar el equipo');
-        const nombre = textoDe(cuerpo.nombre, 80);
-        const correo = textoDe(cuerpo.correo, 120).toLowerCase();
+        const nombre = textoDe(cuerpo.nombre, 80, 'El nombre');
+        const correo = textoDe(cuerpo.correo, 120, 'El correo', 'Escribe solo el correo de git de la persona.').toLowerCase();
         if (!nombre || !/^[^@\s]+@[^@\s]+$/.test(correo)) throw new Rechazo('Escribe el nombre y el correo de git de la persona.');
         if (proyecto.equipo.some((i) => i.correo.toLowerCase() === correo)) throw new Rechazo('Ese correo ya está en el equipo.');
-        const cargo = textoDe(cuerpo.cargo, 80);
-        const papel = textoDe(cuerpo.papel, 300);
+        const cargo = textoDe(cuerpo.cargo, 80, 'El cargo', 'Déjalo en pocas palabras y escribe lo demás en «Su papel».');
+        const papel = textoDe(cuerpo.papel, MAX_TEXTO, 'Su papel');
         proyecto.equipo.push({ id: idPara(nombre, proyecto.equipo.map((i) => i.id)), nombre, correo, ...(cargo ? { cargo } : {}), ...(papel ? { papel } : {}) });
         cambiaProyecto = true;
         que = `suma a ${nombre} al equipo`;
@@ -1089,12 +1103,17 @@ export function servidorDirector(): Plugin {
             const cuerpo = await leerCuerpo(req);
             const yo = await leerIdentidad(raiz, null);
             if (!yo.nombre || !yo.correo) return responder(res, 403, { error: 'Configura tu identidad de git (user.name y user.email) en la carpeta del Estudio.' });
-            const nombre = textoDe(cuerpo.nombre, 120);
+            const nombre = textoDe(cuerpo.nombre, 120, 'El nombre del proyecto');
             if (!nombre) return responder(res, 400, { error: 'Ponle un nombre al proyecto.' });
             const tipo = cuerpo.tipo === 'nuevo' ? 'nuevo' : 'existente';
-            const rutaRepo = textoDe(cuerpo.ruta, 500);
+            const rutaRepo = textoDe(cuerpo.ruta, 500, 'La ruta de la carpeta', 'Elige una carpeta con una ruta más corta.');
             if (!rutaRepo) return responder(res, 400, { error: tipo === 'nuevo' ? 'Elige la carpeta donde vivirá el proyecto: su memoria se guarda ahí.' : 'Elige la carpeta del repositorio del proyecto con «Explorar…».' });
-            if (tipo === 'nuevo' && (!textoDe(cuerpo.contexto) || !textoDe(cuerpo.metaInicial)))
+            // Lo que cuenta del proyecto, entero o rechazado antes de tocar la carpeta
+            const contexto = textoDe(cuerpo.contexto, MAX_TEXTO, 'El contexto del proyecto');
+            const metaInicial = textoDe(cuerpo.metaInicial, MAX_TEXTO, 'Lo que quieres lograr');
+            const terminado = textoDe(cuerpo.terminado, MAX_TEXTO, 'Cuándo se considera completo');
+            const remoto = textoDe(cuerpo.url, 300, 'La dirección en la web').replace(/\/\/[^/@]+@/, '//');
+            if (tipo === 'nuevo' && (!contexto || !metaInicial))
               return responder(res, 400, { error: 'Un proyecto nuevo necesita su explicación y a dónde quieres llegar con él.' });
             // Un proyecto nuevo puede empezar en una carpeta sin git: se le inicia (es la carpeta que eligió su titular)
             if (tipo === 'nuevo' && existsSync(rutaRepo) && !(await gitEn(rutaRepo, ['rev-parse', '--show-toplevel'])).ok) await gitEn(rutaRepo, ['init', '-q']);
@@ -1102,7 +1121,7 @@ export function servidorDirector(): Plugin {
             if (!c.ok) return responder(res, 400, { error: c.error });
             // El Studio también puede ser un proyecto (se dirige a sí mismo); lo que no puede es entrar dos veces
             if (Object.values((await leerLocal(raiz)).repositorios).some((x) => misma(x, c.info.ruta))) return responder(res, 400, { error: 'Ese repositorio ya está en el Studio.' });
-            const id = await entregar({ nombre, ruta: c.info.ruta, remoto: textoDe(cuerpo.url, 300).replace(/\/\/[^/@]+@/, '//') || c.info.remoto || '', yo, tipo, contexto: textoDe(cuerpo.contexto, 8000), metaInicial: textoDe(cuerpo.metaInicial, 4000), terminado: textoDe(cuerpo.terminado, 4000) });
+            const id = await entregar({ nombre, ruta: c.info.ruta, remoto: remoto || c.info.remoto || '', yo, tipo, contexto, metaInicial, terminado });
             await guardarActivo(raiz, id);
             olvidarIdentidad();
             // Entregar es pedirle al director que lo mire
@@ -1128,27 +1147,33 @@ export function servidorDirector(): Plugin {
             const cuerpo = await leerCuerpo(req);
             const yo = await leerIdentidad(raiz, null);
             if (!yo.nombre || !yo.correo) return responder(res, 403, { error: 'Configura tu identidad de git (user.name y user.email) en la carpeta del Estudio.' });
-            const lista: { nombre?: unknown; ruta?: unknown; historialIA?: unknown }[] = Array.isArray(cuerpo.proyectos) ? cuerpo.proyectos.slice(0, 60) : [];
+            // Hasta 60 por vez; los que sobren no se pierden en silencio: se dice cuántos quedaron fuera
+            const todos: { nombre?: unknown; ruta?: unknown; historialIA?: unknown }[] = Array.isArray(cuerpo.proyectos) ? cuerpo.proyectos : [];
+            const lista = todos.slice(0, 60);
             if (!lista.length) return responder(res, 400, { error: 'No hay proyectos para agregar.' });
             const creados: { id: string; nombre: string }[] = [];
-            const errores: string[] = [];
+            const errores: string[] = todos.length > lista.length ? [`Quedaron fuera ${todos.length - lista.length} de los ${todos.length}: por vez entran ${lista.length}. Entrégalos en otra tanda.`] : [];
             const local = await leerLocal(raiz);
             const yaEstan = Object.values(local.repositorios);
+            // Lo que encontró el escaneo (la página lo devuelve tal cual) también va entero: si algo no cabe, ese proyecto
+            // no entra y se dice por qué
+            const sinEscaneo = 'Entrégalo en una línea, con su nombre y su ruta.';
             for (const x of lista) {
-              const nombre = textoDe(x.nombre, 120);
-              const c = await comprobarRepositorio(textoDe(x.ruta, 500));
-              if (!nombre) { errores.push('Una línea no tiene nombre.'); continue; }
-              if (!c.ok) { errores.push(`«${nombre}»: ${c.error}`); continue; }
-              if (yaEstan.some((y) => misma(y, c.info.ruta))) { errores.push(`«${nombre}»: ese repositorio ya está en el Studio.`); continue; }
-              const historialIA = Array.isArray(x.historialIA)
-                ? x.historialIA.slice(0, 5).map((s: any) => ({ agente: textoDe(s?.agente, 40), ...(s?.sesiones ? { sesiones: enteroDe(s.sesiones) } : {}), ...(s?.ultima ? { ultima: textoDe(s.ultima, 40) } : {}), ...(s?.donde ? { donde: textoDe(s.donde, 500) } : {}) })).filter((s: { agente: string }) => s.agente)
-                : [];
+              let nombre = '';
               try {
+                nombre = textoDe(x.nombre, 120, 'El nombre del proyecto');
+                const c = await comprobarRepositorio(textoDe(x.ruta, 500, 'La ruta de la carpeta', 'Elige una carpeta con una ruta más corta.'));
+                if (!nombre) { errores.push('Una línea no tiene nombre.'); continue; }
+                if (!c.ok) { errores.push(`«${nombre}»: ${c.error}`); continue; }
+                if (yaEstan.some((y) => misma(y, c.info.ruta))) { errores.push(`«${nombre}»: ese repositorio ya está en el Studio.`); continue; }
+                const historialIA = Array.isArray(x.historialIA)
+                  ? x.historialIA.slice(0, 5).map((s: any) => ({ agente: textoDe(s?.agente, 40, 'El nombre de un agente de IA', sinEscaneo), ...(s?.sesiones ? { sesiones: enteroDe(s.sesiones) } : {}), ...(s?.ultima ? { ultima: textoDe(s.ultima, 40, 'La fecha de su última sesión de IA', sinEscaneo) } : {}), ...(s?.donde ? { donde: textoDe(s.donde, 500, 'Dónde está su historial de IA', sinEscaneo) } : {}) })).filter((s: { agente: string }) => s.agente)
+                  : [];
                 const id = await entregar({ nombre, ruta: c.info.ruta, remoto: c.info.remoto ?? '', yo, tipo: 'existente', contexto: '', metaInicial: '', terminado: '', historialIA });
                 yaEstan.push(c.info.ruta);
                 creados.push({ id, nombre });
               } catch (e) {
-                errores.push(`«${nombre}»: ${(e as Error).message}`);
+                errores.push(nombre ? `«${nombre}»: ${(e as Error).message}` : (e as Error).message);
               }
             }
             if (creados.length) {
@@ -1171,7 +1196,7 @@ export function servidorDirector(): Plugin {
           if (ruta === '/modelo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);
             try {
-              await guardarModeloClaude(textoDe(cuerpo.modelo, 60) || null);
+              await guardarModeloClaude(textoDe(cuerpo.modelo, 60, 'El nombre del modelo', 'Elige uno de la lista.') || null);
             } catch (e) {
               return responder(res, 400, { error: (e as Error).message });
             }
@@ -1180,7 +1205,7 @@ export function servidorDirector(): Plugin {
           }
           if (ruta === '/esfuerzo' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);
-            const esfuerzo = textoDe(cuerpo.esfuerzo, 10) || null;
+            const esfuerzo = textoDe(cuerpo.esfuerzo, 10, 'El esfuerzo', 'Elige uno de la lista.') || null;
             try {
               // «Máximo» Claude Code no lo guarda: lo recuerda el Studio, y el guardado de tus sesiones queda como estaba
               if (esfuerzo !== 'max') await guardarEsfuerzoClaude(esfuerzo);
@@ -1252,7 +1277,9 @@ export function servidorDirector(): Plugin {
             // Las imágenes se ven tal cual; cualquier otro adjunto se descarga (nunca se abre como una página del Studio)
             else if (esImagen(pedido)) res.setHeader('Content-Type', TIPOS_IMAGEN[pedido.split('.').pop()!.toLowerCase()]);
             else {
-              const nombre = textoDe(url.searchParams.get('nombre'), 160).replace(/["\\\r\n]/g, '_') || pedido.split('/').pop()!;
+              // El nombre de la descarga lo pone la página (el del adjunto, que ya cabe en este tope): un localizador, no
+              // contenido; se acota, y el archivo va entero
+              const nombre = String(url.searchParams.get('nombre') ?? '').trim().slice(0, MAX_NOMBRE_ARCHIVO).replace(/["\\\r\n]/g, '_') || pedido.split('/').pop()!;
               res.setHeader('Content-Type', 'application/octet-stream');
               res.setHeader('Content-Disposition', `attachment; filename="${nombre.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(nombre)}`);
             }

@@ -21,6 +21,7 @@ import {
   eleccionDe,
   comentarioDe,
   YA_LO_DIJE,
+  MAX_ELECCION,
   MAX_ESPERAR,
   opcionConDetalle,
   destinoDelPaso,
@@ -1034,6 +1035,19 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     expect(con({ texto: 'Elige', opciones: ['Sí', 'sí'] })).toHaveLength(1);
     expect(con({ texto: 'Elige', opciones: ['Sí', ''] })).toHaveLength(1);
     expect(con({ texto: 'Elige', opciones: ['Sí', 'No'], hecho: { que: 'nota' } })).toHaveLength(1);
+  });
+
+  it('una opción cabe entera en la elección que guarda el servidor: validarPlan no deja escribir una más larga que MAX_ELECCION', () => {
+    const p = planEjemplo();
+    const con = (paso: Paso) => validarPlan({ ...p, misiones: [...p.misiones, mision([paso])] }, ['titular', 'ana']);
+    expect(con({ texto: 'Elige', opciones: ['Sí', 'x'.repeat(MAX_ELECCION)] })).toEqual([]);
+    // Los espacios de los extremos no cuentan, como al guardarla
+    expect(con({ texto: 'Elige', opciones: ['Sí', ` ${'x'.repeat(MAX_ELECCION)} `] })).toEqual([]);
+    const errores = con({ texto: 'Elige', opciones: ['Sí', 'x'.repeat(MAX_ELECCION + 1)] });
+    expect(errores).toHaveLength(1);
+    expect(errores[0]).toMatch(new RegExp(`opción de ${MAX_ELECCION + 1} caracteres .*el tope es ${MAX_ELECCION}`));
+    // La que pone el Studio con un clic («Ya te lo dije en mi comentario») también cabe
+    expect(YA_LO_DIJE.length).toBeLessThanOrEqual(MAX_ELECCION);
   });
 
   it('«Ya te lo dije en mi comentario»: el último ✉ a secas del paso lo responde, y el paso se marca (pedido del titular)', () => {
