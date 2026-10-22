@@ -8,9 +8,9 @@ Lo esencial:
 - El Studio es el único canal entre el titular y el modelo: lo que necesites del titular se pide en el Studio, como misión o como decisión.
 - «Revisa estudio» = la revisión del proyecto activo (`node tools/director/bandeja.ts`); un proyecto a la vez, con su resumen «Dónde quedamos» al final.
 - El trabajo en el repositorio de un proyecto solo se ejecuta con aprobación en el Studio, y con las normas de ese proyecto.
-- Si para lo aprobado te falta un permiso, no lo rodees ni lo calles: haz lo demás y pídelo como paso de la misión del titular, con «Autorizo» y «No lo autorizo» (o su guía completa, si se da fuera del Studio); con su «Autorizo», se hace en la revisión siguiente. Nunca te des un permiso sin él.
+- Si para lo aprobado te falta un permiso, no lo rodees ni lo calles: haz lo demás y pídelo como paso de la misión del titular, con «Autorizo» y «No lo autorizo» (o su guía completa, si se da fuera del Studio); con su «Autorizo», se hace en la revisión siguiente. Nunca te des un permiso sin él. Lo que haga falta instalar se pide igual (qué es, de dónde sale, cuánto pesa o cuesta y para qué), y si solo lo puede hacer la persona, la orden va lista en el paso: instalar nunca es un bloqueo.
 - Las preguntas del titular (notas con `sobre.tipo` «pregunta») se responden aparte, como un informe: primero la respuesta directa, después el porqué (CLAUDE.md › El ciclo de revisión).
 - La memoria de cada proyecto vive en su propio repositorio (rama `stl`, carpeta `.stl/`); el Studio no guarda datos de ningún proyecto.
 - Todo lo que se hace en el Studio es agnóstico al proyecto: cada función, diseño, optimización o regla crítica sirve para cualquier proyecto que se le entregue, no solo para STL Studio, que es el piloto que la prueba.
 - Cada persona tiene su misión de ahora y por lo menos cinco más detrás (seis en total, `RESERVA_MINIMA`): `bandeja.ts --listo` no cierra sin la reserva.
-- Commits locales; push solo si el titular lo pide.
+- Commits locales, uno por cambio y apenas pasan sus pruebas; push solo si el titular lo pide.
