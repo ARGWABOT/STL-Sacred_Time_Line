@@ -584,15 +584,6 @@ function pintarSegundoPlano() {
   // Mientras el director trabaja, se navega, se lee y se avanza en las misiones; lo que cambia la ruta espera (ver
   // libreMientrasRevisa)
   document.body.classList.toggle('director-trabajando', r.estado === 'en_curso');
-  // El atajo de revisión dice su estado
-  const atajo = document.querySelector<HTMLElement>('.atajo[data-revision]');
-  if (atajo) {
-    const pendientes = cifras().buzon + cifras().preguntas;
-    atajo.dataset.cifra = r.estado === 'ninguna' && pendientes ? String(pendientes) : '';
-    atajo.dataset.etiqueta = r.estado === 'ninguna' ? 'Pedir revisión' : r.estado === 'en_curso' ? 'Revisando…' : 'Revisión pedida';
-    atajo.classList.toggle('activo', r.estado !== 'ninguna');
-    atajo.classList.toggle('alerta', r.estado === 'sin_vigilia');
-  }
   const info = document.querySelector<HTMLElement>('.atajo[data-progreso]');
   if (info) {
     info.hidden = r.estado !== 'en_curso';
@@ -1577,7 +1568,7 @@ async function completarSiToca(id: string, guardado: Promise<boolean>) {
   const enMarcha = revisando();
   const yaPedida = !enMarcha && !!d.revision && !d.revision.hecha;
   const mia = misionesAbiertas(d.plan, d.estado, d.identidad.rol ?? TITULAR)[0];
-  const ENTREGADA_EN_MARCHA = 'Quedó entregada para la revisión siguiente: el director ya empezó esta y no la incluye. Cuando termine, pide la revisión con «Pedir revisión» junto a su cara';
+  const ENTREGADA_EN_MARCHA = 'Quedó entregada para la revisión siguiente: el director ya empezó esta y no la incluye. Cuando termine, pide la revisión con «Pedir revisión», arriba, en la cabecera';
   // Si ya hay otro diálogo abierto (por ejemplo «Dónde quedamos»), no se le encima: basta el aviso
   if (document.querySelector('dialog[open]')) {
     avisar(`Misión completada: «${recortar(m.titulo, 70)}». ${enMarcha ? ENTREGADA_EN_MARCHA : `Quedó entregada${yaPedida ? ' y entra en la revisión ya pedida' : mia ? ': el director la revisa cuando pidas la revisión' : '. Era tu última misión por ahora: pide la revisión para que el director defina las siguientes'}`}.`, true, undefined,
@@ -1597,7 +1588,7 @@ async function completarSiToca(id: string, guardado: Promise<boolean>) {
         ? ENTREGADA_EN_MARCHA
         : yaPedida
         ? 'Quedó entregada y entra en la revisión que ya pediste'
-        : 'Quedó entregada. El director la revisa cuando pidas la revisión: aquí, con «Pedir la revisión», o cuando quieras, con «Pedir revisión» junto a su cara'}. Al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>
+        : 'Quedó entregada. El director la revisa cuando pidas la revisión: aquí, con «Pedir la revisión», o cuando quieras, con «Pedir revisión», arriba, en la cabecera'}. Al aprobarla, sumas la XP. Si quieres contarle algo, «Comentar al director» en la misión.</p>
     <div class="mision-a"><span class="etiqueta">Tu misión ahora</span><b>${esc(mia.titulo)}</b></div>`
       // Sin otra misión abierta, la revisión es lo que sigue: el director decide la misión siguiente con lo entregado
       : `<p class="todas-hechas">${enMarcha
@@ -1762,7 +1753,7 @@ const vigilando = () => !!d.vigilia && Date.now() - Date.parse(d.vigilia) < (VIG
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es', { hour: 'numeric', minute: '2-digit' });
 /** El Studio lanza solo al director: no hace falta ninguna sesión abierta mirando. */
 const automatica = () => !!d.revisor?.agente && !d.revisor.problema;
-/** En qué va la revisión pedida, en una frase (para la cabecera, el atajo y lo que pasa en segundo plano). */
+/** En qué va la revisión pedida, en una frase (para la cabecera y lo que pasa en segundo plano). */
 function estadoRevision(): { estado: 'ninguna' | 'pedida' | 'en_curso' | 'sin_vigilia'; texto: string } {
   const r = d.revision;
   if (r && !r.hecha && (r.enCurso || r.lanzada)) return { estado: 'en_curso', texto: 'El director está revisando' };
@@ -2224,7 +2215,7 @@ function tarjetaMision(m: Mision, compacta = false, numero = 0) {
     acciones.push(`<span class="continuar-m"><button type="button" data-continuar="${esc(m.id)}|${sigue}|" title="Te lleva a lo que toca leer o decidir">Continuar misión →</button><button type="button" class="primario" data-continuar="${esc(m.id)}|${sigue}|enfoque" title="Lo mismo, con solo la idea de ahora a la vista">${icono('enfoque')} Continuar en modo enfoque</button></span>`);
   }
   return `<article class="mision-c ${e}${mia ? ' mia' : ''}${numero === 1 ? ' sigue' : ''}" data-ancla="mision-${esc(m.id)}">
-    ${numero === 1 ? `<div class="fila-sigue"><span class="sigue-esta">→ Tu misión ahora</span>${mia ? botonEnfoqueMision(m) : ''}</div>` : ''}
+    ${numero === 1 ? '<span class="sigue-esta">→ Tu misión ahora</span>' : ''}
     <header>${numero > 1 ? `<span class="num-m">${numero}</span>` : ''}<b>${esc(m.titulo)}</b><span class="xp">+${m.xp} XP</span>${numero === 1 && e === 'pendiente' ? '' : `<span class="chip estado-m ${e}">${NOMBRE_ESTADO_MISION[e]}</span>`}</header>
     <p class="porque">${esc(m.porQue)}</p>
     ${listaPasos(m)}
@@ -2835,28 +2826,68 @@ const letraLector = () => Math.min(2, Math.max(0, Number(localStorage.getItem('e
 const claseLector = () => `letra-${letraLector()}`;
 
 /**
- * El modo enfoque: un velo difuminado sobre la barra lateral, la cabecera, la columna de la misión y el director
- * flotante, y la idea de ahora centrada y nítida. Lo demás del documento se pliega (no se difumina). Esc para salir.
- * Es de esta visita: al salir de los documentos, se apaga.
+ * El modo enfoque, uno solo para un documento y para la misión: un velo desenfoca todo lo de alrededor y deja nítido lo
+ * de ahora. En «Documentos», la idea que toca leer, centrada en una ventana (lo demás del documento se pliega, no se
+ * desenfoca); en «Misiones», la tarjeta de tu misión de ahora, donde está (no es un diálogo: sus pasos llevan a otras
+ * partes del Studio). Se pone y se quita con su botón, arriba a la derecha, que queda por encima del velo (salir está
+ * donde se entró), o con su atajo junto a la cara del director; Esc para salir. Donde no aplica, ninguno de los dos se
+ * ve. Es de esta visita: se apaga al salir del documento o de la sección, cuando un paso lleva a otro lugar, cuando la
+ * misión se entrega y con la recarga del final de una revisión. Lo enfocado: «documento» (el abierto), el ancla de la
+ * tarjeta de tu misión de ahora («mision-<id>») o nada ('').
  */
-let enfoque = false;
-const aplicarEnfoque = () => document.documentElement.classList.toggle('enfoque', enfoque && vista === 'documentos' && !!doc);
-function ponerEnfoque(si: boolean) {
-  enfoque = si;
-  aplicarEnfoque();
-  document.querySelectorAll<HTMLButtonElement>('[data-enfoque]').forEach((b) => {
+let enfoque = '';
+/** Lo que se puede enfocar aquí, con la misma forma: así, si la misión enfocada deja de ser la de ahora, ya no coincide. */
+const queEnfocar = () =>
+  vista === 'documentos' && doc ? 'documento' : (vista === 'misiones' && $('vista').querySelector<HTMLElement>('.mision-c.sigue.mia')?.dataset.ancla) || '';
+const etiquetaEnfoque = (si: boolean) => (si ? 'Salir del enfoque' : 'Modo enfoque');
+const tituloEnfoque = (si: boolean, aqui: string) =>
+  si ? 'Salir del modo enfoque (Esc)' : aqui === 'documento' ? 'Solo la idea de ahora, sin nada alrededor' : 'Solo tu misión de ahora, sin nada alrededor';
+/** Lo que dura la salida del velo (director.css › .velo-zen): mientras tanto, lo que estaba enfocado sigue encima de él. */
+const MS_VELO = 600;
+let saliendo: ReturnType<typeof setTimeout> | undefined;
+
+/** El velo, el botón de arriba y el atajo, al día: al pintar (si lo enfocado ya no está, el enfoque se apaga) y al ponerlo o quitarlo. */
+function aplicarEnfoque() {
+  const aqui = queEnfocar();
+  if (enfoque !== aqui) enfoque = '';
+  const html = document.documentElement;
+  const estaba = html.classList.contains('enfoque') || html.classList.contains('enfoque-mision');
+  html.classList.toggle('enfoque', enfoque === 'documento');
+  html.classList.toggle('enfoque-mision', enfoque.startsWith('mision-'));
+  if (estaba && !enfoque) {
+    html.classList.add('enfoque-saliendo');
+    clearTimeout(saliendo);
+    saliendo = setTimeout(() => html.classList.remove('enfoque-saliendo'), MS_VELO);
+  } else if (enfoque) html.classList.remove('enfoque-saliendo');
+  // El de arriba y el atajo dicen lo mismo; cambian en su sitio, así el foco del teclado se queda en el que se tocó
+  const si = !!enfoque;
+  for (const b of document.querySelectorAll<HTMLButtonElement>('[data-enfoque]')) {
+    b.hidden = !aqui;
     b.setAttribute('aria-pressed', String(si));
-    b.title = si ? 'Salir del modo enfoque (Esc)' : 'Solo la idea de ahora, sin nada alrededor';
-    b.querySelector('span')!.textContent = si ? 'Salir del enfoque' : 'Modo enfoque';
-  });
-  if (si) centrarIdea();
+    b.title = tituloEnfoque(si, aqui);
+    if (b.classList.contains('atajo')) {
+      b.dataset.etiqueta = etiquetaEnfoque(si);
+      b.setAttribute('aria-label', etiquetaEnfoque(si));
+      b.classList.toggle('activo', si);
+    } else b.querySelector('span')!.textContent = etiquetaEnfoque(si);
+  }
+}
+/** Pone o quita el enfoque en lo que se puede enfocar aquí. */
+function ponerEnfoque(si: boolean) {
+  enfoque = si ? queEnfocar() : '';
+  aplicarEnfoque();
+  if (enfoque === 'documento') return centrarIdea();
+  // La tarjeta de la misión queda donde está: si su comienzo no se ve, o quedó muy abajo, sube hasta él
+  const t = enfoque ? $('vista').querySelector<HTMLElement>(`.mision-c.sigue[data-ancla="${CSS.escape(enfoque)}"]`) : null;
+  const r = t?.getBoundingClientRect();
+  if (t && r && (r.top < 0 || r.top > innerHeight / 3)) t.scrollIntoView({ block: 'start', behavior: quieto() ? 'auto' : 'smooth' });
 }
 /** Lleva al centro de la pantalla la idea que toca leer (en el modo enfoque, o al marcar la anterior). */
 function centrarIdea() {
   const idea = document.querySelector<HTMLElement>('.lector .trozo.actual');
   if (!idea) return;
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (enfoque) idea.scrollIntoView({ block: 'center', behavior: quieto ? 'auto' : 'smooth' });
+  if (enfoque === 'documento') idea.scrollIntoView({ block: 'center', behavior: quieto ? 'auto' : 'smooth' });
   else {
     // Fuera del enfoque solo se mueve si la idea quedó fuera de la vista
     const r = idea.getBoundingClientRect();
@@ -2864,66 +2895,28 @@ function centrarIdea() {
   }
 }
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return;
-  if (enfoque) ponerEnfoque(false);
-  else if (enfoqueMision) ponerEnfoqueMision(null);
+  if (e.key === 'Escape' && enfoque && !document.querySelector('dialog[open]')) ponerEnfoque(false);
 });
-
-/**
- * El modo enfoque de la misión: el mismo velo de los documentos alrededor de la tarjeta de la misión de ahora, que
- * queda donde está, nítida (no es un diálogo: sus pasos llevan a otras partes del Studio). Se apaga solo cuando un
- * paso lleva a otro lugar, cuando la misión se entrega y con la recarga del final de una revisión; al volver a Hoy,
- * el botón se ofrece de nuevo. Esc para salir.
- */
-let enfoqueMision: string | null = null;
-const tarjetaEnfocada = () =>
-  enfoqueMision && vista === 'misiones' ? document.querySelector<HTMLElement>(`.mision-c.sigue[data-ancla="mision-${CSS.escape(enfoqueMision)}"]`) : null;
-function aplicarEnfoqueMision() {
-  // Si la tarjeta ya no está (otra sección, la misión entregada), el enfoque se apaga
-  if (!tarjetaEnfocada()) enfoqueMision = null;
-  document.documentElement.classList.toggle('enfoque-mision', !!enfoqueMision);
-}
-function ponerEnfoqueMision(id: string | null) {
-  enfoqueMision = id;
-  aplicarEnfoqueMision();
-  document.querySelectorAll<HTMLButtonElement>('[data-enfoque-mision]').forEach((b) => (b.outerHTML = botonEnfoqueMision(b.dataset.enfoqueMision!)));
-  const t = tarjetaEnfocada();
-  if (t) {
-    const r = t.getBoundingClientRect();
-    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (r.top < 0 || r.top > innerHeight / 3) t.scrollIntoView({ block: 'start', behavior: quieto ? 'auto' : 'smooth' });
-  }
-  document.querySelector<HTMLElement>('[data-enfoque-mision]')?.focus();
-}
-const botonEnfoqueMision = (m: Mision | string) => {
-  const id = typeof m === 'string' ? m : m.id;
-  const si = enfoqueMision === id;
-  return `<button type="button" class="boton-suave boton-enfoque en-mision" data-enfoque-mision="${esc(id)}" aria-pressed="${si}" title="${si ? 'Salir del modo enfoque (Esc)' : 'Solo esta misión a la vista, sin nada alrededor'}">${icono('enfoque')}<span>${si ? 'Salir del enfoque' : 'Enfocarme en la misión'}</span></button>`;
-};
-document.addEventListener('click', (e) => {
-  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-enfoque-mision]');
-  if (b) ponerEnfoqueMision(enfoqueMision === b.dataset.enfoqueMision ? null : b.dataset.enfoqueMision!);
-});
-// En todo el documento, como el del tema: el botón de arriba está en la cabecera, fuera de la vista
+// En todo el documento, como el del tema: el botón de arriba está en la cabecera, y el atajo, junto a la cara del director
 document.addEventListener('click', (e) => {
   if ((e.target as HTMLElement).closest('[data-enfoque]')) ponerEnfoque(!enfoque);
 });
 
 /**
- * El botón del modo enfoque: arriba, junto al del tema, y solo donde funciona (con un documento abierto). Con el
- * enfoque puesto la cabecera queda bajo el velo, así que «Salir del enfoque» aparece también en la franja del documento.
+ * El botón del modo enfoque, arriba a la derecha junto al del tema: el mismo para un documento y para la misión. Donde
+ * el enfoque no aplica no se ve (aplicarEnfoque lo pone al día cuando la sección ya está pintada).
  */
-const botonEnfoque = (donde: 'cabeza' | 'lector' = 'cabeza') =>
-  vista === 'documentos' && doc
-    ? `<button type="button" class="boton-suave boton-enfoque en-${donde}" data-enfoque aria-pressed="${enfoque}" title="${enfoque ? 'Salir del modo enfoque (Esc)' : 'Solo la idea de ahora, sin nada alrededor'}">${icono('enfoque')}<span>${enfoque ? 'Salir del enfoque' : 'Modo enfoque'}</span></button>`
-    : '';
+function botonEnfoque() {
+  const aqui = queEnfocar();
+  const si = !!enfoque;
+  return `<button type="button" class="boton-suave boton-enfoque" data-enfoque aria-pressed="${si}" title="${tituloEnfoque(si, aqui)}"${aqui ? '' : ' hidden'}>${icono('enfoque')}<span>${etiquetaEnfoque(si)}</span></button>`;
+}
 
-/** Arriba del documento, en una sola franja: cómo se termina de leer y el tamaño de la letra (y, en el enfoque, cómo salir). */
+/** Arriba del documento, en una sola franja: cómo se termina de leer y el tamaño de la letra (y, en el enfoque, el tema). */
 function ajustesLector(ruta: string) {
   const letra = letraLector();
   return `<div class="ajustes-lector">${leidoDoc(ruta)}
     <div class="opciones-lector" role="group" aria-label="Cómo leer">
-      ${botonEnfoque('lector')}
       ${botonTema()}
       <span class="tamanos-letra">${LETRAS.map((t, i) => `<button type="button" class="tamano-letra t${i}${i === letra ? ' sel' : ''}" data-letra="${i}" aria-pressed="${i === letra}" title="${t}">A</button>`).join('')}</span>
     </div>
@@ -3832,11 +3825,8 @@ function pintar() {
     campo?.focus();
     campo?.setSelectionRange(cursor[0], cursor[1]);
   }
-  // El modo enfoque solo vale en un documento abierto: en otra sección se apaga
-  if (enfoque && (vista !== 'documentos' || !doc)) enfoque = false;
+  // El modo enfoque solo vale donde aplica (un documento abierto, la tarjeta de tu misión de ahora): si no, se apaga
   aplicarEnfoque();
-  // Y el de la misión, solo con su tarjeta a la vista
-  aplicarEnfoqueMision();
   if (vista === 'stl') restaurarParada(v);
   if (vista === 'documentos' && irASeccion !== null) {
     const parte = [...v.querySelectorAll<HTMLElement>('[data-parte]')].find((x) => x.dataset.parte === irASeccion);
@@ -3959,25 +3949,15 @@ document.addEventListener('click', (e) => {
   void cargar();
 });
 
-// La revisión se pide desde la cabecera, desde lo que pasa en segundo plano y desde el atajo junto a la cara del
-// director: los dos últimos viven fuera de la cabecera, así que se escucha en todo el documento
+// La revisión se pide (y se cancela) arriba, en la cabecera, y no junto a la cara del director, al lado de
+// «Comentario» y «Preguntas», donde un clic de más la lanzaba. Lo que pasa en segundo plano, que sí vive junto a la
+// cara, dice en qué va: por eso se escucha en todo el documento
 document.addEventListener('click', (e) => {
   const rev = (e.target as HTMLElement).closest<HTMLElement>('[data-revision]');
   if (rev && d) {
     const que = rev.dataset.revision;
     const ahora = estadoRevision();
-    // El atajo junto a la cara del director: pide la revisión o dice en qué va
     if (que === 'pedir') return void pedirLaRevision(true);
-    // El atajo está junto a «Comentario» y «Preguntas»: un clic de más no debe lanzar al director, se confirma antes
-    if (que === 'atajo' && ahora.estado === 'ninguna') {
-      const pendientes = cifras().buzon + cifras().preguntas;
-      return void confirmar({
-        titulo: '¿Pido la revisión al director?',
-        texto: `El director revisa ahora todo lo pendiente de este proyecto${pendientes ? ` (${pendientes} ${pendientes === 1 ? 'nota o pregunta' : 'notas y preguntas'} sin responder)` : ''}. Mientras revisa, puedes navegar y leer, pero no agregar nada nuevo.\n\nSolo se pide si lo confirmas.`,
-        boton: 'Sí, pedir la revisión',
-        cancelar: 'No, todavía no',
-      }).then((si) => si && pedirLaRevision(true));
-    }
     if (que === 'cancelar') return void pedirLaRevision(false);
     // Una revisión lanzada que no se cerró: el reporte de qué pasó, en su diálogo (nunca solo un aviso que se va)
     if (ahora.estado === 'sin_vigilia' && d.revision?.error) return void mostrarFalla();
@@ -4192,8 +4172,6 @@ async function clicEnVista(b: HTMLButtonElement) {
       lector.className = `lector ${claseLector()}`;
       lector.querySelector('.ajustes-lector')!.outerHTML = ajustesLector(doc?.ruta ?? '');
     }
-  } else if (ds.enfoque !== undefined) {
-    // El modo enfoque se atiende en todo el documento (arriba, con el del tema)
   } else if (ds.leidoParte !== undefined) {
     // Leer un documento se marca donde se lee, parte por parte: con la última, el paso de la misión queda hecho solo
     await marcarParte(ds.leidoParte);
@@ -4607,7 +4585,7 @@ window.addEventListener('estudio:ir', (e) => { if (d) void irDesdeLaCara((e as C
  * cosa, primero pregunta si salir del enfoque, y solo con un sí lo apaga y lleva.
  */
 async function irDesdeLaCara(dest: Destino) {
-  if (enfoque && document.documentElement.classList.contains('enfoque')) {
+  if (enfoque === 'documento') {
     const abiertas = [...document.querySelectorAll<HTMLElement>('.lector .parte-doc:not(.cerrada)')].map((p) => p.dataset.parte ?? '');
     if (dest.doc && dest.doc === doc?.ruta && (!dest.seccion || abiertas.includes(dest.seccion))) return centrarIdea();
     const ok = await confirmar({
@@ -4671,8 +4649,8 @@ cargarAlArrancar()
     if (v && (VISTAS as string[]).includes(v)) {
       history.replaceState(null, '', location.pathname);
       void ir({ vista: v as Destino['vista'], ancla: pedido.get('ancla') ?? undefined, etiqueta: '' }).then(() => {
-        // (?mirar&enfoque=mision: el director mira el modo enfoque de la misión sin pantalla)
-        if (pedido.get('enfoque') === 'mision') document.querySelector<HTMLElement>('[data-enfoque-mision]')?.click();
+        // (?mirar&enfoque: el director mira el modo enfoque sin pantalla; con &vista=misiones, el de la misión)
+        if (pedido.has('enfoque')) ponerEnfoque(true);
       });
     } else if (d.arranque === 'conectar' && !localStorage.getItem('estudio.director.pestana')) {
       // La primera vez, directo a conectar el repositorio

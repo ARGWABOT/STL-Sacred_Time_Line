@@ -85,7 +85,7 @@ const PASOS: Paso[] = [
   { vista: 'documentos', sel: '.lector, .docs', titulo: 'Documentos por partes', texto: 'El director escribe por partes, y cada parte se comenta aparte. Las decisiones van al final de la parte que las explica, cada una con su botón para responderla.' },
   { vista: 'ruta', sel: '#vista', titulo: 'La ruta, con puertas', texto: 'Fases hacia la meta. Cada una tiene su puerta y sus criterios al 100 %, y lo que hace cada frente: en foco, de apoyo o en espera. La puerta la cruzas tú.' },
   { vista: 'propuestas', sel: '#vista', titulo: 'El director propone, tú decides', texto: 'Lo que mejoraría el proyecto llega como propuesta, con el problema y lo que conecta. Solo lo que aceptas se vuelve trabajo, en su fase.' },
-  { vista: 'misiones', sel: '#atajos-director', titulo: 'Atajos junto a la cara del director', texto: 'Pedir la revisión, anotar una pregunta o dejar un comentario, desde cualquier sección. Y la cara del director te lleva a tu siguiente pendiente.' },
+  { vista: 'misiones', sel: '#atajos-director', titulo: 'Atajos junto a la cara del director', texto: 'Anotar una pregunta o dejar un comentario, desde cualquier sección, y, en tu misión o en un documento, el modo enfoque: solo lo de ahora a la vista. Y la cara del director te lleva a tu siguiente pendiente.' },
   { titulo: 'Úsalo con tus proyectos', texto: `El Studio es gratuito y corre en tu computador, con tu agente de código y tu propia cuenta. La memoria de cada proyecto queda en su propio repositorio. Se instala bajándolo y pidiéndole a tu agente «inicializa STL Studio». <a href="${PUBLICA}" target="_blank" rel="noopener noreferrer">La metodología completa ↗</a>` },
 ];
 

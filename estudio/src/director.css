@@ -244,8 +244,7 @@ button.esperando::after { content: ''; display: inline-block; width: 0.8em; heig
 .mision-c.plegada { gap: 8px; }
 .mision-c.sigue { border-color: var(--acento-borde); border-left-color: var(--acento); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.1), var(--sombra); }
 .mision-c .num-m { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; font-weight: 700; background: var(--acento); color: var(--texto-en-color); }
-.fila-sigue { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
-.sigue-esta { justify-self: start;font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--texto-en-color); background: var(--acento); padding: 3px 12px; border-radius: 999px; }
+.sigue-esta { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--texto-en-color); background: var(--acento); padding: 3px 12px; border-radius: 999px; }
 .mision-c .estado-texto { margin: 0; font-size: 14px; color: var(--espera); line-height: 1.5; }
 .mision-c .nota-entrega { margin: 0; font-size: 14px; font-style: italic; }
 .mision-c.cola { padding: 10px 14px; background: var(--panel-suave); border-left-color: #cfccc3; box-shadow: none; }
@@ -779,46 +778,56 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 /* Una idea que el director reescribió (o agregó) después de que la leíste: vuelve a quedar por leer, y lo dice */
 .idea-cambiada { margin: 0 0 6px; display: inline-flex; gap: 5px; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--espera); background: var(--espera-fondo); }
 .idea-cambiada svg { width: 13px; height: 13px; }
-/* El modo enfoque: un velo difuminado sobre todo lo de alrededor y la idea de ahora, nítida y al centro. El texto
-   del documento no se difumina: lo que no es la parte de ahora se pliega */
-.boton-enfoque { min-height: 34px; padding: 0 12px; display: inline-flex; gap: 6px; align-items: center; font-size: 13.5px; }
+/* El modo enfoque, uno solo para un documento y para la misión (director.ts › aplicarEnfoque): un velo desenfoca todo
+   lo de alrededor y deja nítido lo de ahora, la idea que toca leer en una ventana al centro o la tarjeta de tu misión,
+   donde está. El texto del documento no se desenfoca: lo que no es la parte de ahora se pliega. Su botón va arriba,
+   junto al del tema, y en el atajo junto a la cara del director: puesto, los dos se ven encendidos */
+.boton-enfoque { min-height: 34px; padding: 0 12px; display: inline-flex; gap: 6px; align-items: center; font-size: 13.5px; font-weight: 600; background: var(--acento-fondo); border-color: var(--acento-borde); color: var(--acento-texto); }
 .boton-enfoque .icono { width: 17px; height: 17px; }
-.boton-enfoque.en-cabeza { background: var(--acento-fondo); border-color: var(--acento-borde); color: var(--acento-texto); font-weight: 600; }
-.boton-enfoque.en-cabeza:hover { box-shadow: 0 0 0 3px var(--acento-fondo); }
-.boton-enfoque[aria-pressed='true'] { background: var(--acento-fondo); color: var(--acento-texto); }
-/* En la franja del documento solo está «Salir del enfoque»: con el enfoque puesto, la cabecera queda bajo el velo */
-html:not(.enfoque) .boton-enfoque.en-lector { display: none; }
-:is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { transition: filter 0.3s, opacity 0.3s; }
-html.enfoque :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { filter: blur(3px); opacity: 0.3; pointer-events: none; user-select: none; }
-/* El director flotante y sus atajos quedan siempre encima, también del enfoque: desde la ventana del documento se
-   pregunta, se comenta o se pide la revisión sin salir de ella (sus diálogos son modales y van por encima de todo) */
-html.enfoque :is(.director-flotante, .atajos-director, .segundo-plano) { z-index: 45; }
-html.enfoque .progreso-director { z-index: 46; }
+.boton-enfoque:hover { box-shadow: 0 0 0 3px var(--acento-fondo); }
+.boton-enfoque[aria-pressed='true'] { background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); }
+/* Lo de alrededor queda bajo el velo, y bajo el velo no se toca nada */
+html:is(.enfoque, .enfoque-mision) :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { pointer-events: none; user-select: none; }
+/* El director flotante y sus atajos quedan siempre encima, también del enfoque: desde lo enfocado se pregunta, se
+   comenta o se sale del enfoque sin moverse (sus diálogos son modales y van por encima de todo) */
+html:is(.enfoque, .enfoque-mision) :is(.director-flotante, .atajos-director, .segundo-plano) { z-index: 45; }
+html:is(.enfoque, .enfoque-mision) .progreso-director { z-index: 46; }
+/* El atajo del enfoque está solo donde el enfoque aplica: sin él, lo que pasa en segundo plano baja lo que él ocupa (un
+   atajo y su separación) y sigue justo encima de los atajos */
+body:has(#atajos-director > [data-enfoque][hidden]) .segundo-plano { translate: 0 52px; }
+@media (max-width: 759px) { body:has(#atajos-director > [data-enfoque][hidden]) .segundo-plano { translate: 0 48px; } }
 /* En el enfoque, el tema también se cambia desde la franja de la ventana (fuera de él, está arriba, en la cabecera) */
 html:not(.enfoque) .opciones-lector .boton-tema { display: none; }
 .opciones-lector .boton-tema { min-height: 34px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 .opciones-lector .boton-tema .icono { width: 17px; height: 17px; }
-/* El fondo zen detrás de la ventana: un velo del color del fondo con dos nieblas de luz muy tenue que se desplazan
-   despacio, y una luz suave que sigue al puntero con retraso por fuera de la ventana (zen.ts). Debajo de la ventana
-   (z 40) y encima de lo difuminado; no recibe clics. Sin el enfoque, no se ve ni se anima */
-.velo-zen { position: fixed; inset: 0; z-index: 35; overflow: hidden; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 0.6s ease, visibility 0s linear 0.6s; background: color-mix(in srgb, var(--fondo) 62%, transparent); --zen-a: color-mix(in srgb, var(--acento) 16%, transparent); --zen-b: rgba(120, 190, 170, 0.14); --zen-c: rgba(200, 160, 220, 0.12); --zen-luz: color-mix(in srgb, var(--acento) 14%, transparent); }
-html.oscuro .velo-zen { background: color-mix(in srgb, var(--fondo) 70%, transparent); --zen-a: color-mix(in srgb, var(--acento) 14%, transparent); --zen-b: rgba(90, 170, 150, 0.1); --zen-c: rgba(150, 120, 200, 0.1); --zen-luz: color-mix(in srgb, var(--acento) 12%, transparent); }
-html.enfoque .velo-zen { opacity: 1; visibility: visible; transition: opacity 0.6s ease; }
-.zen-niebla { position: absolute; left: -40vmax; top: -40vmax; width: 180vmax; height: 180vmax; will-change: transform;
-  background: radial-gradient(closest-side at 30% 35%, var(--zen-a), transparent), radial-gradient(closest-side at 70% 60%, var(--zen-b), transparent), radial-gradient(closest-side at 45% 75%, var(--zen-c), transparent);
-  animation: zen-deriva 70s ease-in-out infinite alternate; }
-.zen-niebla.dos { opacity: 0.8; background: radial-gradient(closest-side at 62% 30%, var(--zen-b), transparent), radial-gradient(closest-side at 28% 68%, var(--zen-a), transparent); animation: zen-deriva-dos 95s ease-in-out infinite alternate; }
-.zen-luz { position: absolute; left: 0; top: 0; width: 520px; height: 520px; border-radius: 50%; opacity: 0; will-change: transform, opacity; background: radial-gradient(closest-side, var(--zen-luz), transparent); }
-html:not(.enfoque) .velo-zen .zen-niebla { animation-play-state: paused; }
-@keyframes zen-deriva { from { transform: translate3d(-6vmax, -3vmax, 0) rotate(0deg) scale(1); } to { transform: translate3d(6vmax, 4vmax, 0) rotate(14deg) scale(1.08); } }
-@keyframes zen-deriva-dos { from { transform: translate3d(5vmax, 4vmax, 0) rotate(0deg); } to { transform: translate3d(-7vmax, -2vmax, 0) rotate(-12deg); } }html.enfoque .lector :is(.parte-doc.cerrada, .ya-leido-doc, .entrada-doc, .leido-doc) { display: none; }
+/* El velo (zen.ts lo monta): desenfoca y tiñe lo de alrededor y lo cierra con un viñeteado quieto y tenue, del color
+   del tema. Entra y sale suave, con el desenfoque y el tinte creciendo juntos, y después no se mueve. Encima de lo de
+   alrededor y debajo de lo enfocado (z 40); no recibe clics. Sin el enfoque, no se ve ni se dibuja. La cabecera lleva
+   uno igual (más abajo), y el viñeteado va fijo a la pantalla: así los dos casan */
+.velo-zen { position: fixed; inset: 0; z-index: 35; }
+.velo-zen, .cabeza-proyecto::after {
+  --zen-curva: cubic-bezier(0.45, 0, 0.25, 1);
+  --zen-tinte: color-mix(in srgb, var(--fondo) 45%, transparent);
+  --zen-vineta: color-mix(in srgb, var(--tinta) 14%, transparent);
+  background: radial-gradient(ellipse at 50% 45%, transparent 45%, var(--zen-vineta)) fixed, var(--zen-tinte);
+  -webkit-backdrop-filter: blur(0) saturate(1);
+  backdrop-filter: blur(0) saturate(1);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 0.6s var(--zen-curva), backdrop-filter 0.6s var(--zen-curva), -webkit-backdrop-filter 0.6s var(--zen-curva), visibility 0s linear 0.6s;
+}
+html.oscuro .velo-zen, html.oscuro .cabeza-proyecto::after { --zen-tinte: color-mix(in srgb, var(--fondo) 55%, transparent); --zen-vineta: rgba(0, 0, 0, 0.4); }
+html:is(.enfoque, .enfoque-mision) .velo-zen, html:is(.enfoque, .enfoque-mision) .cabeza-proyecto::after { opacity: 1; visibility: visible; -webkit-backdrop-filter: blur(8px) saturate(1.15); backdrop-filter: blur(8px) saturate(1.15); transition-delay: 0s; }
+/* Al salir, lo que estaba enfocado sigue por encima del velo mientras este se va (director.ts › aplicarEnfoque): nunca
+   se ve desenfocado */
+html.enfoque-saliendo :is(.docs > .lector, .mision-c.sigue.mia) { position: relative; z-index: 40; }
+html.enfoque .lector :is(.parte-doc.cerrada, .ya-leido-doc, .entrada-doc, .leido-doc) { display: none; }
 /* En el enfoque el documento es una ventana al centro, del alto que pide su contenido: si no cabe, se desplaza por
-   dentro (la página no), y la franja de arriba, con «Salir del enfoque», queda siempre a la vista */
+   dentro (la página no), y la franja de arriba, con el tema y la letra, queda siempre a la vista */
 html.enfoque, html.enfoque body { overflow: hidden; }
 html.enfoque .docs > .lector { --franja-enfoque: 60px; position: fixed; inset: 24px; z-index: 40; margin: auto; width: min(900px, calc(100vw - 32px)); height: fit-content; max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain; padding-top: 0; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12); }
-/* La franja tiene un alto fijo (en el enfoque solo lleva «Salir del enfoque» y la letra, en una línea), y el título de
-   la parte se pega justo debajo de ella, no a la altura de la cabecera de la página, que aquí no está: si no, quedaba
-   a media ventana, sobre el texto que pasa por detrás */
+/* La franja tiene un alto fijo (en el enfoque solo lleva el tema y la letra, en una línea), y el título de la parte se
+   pega justo debajo de ella, no a la altura de la cabecera de la página, que aquí no está: si no, quedaba a media
+   ventana, sobre el texto que pasa por detrás */
 html.enfoque .lector .ajustes-lector { position: sticky; top: 0; z-index: 3; box-sizing: border-box; height: var(--franja-enfoque); flex-wrap: nowrap; background: var(--panel); padding: 6px 0 0; margin: 0 0 8px; }
 html.enfoque .lector .parte-doc > :is(h2, h3):first-child { top: var(--franja-enfoque); }
 html.enfoque .lector .parte-doc.por-leer { border-bottom: 0; padding-block: 4px 8px; }
@@ -826,24 +835,27 @@ html.enfoque .lector .parte-doc.por-leer { border-bottom: 0; padding-block: 4px 
    encima del enfoque: así no tapan el texto */
 @media (max-width: 760px) { html.enfoque .docs > .lector { inset: 8px; width: calc(100vw - 84px); max-height: calc(100dvh - 16px); margin-inline: 0 auto; } }
 html.enfoque .trozo.actual { background: transparent; }
+/* Con la cabecera fija (no en el teléfono, donde se sale con el atajo): con el enfoque puesto sube por encima del velo,
+   con uno igual encima, y sobre él solo queda el botón del modo enfoque: salir está donde se entró, en un documento y
+   en la misión. Su velo se queda con los clics: lo que pasa por debajo de ella (la tarjeta, al desplazarla) no se toca
+   a ciegas. Sigue arriba mientras el velo se va, y la ventana del documento va debajo de ella, sin taparla */
+@media (min-width: 760px) {
+  .cabeza-proyecto::after { content: ''; position: absolute; inset: 0 0 -1px; }
+  .cabeza-proyecto .boton-enfoque { position: relative; z-index: 1; }
+  html:is(.enfoque, .enfoque-mision, .enfoque-saliendo) .cabeza-proyecto { z-index: 41; }
+  html:is(.enfoque, .enfoque-mision) .cabeza-proyecto::after { pointer-events: auto; }
+  html:is(.enfoque, .enfoque-mision) .cabeza-proyecto .boton-enfoque { pointer-events: auto; }
+  html.enfoque .docs > .lector { top: calc(var(--alto-cabeza, 0px) + 12px); max-height: calc(100dvh - var(--alto-cabeza, 0px) - 36px); }
+}
 /* El modo enfoque de la misión: el mismo velo, y la tarjeta de ahora donde está, nítida y por encima (la página se
    sigue desplazando, porque una misión puede ser más alta que la pantalla). Lo demás de Hoy queda bajo el velo */
-.boton-enfoque.en-mision { min-height: 30px; font-size: 13px; }
-html.enfoque-mision :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral) { filter: blur(3px); opacity: 0.3; pointer-events: none; user-select: none; }
 html.enfoque-mision #vista { pointer-events: none; user-select: none; }
-html.enfoque-mision .velo-zen { opacity: 1; visibility: visible; transition: opacity 0.6s ease; }
 /* La tarjeta se selecciona y se copia (rutas, direcciones, órdenes): «text» y no «auto», que bajo un padre con
-   user-select: none también vale none */
-html.enfoque-mision .mision-c.sigue { position: relative; z-index: 40; pointer-events: auto; -webkit-user-select: text; user-select: text; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12); }
-html.enfoque-mision :is(.director-flotante, .atajos-director, .segundo-plano) { z-index: 45; }
-html.enfoque-mision .progreso-director { z-index: 46; }
+   user-select: none también vale none. Es la tuya: con todo el equipo a la vista, las de los demás quedan bajo el velo */
+html.enfoque-mision .mision-c.sigue.mia { position: relative; z-index: 40; pointer-events: auto; -webkit-user-select: text; user-select: text; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12); }
 @media (prefers-reduced-motion: reduce) {
   .trozo.llega { animation: none; }
-  :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { transition: none; }
-  html.enfoque-mision .velo-zen { transition: none; }
-  .zen-niebla { animation: none; }
-  .zen-luz { display: none; }
-  .velo-zen, html.enfoque .velo-zen { transition: none; }
+  .velo-zen, .cabeza-proyecto::after { transition: none; }
 }
 @media (max-width: 600px) {
   .trozo { grid-template-columns: minmax(0, 1fr); }

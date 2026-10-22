@@ -71,7 +71,7 @@ Después:
 
 ## Comentarios y preguntas, sin salir de lo que haces
 
-Junto a la cara del director (abajo a la derecha) hay dos atajos:
+Junto a la cara del director (abajo a la derecha) hay dos atajos para decirle algo (y, en un documento o en tu misión de ahora, el del modo enfoque; la revisión se pide arriba, en la cabecera):
 
 - **Comentario**: una idea o algo que quieres que tenga en cuenta. No entra de golpe al proyecto: el director decide cómo y dónde administrarlo (una misión, una propuesta, un documento o la ruta) y te responde en el Buzón.
 - **Preguntas**: las anotas cuando se te ocurren, escritas o grabadas (grabada, la oyes y le añades otro fragmento si se te olvidó algo, o la agregas de una vez con «Enviar ya»). Se acumulan como los comentarios y el director las responde en su próxima revisión. En **Preguntas** cada una es una conversación plegada: la abres, lees la respuesta y, si quieres, la sigues.

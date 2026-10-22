@@ -285,10 +285,8 @@ html.lateral-plegada :is(.cabeza-proyecto, .tablero) { padding-left: 56px; }
 /* cuántas preguntas tienes en tu lote, sin enviar */
 .atajo[data-cifra]:not([data-cifra=''])::after { content: attr(data-cifra); position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; background: var(--acento); color: var(--texto-en-color); font-size: 11.5px; font-weight: 800; box-shadow: 0 0 0 2px var(--fondo); }
 body.sin-proyectos .atajos-director, body.sin-proyectos .selector-proyecto, body.sin-proyectos .navegacion, body.sin-proyectos .identidad { display: none !important; }
-/* el atajo de la revisión: azul mientras está pedida o en curso; rojo si nadie la está mirando */
+/* un atajo encendido (lo que va haciendo el director, abierto; el modo enfoque, puesto): azul */
 .atajo.activo { background: var(--acento); color: var(--texto-en-color); }
-.atajo.alerta { background: var(--peligro); color: var(--texto-en-color); animation: latido-atajo 1.6s ease-in-out infinite; }
-@keyframes latido-atajo { 50% { box-shadow: 0 0 0 6px rgba(179, 54, 47, 0.25), 0 4px 14px rgba(0, 0, 0, 0.25); } }
 /* Lo que pasa en segundo plano (transcripciones, la revisión): una pastilla sobre los atajos, siempre a la vista */
 .segundo-plano { position: fixed; right: 24px; bottom: 258px; z-index: 6; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
 .segundo-plano[hidden] { display: none; }
