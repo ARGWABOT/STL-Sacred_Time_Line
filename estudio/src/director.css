@@ -753,6 +753,11 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 @keyframes anillo-entendido { 0% { opacity: 0.8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.35, 1.7); } }
 @media (prefers-reduced-motion: reduce) { .entendido.recien, .entendido.recien .icono { animation: none; } .entendido.recien::after { display: none; } }
 .comentar-idea { min-height: 32px; padding: 3px 10px; font-size: 13px; }
+/* El ✉ de cada punto de un bloque de puntos cortos: pequeño y al final del punto, para no competir con el texto; con
+   el ratón se nota al pasar por el punto, y en una pantalla táctil se ve siempre */
+.cuerpo-trozo li > .comentar-punto { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; min-width: 28px; padding: 0 6px; margin-left: 6px; font-size: 12px; line-height: 1; vertical-align: baseline; opacity: 0.55; }
+.cuerpo-trozo li:hover > .comentar-punto, .cuerpo-trozo li > .comentar-punto:focus-visible { opacity: 1; }
+@media (hover: none) { .cuerpo-trozo li > .comentar-punto { opacity: 1; min-height: 32px; min-width: 36px; } }
 .estado-decision { font-size: 12.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); white-space: nowrap; display: inline-flex; gap: 4px; align-items: center; }
 .estado-decision.hecha { background: var(--ok-fondo); border-color: var(--ok); color: var(--ok-texto); }
 .estado-decision .icono { width: 14px; height: 14px; }

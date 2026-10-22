@@ -1168,6 +1168,27 @@ const SUELTO = 80;
 const LARGO = 900;
 /** Desde cuántos caracteres (unos 15 renglones) un párrafo o un punto es demasiado largo para leerlo como una idea. */
 const EXTENSO = 1400;
+/** Hasta cuántos caracteres (unos tres renglones) un punto de lista es corto: los cortos seguidos se leen de una vez. */
+const PUNTO_CORTO = 270;
+/** Hasta cuántos caracteres (unos 30 renglones) mide un bloque de puntos cortos: una lista más larga va en varios. */
+const TOPE_LISTA = 2700;
+/** Un punto de lista de primer nivel, como lo reconoce el corte. */
+const PUNTO = /^ ?([-*+]|\d+[.)])\s+/;
+/**
+ * Un punto corto, de uno a tres renglones: poco texto y a lo sumo tres líneas, sin un bloque de código, de fórmulas o
+ * una tabla adentro (eso ya no se lee de un vistazo, aunque mida poco).
+ */
+const esPuntoCorto = (md: string) =>
+  visible(md).length <= PUNTO_CORTO && md.split('\n').filter((l) => l.trim()).length <= 3 && !/^\s*(`{3,}|~{3,}|\$\$|\|)/m.test(md);
+
+/**
+ * Los puntos de un bloque que se lee de una vez (una lista de puntos cortos), en orden y sin el párrafo que lo anuncia:
+ * el Studio le pone a cada uno su ✉, para comentarlo aparte. Una idea que no es un bloque de puntos no trae ninguno.
+ */
+export function puntosDelBloque(t: Trozo): string[] {
+  const puntos = t.tipo === 'punto' && !t.decision && t.piezas ? t.piezas.filter((p) => PUNTO.test(p)) : [];
+  return puntos.length > 1 ? puntos : [];
+}
 
 /** Lo que se lee de un texto en Markdown, para medirlo: sin marcas ni comentarios, sin imágenes, y los enlaces en su texto. */
 const visible = (md: string) =>
@@ -1306,7 +1327,9 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
       let fin = k + 1;
       while (trozos[fin + 1]?.lista === sig.lista) fin++;
       const largo = trozos.slice(k, fin + 1).reduce((n, x) => n + plano(x.md).length, 0);
-      if (largo <= LARGO) hasta = fin;
+      // Una lista de puntos cortos se lee de una vez, también con lo que la anuncia, hasta el tope de un bloque
+      const deCortos = fin > k + 1 && trozos.slice(k + 1, fin + 1).every((x) => !x.piezas && esPuntoCorto(x.md));
+      if (largo <= (deCortos ? TOPE_LISTA : LARGO)) hasta = fin;
     }
     const juntos = trozos.slice(k, hasta + 1);
     const piezas = juntos.filter((x) => x.tipo !== 'rotulo').flatMap((x) => x.piezas ?? [x.md]);
@@ -1318,17 +1341,40 @@ export function trozosDeParte(titulo: string, md: string): Trozo[] {
   trozos.forEach((t, k) => {
     if (titulillo(t) && k < trozos.length - 1) t.tipo = 'rotulo';
   });
-  // Una lista de puntos de un renglón («- Uno», «- Dos») se lee de una vez: un clic por palabra no es leer
+  // Los puntos cortos seguidos de una lista (de hasta unos tres renglones cada uno) se leen de una vez, como un solo
+  // bloque con un ✉ en cada punto: veinte clics en «Entendido» por una lista no es leer (nota de voz del titular, 22 de
+  // octubre de 2026). Un punto largo se lee solo y corta el tramo; un tramo de más de TOPE_LISTA va en bloques seguidos,
+  // ninguno de un solo punto. La lista de decisiones nunca se junta: cada decisión se responde aparte.
+  const corto = (x: (typeof trozos)[number]) => !x.piezas && esPuntoCorto(x.md);
   for (let k = 0; k < trozos.length; k++) {
     const l = trozos[k].lista;
-    if (l === undefined || l === ultima) continue;
+    if (l === undefined || l === ultima || !corto(trozos[k])) continue;
     let fin = k;
-    while (trozos[fin + 1]?.lista === l) fin++;
-    const juntos = trozos.slice(k, fin + 1);
-    const cortos = juntos.every((x) => !x.piezas && plano(x.md).length <= SUELTO);
-    if (juntos.length > 1 && cortos && juntos.reduce((n, x) => n + plano(x.md).length, 0) <= LARGO) {
-      trozos.splice(k, juntos.length, { ...juntos[0], md: juntos.map((x) => x.md).join('\n'), piezas: juntos.map((x) => x.md) });
-    } else k = fin;
+    while (trozos[fin + 1]?.lista === l && corto(trozos[fin + 1])) fin++;
+    const tramo = trozos.slice(k, fin + 1);
+    if (tramo.length < 2) continue;
+    const bloques: (typeof trozos)[] = [[]];
+    let medida = 0;
+    for (const x of tramo) {
+      const ultimo = bloques[bloques.length - 1];
+      if (ultimo.length >= 2 && medida + plano(x.md).length > TOPE_LISTA) {
+        bloques.push([x]);
+        medida = plano(x.md).length;
+      } else {
+        ultimo.push(x);
+        medida += plano(x.md).length;
+      }
+    }
+    // El último bloque no queda con un solo punto: toma uno del anterior o, si este quedaría solo, se le suma
+    const ultimo = bloques[bloques.length - 1];
+    const anterior = bloques[bloques.length - 2];
+    if (anterior && ultimo.length === 1) {
+      if (anterior.length > 2) ultimo.unshift(anterior.pop()!);
+      else anterior.push(...bloques.pop()!);
+    }
+    const juntos = bloques.map((b) => ({ ...b[0], md: b.map((x) => x.md).join('\n'), piezas: b.map((x) => x.md) }));
+    trozos.splice(k, tramo.length, ...juntos);
+    k += juntos.length - 1;
   }
   // Un párrafo corto que no dice nada por sí solo (una transición, un aviso, un título) no es una idea aparte: va con
   // el párrafo de antes; si no lo hay, con el de después; y si tampoco, con lo que tenga al lado (un punto, una tabla).
@@ -1774,7 +1820,8 @@ export function ideasSueltas(texto: string): { parte: string; idea: string; moti
     if (soloMedio(t.md)) return 'una imagen o un video sin texto que lo acompañe';
     if (lineas.length > 1 && lineaTitulo(lineas[lineas.length - 1])) return 'termina en un título sin nada debajo';
     if (visible(t.md).length <= SUELTO && !conMedio(t.md)) return 'un renglón corto, solo';
-    if (visible(t.md).length > EXTENSO) return 'demasiado larga para una idea (más de unos 15 renglones): pártela';
+    // Un bloque de puntos cortos se lee de una vez hasta su propio tope (más uno, por el párrafo que lo anuncia)
+    if (visible(t.md).length > (puntosDelBloque(t).length ? TOPE_LISTA + PUNTO_CORTO : EXTENSO)) return 'demasiado larga para una idea (más de unos 15 renglones): pártela';
     return undefined;
   };
   return partes.flatMap((p) =>

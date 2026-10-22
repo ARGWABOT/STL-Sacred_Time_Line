@@ -70,6 +70,7 @@ import {
   RESERVA_MINIMA,
   partesDeDocumento,
   trozosDeParte,
+  puntosDelBloque,
   pendientesDelDirector,
   sinAtenderAlCerrar,
   resumenPorCerrar,
@@ -920,14 +921,19 @@ describe('cada parte, en ideas que se leen de a una', () => {
 
   it('sin «Para decidir», ningún punto es una decisión; el código no se parte', () => {
     const t = trozosDeParte('2. Los pilares', `${punto('Uno')}\n${punto('Dos')}\n\n\`\`\`\nuno\n\ndos\n\`\`\`\n\nFin.`);
-    expect(t.map((x) => x.tipo)).toEqual(['punto', 'punto', 'bloque']);
-    expect(t[2].md).toBe('```\nuno\n\ndos\n```\n\nFin.');
+    // Los dos puntos cortos se leen de una vez; el código va entero, con lo que lo cierra
+    expect(t.map((x) => x.tipo)).toEqual(['punto', 'bloque']);
+    expect(t[0].piezas).toEqual([punto('Uno'), punto('Dos')]);
+    expect(t[1].md).toBe('```\nuno\n\ndos\n```\n\nFin.');
     expect(t.some((x) => x.decision)).toBe(false);
   });
 
+  // Un punto de más de tres renglones: se lee solo, como su propia idea
+  const puntoLargo = (s: string) => `- ${s}, ${'con una explicación que la vuelve una idea completa, con sus datos y su razón. '.repeat(4).trimEnd()}`;
+
   it('una idea entendida se reconoce por lo que dice: si el director la reescribe, vuelve a quedar por leer', () => {
     const P = '2. El alcance';
-    const [uno, dos, tres, cero, cuatro] = ['Uno', 'Dos', 'Tres', 'Cero', 'Cuatro'].map(punto);
+    const [uno, dos, tres, cero, cuatro] = ['Uno', 'Dos', 'Tres', 'Cero', 'Cuatro'].map(puntoLargo);
     const antes = `${uno}\n${dos}\n${tres}`;
     const marcas = trozosDeParte(P, antes).map((t) => claveIdea(P, t.md));
     // Se reescribe la segunda: las otras conservan su marca; la segunda está por leer y dice que cambió
@@ -950,6 +956,38 @@ describe('cada parte, en ideas que se leen de a una', () => {
     expect(t.map((x) => x.md)).toEqual(['- Uno\n- Dos\n- Tres']);
     // Lo ya entendido punto por punto sigue entendido
     expect(estadoIdeas(P, '- Uno\n- Dos\n- Tres', ['- Uno', '- Dos', '- Tres'].map((x) => claveIdea(P, x))).entendida).toEqual([true]);
+  });
+
+  it('los puntos de hasta unos tres renglones seguidos se leen como un solo bloque, con cada punto a mano para su ✉', () => {
+    const P = '5. Lo que prepara la bandeja';
+    // Doce puntos de uno a tres renglones (de 100 a 250 caracteres): un bloque, sus doce piezas en orden
+    const doce = Array.from({ length: 12 }, (_, k) => `${k + 1}. El punto ${k + 1}: ${'algo que se dice en pocas palabras, '.repeat(2 + (k % 5))}y su razón.`);
+    const t = trozosDeParte(P, doce.join('\n'));
+    expect(t).toHaveLength(1);
+    expect(t[0].piezas).toEqual(doce);
+    expect(puntosDelBloque(t[0])).toEqual(doce);
+    // Lo ya entendido punto por punto sigue entendido en el bloque
+    expect(estadoIdeas(P, doce.join('\n'), doce.map((x) => claveIdea(P, x))).entendida).toEqual([true]);
+    // Un punto largo se lee solo y corta el tramo; los cortos de cada lado van juntos
+    const largo = `- Un punto largo: ${'con su explicación entera y sus datos, que no cabe en tres renglones. '.repeat(5).trimEnd()}`;
+    const mezcla = trozosDeParte(P, ['- Uno corto.', '- Dos corto.', largo, '- Tres corto.', '- Cuatro corto.'].join('\n'));
+    expect(mezcla.map((x) => x.md)).toEqual(['- Uno corto.\n- Dos corto.', largo, '- Tres corto.\n- Cuatro corto.']);
+    // Una lista muy larga va en varios bloques, ninguno de un solo punto, sin perder ni reordenar nada
+    const muchos = Array.from({ length: 40 }, (_, k) => `- El punto ${k + 1}, ${'con algo de texto que lo explica, '.repeat(4)}y su fin.`);
+    const partida = trozosDeParte(P, muchos.join('\n'));
+    expect(partida.length).toBeGreaterThan(1);
+    expect(partida.every((x) => (x.piezas?.length ?? 0) >= 2)).toBe(true);
+    expect(partida.flatMap((x) => x.piezas)).toEqual(muchos);
+    expect(ideasSueltas(`# Doc\n\n## ${P}\n\n${muchos.join('\n')}`)).toEqual([]);
+    // El párrafo que anuncia una lista de puntos cortos va con ella, y no es un punto con ✉
+    const anuncia = 'La bandeja hace esto, en este orden:';
+    const conAnuncio = trozosDeParte(P, `${anuncia}\n\n${doce.join('\n')}`);
+    expect(conAnuncio).toHaveLength(1);
+    expect(puntosDelBloque(conAnuncio[0])).toEqual(doce);
+    // La lista de decisiones nunca se junta: cada decisión se responde aparte
+    const dec = trozosDeParte(P, `${'Un párrafo que explica lo que hay que decidir, con sus razones y sus datos. '.repeat(2)}\n\n**Para decidir:**\n\n1. **Uno.** Recomiendo A.\n2. **Dos.** Recomiendo B.`);
+    expect(dec.filter((x) => x.decision)).toHaveLength(2);
+    expect(dec.every((x) => !puntosDelBloque(x).length)).toBe(true);
   });
 
   it('el control de los cortes encuentra las ideas que quedarían en un renglón suelto', () => {
@@ -1035,7 +1073,7 @@ describe('cada parte, en ideas que se leen de a una', () => {
 
   it('las marcas de antes, por número, se respetan y pasan a la huella de lo que dicen hoy', () => {
     const P = '2. El alcance';
-    const [uno, dos, tres] = ['Uno', 'Dos', 'Tres'].map(punto);
+    const [uno, dos, tres] = ['Uno', 'Dos', 'Tres'].map(puntoLargo);
     const md = `${uno}\n${dos}\n${tres}`;
     const viejas = [claveTrozo(P, 0), claveTrozo(P, 2), 'Otra parte§1'];
     expect(estadoIdeas(P, md, viejas).entendida).toEqual([true, false, true]);

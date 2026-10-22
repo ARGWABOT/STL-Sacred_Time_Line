@@ -45,6 +45,7 @@ import {
   palabrasDeBusqueda,
   pasosVistos,
   pendientesDelDirector,
+  puntosDelBloque,
   repartoPorFrente,
   repartoPorNivel,
   seccionPaso,
@@ -2813,11 +2814,29 @@ function porTrozos(s: { titulo: string; md: string }, notas: Nota[]): string {
   };
   // La idea que explica la decisión de ahora: la última antes de «Para decidir» (se salta las decisiones ya respondidas)
   const contexto = actual !== undefined && lista[actual].decision ? ideas.filter((i) => i < actual && !lista[i].decision).pop() : undefined;
+  // Un bloque de puntos cortos se lee de una vez, y cada punto trae su ✉ pequeño para comentarlo aparte, sin marcar el
+  // bloque (nota de voz del titular, 22 de octubre de 2026). Si los puntos dibujados no son los del bloque, va sin ellos.
+  const conSobres = (md: string, puntos: string[]) => {
+    if (puntos.length < 2) return html(md);
+    const plantilla = document.createElement('template');
+    plantilla.innerHTML = html(md);
+    const items = [...plantilla.content.children]
+      .filter((e) => e.tagName === 'UL' || e.tagName === 'OL')
+      .flatMap((l) => [...l.children].filter((e) => e.tagName === 'LI'));
+    if (items.length !== puntos.length) return plantilla.innerHTML;
+    items.forEach((li, k) =>
+      li.insertAdjacentHTML('beforeend', ` <button type="button" class="al-director comentar-punto" data-comentar="documento|${esc(ruta)}|${esc(s.titulo)}||${esc(fragmentoDe(puntos[k]))}" title="Comentar este punto al director" aria-label="Comentar este punto al director">✉</button>`),
+    );
+    return plantilla.innerHTML;
+  };
   const pintarTrozo = (i: number, clase = '') => {
     const t = lista[i];
     if (t.tipo === 'rotulo') return `<div class="trozo rotulo">${html(t.md)}</div>`;
     const fragmento = fragmentoDe(t.md);
-    const deEste = notas.filter((x) => (x.sobre.seccion ?? '') === s.titulo && (t.decision ? x.sobre.decision === t.decision : !x.sobre.decision && x.sobre.fragmento === fragmento));
+    // Un bloque de puntos cortos trae debajo también lo que se comentó de cada punto (antes, o con su ✉)
+    const puntos = puntosDelBloque(t);
+    const suyos = new Set([fragmento, ...puntos.map(fragmentoDe)]);
+    const deEste = notas.filter((x) => (x.sobre.seccion ?? '') === s.titulo && (t.decision ? x.sobre.decision === t.decision : !x.sobre.decision && x.sobre.fragmento !== undefined && suyos.has(x.sobre.fragmento)));
     if (t.decision) {
       const plantilla = document.createElement('template');
       plantilla.innerHTML = html(t.md);
@@ -2834,7 +2853,7 @@ function porTrozos(s: { titulo: string; md: string }, notas: Nota[]): string {
     const hecho = entendida[i];
     const recien = hecho && recienEntendida === `${ruta}|${claveIdea(s.titulo, t.md)}`;
     const cambiada = cambio[i] ? `<p class="idea-cambiada">${icono('estrella')} Cambió desde que leíste esta parte</p>` : '';
-    return `<div class="trozo${hecho ? ' hecho' : ''}${clase}">${cambiada}<div class="cuerpo-trozo">${html(t.md)}</div>
+    return `<div class="trozo${hecho ? ' hecho' : ''}${clase}">${cambiada}<div class="cuerpo-trozo">${conSobres(t.md, puntos)}</div>
       <div class="marcas-trozo">
         <button type="button" class="entendido${hecho ? ' hecho' : ''}${recien ? ' recien' : ''}" data-entendido="${esc(s.titulo)}|${i}" aria-pressed="${hecho}" title="${hecho ? 'Quitar la marca' : 'Márcala al entender esta idea'}">${icono('check')}<span>Entendido</span></button>
         <button type="button" class="al-director comentar-idea" data-comentar="documento|${esc(ruta)}|${esc(s.titulo)}||${esc(fragmento)}" title="Comentar solo esta idea al director">✉ Comentar esta idea al director</button>
@@ -4466,8 +4485,9 @@ async function clicEnVista(b: HTMLButtonElement) {
     const dejada = await comentar({ tipo, ...(id ? { id } : {}), ...(seccion ? { seccion } : {}), ...(decision ? { decision } : {}), ...(fragmento ? { fragmento } : {}), ...(decision && postura ? { postura } : {}) }, titulo);
     // Responder la última decisión de una parte (con sus ideas ya entendidas) la deja leída; comentarla la deja abierta
     if (dejada && tipo === 'documento' && decision && id && postura !== 'comenta') await decisionRespondida(id, seccion ?? '');
-    // Comentar una idea es haberla leído: queda marcada «Entendido» sola (y, si era la última, la parte queda leída)
-    if (dejada && tipo === 'documento' && fragmento && id && doc?.ruta === id) {
+    // Comentar una idea es haberla leído: queda marcada «Entendido» sola (y, si era la última, la parte queda leída). Un
+    // punto de un bloque, no: se pueden comentar varios antes de dar el bloque por entendido
+    if (dejada && tipo === 'documento' && fragmento && id && doc?.ruta === id && !b.classList.contains('comentar-punto')) {
       const s = secciones(doc.texto).find((x) => x.titulo === (seccion ?? ''));
       const i = s ? trozosDeParte(s.titulo, s.md).findIndex((t) => t.tipo !== 'rotulo' && !t.decision && fragmentoDe(t.md) === fragmento) : -1;
       if (s && i >= 0) await marcarTrozo(s.titulo, i, true);
