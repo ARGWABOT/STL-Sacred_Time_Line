@@ -1,4 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { marked } from 'marked';
 import { describe, expect, it } from 'vitest';
 import planPlantilla from '../../plantilla/plan.json';
 import proyectoPlantilla from '../../plantilla/proyecto.json';
@@ -10,6 +11,7 @@ import {
   mensajeRepite,
   mensajeRepiteAnterior,
   lineasReescritas,
+  mdDeBloqueDePuntos,
   mismaIdea,
   temasDelMensaje,
   coincideBusqueda,
@@ -988,6 +990,28 @@ describe('cada parte, en ideas que se leen de a una', () => {
     const dec = trozosDeParte(P, `${'Un párrafo que explica lo que hay que decidir, con sus razones y sus datos. '.repeat(2)}\n\n**Para decidir:**\n\n1. **Uno.** Recomiendo A.\n2. **Dos.** Recomiendo B.`);
     expect(dec.filter((x) => x.decision)).toHaveLength(2);
     expect(dec.every((x) => !puntosDelBloque(x).length)).toBe(true);
+  });
+
+  it('un bloque de puntos cortos se dibuja con sus puntos pegados: el ✉ en el mismo renglón y sin espacio de más (nota de voz del titular, 22 de octubre de 2026)', () => {
+    const P = '5. Lo que prepara la bandeja';
+    const doce = Array.from({ length: 12 }, (_, k) => `${k + 1}. El punto ${k + 1}: ${'algo que se dice en pocas palabras, '.repeat(2 + (k % 5))}y su razón.`);
+    const anuncia = 'La bandeja hace esto, en este orden:';
+    const [bloque] = trozosDeParte(P, `${anuncia}\n\n${doce.join('\n')}`);
+    // El corte junta el párrafo con la lista dejando un renglón vacío entre cada punto: dibujada así, es una lista suelta
+    expect(marked.parse(bloque.md, { async: false })).toContain('<li><p>');
+    const pegado = mdDeBloqueDePuntos(bloque.md, puntosDelBloque(bloque));
+    expect(pegado).toBe(`${anuncia}\n\n${doce.join('\n')}`);
+    const dibujo = marked.parse(pegado, { async: false }) as string;
+    expect(dibujo).not.toContain('<li><p>');
+    expect(dibujo.match(/<li>/g)).toHaveLength(12);
+    // Solo cambia cómo se dibuja: el texto de la idea, y con él su huella, no se toca
+    expect(bloque.md).toContain(`${doce[0]}\n\n${doce[1]}`);
+    // Un bloque sin párrafo delante ya viene pegado; con un párrafo suelto detrás, el de detrás se conserva; sin los puntos, vuelve igual
+    expect(mdDeBloqueDePuntos(doce.join('\n'), doce)).toBe(doce.join('\n'));
+    expect(mdDeBloqueDePuntos(`${doce.join('\n\n')}\n\nY una nota al final.`, doce)).toBe(`${doce.join('\n')}\n\nY una nota al final.`);
+    expect(mdDeBloqueDePuntos('Un texto cualquiera', doce)).toBe('Un texto cualquiera');
+    // Un punto repetido se busca en orden, sin confundirlo con el anterior
+    expect(mdDeBloqueDePuntos('- igual\n\n- igual\n\n- otro', ['- igual', '- igual', '- otro'])).toBe('- igual\n- igual\n- otro');
   });
 
   it('el control de los cortes encuentra las ideas que quedarían en un renglón suelto', () => {

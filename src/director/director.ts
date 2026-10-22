@@ -1190,6 +1190,28 @@ export function puntosDelBloque(t: Trozo): string[] {
   return puntos.length > 1 ? puntos : [];
 }
 
+/**
+ * El Markdown de un bloque de puntos cortos, listo para dibujarlo: sus puntos pegados, uno por renglón. El corte junta
+ * el párrafo que anuncia una lista con ella dejando un renglón vacío entre cada punto, y una lista así es «suelta»: se
+ * dibuja con un párrafo por punto, con su margen, el ✉ cae en otra fila y los puntos quedan separados (nota de voz del
+ * titular, 22 de octubre de 2026: el ✉ en el mismo renglón y sin tanto espacio entre puntos). Solo cambia cómo se
+ * dibuja: el texto de la idea (y con él su huella y su «Entendido») queda igual. Lo que va antes del primer punto y
+ * después del último no se toca; si los puntos no están en el texto, vuelve el texto tal cual.
+ */
+export function mdDeBloqueDePuntos(md: string, puntos: string[]): string {
+  let desde = 0;
+  let salida = '';
+  for (let k = 0; k < puntos.length; k++) {
+    const i = md.indexOf(puntos[k], desde);
+    if (i < 0) return md;
+    const entre = md.slice(desde, i);
+    salida += k > 0 && !entre.trim() ? '\n' : entre;
+    salida += puntos[k];
+    desde = i + puntos[k].length;
+  }
+  return salida + md.slice(desde);
+}
+
 /** Lo que se lee de un texto en Markdown, para medirlo: sin marcas ni comentarios, sin imágenes, y los enlaces en su texto. */
 const visible = (md: string) =>
   md

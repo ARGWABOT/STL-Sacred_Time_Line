@@ -37,6 +37,7 @@ import {
   misionesAbiertas,
   mismaIdea,
   nivelDe,
+  mdDeBloqueDePuntos,
   NIVELES,
   notaFoco,
   opcionConDetalle,
@@ -2816,10 +2817,11 @@ function porTrozos(s: { titulo: string; md: string }, notas: Nota[]): string {
   const contexto = actual !== undefined && lista[actual].decision ? ideas.filter((i) => i < actual && !lista[i].decision).pop() : undefined;
   // Un bloque de puntos cortos se lee de una vez, y cada punto trae su ✉ pequeño para comentarlo aparte, sin marcar el
   // bloque (nota de voz del titular, 22 de octubre de 2026). Si los puntos dibujados no son los del bloque, va sin ellos.
+  // Los puntos se dibujan pegados, para que el ✉ quede en el mismo renglón de su texto y sin espacio de más entre ellos.
   const conSobres = (md: string, puntos: string[]) => {
     if (puntos.length < 2) return html(md);
     const plantilla = document.createElement('template');
-    plantilla.innerHTML = html(md);
+    plantilla.innerHTML = html(mdDeBloqueDePuntos(md, puntos));
     const items = [...plantilla.content.children]
       .filter((e) => e.tagName === 'UL' || e.tagName === 'OL')
       .flatMap((l) => [...l.children].filter((e) => e.tagName === 'LI'));
