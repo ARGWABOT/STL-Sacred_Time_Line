@@ -3484,6 +3484,29 @@ function pintarPuerta(f: Fase) {
     }</div></div>`;
 }
 
+/**
+ * Una misión aprobada, para releerla en «La ruta» (nota de voz del titular, 22 de octubre de 2026: quiso volver a lo que
+ * comentó en una misión pasada y no supo dónde): sus pasos con lo que eligió, lo que comentó sobre ella con la respuesta
+ * del director, su entrega y el veredicto. Solo se lee: lo que quiera agregar va con «Comentar al director».
+ */
+function misionPasada(m: Mision) {
+  const rev = d.plan.revisiones[m.id];
+  const ent = d.estado.entregas[m.id];
+  // Una elección con un clic ya se ve en su paso: aquí van las notas con algo dicho
+  const notas = d.estado.notas
+    .filter((n) => n.sobre.tipo === 'mision' && n.sobre.id === m.id && !(n.sobre.eleccion && !n.audio && (n.texto ?? '').trim() === n.sobre.eleccion))
+    .sort((a, b) => a.cuando.localeCompare(b.cuando));
+  return `<div class="cuerpo-pasada">
+    <p class="porque">${esc(m.porQue)}</p>
+    ${m.pasos.length ? listaDePasos(m, false, m.pasos.map((_, i) => i)) : ''}
+    <p class="entrega"><b>Entrega:</b> ${esc(m.entrega)}</p>
+    ${ent ? `<div class="entregada-m"><span class="como">Entregada por ${esc(ent.quien)} · ${momento(ent.cuando)}</span>${ent.nota ? `<p>${esc(ent.nota)}</p>` : ''}${audioYTexto(ent.audio)}</div>` : ''}
+    ${notas.length ? `<h4>Lo que comentaste</h4><ul class="notas-lista">${notas.map((n) => tarjetaNota(n)).join('')}</ul>` : ''}
+    ${rev ? `<div class="veredicto ${rev.veredicto}"><b>El director${rev.veredicto === 'aprobada' ? ' la aprobó' : ' pidió rehacerla'}:</b> ${esc(rev.comentario)}</div>` : ''}
+    <div class="acciones-m"><button type="button" class="al-director" data-comentar="mision|${esc(m.id)}">✉ Comentar al director</button></div>
+  </div>`;
+}
+
 function vistaRuta() {
   const f = d.plan.fases.find((x) => x.id === faseVista) ?? faseActual(d.plan, d.estado);
   const s = situacion(d.plan, d.estado, f.id);
@@ -3510,9 +3533,15 @@ function vistaRuta() {
     </div>
     <div>
       ${cerradas ? `<div class="panel-d"><h3>Bajo niebla</h3><p class="como">${cerradas} misiones y propuestas esperan esta fase. El director las abre cuando la ruta llegue aquí.</p></div>` : ''}
-      ${misiones.length ? `<div class="panel-d"><h3>Las misiones de esta fase</h3>${personasEquipo().map((p) => {
+      ${misiones.length ? `<div class="panel-d" data-ancla="r-misiones"><h3>Las misiones de esta fase</h3>${misiones.some((m) => estadoMision(m, d.plan, d.estado) === 'aprobada') ? '<p class="como">Las aprobadas se abren para releerlas: sus pasos, lo que elegiste, lo que comentaste con la respuesta del director y su veredicto.</p>' : ''}${personasEquipo().map((p) => {
         const ms = misiones.filter((m) => m.para === p);
-        return ms.length ? `<p class="como"><b>${esc(nombrePersona(p))}</b></p><ul class="adelantado">${ms.map((m) => `<li>${esc(m.titulo)} <span class="chip estado-m ${estadoMision(m, d.plan, d.estado)}">${NOMBRE_ESTADO_MISION[estadoMision(m, d.plan, d.estado)]}</span></li>`).join('')}</ul>` : '';
+        return ms.length ? `<p class="como"><b>${esc(nombrePersona(p))}</b></p><ul class="adelantado">${ms.map((m) => {
+          const e = estadoMision(m, d.plan, d.estado);
+          const chip = `<span class="chip estado-m ${e}">${NOMBRE_ESTADO_MISION[e]}</span>`;
+          return e === 'aprobada'
+            ? `<li><details class="mision-pasada" data-ancla="pasada-${esc(m.id)}"${plegable(`pasada|${m.id}`)}><summary>${esc(m.titulo)} ${chip}</summary>${misionPasada(m)}</details></li>`
+            : `<li>${esc(m.titulo)} ${chip}</li>`;
+        }).join('')}</ul>` : '';
       }).join('')}</div>` : ''}
       <div class="panel-d"><h3>El plan de la fase</h3><ol class="misiones">${f.misiones.map((m) => `<li>${esc(m)}</li>`).join('')}</ol></div>
       <div class="panel-d"><h3>Qué hace cada frente</h3>

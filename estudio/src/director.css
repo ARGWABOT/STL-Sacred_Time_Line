@@ -388,6 +388,10 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .frentes-fase li b { font-weight: 600; }
 .frentes-fase li span.t { grid-column: 1 / -1; color: var(--suave); font-size: 13.5px; line-height: 1.45; }
 .adelantado { margin: 0; padding-left: 20px; font-size: 14.5px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; line-height: 1.5; }
+/* Una misión aprobada se abre en «La ruta» para releerla: sus pasos, lo comentado y el veredicto */
+.mision-pasada > summary { cursor: pointer; }
+.mision-pasada .cuerpo-pasada { margin: 8px 0 12px; padding: 4px 0 4px 12px; border-left: 3px solid var(--borde); }
+.mision-pasada .cuerpo-pasada h4 { margin: 12px 0 6px; }
 
 /* ── El diagnóstico, dentro de Proyecto: abierto mientras no hay meta, plegado después ── */
 .resumen-d { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 15.5px; line-height: 1.65; max-width: var(--lectura); }

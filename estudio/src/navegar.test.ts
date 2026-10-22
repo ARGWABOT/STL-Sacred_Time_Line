@@ -30,6 +30,19 @@ describe('lo que señala un botón se ve, aunque esté plegado (notas de voz del
     expect(director).toContain(`data-ancla="\${titulo === 'Después' ? 'd-despues' : 'd-leidos'}"`);
   });
 
+  it('una misión aprobada se abre en «La ruta» para releerla: sus pasos, lo comentado con su respuesta y el veredicto', () => {
+    const ruta = director.slice(director.indexOf('function vistaRuta()'), director.indexOf('function vistaProyecto()'));
+    expect(ruta).toContain(`<details class="mision-pasada" data-ancla="pasada-\${esc(m.id)}"\${plegable(\`pasada|\${m.id}\`)}>`);
+    expect(ruta).toMatch(/e === 'aprobada'\s*\? `<li><details class="mision-pasada"/);
+    const pasada = director.match(/function misionPasada\([^)]*\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+    // Los pasos sin casillas (solo se leen), con lo que eligió; las notas con algo dicho, con su respuesta; el veredicto
+    expect(pasada).toContain('listaDePasos(m, false, m.pasos.map((_, i) => i))');
+    expect(pasada).toContain("n.sobre.tipo === 'mision' && n.sobre.id === m.id");
+    expect(pasada).toContain('tarjetaNota(n)');
+    expect(pasada).toContain('d.plan.revisiones[m.id]');
+    expect(css).toContain('.mision-pasada > summary { cursor: pointer; }');
+  });
+
   it('plegado, «Ya leído» dice que lo leído está ahí y cómo releerlo; abierto, ya no hace falta decirlo', () => {
     expect(director).toContain('las ${nLeidas} partes que leíste están aquí, plegadas. Ábrelas para releerlas');
     expect(director).toContain("'Ya leíste todo el documento: '");
