@@ -961,7 +961,8 @@ html.enfoque-mision .mision-c.sigue.mia { pointer-events: auto; -webkit-user-sel
 /* Pedir revisión y en qué va (estudio/src/director.ts › botonRevision) */
 .pedir-revision .cifra { margin-left: 2px; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--acento); color: var(--texto-en-color); font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
 .estado-revision { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: var(--radio); font-size: 13.5px; border: 1px solid var(--acento-borde); background: var(--acento-fondo); color: var(--acento-texto); }
-.estado-revision.en-curso { gap: 0; }
+.estado-revision.en-curso, .estado-revision.ocupado { gap: 0; }
+.estado-revision.ocupado { cursor: help; }
 .estado-revision .enlace { font-size: 13px; margin-left: 4px; }
 .estado-revision.sin-vigilia { border-color: #e7a9a6; background: var(--peligro-fondo); color: var(--peligro-texto); font-weight: 600; }
 .cabeza-proyecto .donde { min-width: 0; }
