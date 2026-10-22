@@ -9,6 +9,7 @@ import {
   negacionesDe,
   mensajeRepite,
   mensajeRepiteAnterior,
+  lineasReescritas,
   mismaIdea,
   temasDelMensaje,
   coincideBusqueda,
@@ -545,6 +546,65 @@ describe('el plan no pesa: lo cerrado sale a su archivo', () => {
     // Igual al anterior no se vuelve a mostrar, y sin anterior no hay con qué comparar
     expect(mensajeRepiteAnterior(antes, antes)).toEqual([]);
     expect(mensajeRepiteAnterior(antes, '')).toEqual([]);
+  });
+
+  // Propuesta aceptada «El cierre no deja nada sin atender», punto 3: una línea ya escrita se deja igual o se quita
+  it('«Lo que avanzamos» no reescribe una línea guardada: alargada o con otras palabras cuenta; igual o un avance nuevo, no', () => {
+    const mapa = 'El mapa de cada proyecto: en cada revisión, la bandeja me dice qué archivos y qué partes de mis documentos cambiaron desde la anterior';
+    const servidor = 'Un solo servidor del Studio, siempre: ninguno arranca si ya hay otro, y el doble clic recarga la página abierta.';
+    const guardadas = [mapa, servidor];
+    const reescritas = (nuevas: string[]) => lineasReescritas(nuevas, guardadas).map((r) => r.guardada);
+    // Alargada con su commit o con una cifra: la misma línea, que el Studio volvería a mostrar como nueva
+    expect(reescritas([`${mapa} (commit local d8c7e3f)`])).toEqual([mapa]);
+    expect(reescritas([`${mapa}, probado con 112 archivos y 14 fichas`])).toEqual([mapa]);
+    // Con algo nuevo pegado a la guardada entera también; dicho en su propia línea, solo lo nuevo, pasa
+    expect(reescritas([`${mapa}, y ahora también las imágenes y los PDF del repositorio, con su tamaño y su fecha`])).toEqual([mapa]);
+    expect(reescritas(['El mapa de cada proyecto ya cuenta también las imágenes y los PDF del repositorio, con su tamaño y su fecha'])).toEqual([]);
+    // Con otras palabras, y con su commit: el commit no es lo avanzado, no cuenta como algo nuevo
+    const otraVez = 'Ya no se enciende un segundo servidor del Studio: si hay otro, ninguno arranca y el doble clic solo recarga la página (commit local 9ed9e10).';
+    expect(lineasReescritas([otraVez], guardadas)).toEqual([{ linea: otraVez, guardada: servidor }]);
+    // Una dirección es una referencia, como un commit: dos páginas distintas del mismo sitio no se parecen por su URL
+    expect(lineasReescritas(
+      ['La página de la metodología ya está en internet (https://argwabot.github.io/STL-Sacred_Time_Line/metodologia.html)'],
+      ['La página pública ya está en internet (https://argwabot.github.io/STL-Sacred_Time_Line/)'],
+    )).toEqual([]);
+    // Igual salvo los espacios, no cuenta (el Studio compara el texto exacto y sí la mostraría otra vez: raro, se acepta)
+    expect(reescritas([mapa, ` ${servidor.replace(' ', '  ')} `])).toEqual([]);
+    // Lo urgente suma su línea arriba sin tocar las demás
+    expect(reescritas(['Lo urgente, resuelto: el Studio vuelve a cargar al instante; tardaba 21 s porque leía una por una las 377 transcripciones (commit 1284d64)', ...guardadas])).toEqual([]);
+    // Sin guardadas (la primera revisión), nada
+    expect(lineasReescritas([mapa], [])).toEqual([]);
+  });
+
+  it('el umbral, con líneas de la historia de STL Studio: atrapa la reescrita y deja pasar el avance nuevo del mismo tema', () => {
+    // Reescrita (0864a48): la guardada entera con una cláusula en medio; 17 de las 22 palabras de la nueva ya estaban
+    const orden = 'La orden de subir ya no falla en silencio: avisa antes si a tu sesión de gh le falta el permiso «workflow», dice «NO SUBÍ» con el porqué si GitHub rechaza la subida y comprueba al final que main quedó allá (commit b8f724c)';
+    expect(lineasReescritas(['La orden de subir ya no falla en silencio y da el permiso a la cuenta correcta: avisa antes si a la sesión de ARGWABOT en gh le falta el permiso «workflow», `--permiso` se lo da aunque tu cuenta activa de gh sea otra, dice «NO SUBÍ» con el porqué si GitHub rechaza la subida y comprueba al final que main quedó allá (commits b8f724c y c06dbd5)'], [orden])).toHaveLength(1);
+    // Avance nuevo del mismo tema (ae77ae4): la portada ya subida y vista; 8 de sus 12 palabras ya estaban, el caso más cercano
+    const portada = 'La portada pública vuelve a arrancar: los dos ajustes que subiste a las 9:34 p. m. traían un error mío (una función con el mismo nombre que la que inicia cada escena la dejaba sin dibujar); el arreglo, con el título grande y centrado como portada hasta iniciarla, está listo para subir';
+    expect(lineasReescritas(['La portada pública vuelve a arrancar, con el título grande y centrado como portada hasta iniciarla: subida a las 10:10 p. m. y vista por ti en una ventana privada'], [portada])).toEqual([]);
+    // …y el modo enfoque de después (5d7b61d), que solo comparte el tema
+    const enfoque = 'El modo enfoque llegó a la misión: «Enfocarme en la misión», en la tarjeta de ahora, difumina todo lo de alrededor con el mismo velo de los documentos y deja la tarjeta nítida, donde está (commit d52fc26)';
+    expect(lineasReescritas(['El modo enfoque como lo pediste: un solo botón arriba a la derecha para el documento y la misión, el atajo del director flotante que lo pone y lo quita en vez de «Pedir revisión», y solo el desenfoque, sin la luz que seguía al puntero (commit local 2a9e2e4)'], [enfoque])).toEqual([]);
+  });
+
+  it('en cualquier proyecto: otra cifra es otro avance, y la guardada corta, entera dentro de la nueva, es la misma alargada', () => {
+    // Otro capítulo de una tesis, otra versión de una app: solo cambia la cifra (sin ella, las palabras serían las mismas)
+    expect(lineasReescritas(['Capítulo 3 escrito y revisado con su bibliografía'], ['Capítulo 2 escrito y revisado con su bibliografía'])).toEqual([]);
+    expect(lineasReescritas(
+      ['La versión 1.4 de la app quedó publicada en la tienda de Google y en la de Apple'],
+      ['La versión 1.3 de la app quedó publicada en la tienda de Google y en la de Apple'],
+    )).toEqual([]);
+    // Con la misma cifra, o con una de más, sigue siendo la misma línea reescrita
+    const tope = 'La grabadora avisa su tope de 10 minutos y dice por qué se detuvo';
+    expect(lineasReescritas(['La grabadora dice por qué se detuvo y avisa su tope de 10 minutos (commit local 72c8e17)'], [tope])).toHaveLength(1);
+    expect(lineasReescritas([`${tope}, probado con 45 notas`], [tope])).toHaveLength(1);
+    // Una guardada corta, entera dentro de la nueva: alargada aunque tenga menos de seis palabras, o con solo su commit
+    const portada = 'Portada aprobada y publicada en GitHub Pages';
+    expect(lineasReescritas([`${portada}, vista por ti en una ventana privada`], [portada])).toHaveLength(1);
+    expect(lineasReescritas(['Portada aprobada (commit local 4b061b0)'], ['Portada aprobada'])).toHaveLength(1);
+    // …y lo nuevo, dicho en su línea, pasa
+    expect(lineasReescritas(['La viste en una ventana privada y se ve bien en el teléfono'], [portada])).toEqual([]);
   });
 
   it('«Dónde quedamos» reconoce otra versión de la misma línea: alargada o con otras palabras, no lo distinto', () => {

@@ -26,6 +26,7 @@ import {
   archivar,
   archivoVacio,
   comentarioDe,
+  lineasReescritas,
   mensajeRepite,
   mensajeRepiteAnterior,
   misionesPorVigilar,
@@ -278,6 +279,17 @@ if (args.includes('--listo')) {
     for (const m of delResumen) console.error(`- ${m}`);
     process.exit(1);
   }
+  // Lo que el titular ya vio: el plan del último commit de la memoria, leído una vez para lo avanzado y para el mensaje
+  const guardado = planGuardado(rutasDe(elegido).plan);
+  // «Lo que avanzamos» no reescribe una línea guardada (propuesta aceptada «El cierre no deja nada sin atender», punto 3):
+  // reescrita o alargada, el Studio se la mostraría al titular otra vez como nueva
+  const lineasGuardadas = guardado?.resumen?.avanzamos;
+  const reescritas = lineasReescritas(plan.resumen?.avanzamos ?? [], Array.isArray(lineasGuardadas) ? lineasGuardadas.filter((l) => typeof l === 'string') : []);
+  if (reescritas.length) {
+    console.error('No se cerró la revisión: cada línea de abajo, en «Lo que avanzamos» (`resumen.avanzamos`), vuelve a decir, reescrita o alargada, una que el titular ya vio (la del último commit de la memoria), y el Studio se la mostraría otra vez como nueva. Una línea ya escrita se deja igual o se quita (CLAUDE.md › «Dónde quedamos»): por cada una, vuelve a poner la guardada tal como estaba (va entre comillas, para copiarla igual), quítala, o, si hay un avance nuevo, escríbelo en su línea con solo lo nuevo:');
+    for (const r of reescritas) console.error(`- «${r.linea}» repite ${JSON.stringify(r.guardada)}`);
+    process.exit(1);
+  }
   // «Comentarios del director» no repite «Lo que avanzamos»
   const repetidas = mensajeRepite(plan.mensaje?.texto ?? '', plan.resumen?.avanzamos ?? []);
   if (repetidas.length) {
@@ -286,7 +298,7 @@ if (args.includes('--listo')) {
     process.exit(1);
   }
   // …ni lo que ya dijo el comentario anterior: reescrito o alargado, el titular lo leería dos veces
-  const yaDicho = mensajeRepiteAnterior(plan.mensaje?.texto ?? '', mensajeGuardado(rutasDe(elegido).plan));
+  const yaDicho = mensajeRepiteAnterior(plan.mensaje?.texto ?? '', guardado?.mensaje?.texto ?? '');
   if (yaDicho.length) {
     console.error('No se cerró la revisión: el mensaje («Comentarios del director») vuelve a decir lo que ya dijo el comentario anterior, y el Studio lo mostraría otra vez como nuevo. Deja en el mensaje solo lo nuevo (si no hay nada nuevo que comentar, una frase basta):');
     for (const r of yaDicho) console.error(`- «${r.frase}» repite «${r.linea.slice(0, 120)}»`);
@@ -312,14 +324,17 @@ if (args.includes('--listo')) {
   process.exit(0);
 }
 
-/** El comentario del director que ya quedó guardado (el del último commit de la memoria): lo que el titular ya vio. */
-function mensajeGuardado(rutaPlan: string): string {
+/**
+ * El plan que ya quedó guardado (el del último commit de la memoria): lo que el titular ya vio, su comentario y sus
+ * líneas de lo avanzado. Sin commit, sin ese archivo en él o ilegible, null: no hay con qué comparar.
+ */
+function planGuardado(rutaPlan: string): Plan | null {
   const u = ubicar(raiz, rutaPlan);
   try {
     const guardado = execFileSync('git', ['show', `HEAD:${u.ruta}`], { cwd: u.cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
-    return (JSON.parse(guardado) as Plan).mensaje?.texto ?? '';
+    return JSON.parse(guardado) as Plan;
   } catch {
-    return '';
+    return null;
   }
 }
 

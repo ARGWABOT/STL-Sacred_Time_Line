@@ -610,6 +610,51 @@ export function mensajeRepiteAnterior(mensaje: string, anterior: string): { fras
 }
 
 /**
+ * Lo que dice una línea, sin sus referencias: las direcciones, los hashes de commit y la palabra «commit» (con su
+ * «local») no son lo avanzado. Así, la misma línea con su commit de más sigue siendo la misma, y dos avances distintos
+ * no se parecen solo por nombrar la misma página o por terminar en «(commit local …)».
+ */
+const sinReferencias = (texto: string) => texto.replace(/https?:\/\/\S+|\bcommits?(?:\s+locale?s?)?\b|\b(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/gi, ' ');
+/** Una línea palabra por palabra, sin sus referencias, tildes, mayúsculas ni puntuación: para ver si trae otra entera. */
+const lineaPlana = (texto: string) => ` ${sinReferencias(texto).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()} `;
+/** Las cifras de una línea, sin las de sus referencias (palabrasDe deja fuera las de menos de cuatro dígitos). */
+const cifrasDe = (texto: string) => new Set(sinReferencias(texto).match(/\d+/g) ?? []);
+
+/**
+ * «Lo que avanzamos» no reescribe una línea ya guardada (propuesta aceptada «El cierre no deja nada sin atender», punto
+ * 3; CLAUDE.md › «Dónde quedamos»): el Studio reconoce cada línea por su texto, así que una reescrita o alargada le
+ * vuelve a aparecer al titular como nueva. Las líneas nuevas que dicen casi lo mismo que una guardada, por sus palabras
+ * con peso y sin las referencias: casi todo lo suyo ya estaba ahí (al menos cuatro en común y tres de cada cuatro de
+ * las suyas: la guardada con otras palabras, o con un commit o una cifra de más), o traen la guardada casi entera (al
+ * menos seis en común y nueve de cada diez de las de ella: alargada, aunque lo agregado sea largo; si es más corta, la
+ * guardada entera, palabra por palabra, dentro de la nueva, desde cuatro palabras con peso; y con menos, la misma con
+ * otra puntuación o con su commit de más). Un avance nuevo del mismo tema trae lo suyo y comparte poco
+ * más que el tema: no cuenta; tampoco el que cambia una cifra por otra (otro capítulo, otra versión, la fase siguiente,
+ * un avance que subió), porque cada una trae una cifra que la otra no. Igual a una guardada (sin contar los espacios de
+ * más) nunca cuenta, y sin guardadas (la primera revisión) no hay con qué comparar.
+ */
+export function lineasReescritas(nuevas: string[], guardadas: string[]): { linea: string; guardada: string }[] {
+  const igual = (t: string) => t.replace(/\s+/g, ' ').trim();
+  const yaEstan = new Set(guardadas.map(igual));
+  const previas = guardadas.map((g) => ({ g, p: palabrasDe(sinReferencias(g)), t: lineaPlana(g), c: cifrasDe(g) }));
+  const salida: { linea: string; guardada: string }[] = [];
+  for (const linea of nuevas) {
+    if (yaEstan.has(igual(linea))) continue;
+    const p = palabrasDe(sinReferencias(linea));
+    const t = lineaPlana(linea);
+    const c = cifrasDe(linea);
+    const repite = previas.find((x) => {
+      if ([...c].some((n) => !x.c.has(n)) && [...x.c].some((n) => !c.has(n))) return false;
+      if (x.p.size && (t === x.t || (x.p.size >= 4 && t.includes(x.t)))) return true;
+      const comunes = [...p].filter((w) => x.p.has(w)).length;
+      return (comunes >= 4 && comunes / p.size >= 0.75) || (comunes >= 6 && comunes / x.p.size >= 0.9);
+    });
+    if (repite) salida.push({ linea, guardada: repite.g });
+  }
+  return salida;
+}
+
+/**
  * Los temas de los comentarios del director: una viñeta por tema, que empieza por el tema en negrilla
  * («- **Sobre los sonidos:** …»), como lo aceptó el titular el 21 de octubre de 2026 («Cada nota con su tipo», parte 4).
  * «Dónde quedamos» muestra cada tema como una línea aparte, que se lee y se comenta sola. Una línea que no empieza con
