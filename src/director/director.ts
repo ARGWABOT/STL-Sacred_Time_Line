@@ -1725,6 +1725,21 @@ export function sinAtenderAlCerrar(plan: Plan, estado: EstadoDirector, corte: st
   };
 }
 
+/** Lo más que cabe en «Lo que avanzamos» (CLAUDE.md › «Dónde quedamos»). */
+export const MAX_AVANZAMOS = 6;
+
+/**
+ * Lo que impide cerrar por el resumen «Dónde quedamos» (la misma propuesta aceptada): cada revisión lo reescribe, así
+ * que su fecha es de después de la revisión anterior (`desde`), y «Lo que avanzamos» no pasa de seis líneas. Vacío si está bien.
+ */
+export function resumenPorCerrar(resumen: Resumen | undefined, desde: string): string[] {
+  const motivos: string[] = [];
+  if (!resumen?.fecha || (desde && resumen.fecha < desde)) motivos.push('no se reescribió en esta revisión: su fecha es de antes de empezarla');
+  const lineas = resumen?.avanzamos?.length ?? 0;
+  if (lineas > MAX_AVANZAMOS) motivos.push(`«Lo que avanzamos» trae ${lineas} líneas y el máximo es ${MAX_AVANZAMOS}: deja las más nuevas y quita las demás, sin reescribirlas`);
+  return motivos;
+}
+
 /** Lo de un proyecto para «Tu agenda»: qué espera de una persona y qué espera al director. */
 export interface Agenda {
   /** La misión de ahora de esa persona (la primera abierta), si la hay. */

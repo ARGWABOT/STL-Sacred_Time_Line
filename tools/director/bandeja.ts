@@ -48,6 +48,7 @@ import {
   pedidoFueraDelStudio,
   pendientesDelDirector,
   respuestasSinDestino,
+  resumenPorCerrar,
   sinAtenderAlCerrar,
   selladosQueCambiaron,
   validarEstado,
@@ -245,6 +246,13 @@ if (args.includes('--listo')) {
   if (sinReserva.length) {
     console.error(`No se cerró la revisión: la reserva de misiones está corta. Cada persona tiene su misión de ahora y por lo menos ${RESERVA_MINIMA - 1} más (${RESERVA_MINIMA} en total), de la fase en curso o de la siguiente (bajo niebla hasta cruzar la puerta), para que nunca se quede sin misión esperando al director:`);
     for (const r of sinReserva) console.error(`- ${nombreDe(proyecto, r.p)}: ${r.abiertas.length} abierta(s) y ${r.siguientes.length} de la fase siguiente; faltan ${r.faltan}`);
+    process.exit(1);
+  }
+  // «Dónde quedamos» es de esta revisión y no pasa de seis líneas (propuesta aceptada «El cierre no deja nada sin atender»)
+  const delResumen = resumenPorCerrar(plan.resumen, desde);
+  if (delResumen.length) {
+    console.error('No se cerró la revisión: el resumen «Dónde quedamos» (`resumen`) no está listo. Reescríbelo al final de cada revisión, como dice CLAUDE.md:');
+    for (const m of delResumen) console.error(`- ${m}`);
     process.exit(1);
   }
   // «Comentarios del director» no repite «Lo que avanzamos»

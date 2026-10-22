@@ -64,6 +64,8 @@ import {
   trozosDeParte,
   pendientesDelDirector,
   sinAtenderAlCerrar,
+  resumenPorCerrar,
+  MAX_AVANZAMOS,
   proyectoVacio,
   repartirCommit,
   repartoPorNivel,
@@ -388,6 +390,18 @@ describe('misiones', () => {
     p.respuestas = { n_antes: { cuando: '2026-10-15T13:00:00.000Z', texto: 'Hecho', tratamiento: 'informada' } };
     p.revisiones = { t_diag: { cuando: '2026-10-15T13:00:00.000Z', veredicto: 'aprobada', comentario: 'Bien' } };
     expect(sinAtenderAlCerrar(p, e, corte)).toEqual({ notas: [], entregas: [] });
+  });
+
+  it('el cierre pide «Dónde quedamos» escrito en esta revisión y con seis líneas como máximo', () => {
+    const desde = '2026-10-15T12:00:00.000Z';
+    const resumen = (fecha: string, lineas: number) => ({ fecha, avanzamos: Array.from({ length: lineas }, (_, i) => `Avance ${i + 1}`), quedamos: 'En la fase 1' });
+    expect(MAX_AVANZAMOS).toBe(6);
+    expect(resumenPorCerrar(resumen('2026-10-15T13:00:00.000Z', 6), desde)).toEqual([]);
+    expect(resumenPorCerrar(resumen('2026-10-15T13:00:00.000Z', 7), desde)).toHaveLength(1);
+    expect(resumenPorCerrar(resumen('2026-10-14', 3), desde)[0]).toContain('no se reescribió');
+    expect(resumenPorCerrar(undefined, desde)).toHaveLength(1);
+    // La primera revisión de un proyecto no tiene una anterior: basta con que el resumen exista
+    expect(resumenPorCerrar(resumen('2026-10-15', 2), '')).toEqual([]);
   });
 
   it('lo que hay que rehacer va primero en la cola', () => {
