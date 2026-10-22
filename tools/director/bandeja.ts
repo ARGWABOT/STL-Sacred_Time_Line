@@ -538,7 +538,7 @@ for (const n of comentarios) {
     const c = n.de ? comentarioDe(estado.notas.filter((x) => x.cuando <= n.cuando), s.id ?? '', Number(/\d+/.exec(s.seccion ?? '')?.[0] ?? 1) - 1, n.de) : undefined;
     // Un audio sin voz deja su .txt vacío: no es «solo adjuntos»
     const oido = c?.audio ? (transcripcion(c.audio) ?? '(audio sin transcribir)') || '(audio sin voz)' : '';
-    const dicho = c ? [c.texto?.trim(), oido].filter(Boolean).join(' · ').replace(/\s+/g, ' ').slice(0, 400) || '(solo adjuntos)' : '';
+    const dicho = c ? [c.texto?.trim(), oido].filter(Boolean).join(' · ').replace(/\s+/g, ' ') || '(solo adjuntos)' : '';
     linea(`  Dio el paso por respondido con su comentario de ese paso («${YA_LO_DIJE}», con un clic; el paso quedó hecho)${c ? `: [${c.id}] «${dicho}»` : ', pero no encontré ese comentario: búscalo en el Buzón'}. Llévalo al plan como cualquier respuesta.`);
   } else if (s.tipo === 'mision' && s.eleccion) {
     linea(`  Eligió «${s.eleccion}» entre las opciones del paso, con un clic (el paso quedó hecho): llévalo al plan como cualquier respuesta.`);
@@ -557,8 +557,9 @@ for (const n of preguntas) {
   if (n.sobre?.id) {
     const hilo = hilosDePreguntas(estado.notas).find((h) => h.notas.some((x) => x.id === n.id));
     for (const x of hilo?.notas.filter((y) => y.cuando < n.cuando) ?? []) {
-      linea(`  (en la conversación) [${x.id}] ${(x.texto || transcripcion(x.audio) || 'audio').replace(/\s+/g, ' ').slice(0, 220)}`);
-      if (plan.respuestas[x.id]) linea(`  (respondiste) ${plan.respuestas[x.id].texto.replace(/\s+/g, ' ').slice(0, 220)}…`);
+      // Entero, también el audio junto al texto: lo que se dijo en la conversación no se corta (nada se corta en silencio)
+      linea(`  (en la conversación) [${x.id}] ${[x.texto?.trim(), transcripcion(x.audio)].filter(Boolean).join(' · ').replace(/\s+/g, ' ') || 'audio'}`);
+      if (plan.respuestas[x.id]) linea(`  (respondiste) ${plan.respuestas[x.id].texto.replace(/\s+/g, ' ')}`);
     }
     linea('  Sigue así:');
   }
