@@ -94,7 +94,7 @@ import { antesDeCerrarConClicFuera, antesDeOtroSobre, Grabadora } from './grabad
 import { Adjuntos } from './adjuntos';
 import { activarRecorrido, paginaSTL, restaurarParada } from './stl';
 import { clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
-import { abiertaEnLista, desplazamientoParaVer } from './listas';
+import { abiertaEnLista, desplazamientoParaVer, instruccionDeAgente } from './listas';
 import { marcarTrabajando, pantallaTrabajando, trabajandoGuardado, tituloTermino } from './trabajando';
 import { sonar } from './sonidos';
 import { botonSonido } from './panelSonidos';
@@ -2653,23 +2653,33 @@ function vistaDocumentos() {
   const banco = curados.filter((c) => !enRuta.some((x) => x.ruta === c.ruta) && !esDelStudio(c.ruta));
   const otros = (documentos ?? []).filter((x) => !curados.some((c) => c.ruta === x.ruta) && !enRuta.some((y) => y.ruta === x.ruta) && !esDelStudio(x.ruta));
   const delProyecto = otros.filter((x) => !x.ruta.startsWith('repo:'));
-  const delRepo = otros.filter((x) => x.ruta.startsWith('repo:'));
+  // Del repositorio, la documentación por un lado y, aparte y plegadas, las instrucciones para los agentes de IA
+  // (CLAUDE.md, AGENTS.md y los comandos de Claude Code y de Codex), con un nombre que se entienda
+  const instrucciones = otros.flatMap((x) => {
+    const nombre = instruccionDeAgente(x.ruta, x.titulo);
+    return nombre ? [{ ...x, titulo: nombre }] : [];
+  });
+  const delRepo = otros.filter((x) => x.ruta.startsWith('repo:') && !instrucciones.some((y) => y.ruta === x.ruta));
   const porQue = (ruta: string) => curados.find((c) => c.ruta === ruta)?.porQue ?? '';
   // Ninguna parte plegable de la columna se pliega sola, ni al abrir un documento ni al repintarse: queda como la dejaste.
   // La que recibe el documento abierto (lo acabas de abrir, o pasó a ella al leerlo) se abre, para que lo veas marcado en
   // ella (nota del titular, 22 de octubre)
   mostrarEnColumna = doc !== docEnColumna;
   docEnColumna = doc;
-  const plegableEnColumna = (clave: string, rutas: string[]) => {
+  // Cada parte se pliega y despliega a mano, siempre (nota del titular, 22 de octubre: lo único que no quiere es que se
+  // plieguen solas). `abiertaAlNacer`: cómo nace la primera vez, si no tiene el documento abierto
+  const plegableEnColumna = (clave: string, rutas: string[], abiertaAlNacer = false) => {
     const tiene = !!doc && rutas.includes(doc.ruta);
     const recibe = tiene && docEnPlegable.get(clave) !== doc;
     docEnPlegable.set(clave, tiene ? doc : null);
     if (recibe) mostrarEnColumna = true;
-    const abierta = abiertaEnLista(plegadosAMano.get(clave), tiene, recibe);
+    const abierta = abiertaEnLista(plegadosAMano.get(clave), tiene || abiertaAlNacer, recibe);
     plegadosAMano.set(clave, abierta);
     return ` data-recuerda="${esc(clave)}"${abierta ? ' open' : ''}`;
   };
-  const boton = (x: Documento) => `<button type="button" class="doc-l chico${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}">${esc(x.titulo)}</button>`;
+  // Al pasar el ratón, qué es: su título y, si es del repositorio, dónde está
+  const queEs = (x: Documento) => (x.ruta.startsWith('repo:') ? `Del repositorio del proyecto: ${x.titulo.includes(' · ') ? x.titulo : `${x.titulo} · ${x.ruta.slice(5)}`}` : x.titulo);
+  const boton = (x: Documento) => `<button type="button" class="doc-l chico${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}" title="${esc(queEs(x))}">${esc(x.titulo)}</button>`;
   let n = 0;
   const tarjeta = (x: (typeof enRuta)[number]) => {
     // Lo que viene después se ve, pero se abre al terminar el que sigue
@@ -2682,22 +2692,23 @@ function vistaDocumentos() {
   };
   // Mientras lees, la columna muestra entero solo el que sigue: lo de después y lo ya leído, plegado en una línea
   // cada uno, para que la atención se quede en lo que toca ahora
-  const plegado = (titulo: string, xs: typeof enRuta) => xs.length
-    ? `<details class="docs-plegados"${plegableEnColumna(`columna|${titulo}`, xs.map((x) => x.ruta))}><summary>${titulo} <span class="cifra">${xs.length}</span></summary>${xs.map((x) => `<button type="button" class="doc-l chico ${x.lectura}${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}"${x.lectura === 'despues' ? ' disabled aria-disabled="true" title="Se abre cuando termines el que sigue"' : ''}><b>${esc(tituloDoc(x.ruta))}</b></button>`).join('')}</details>`
+  const plegado = (titulo: string, xs: typeof enRuta, abiertaAlNacer = false) => xs.length
+    ? `<details class="docs-plegados"${plegableEnColumna(`columna|${titulo}`, xs.map((x) => x.ruta), abiertaAlNacer)}><summary>${titulo} <span class="cifra">${xs.length}</span></summary>${xs.map((x) => `<button type="button" class="doc-l chico ${x.lectura}${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}"${x.lectura === 'despues' ? ' disabled aria-disabled="true" title="Se abre cuando termines el que sigue"' : ` title="${esc(tituloDoc(x.ruta))}"`}><b>${esc(tituloDoc(x.ruta))}</b></button>`).join('')}</details>`
     : '';
+  // Lo de después y lo ya leído, siempre en su parte plegable: plegadas mientras hay algo por leer, abiertas al nacer si no
   const ordenLectura = !enRuta.length ? '<p class="intro">Tus misiones de ahora no piden documentos.</p>'
-    : leyendo ? `${enRuta.filter((x) => x.lectura === 'siguiente').map(tarjeta).join('')}${plegado('Después', enRuta.filter((x) => x.lectura === 'despues'))}${plegado('Ya leídos', enRuta.filter((x) => x.lectura === 'leido' || x.lectura === 'revisado'))}`
+    : propia ? `${enRuta.filter((x) => x.lectura === 'siguiente').map(tarjeta).join('')}${plegado('Después', enRuta.filter((x) => x.lectura === 'despues'), !leyendo)}${plegado('Ya leídos', enRuta.filter((x) => x.lectura === 'leido' || x.lectura === 'revisado'), !leyendo)}`
     : enRuta.map(tarjeta).join('');
   // Solo los documentos del proyecto: los del Studio (su método, su diseño) están en «Qué es STL», para no mezclarlos
   const lista = `<aside class="lista-docs" id="lista-docs">
       <div class="cabeza-lista"><h3>${leyendo ? 'Tu misión actual' : 'Tu orden de lectura'} <small>· ${esc(nombrePersona(persona))}</small></h3>
         <button type="button" class="plegar-lista" data-plegar-lista aria-controls="lista-docs" title="Plegar la columna: el documento a todo el ancho" aria-label="Plegar la columna de los documentos">${icono('plegar')}</button></div>
       ${ordenLectura}
-      ${leyendo ? `<details class="otros-docs"${plegableEnColumna('columna|otros', [...banco, ...otros].map((x) => x.ruta))}><summary>Otros documentos, para consultar</summary>` : ''}
-      ${banco.length ? `<h3>Para consultar</h3>${banco.map((c) => `<button type="button" class="doc-l chico${doc?.ruta === c.ruta ? ' sel' : ''}" data-doc="${esc(c.ruta)}"><b>${esc(c.titulo)}</b><small>${esc(c.porQue)}</small></button>`).join('')}` : ''}
-      ${documentos ? `${delProyecto.length ? `<h3>Del proyecto</h3>${delProyecto.map(boton).join('')}` : ''}<h3>Del repositorio del proyecto</h3>${delRepo.map(boton).join('') || `<p class="intro">${d.repositorio.info ? 'El repositorio no tiene archivos .md.' : 'Conecta el repositorio en Proyecto para leer y comentar sus documentos.'}</p>`}` : '<button type="button" data-cargar-docs>Ver todos</button>'}
+      <details class="otros-docs"${plegableEnColumna('columna|otros', [...banco, ...otros].map((x) => x.ruta), !leyendo)}><summary>Otros documentos, para consultar</summary>
+      ${banco.length ? `<h3>Para consultar</h3>${banco.map((c) => `<button type="button" class="doc-l chico${doc?.ruta === c.ruta ? ' sel' : ''}" data-doc="${esc(c.ruta)}" title="${esc(c.porQue || c.titulo)}"><b>${esc(c.titulo)}</b><small>${esc(c.porQue)}</small></button>`).join('')}` : ''}
+      ${documentos ? `${delProyecto.length ? `<h3>Del proyecto</h3>${delProyecto.map(boton).join('')}` : ''}<h3>Del repositorio del proyecto</h3>${delRepo.map(boton).join('') || `<p class="intro">${d.repositorio.info ? (instrucciones.length ? 'El repositorio no tiene más documentación en .md.' : 'El repositorio no tiene archivos .md.') : 'Conecta el repositorio en Proyecto para leer y comentar sus documentos.'}</p>`}${instrucciones.length ? `<details class="instrucciones-agentes"${plegableEnColumna('columna|instrucciones', instrucciones.map((x) => x.ruta))}><summary>Instrucciones para los agentes <span class="cifra">${instrucciones.length}</span></summary>${instrucciones.map(boton).join('')}</details>` : ''}` : '<button type="button" data-cargar-docs>Ver todos</button>'}
       <p class="como">La explicación del método y del Studio está en <button type="button" class="enlace" data-vista="stl">Qué es STL</button>.</p>
-      ${leyendo ? '</details>' : ''}
+      </details>
     </aside>
     <button type="button" class="desplegar-lista" data-plegar-lista aria-controls="lista-docs" title="Ver la columna de los documentos" aria-label="Ver la columna de los documentos">${icono('desplegar')}</button>`;
   if (!doc) return `<div class="docs">${lista}<div class="lector"><p class="intro">Elige un documento. Debajo de cada parte está «Comentar esta parte al director»: lo que escribas o grabes llega al Buzón del director, que responde aquí mismo y ajusta lo que haga falta. También se comentan los documentos del repositorio del proyecto (su README, su documentación).</p></div></div>`;

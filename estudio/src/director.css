@@ -651,11 +651,12 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 /* La columna de los documentos queda fija a la izquierda, debajo de la cabecera, con su propio desplazamiento */
 .lista-docs { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 6px; position: sticky; top: calc(var(--alto-cabeza, 0px) + 12px); max-height: calc(100vh - var(--alto-cabeza, 0px) - 24px); overflow: auto; overscroll-behavior: contain; padding-right: 2px; }
 /* Mientras lees, lo de después y lo ya leído van plegados en una línea cada uno: la atención, en lo que sigue */
-.docs-plegados { display: grid; gap: 6px; }
-.docs-plegados > summary { cursor: pointer; width: fit-content; margin-top: 6px; font-size: 13.5px; font-weight: 600; color: var(--suave); }
-.docs-plegados > summary .cifra { margin-left: 4px; }
-.docs-plegados[open] > summary { margin-bottom: 2px; }
-.docs-plegados .doc-l { display: block; }
+.docs-plegados, .instrucciones-agentes { display: grid; gap: 6px; }
+.docs-plegados > summary, .instrucciones-agentes > summary { cursor: pointer; width: fit-content; margin-top: 6px; font-size: 13.5px; font-weight: 600; color: var(--suave); }
+.docs-plegados > summary .cifra, .instrucciones-agentes > summary .cifra { margin-left: 4px; }
+.docs-plegados[open] > summary, .instrucciones-agentes[open] > summary { margin-bottom: 2px; }
+.docs-plegados .doc-l, .instrucciones-agentes .doc-l { display: block; }
+.instrucciones-agentes { margin-top: 10px; }
 .lista-docs h3 { margin: 12px 0 2px !important; }
 .doc-l { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 4px; text-align: left; font-size: 14px; padding: 10px 12px; min-height: 0; }
 .doc-l small { font-size: 12.5px; color: var(--suave); line-height: 1.4; }

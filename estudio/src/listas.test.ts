@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { abiertaEnLista, desplazamientoParaVer } from './listas';
+import { abiertaEnLista, desplazamientoParaVer, instruccionDeAgente } from './listas';
 
 const director = readFileSync(join(__dirname, 'director.ts'), 'utf-8');
 
@@ -46,5 +46,30 @@ describe('las listas no se pliegan solas al abrir algo (nota del titular, 22 de 
     expect(cambio).toMatch(/scrollColumna = 0;/);
     // El repintado toma el scroll de la columna que está en pantalla, la del anterior: también esa vuelve arriba
     expect(cambio).toMatch(/querySelector<HTMLElement>\('\.lista-docs'\)\?\.scrollTo\(0, 0\)/);
+  });
+});
+
+describe('la columna de los documentos, con sus partes plegables a mano y las instrucciones aparte (22 de octubre de 2026)', () => {
+  const columna = director.slice(director.indexOf('function vistaDocumentos'), director.indexOf('if (!doc) return `<div class="docs">'));
+
+  it('«Otros documentos», «Después» y «Ya leídos» se pliegan a mano siempre, no solo mientras hay algo por leer', () => {
+    expect(columna).not.toContain("${leyendo ? `<details class=\"otros-docs\"");
+    expect(columna).toContain('<details class="otros-docs"${plegableEnColumna(\'columna|otros\'');
+    expect(columna).toMatch(/: propia \? `\$\{enRuta\.filter\(\(x\) => x\.lectura === 'siguiente'\)/);
+  });
+
+  it('las instrucciones para los agentes van aparte, con un nombre que se entienda', () => {
+    expect(instruccionDeAgente('repo:CLAUDE.md', 'STL Studio: reglas del director asistente · CLAUDE.md')).toBe('CLAUDE.md: instrucciones para Claude Code');
+    expect(instruccionDeAgente('repo:web/AGENTS.md', 'AGENTS.md · web/AGENTS.md')).toBe('AGENTS.md: instrucciones para Codex y otros agentes · web');
+    expect(instruccionDeAgente('repo:.claude/commands/revisa.md', 'revisa.md · .claude/commands/revisa.md')).toBe('/revisa (Claude Code)');
+    expect(instruccionDeAgente('repo:.agents/skills/revisa/SKILL.md', 'SKILL.md · .agents/skills/revisa/SKILL.md')).toBe('/revisa (Codex)');
+    expect(instruccionDeAgente('repo:.codex/prompts/vigila.md', 'Vigila la revisión · .codex/prompts/vigila.md')).toBe('/vigila: Vigila la revisión (Codex)');
+    // La documentación, y lo que no es del repositorio, no
+    for (const r of ['repo:README.md', 'repo:docs/claude.md.txt', 'docs/director/ruta.md']) expect(instruccionDeAgente(r, 'x')).toBeNull();
+    expect(columna).toContain('Instrucciones para los agentes');
+  });
+
+  it('cada archivo dice qué es al pasar el ratón', () => {
+    expect(columna).toMatch(/const boton = \(x: Documento\) => `<button[^`]*title="\$\{esc\(queEs\(x\)\)\}"/);
   });
 });
