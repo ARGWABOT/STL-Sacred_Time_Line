@@ -1,11 +1,12 @@
 // La bandeja del Director asistente: todo lo que el equipo dejó para el director en el PROYECTO ACTIVO desde su última
 // revisión, y lo que toca en su arranque. Es lo primero que corre la sesión del director cuando el titular dice «revisa
-// lo que hay para el director» (o «revisa STL»): transcribe en local los audios nuevos (tools/director/transcribir.py) y
-// lista la etapa del arranque, las entregas por revisar, las notas sin respuesta y las decisiones del equipo. Solo
-// atiende el proyecto activo (el que está elegido en el Estudio de este computador, o el de --proyecto <id>); los demás
-// conservan su buzón y su historial para cuando les toque. El director responde en la memoria del proyecto, en su
-// repositorio (<repositorio>/.stl/director/plan.json: revisiones, respuestas, evaluacion, misiones, mensaje y boletin),
-// y al terminar corre esto con --listo y hace su commit en esa memoria (rama stl).
+// lo que hay para el director» (o «revisa STL»): transcribe en local los audios nuevos (tools/director/transcribir.py),
+// guarda el mapa del proyecto en su memoria (director/mapa.json, tools/director/mapa.ts) y lista lo que cambió desde
+// la última revisión, la etapa del arranque, las entregas por revisar, las notas sin respuesta y las decisiones del
+// equipo. Solo atiende el proyecto activo (el que está elegido en el Estudio de este computador, o el de --proyecto
+// <id>); los demás conservan su buzón y su historial para cuando les toque. El director responde en la memoria del
+// proyecto, en su repositorio (<repositorio>/.stl/director/plan.json: revisiones, respuestas, evaluacion, misiones,
+// mensaje y boletin), y al terminar corre esto con --listo y hace su commit en esa memoria (rama stl).
 // Uso: node tools/director/bandeja.ts                  → transcribe y lista
 //      node tools/director/bandeja.ts --sin-transcribir
 //      node tools/director/bandeja.ts --listo          → marca la revisión como hecha (plan.revisado = ahora)
@@ -59,9 +60,11 @@ import {
   YA_LO_DIJE,
 } from '../../src/director/director.ts';
 import { fechaDeCambio, leerFresco } from '../../src/director/fresco.ts';
+import { lineasDelMapa } from '../../src/director/mapa.ts';
 import { corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { comandoTranscripcion } from '../../src/director/transcripcion.ts';
 import { argumentos, colaDeDiagnosticos, leerTodo, memoria, nombreDe, otrosProyectos, POR_REVISION, proyectoElegido, raiz } from './comun.ts';
+import { guardarMapa, mapaDe, rutaDelMapa } from './mapa.ts';
 
 const { args, pedido } = argumentos();
 /** Hasta cuánto puede pesar el plan antes de que la bandeja avise. */
@@ -455,6 +458,25 @@ if (negado?.negaciones.length) {
   linea('No lo vuelvas a intentar de la misma forma: usa lo que tus permisos sí aceptan (una orden por vez, cd y luego la orden, Read y Grep para leer). Si lo necesitas para lo aprobado y no tienes otra forma, pídelo en la misión del titular con «Autorizo», como dice tu encargo.');
 }
 
+// ── El mapa del proyecto (propuesta aceptada «El mapa de cada proyecto, al día»): lo que cambió desde la última revisión y
+// la ficha de cada documento, para elegir qué leer sin explorar. Entero queda en la memoria (director/mapa.json), que va
+// en el commit de cierre. Si no se puede armar, lo dice en una línea y la revisión sigue sin él ──
+linea('\n## El mapa del proyecto');
+const porque = (e: unknown) => String((e as Error)?.message ?? e).split('\n')[0];
+try {
+  const mapa = await mapaDe({ id, plan, estado, personas, repo });
+  let sinGuardar = '';
+  try {
+    await guardarMapa(id, mapa);
+  } catch (e) {
+    sinGuardar = porque(e);
+  }
+  for (const l of lineasDelMapa(mapa, { archivo: enDisco(rutaDelMapa(id)) })) linea(l);
+  if (sinGuardar) linea(`- ⚠ El mapa no se guardó (${sinGuardar}): en esta revisión solo está lo de arriba.`);
+} catch (e) {
+  linea(`- No se pudo armar el mapa (${porque(e)}): esta revisión sigue sin él.`);
+}
+
 linea(`\n## Etapa del arranque: ${etapa.toUpperCase()}`);
 if (etapa === 'conectar') {
   linea('El repositorio no está conectado en este computador, así que aún no hay diagnóstico posible. Responde las notas que haya');
@@ -674,7 +696,10 @@ linea('`evaluacion` (criterios cumplidos), `misiones` nuevas, `mensaje`, `boleti
 // El plan crece con cada revisión: pasado el tope, --listo archiva solo lo cerrado (director/archivo.json)
 const kb = Math.round(statSync(enDisco(rutas.plan)).size / 1024);
 const archivado = existsSync(enDisco(rutas.archivo)) || kb > TOPE_PLAN_KB;
-const suyos = `director/plan.json${archivado ? ' director/archivo.json' : ''} docs director/radiografia.md`;
+// El mapa que esta bandeja acaba de guardar va con lo del director; si no está (no se pudo guardar), no se nombra:
+// git add falla entero con una ruta que no existe
+const conMapa = existsSync(enDisco(rutaDelMapa(id)));
+const suyos = `director/plan.json${archivado ? ' director/archivo.json' : ''}${conMapa ? ' director/mapa.json' : ''} docs director/radiografia.md`;
 linea(`luego \`node tools/director/bandeja.ts --listo\` y el commit en la memoria (rama stl), solo con lo del director (lo del equipo lo guarda el Studio): cd "${memoria(id)}", luego git add ${suyos}, luego git commit -m "Director (${id}): …" -- ${suyos} (tres órdenes, cada una por separado: tus permisos no aceptan &&).`);
 if (!plan.resumen) linea('⚠ Este proyecto aún no tiene resumen «Dónde quedamos»: escríbelo antes de cerrar.');
 if (kb > TOPE_PLAN_KB) linea(`El plan pesa ${kb} KB (el tope es ${TOPE_PLAN_KB} KB): al cerrar, --listo archiva solo las respuestas y los veredictos cerrados antes de esta revisión.`);

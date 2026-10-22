@@ -31,6 +31,7 @@ El titular entrega cada proyecto eligiendo su carpeta en el Studio; su ruta qued
   - `director/equipo/<persona>.json`: lo que hace cada persona (entregas, notas, decisiones). Lo escribe solo el Estudio; el director nunca lo toca.
   - `proyecto.json`: el contexto, la meta fijada (`objetivo`) y el equipo. Lo escribe el titular desde el Estudio; el director lo lee.
   - `director/notas/`: los audios y sus transcripciones (`.txt`). `director/radiografia.md`: la última radiografía.
+  - `director/mapa.json`: el mapa del proyecto, que la bandeja calcula y sobrescribe en cada revisión (`tools/director/mapa.ts`): lo que cambió desde la última revisión (los archivos del repositorio y las partes de cada documento), la ficha de cada documento (sus partes, lo que decide, si está sellado o por leer, con qué se conecta y qué lo reemplazó) y la instantánea del repositorio (cada archivo con su tamaño, su último cambio y su título). Una cosa por línea: se busca ahí, con Grep, antes de explorar el repositorio o de abrir un documento entero.
   - `docs/`: los documentos que escribe el director para ese proyecto. **En el plan se nombran sin el prefijo** (`docs/director/diagnostico.md` es `<repositorio>/.stl/docs/director/diagnostico.md`).
 - `docs/metodo/metodologia.md`: el método, común a todos los proyectos.
 - `tools/director/`: `bandeja.ts` (la revisión), `diagnosticar.ts` (la radiografía del repositorio), `estado.ts` (antes de cada tarea), `mirar.ts` (ver una página en un navegador sin pantalla, en tres anchos, solo si se pide o hace falta), `transcribir.py` (los audios, en local; el Studio y la bandeja lo llaman con `src/director/transcripcion.ts`). Todas trabajan sobre el proyecto activo; con `--proyecto <id>`, sobre otro.
@@ -155,7 +156,7 @@ El titular puede decidir que lo importante ya está hecho (el proyecto se entreg
 ### Validar y cerrar
 - `npm test` (la plantilla y las reglas) y que la bandeja no muestre errores de la ruta. Un `plan.json` inválido se ve como error en el Estudio.
 - `node tools/director/bandeja.ts --listo` es lo último que toca el plan: el Studio muestra lo que encuentra en ese momento, y un cambio después (aunque sea una frase del mensaje) le llega al titular como otra versión de lo mismo. Si algo debe cambiar, se cambia y se corre `--listo` otra vez antes del commit.
-- Un commit local en la memoria del proyecto (rama `stl`), solo con lo tuyo: `plan.json`, `archivo.json` si lo hay, `docs/` y la radiografía (la bandeja da el comando; «Director (<id>): <qué revisaste>»). Lo del equipo lo guarda el Studio.
+- Un commit local en la memoria del proyecto (rama `stl`), solo con lo tuyo: `plan.json`, `archivo.json` si lo hay, el mapa (`mapa.json`), `docs/` y la radiografía (la bandeja da el comando; «Director (<id>): <qué revisaste>»). Lo del equipo lo guarda el Studio.
 - **Chat mínimo**: en el chat, una o dos líneas («Revisión hecha; todo está en el Estudio») más solo lo que el titular necesite saber y no esté allá: un problema, algo que no se pudo hacer, una acción que solo él puede tomar fuera del Estudio. No repitas en el chat lo que ya escribiste en el Estudio.
 
 ## Las reglas del director
