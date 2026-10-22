@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realp
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, negado, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, detenerTrasCierre, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -242,6 +242,32 @@ describe('el director que lanza el Studio', () => {
       expect(texto).toContain('el aviso de que terminó te despierta solo');
       expect(texto).toContain(`Tienes ${minutos} minutos en total.`);
     }
+  });
+
+  it('el cierre es lo último: cada encargo lo dice, y pasada la gracia el Studio detiene al que sigue vivo (nota de voz del titular, 22 de octubre de 2026)', () => {
+    const aclaracion = encargoAclaracion({ proyecto: 'golf', mision: 't_x', paso: 0, nota: 'n1', quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
+    const urgencia = encargoUrgencia({ proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
+    for (const texto of [encargo('golf'), aclaracion, urgencia]) {
+      expect(texto).toContain('espera a todo ayudante o flujo que lanzaste');
+      expect(texto).toContain(`${GRACIA_CIERRE_MIN} minutos después de tu cierre, el Studio te detiene`);
+    }
+    const cierre = Date.parse('2026-10-22T21:00:00Z');
+    expect(detenerTrasCierre(null, cierre + 60 * 60_000)).toBe(false); // sin cierre, nunca
+    expect(detenerTrasCierre(cierre, cierre + (GRACIA_CIERRE_MIN * 60_000 - 1))).toBe(false); // el commit de la memoria
+    expect(detenerTrasCierre(cierre, cierre + GRACIA_CIERRE_MIN * 60_000)).toBe(true);
+    expect(detenerTrasCierre(cierre, cierre + 17 * 60_000)).toBe(true); // lo del 22 de octubre
+  });
+
+  it('sube la página pública solo cuando revisa el mismo Studio, con esa orden exacta (nota de voz del titular, 22 de octubre de 2026)', () => {
+    const studio = join(tmpdir(), 'stl');
+    const otro = join(tmpdir(), 'golf');
+    expect(permitido(studio, false, studio)).toContain(`Bash(${SUBIR_PAGINA})`);
+    expect(permitido(otro, false, studio)).not.toContain(`Bash(${SUBIR_PAGINA})`);
+    expect(permitido(otro, false, studio).some((p) => /push|publicar/.test(p))).toBe(false);
+    expect(esElStudio(`${studio}/`, studio)).toBe(true);
+    expect(encargo('stl', false, [], true)).toContain(SUBIR_PAGINA);
+    expect(encargo('golf')).not.toContain(SUBIR_PAGINA);
+    expect(encargo('golf')).toContain('Nunca subas ni despliegues nada');
   });
 
   it('pide en la misión del titular el permiso que le falta, en cada encargo que ejecuta trabajo (nota del titular, 21 de octubre de 2026)', () => {

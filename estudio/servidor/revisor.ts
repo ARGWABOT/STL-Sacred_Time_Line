@@ -36,11 +36,45 @@ export const MAX_MIN = 60;
  */
 export const SIN_ESPERAS = ['ScheduleWakeup', 'CronCreate'];
 
+/**
+ * Cuánto puede seguir vivo el director después de su cierre (--listo): lo justo para el commit de la memoria. Pasado
+ * eso, el Studio lo detiene. El 22 de octubre de 2026 una revisión cerró, siguió 17 minutos esperando a un revisor de
+ * código que había lanzado y volvió a escribir el plan; mientras tanto, la revisión que se pidió esperó su turno (nota
+ * de voz del titular: que no pueda pasar).
+ */
+export const GRACIA_CIERRE_MIN = 3;
+
+/** El cierre es lo último: lo que lanzó en segundo plano se espera antes, y después solo el commit. */
+const TRAS_CIERRE =
+  ` El cierre (--listo) es lo último que haces: antes de correrlo, espera a todo ayudante o flujo que lanzaste y guarda ` +
+  `lo suyo; después, solo el commit de la memoria, y terminas tu turno. ${GRACIA_CIERRE_MIN} minutos después de tu ` +
+  `cierre, el Studio te detiene.`;
+
 /** Cómo espera lo que lanza en segundo plano (un flujo, un ayudante): sin esperas programadas, y con su límite. */
 const esperar = (minutos: number) =>
   ` Si lanzas un flujo de varios agentes o un ayudante en segundo plano, sigue con lo demás y, cuando no quede nada más, ` +
-  `termina tu turno: el aviso de que terminó te despierta solo (no tienes esperas programadas). Tienes ${minutos} ` +
-  `minutos en total.`;
+  `termina tu turno: el aviso de que terminó te despierta solo (no tienes esperas programadas).` + TRAS_CIERRE +
+  ` Tienes ${minutos} minutos en total.`;
+
+/**
+ * Si toca detener al director porque siguió vivo después de su cierre: `cerroDesde` es cuando el Studio vio el cierre
+ * (null si aún no cierra). Pura.
+ */
+export const detenerTrasCierre = (cerroDesde: number | null, ahora = Date.now(), graciaMin = GRACIA_CIERRE_MIN) =>
+  cerroDesde !== null && ahora - cerroDesde >= graciaMin * 60_000;
+
+/**
+ * La página pública «Qué es STL» (su animación y la metodología) la sube el director apenas cambia, sin preguntar:
+ * el titular solo la puede revisar en la web (nota de voz del 22 de octubre de 2026, «se considera regla»). Solo cuando
+ * el proyecto que revisa es el mismo Studio; nada más del Studio se sube.
+ */
+export const SUBIR_PAGINA = 'node tools/publicar-stl.ts --subir';
+const conLaPagina = (esElStudio: boolean) =>
+  esElStudio
+    ? ` Una excepción, autorizada por el titular el 22 de octubre de 2026: si cambiaste la página pública «Qué es STL» ` +
+      `(estudio/src/stl.ts, su animación en docs/difusion o la metodología), súbela tú con ${SUBIR_PAGINA}, apenas pasen ` +
+      `sus pruebas y estén sus commits, y dilo en lo avanzado; nada más del Studio se sube.`
+    : '';
 
 /**
  * Qué hace el director cuando un permiso le falta (nota del titular del 21 de octubre de 2026: que quede en la
@@ -100,7 +134,7 @@ export const conLaCola = (cola: ProyectoDeCola[]) =>
  * Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. Con
  * `reintento`, la anterior no se cerró: retoma lo que dejó. Con `cola`, además diagnostica esos proyectos.
  */
-export const encargo = (proyecto: string, reintento = false, cola: ProyectoDeCola[] = []) =>
+export const encargo = (proyecto: string, reintento = false, cola: ProyectoDeCola[] = [], esElStudio = false) =>
   `Revisión pedida desde el Studio para el proyecto «${proyecto}». Eres el director asistente de STL Studio y te lanzó el ` +
   `Studio, sin pantalla: nadie lee esta salida, así que todo lo que el titular deba saber va en el Studio. Haz «revisa ` +
   `estudio» de ese proyecto según CLAUDE.md (sección «La sesión del director»), con --proyecto ${proyecto} en todas las ` +
@@ -113,6 +147,7 @@ export const encargo = (proyecto: string, reintento = false, cola: ProyectoDeCol
   `node tools/director/bandeja.ts --proyecto ${proyecto} --listo y el commit en la memoria del proyecto.` +
   (reintento ? ' Es un reintento: la revisión anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).' : '') +
   COMO_ORDENES +
+  conLaPagina(esElStudio) +
   conLaCola(cola) +
   SIN_PERMISO +
   esperar(MAX_MIN);
@@ -142,7 +177,7 @@ export const MAX_MIN_URGENCIA = 30;
  * Lo que se le encarga al director cuando alguien marcó una nota como urgente: solo esas notas, al instante, sin el
  * resto de la revisión. El resultado vuelve como reporte en «Dónde quedamos», no como trabajo nuevo.
  */
-export const encargoUrgencia = (u: UrgenciaPedida) =>
+export const encargoUrgencia = (u: UrgenciaPedida, esElStudio = false) =>
   `Urgencia pedida desde el Studio para el proyecto «${u.proyecto}»: ${u.quien} marcó como urgente ` +
   `${u.notas.length === 1 ? 'una nota' : `${u.notas.length} notas`} del Buzón. Eres el director asistente de STL Studio y te ` +
   `lanzó el Studio, sin pantalla: nadie lee esta salida, así que todo lo que el titular deba saber va en el Studio. Atiende ` +
@@ -155,6 +190,7 @@ export const encargoUrgencia = (u: UrgenciaPedida) =>
   `da cd a la carpeta, luego git add y luego git commit, cada una por separado. Cierra con ` +
   `node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo y el commit en la memoria del proyecto.` +
   COMO_ORDENES +
+  conLaPagina(esElStudio) +
   SIN_PERMISO +
   esperar(MAX_MIN_URGENCIA);
 
@@ -234,8 +270,15 @@ export function permitido(repositorio: string, flujos = false, raiz = repositori
     'Bash(git rm:*)',
     // (6) instalar lo que dice package.json, sin nombres de paquetes
     'Bash(npm install)',
+    // la página pública «Qué es STL», solo cuando el proyecto es el mismo Studio (nota del titular del 22 de octubre de
+    // 2026): esta orden exacta, que sube solo la página
+    ...(esElStudio(repositorio, raiz) ? [`Bash(${SUBIR_PAGINA})`] : []),
   ];
 }
+
+/** Si el repositorio del proyecto es la carpeta del mismo Studio (STL Studio dirigiéndose a sí mismo). */
+export const esElStudio = (repositorio: string, raiz: string) =>
+  resolve(repositorio).replace(/[\\/]+$/, '').toLowerCase() === resolve(raiz).replace(/[\\/]+$/, '').toLowerCase();
 
 /**
  * Lo que el director lanzado nunca lee ni toca, aunque esté dentro de lo permitido (grupo 3 de los permisos que el
@@ -1219,18 +1262,44 @@ export class Revisor {
     const p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] });
     // Quién es el director lanzado: si este servidor se reinicia, el siguiente sabe si sigue vivo (vigilarLanzada)
     anotarHijo(turno, p.pid, proyecto, relative(this.raiz, archivo));
-    p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u) : encargo(proyecto, reintento, cola));
+    const delStudio = esElStudio(repositorio, this.raiz);
+    p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u, delStudio) : encargo(proyecto, reintento, cola, delStudio));
     const minutos = aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : MAX_MIN;
     let cortada = false;
     const limite = setTimeout(() => {
       cortada = true;
       detener(p);
     }, minutos * 60_000);
+    // El cierre es lo último: si después de cerrar sigue vivo más de la gracia (esperando a un ayudante, escribiendo otra
+    // vez el plan), el Studio lo detiene y lo deja escrito en su registro. Mientras viva, no se lanza otro director ni se
+    // puede pedir otra revisión
+    const pedidaEn = antes.revision?.pedida ?? new Date(inicio).toISOString();
+    const cerroYa = async () => {
+      const l = await leerLocal(this.raiz);
+      if (aparte?.tipo === 'aclaracion') return l.aclaracion?.nota === aparte.a.nota && !!l.aclaracion.hecha;
+      if (aparte?.tipo === 'urgencia') return l.urgencia?.pedida === aparte.u.pedida && !!l.urgencia.hecha;
+      return cerroSegunPlan(revisadoDelPlan(this.raiz, proyecto), { pedida: pedidaEn, lanzada: new Date(inicio).toISOString() });
+    };
+    let cerroDesde: number | null = null;
+    const tras = setInterval(() => {
+      void (async () => {
+        if (cerroDesde === null && (await cerroYa().catch(() => false))) cerroDesde = Date.now();
+        if (!detenerTrasCierre(cerroDesde)) return;
+        clearInterval(tras);
+        try {
+          writeSync(registro, `${JSON.stringify({ type: 'studio', detenido: `seguía vivo ${GRACIA_CIERRE_MIN} minutos después de su cierre` })}\n`);
+        } catch {
+          // el registro ya se cerró: el proceso también
+        }
+        detener(p);
+      })();
+    }, 15_000);
     let cerrado = false;
     const fin = async (problema: string, codigo?: number | null) => {
       if (cerrado) return;
       cerrado = true;
       clearTimeout(limite);
+      clearInterval(tras);
       closeSync(registro);
       this.hijo = null;
       soltarTurno(turno);
