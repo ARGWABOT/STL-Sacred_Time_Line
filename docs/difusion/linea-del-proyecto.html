@@ -403,8 +403,11 @@
   // El narrador: cuánto tarda en leerse (o en contarse en voz alta) una línea, en milisegundos reales
   // (algunas llevan después una pausa dramática, también en milisegundos)
   // (antes del cambio urgente, dos segundos menos que antes: nota de voz del 20 de octubre)
+  // (la idea brillante, tres segundos menos: del segundo 14 al 16 no pasaba nada antes de «Abres otra sesión» y su
+  // primera rama, nota de voz del 22 de octubre)
   const PAUSAS = { 'El modelo puede hacer mil cosas a la vez. Tú no.': 1800,
-    'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.': 200 };
+    'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.': 200,
+    'Luego se te ocurre una idea brillante: ¿pedir varias cosas a la vez?': -3000 };
   const lectura = (t) => 900 + t.length * 60 + (PAUSAS[t] || 0);
   // En qué momento de su escena empieza cada línea (de 0 a dur): cada una tiene el tiempo que tarda en leerse, así una
   // línea larga no deja a la siguiente esperando y la escena no se frena a tirones
