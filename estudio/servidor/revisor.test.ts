@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -97,6 +97,15 @@ describe('el director que lanza el Studio', () => {
       expect(texto).toContain('«Autorizo»');
       expect(texto).toContain('Nunca te des un permiso tú mismo');
     }
+  });
+
+  it('ni los encargos ni la bandeja le dan órdenes encadenadas con && (propuesta «El cierre no deja nada sin atender»)', () => {
+    // los permisos del director lanzado no aceptan &&, y hasta el 21 de octubre de 2026 la bandeja le daba así el commit de cierre
+    const encadenada = /&&\s*(git|cd|node|npm)\b/;
+    expect(readFileSync(new URL('../../tools/director/bandeja.ts', import.meta.url), 'utf8')).not.toMatch(encadenada);
+    const aclaracion = encargoAclaracion({ proyecto: 'golf', mision: 't_x', paso: 0, nota: 'n1', quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
+    const urgencia = encargoUrgencia({ proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
+    for (const texto of [encargo('golf'), encargo('golf', true), aclaracion, urgencia]) expect(texto).not.toMatch(encadenada);
   });
 
   it('resume en vivo lo que va haciendo, a partir de su registro en stream-json', () => {

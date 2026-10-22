@@ -1523,12 +1523,12 @@ export function misionesAbiertas(plan: Plan, estado: EstadoDirector, persona: Pe
 
 /**
  * La reserva de misiones (regla del titular, 21 de octubre de 2026): entre revisión y revisión, cada persona tiene
- * siempre su misión de ahora y por lo menos cuatro más detrás (RESERVA_MINIMA en total), para que nunca se quede sin
- * misión esperando al director. Cuentan las abiertas de la fase en curso y las de la fase siguiente, que están bajo
+ * siempre su misión de ahora y por lo menos cinco más detrás (RESERVA_MINIMA en total: seis, la cifra que eligió el
+ * titular en la auditoría del 21 de octubre), para que nunca se quede sin misión esperando al director. Cuentan las abiertas de la fase en curso y las de la fase siguiente, que están bajo
  * niebla hasta cruzar la puerta y aparecen solas al cruzarla. Solo se acepta menos en la última fase de la ruta (ya no
  * hay más trabajo que repartir) y en la fase de mantenimiento (una sola misión ligera, por diseño).
  */
-export const RESERVA_MINIMA = 5;
+export const RESERVA_MINIMA = 6;
 
 export interface ReservaDeMisiones {
   /** Las abiertas de ahora (la primera es la que ve completa). */

@@ -381,24 +381,25 @@ describe('misiones', () => {
     expect(misionesAbiertas(p, e, 'titular')[0].id).toBe('t_alcance');
   });
 
-  it('la reserva: cada persona tiene su misión y por lo menos cuatro más, contando las de la fase siguiente', () => {
+  it('la reserva: cada persona tiene su misión y por lo menos cinco más, contando las de la fase siguiente', () => {
     const p = planEjemplo();
     const e = estadoVacio();
-    expect(RESERVA_MINIMA).toBe(5);
-    // En el arranque, la titular tiene tres abiertas y ninguna en la fase siguiente: faltan dos
+    // Seis en total: la cifra que eligió el titular en la auditoría del 21 de octubre de 2026
+    expect(RESERVA_MINIMA).toBe(6);
+    // En el arranque, la titular tiene tres abiertas y ninguna en la fase siguiente: faltan tres
     const titular = reservaDeMisiones(p, e, 'titular');
     expect(titular.abiertas.map((m) => m.id)).toEqual(['t_conectar', 't_diag', 't_alcance']);
     expect(titular.siguientes).toEqual([]);
-    expect(titular.faltan).toBe(2);
+    expect(titular.faltan).toBe(3);
     // Ana no tiene nada abierto, pero la del MVP (bajo niebla) cuenta como reserva
     const ana = reservaDeMisiones(p, e, 'ana');
     expect(ana.abiertas).toEqual([]);
     expect(ana.siguientes.map((m) => m.id)).toEqual(['c_endpoints']);
-    expect(ana.faltan).toBe(4);
+    expect(ana.faltan).toBe(5);
     // Cruzada la puerta del arranque: la del MVP está abierta y la de la beta es la siguiente; la beta, por ser la
     // última fase de la ruta, no exige reserva
     e.cierres.arranque = firma;
-    expect(reservaDeMisiones(p, e, 'ana')).toMatchObject({ faltan: 3 });
+    expect(reservaDeMisiones(p, e, 'ana')).toMatchObject({ faltan: 4 });
     expect(reservaDeMisiones(p, e, 'ana').siguientes.map((m) => m.id)).toEqual(['c_panel']);
     e.cierres.mvp = { fecha: '2026-10-16', quien: 'Laura' };
     expect(reservaDeMisiones(p, e, 'ana').faltan).toBe(0);

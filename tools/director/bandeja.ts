@@ -232,7 +232,7 @@ if (args.includes('--listo')) {
     .map((p) => ({ p, ...reservaDeMisiones(completo, estado, p) }))
     .filter((r) => r.faltan && (r.abiertas.length || r.siguientes.length || completo.misiones.some((m) => m.para === r.p)));
   if (sinReserva.length) {
-    console.error(`No se cerró la revisión: la reserva de misiones está corta. Cada persona tiene su misión de ahora y por lo menos cuatro más (${RESERVA_MINIMA} en total), de la fase en curso o de la siguiente (bajo niebla hasta cruzar la puerta), para que nunca se quede sin misión esperando al director:`);
+    console.error(`No se cerró la revisión: la reserva de misiones está corta. Cada persona tiene su misión de ahora y por lo menos ${RESERVA_MINIMA - 1} más (${RESERVA_MINIMA} en total), de la fase en curso o de la siguiente (bajo niebla hasta cruzar la puerta), para que nunca se quede sin misión esperando al director:`);
     for (const r of sinReserva) console.error(`- ${nombreDe(proyecto, r.p)}: ${r.abiertas.length} abierta(s) y ${r.siguientes.length} de la fase siguiente; faltan ${r.faltan}`);
     process.exit(1);
   }
@@ -537,11 +537,11 @@ if (sellados.length) {
 
 linea('\n## Misiones abiertas (una a la vez: la primera es la que ve completa)');
 for (const p of personas) {
-  // La reserva (regla del titular, 21 de octubre de 2026): la de ahora y por lo menos cuatro más, contando las de la
+  // La reserva (regla del titular, 21 de octubre de 2026): la de ahora y por lo menos cinco más, contando las de la
   // fase siguiente (bajo niebla hasta cruzar la puerta), para que nadie se quede sin misión esperando al director
   const reserva = reservaDeMisiones(plan, estado, p);
   const { abiertas } = reserva;
-  const cola = reserva.faltan ? `  ⚠ reserva corta: faltan ${reserva.faltan} para las ${RESERVA_MINIMA} (la de ahora y cuatro más; pueden ser de la fase siguiente). Sin la reserva, --listo no cierra.` : '';
+  const cola = reserva.faltan ? `  ⚠ reserva corta: faltan ${reserva.faltan} para las ${RESERVA_MINIMA} (la de ahora y ${RESERVA_MINIMA - 1} más; pueden ser de la fase siguiente). Sin la reserva, --listo no cierra.` : '';
   linea(`- ${nombre(p)}: ${abiertas.map((m) => `${m.id} (${estadoMision(m, plan, estado)})`).join(', ') || `ninguna: asígnale la siguiente y la reserva (${RESERVA_MINIMA} en total)`}${reserva.siguientes.length ? ` · en la fase siguiente: ${reserva.siguientes.map((m) => m.id).join(', ')}` : ''}${cola}`);
   for (const m of abiertas) {
     const marcados = estado.pasos?.[m.id]?.hechos.filter((i) => i < m.pasos.length) ?? [];
@@ -609,7 +609,7 @@ linea('`evaluacion` (criterios cumplidos), `misiones` nuevas, `mensaje`, `boleti
 const kb = Math.round(statSync(enDisco(rutas.plan)).size / 1024);
 const archivado = existsSync(enDisco(rutas.archivo)) || kb > TOPE_PLAN_KB;
 const suyos = `director/plan.json${archivado ? ' director/archivo.json' : ''} docs director/radiografia.md`;
-linea(`luego \`node tools/director/bandeja.ts --listo\` y el commit en la memoria (rama stl), solo con lo del director (lo del equipo lo guarda el Studio): \`cd "${memoria(id)}" && git add ${suyos} && git commit -m "Director (${id}): …" -- ${suyos}\`.`);
+linea(`luego \`node tools/director/bandeja.ts --listo\` y el commit en la memoria (rama stl), solo con lo del director (lo del equipo lo guarda el Studio): cd "${memoria(id)}", luego git add ${suyos}, luego git commit -m "Director (${id}): …" -- ${suyos} (tres órdenes, cada una por separado: tus permisos no aceptan &&).`);
 if (!plan.resumen) linea('⚠ Este proyecto aún no tiene resumen «Dónde quedamos»: escríbelo antes de cerrar.');
 if (kb > TOPE_PLAN_KB) linea(`El plan pesa ${kb} KB (el tope es ${TOPE_PLAN_KB} KB): al cerrar, --listo archiva solo las respuestas y los veredictos cerrados antes de esta revisión.`);
 // El puntero a lo archivado: no se carga en cada revisión, pero el director puede volver a consultarlo
