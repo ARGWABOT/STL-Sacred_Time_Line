@@ -89,4 +89,17 @@ describe('el modo enfoque (notas del titular, 22 de octubre de 2026)', () => {
     expect(volver).toContain('void ir(sigue)');
     expect(volver).toContain("irA('misiones')");
   });
+
+  it('el ✉ de cada punto de un bloque se ve siempre, y el documento abierto desde un paso ofrece volver a la misión (22 de octubre de 2026)', () => {
+    const sobre = css.match(/\.cuerpo-trozo li > \.comentar-punto \{[^}]*\}/)?.[0] ?? '';
+    expect(sobre).toContain('opacity: 1');
+    expect(sobre).not.toMatch(/opacity: 0\./);
+    // El botón de un paso dentro de una misión, y «Continuar misión», recuerdan de qué misión se vino
+    expect(director).toMatch(/b\.closest<HTMLElement>\('\.mision-c'\)\?\.dataset\.ancla/);
+    expect(director).toContain('desdeMision = { id, ruta: paso.ir.doc };');
+    const ajustes = director.match(/function ajustesLector\(ruta: string\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(ajustes).toContain('${volverAMisionDe(ruta)}');
+    expect(director).toContain('← Volver a tu misión');
+    expect(director).toContain('} else if (ds.volverMision) {');
+  });
 });

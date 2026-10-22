@@ -3090,9 +3090,19 @@ function botonEnfoque() {
 }
 
 /** Arriba del documento, en una sola franja: cómo se termina de leer y el tamaño de la letra (y, en el enfoque, el tema). */
+/**
+ * El documento al que se llegó con el botón de un paso de una misión (o con «Continuar misión»): mientras siga abierto,
+ * arriba lleva «← Volver a tu misión» (nota del titular, 22 de octubre de 2026). Abrir otro documento lo deja atrás.
+ */
+let desdeMision: { id: string; ruta: string } | null = null;
+const volverAMisionDe = (ruta: string) => {
+  const m = desdeMision?.ruta === ruta ? d.plan.misiones.find((x) => x.id === desdeMision!.id) : undefined;
+  return m ? `<button type="button" class="enlace volver-mision" data-volver-mision="${esc(m.id)}" title="${esc(`Vuelve a «${m.titulo}»`)}">← Volver a tu misión</button>` : '';
+};
+
 function ajustesLector(ruta: string) {
   const letra = letraLector();
-  return `<div class="ajustes-lector">${leidoDoc(ruta)}
+  return `<div class="ajustes-lector">${volverAMisionDe(ruta)}${leidoDoc(ruta)}
     <div class="opciones-lector" role="group" aria-label="Cómo leer">
       ${botonTema()}
       <span class="tamanos-letra">${LETRAS.map((t, i) => `<button type="button" class="tamano-letra t${i}${i === letra ? ' sel' : ''}" data-letra="${i}" aria-pressed="${i === letra}" title="${t}">A</button>`).join('')}</span>
@@ -4442,6 +4452,9 @@ async function clicEnVista(b: HTMLButtonElement) {
     // El botón de un paso, abierto: desde ahora se pueden elegir sus opciones
     const abre = ds.abre?.split('|');
     if (abre) localStorage.setItem(claveAbierto(abre[0], Number(abre[1])), '1');
+    // Desde el paso de una misión a un documento: el documento ofrece volver a ella
+    const deMision = b.closest<HTMLElement>('.mision-c')?.dataset.ancla?.replace(/^mision-/, '');
+    if (deMision && dest?.doc) desdeMision = { id: deMision, ruta: dest.doc };
     await ir(dest);
     // Una página de afuera se abre en otra pestaña: el paso se repinta aquí, ya con sus opciones
     if (abre && dest.url) pintar();
@@ -4460,8 +4473,13 @@ async function clicEnVista(b: HTMLButtonElement) {
     const [id, i, modo] = ds.continuar.split('|');
     const paso = d.plan.misiones.find((x) => x.id === id)?.pasos[Number(i)];
     if (typeof paso !== 'object' || !paso.ir?.doc) return;
+    desdeMision = { id, ruta: paso.ir.doc };
     await ir(paso.ir);
     if (modo === 'enfoque' && vista === 'documentos' && doc?.ruta === paso.ir.doc) ponerEnfoque(true);
+  } else if (ds.volverMision) {
+    const m = d.plan.misiones.find((x) => x.id === ds.volverMision);
+    desdeMision = null;
+    if (m) await ir({ vista: 'misiones', ancla: `mision-${m.id}`, etiqueta: '' });
   } else if (ds.doc !== undefined) {
     await abrirDocumento(ds.doc, ds.seccion || null);
   } else if (ds.cargarDocs !== undefined) {
