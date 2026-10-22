@@ -2090,3 +2090,28 @@ export function sumarDias(fecha: string, dias: number): string {
   const [a, m, d] = fecha.split('-').map(Number);
   return hoy(new Date(a, m - 1, d + dias));
 }
+
+/**
+ * Lo que se le negó al director en un lanzamiento (propuesta aceptada «Lo que se le negó al director, a la vista»): cada
+ * herramienta u orden que el agente le negó, leída del resultado de su registro en stream-json (`permission_denials`),
+ * sin repetir y en el orden en que pasó. Así la revisión siguiente empieza sabiéndolo, en vez de volver a intentarlo.
+ */
+export function negacionesDe(registro: string): string[] {
+  const vistas = new Set<string>();
+  for (const linea of registro.split('\n')) {
+    if (!linea.includes('"permission_denials"')) continue;
+    let j: { type?: string; permission_denials?: { tool_name?: string; tool_input?: Record<string, unknown> }[] };
+    try {
+      j = JSON.parse(linea);
+    } catch {
+      continue;
+    }
+    if (j.type !== 'result') continue;
+    for (const d of j.permission_denials ?? []) {
+      const e = d.tool_input ?? {};
+      const que = String(e.command ?? e.file_path ?? e.path ?? e.url ?? e.query ?? '').replace(/\s+/g, ' ').trim();
+      vistas.add(`${d.tool_name || 'Una herramienta'}${que ? `: ${que.length > 160 ? `${que.slice(0, 159)}…` : que}` : ''}`);
+    }
+  }
+  return [...vistas];
+}

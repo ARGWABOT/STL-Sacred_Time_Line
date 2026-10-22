@@ -178,6 +178,8 @@ interface Datos {
     cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; costo: number; entrada: number; cache: number; salida: number; minutos: number;
     pedido?: { modelo: string | null; esfuerzo: string | null; cumplido?: boolean | null };
     limites: { cincoHoras: { uso: number; renueva: string | null } | null; semana: { uso: number; renueva: string | null } | null } | null;
+    /** Lo que se le negó en ese lanzamiento: las herramientas y órdenes que sus permisos no le dejaron. */
+    negados?: string[];
   }[];
   /**
    * Lo que va haciendo el director que lanzó el Studio, mientras revisa (estudio/servidor/revisor.ts › progresoDe), con
@@ -3442,11 +3444,12 @@ function vistaModelo() {
   const opciones = [...MODELOS, ...(elegido ? [] : [{ id: actual, nombre: actual, que: 'El que tiene la configuración de Claude Code (lo eligió /model o se escribió a mano).' }])];
   const hoyLocal = new Date();
   const dia = (x: Date) => `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`;
-  const suma = (xs: typeof lista) => ({ n: xs.length, costo: xs.reduce((s, x) => s + x.costo, 0), tokens: xs.reduce((s, x) => s + x.entrada + x.cache + x.salida, 0) });
+  const suma = (xs: typeof lista) => ({ n: xs.length, costo: xs.reduce((s, x) => s + x.costo, 0), tokens: xs.reduce((s, x) => s + x.entrada + x.cache + x.salida, 0), negados: xs.reduce((s, x) => s + (x.negados?.length ?? 0), 0) });
+  const negadosDe = (n: number) => `${n} ${n === 1 ? 'permiso negado' : 'permisos negados'}`;
   const deHoy = suma(lista.filter((x) => dia(new Date(x.cuando)) === dia(hoyLocal)));
   const semana = lista.filter((x) => hoyLocal.getTime() - Date.parse(x.cuando) < 7 * 86_400_000);
   const deSemana = suma(semana);
-  const cifra = (titulo: string, s: ReturnType<typeof suma>) => `<div><span class="tit">${titulo}</span><b>${dolares(s.costo)}</b><small>${s.n} ${s.n === 1 ? 'lanzamiento' : 'lanzamientos'} · ${miles(s.tokens)} tokens</small></div>`;
+  const cifra = (titulo: string, s: ReturnType<typeof suma>) => `<div><span class="tit">${titulo}</span><b>${dolares(s.costo)}</b><small>${s.n} ${s.n === 1 ? 'lanzamiento' : 'lanzamientos'} · ${miles(s.tokens)} tokens${s.negados ? ` · ${negadosDe(s.negados)}` : ''}</small></div>`;
   const nombreModelo = (id: string) => MODELOS.find((m) => m.id === id)?.nombre ?? id;
   const nombreProyecto = (id: string) => d.proyectos.find((p) => p.id === id)?.nombre || id;
   // Lo de cada proyecto en la semana, del que más gastó al que menos: solo si el director trabajó en más de uno
@@ -3498,9 +3501,10 @@ function vistaModelo() {
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
           ${porProyecto.length > 1 ? `<ul class="consumo-proyectos" aria-label="Por proyecto, en los últimos 7 días">${porProyecto.map((p) => `<li><span>${esc(nombreProyecto(p.id))}</span><span>${dolares(p.costo)} · ${p.n} ${p.n === 1 ? 'lanzamiento' : 'lanzamientos'}</span></li>`).join('')}</ul>` : ''}
           <details class="detalles-repo"><summary>Cada lanzamiento (últimos 35 días)</summary>
-            <ul class="consumo-lista">${lista.slice(0, 60).map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]} de ${esc(nombreProyecto(x.proyecto))}${x.modelo ? ` · ${esc(nombreModelo(x.modelo))}` : ''}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min</span></li>`).join('')}</ul>
+            <ul class="consumo-lista">${lista.slice(0, 60).map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]} de ${esc(nombreProyecto(x.proyecto))}${x.modelo ? ` · ${esc(nombreModelo(x.modelo))}` : ''}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min${x.negados?.length ? ` · <span title="${esc(x.negados.join('\n'))}">${negadosDe(x.negados.length)}</span>` : ''}</span></li>`).join('')}</ul>
           </details>` : '<p class="como">Todavía no hay lanzamientos del director en este computador.</p>'}
         <p class="como">Los tokens son exactos: los cuenta la API y Claude Code los devuelve al terminar cada lanzamiento. Los dólares no son un cobro: Claude Code multiplica esos tokens por el precio de la API. Con un plan de suscripción no pagas eso; lo que gastas de verdad es el porcentaje de tus límites.</p>
+        <p class="como">Los permisos negados son lo que el director intentó y sus permisos no le dejaron hacer: en cada lanzamiento, pasa el ratón sobre la cifra para verlos. La revisión siguiente empieza sabiéndolo, para no intentarlo igual; si le hace falta uno para lo que aprobaste, te lo pide en tu misión con «Autorizo».</p>
       </section>
     </div>
   </div>`;

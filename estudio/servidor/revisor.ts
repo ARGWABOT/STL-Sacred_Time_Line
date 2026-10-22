@@ -12,6 +12,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, 
 import { homedir } from 'node:os';
 import { delimiter, join, relative, resolve } from 'node:path';
 import { ajustesDelDirector, archivoAjustesClaude, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { negacionesDe } from '../../src/director/director';
 import { enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, pedirRevision, rutasDe, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
 
 export type { FallaRevision };
@@ -383,6 +384,11 @@ export interface Consumo {
   minutos: number;
   /** Cuánto lleva usado el plan en ese momento, como lo ve /usage: el último `rate_limit_event` del registro. */
   limites: Limites | null;
+  /**
+   * Lo que se le negó en ese lanzamiento (`permission_denials`), sin repetir: se ve en «Lo que gastó» y la bandeja se lo
+   * dice al director siguiente (propuesta aceptada «Lo que se le negó al director, a la vista»). Sin negaciones, no viene.
+   */
+  negados?: string[];
 }
 
 /** Una ventana de los límites del plan: el porcentaje usado (0 a 100) y cuándo se renueva (ISO). */
@@ -420,9 +426,11 @@ export function consumoDe(registro: string): Omit<Consumo, 'cuando' | 'proyecto'
   const limites = ventanas ? { cincoHoras: ventanaDe(ventanas.five_hour), semana: ventanaDe(ventanas.seven_day) } : null;
   // Si se pidió un modelo, si trabajó con él (null: no se pidió ninguno, o Claude Code no dijo cuál usó)
   if (pedido) pedido.cumplido = pedido.modelo && modelo ? trabajoConElPedido(pedido.modelo, modelo) : null;
+  const negados = negacionesDe(registro);
   return {
     modelo,
     ...(pedido ? { pedido } : {}),
+    ...(negados.length ? { negados } : {}),
     costo: n(resultado.total_cost_usd),
     entrada: n(u.input_tokens) + n(u.cache_creation_input_tokens),
     cache: n(u.cache_read_input_tokens),

@@ -262,6 +262,10 @@ describe('el director que lanza el Studio', () => {
     expect(fallaDelEsfuerzo(lineaPedido(null, 'max'))).toBe(false);
     // un registro de antes, sin lo pedido, sigue contando
     expect(consumoDe(registro.split('\n').slice(1).join('\n'))!.pedido).toBeUndefined();
+    // sin permisos negados no trae la lista; con ellos, cada uno una vez (propuesta «Lo que se le negó al director, a la vista»)
+    expect(c.negados).toBeUndefined();
+    const negado = registro.replace('"usage":{}', '"usage":{},"permission_denials":[{"tool_name":"Bash","tool_input":{"command":"git -C .stl status"}},{"tool_name":"Bash","tool_input":{"command":"git -C .stl status"}}]');
+    expect(consumoDe(negado)!.negados).toEqual(['Bash: git -C .stl status']);
   });
 
   it('dice si trabajó con el modelo pedido', () => {

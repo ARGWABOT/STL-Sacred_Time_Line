@@ -6,6 +6,7 @@ import {
   aclaracionesDe,
   archivar,
   archivoVacio,
+  negacionesDe,
   mensajeRepite,
   mensajeRepiteAnterior,
   mismaIdea,
@@ -150,6 +151,27 @@ const proyecto = (cambios: Partial<Proyecto> = {}): Proyecto => ({
 const firma = { fecha: '2026-10-15', quien: 'Laura' };
 const ctx = (plan: Plan, estado: EstadoDirector = estadoVacio(), senales: Contexto['senales'] = {}): Contexto => ({ plan, estado, senales });
 const fase = (plan: Plan, id: string) => plan.fases.find((f) => f.id === id)!;
+
+describe('lo que se le negó al director (propuesta «Lo que se le negó al director, a la vista»)', () => {
+  it('lee las negaciones del resultado de su registro, sin repetir y en orden', () => {
+    const resultado = JSON.stringify({
+      type: 'result',
+      permission_denials: [
+        { tool_name: 'Bash', tool_input: { command: 'cd .stl && git status --short', description: 'Ver' } },
+        { tool_name: 'Read', tool_input: { file_path: 'C:/Users/ana/.claude/settings.json' } },
+        { tool_name: 'Bash', tool_input: { command: 'cd .stl  &&\n git status --short' } },
+        { tool_name: 'ScheduleWakeup', tool_input: {} },
+      ],
+    });
+    const registro = ['no es JSON', JSON.stringify({ type: 'assistant', message: { content: 'permission_denials' } }), resultado].join('\n');
+    expect(negacionesDe(registro)).toEqual(['Bash: cd .stl && git status --short', 'Read: C:/Users/ana/.claude/settings.json', 'ScheduleWakeup']);
+    // un registro sin resultado (el lanzamiento en curso) no tiene negaciones que contar
+    expect(negacionesDe(JSON.stringify({ type: 'assistant', permission_denials: [{ tool_name: 'Bash' }] }))).toEqual([]);
+    // una orden muy larga se corta
+    const larga = JSON.stringify({ type: 'result', permission_denials: [{ tool_name: 'Bash', tool_input: { command: 'x'.repeat(400) } }] });
+    expect(negacionesDe(larga)[0].length).toBeLessThan(170);
+  });
+});
 
 describe('la plantilla de arranque', () => {
   it('es válida, con su proyecto vacío', () => {

@@ -18,7 +18,7 @@
 //      node tools/director/bandeja.ts --urgente        → las notas urgentes que el Studio lanzó solas, al instante: solo
 //                                                         eso; con --listo, la cierra.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
   aclaracionesDe,
@@ -28,6 +28,7 @@ import {
   mensajeRepite,
   mensajeRepiteAnterior,
   misionesPorVigilar,
+  negacionesDe,
   unirArchivo,
   type ArchivoPlan,
   type CommitReciente,
@@ -300,6 +301,23 @@ function mensajeGuardado(rutaPlan: string): string {
   }
 }
 
+/**
+ * Lo que se le negó al director en el último lanzamiento terminado de este proyecto (revisión, urgencia o aclaración),
+ * leído de su registro en .revisiones: así no vuelve a intentarlo igual (propuesta «Lo que se le negó al director, a la
+ * vista»). El registro del lanzamiento en curso todavía no tiene su resultado, así que no cuenta.
+ */
+function negadoAntes(proyecto: string): { archivo: string; negaciones: string[] } | null {
+  const carpeta = join(raiz, '.revisiones');
+  if (!existsSync(carpeta)) return null;
+  const suyo = new RegExp(`^${proyecto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(aclaracion-|urgencia-)?\\d{4}-.*\\.log$`);
+  const cuando = (f: string) => /(\d{4}-\d{2}-\d{2}T[\d-]+Z)\.log$/.exec(f)?.[1] ?? '';
+  for (const archivo of readdirSync(carpeta).filter((f) => suyo.test(f)).sort((a, b) => cuando(b).localeCompare(cuando(a)))) {
+    const texto = readFileSync(join(carpeta, archivo), 'utf-8');
+    if (/"type":"result"/.test(texto)) return { archivo, negaciones: negacionesDe(texto) };
+  }
+  return null;
+}
+
 /** Los commits del repositorio del proyecto desde la última revisión: lo hecho que puede dejar atrás una misión. */
 function commitsDesde(ruta: string | undefined, desde: string): CommitReciente[] {
   if (!ruta || !desde) return [];
@@ -408,6 +426,15 @@ const replanteada = proyecto.objetivo && (proyecto.objetivosAnteriores ?? []).so
 if (replanteada && plan.fases.length > 1) linea('- LA META SE REPLANTEÓ desde la última revisión: haz un análisis fresco del proyecto hacia la meta nueva (lo que ya sirve, lo que deja de servir, lo que falta) y ajusta la ruta: fases, criterios, misiones y propuestas. Lo que cambió va en un documento nuevo y corto, con su misión de leerlo (la ruta ya leída queda sellada).');
 for (const h of proyecto.historialIA ?? []) linea(`- Historial de IA: ${h.agente}${h.sesiones ? `, ${h.sesiones} sesiones` : ''}${h.ultima ? `, la última del ${h.ultima.slice(0, 10)}` : ''}${h.donde ? ` (en ${h.donde})` : ''}. Léelo una vez en el diagnóstico para encontrar lo pendiente.`);
 linea(`- Equipo: ${proyecto.equipo.map((i) => `${i.nombre} (${i.id}${i.cargo ? `, ${i.cargo}` : ''})`).join('; ') || 'solo el titular, aún sin registrar'}`);
+
+// ── Lo que se le negó la vez anterior: para no reintentarlo igual ──
+const negado = negadoAntes(id);
+if (negado?.negaciones.length) {
+  linea(`\n## Lo que se te negó en el lanzamiento anterior (${negado.negaciones.length}, en .revisiones/${negado.archivo})`);
+  for (const n of negado.negaciones.slice(0, 12)) linea(`- ${n}`);
+  if (negado.negaciones.length > 12) linea(`- … y ${negado.negaciones.length - 12} más.`);
+  linea('No lo vuelvas a intentar de la misma forma: usa lo que tus permisos sí aceptan (una orden por vez, cd y luego la orden, Read y Grep para leer). Si lo necesitas para lo aprobado y no tienes otra forma, pídelo en la misión del titular con «Autorizo», como dice tu encargo.');
+}
 
 linea(`\n## Etapa del arranque: ${etapa.toUpperCase()}`);
 if (etapa === 'conectar') {
