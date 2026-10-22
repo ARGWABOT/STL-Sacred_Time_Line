@@ -22,6 +22,7 @@ import {
   partesCambiadas,
   partesConTexto,
   partesDeFicha,
+  sinCommitDeGit,
   sinTitulo,
   tituloDeArchivo,
   ultimosCambios,
@@ -237,6 +238,18 @@ describe('el mapa: lo que dice git', () => {
     expect(commitsDeGit('abc1234\t2026-10-15T09:00:00-05:00\tLos pagos\ty algo más\r\n\n')).toEqual([{ hash: 'abc1234', cuando: '2026-10-15T14:00:00.000Z', asunto: 'Los pagos\ty algo más' }]);
     expect(desescapar('sin/comillas.md')).toBe('sin/comillas.md');
     expect(desescapar('"con\\ttab.md"')).toBe('con\ttab.md');
+  });
+
+  it('lo que el repositorio tiene sin commit (git status --porcelain -z): cambiado, nuevo o borrado, sin lo ignorado', () => {
+    expect(sinCommitDeGit(' M src/app.ts\0M  CLAUDE.md\0A  src/nuevo.ts\0?? estudio/src/listas.ts\0 D viejo.md\0MM docs/con espacios.md\0!! node_modules/x\0')).toEqual([
+      { ruta: 'src/app.ts', estado: 'cambiado' },
+      { ruta: 'CLAUDE.md', estado: 'cambiado' },
+      { ruta: 'src/nuevo.ts', estado: 'nuevo' },
+      { ruta: 'estudio/src/listas.ts', estado: 'nuevo' },
+      { ruta: 'viejo.md', estado: 'borrado' },
+      { ruta: 'docs/con espacios.md', estado: 'cambiado' },
+    ]);
+    expect(sinCommitDeGit('')).toEqual([]);
   });
 });
 

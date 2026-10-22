@@ -54,7 +54,9 @@ export const SIN_PERMISO =
 
 /**
  * Cómo usar los permisos que el titular autorizó el 22 de octubre de 2026, para no perder turnos con lo que se niega:
- * git en otra carpeta con cd (git -C no se puede acotar a lecturas), copiar sin cp, y borrar o instalar solo así.
+ * git en otra carpeta con cd (git -C no se puede acotar a lecturas), copiar sin cp, y borrar o instalar solo así. Y las
+ * pruebas tal cual, con cada cambio guardado apenas pasan: el 22 de octubre una revisión intentó correrlas con tuberías
+ * (se le negaron) y se cortó con seis arreglos hechos y sin commit.
  */
 export const COMO_ORDENES =
   ` Para leer con git en otra carpeta, da cd y luego la orden: git -C no está permitido. Copiar un archivo de texto no ` +
@@ -62,7 +64,10 @@ export const COMO_ORDENES =
   `nunca un archivo .env. Puedes mover con git mv y crear ramas de respaldo locales (git branch respaldo/…). Borras ` +
   `solo con git rm, archivos que git guarda, y solo con los dos pasos del titular en el Studio: lo aprobó y respondió ` +
   `«Confirmo» con la lista de lo que se borra a la vista. npm install, sin nombres de paquetes, solo cuando un cambio ` +
-  `aprobado cambia package.json.`;
+  `aprobado cambia package.json. Las pruebas y los tipos se corren solos y tal cual (npm test, npx vitest run <archivo>, ` +
+  `npm run typecheck): sin variables delante, sin ; ni tuberías ni redirecciones (| o 2>&1), que se niegan. Guarda cada ` +
+  `cambio del código en su commit apenas pasen sus pruebas y sus tipos, antes de seguir con el siguiente: si el proceso ` +
+  `se corta, lo hecho queda guardado.`;
 
 /**
  * Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. Con

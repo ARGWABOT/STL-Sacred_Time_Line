@@ -375,6 +375,21 @@ export function cambiosDeGit(salida: string): { ruta: string; estado: EstadoCamb
   return salidaLista;
 }
 
+/**
+ * De `git status --porcelain=v1 -z --no-renames --untracked-files=all`: lo que el repositorio tiene sin commit (cambiado,
+ * nuevo o borrado), sin lo que git ignora. Después de una revisión que no se cerró, puede ser trabajo suyo a medias.
+ */
+export function sinCommitDeGit(salida: string): { ruta: string; estado: EstadoCambio }[] {
+  return salida
+    .split('\0')
+    .filter((t) => t.length > 3 && t[2] === ' ' && !t.startsWith('!!'))
+    .map((t) => {
+      const xy = t.slice(0, 2);
+      const estado: EstadoCambio = xy === '??' || xy.includes('A') ? 'nuevo' : xy.includes('D') ? 'borrado' : 'cambiado';
+      return { ruta: t.slice(3), estado };
+    });
+}
+
 /** De `git log --format=%h%x09%cI%x09%s` (o %H): los commits, con su fecha en ISO. */
 export function commitsDeGit(salida: string): CommitMapa[] {
   return salida

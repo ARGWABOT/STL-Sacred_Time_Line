@@ -61,7 +61,7 @@ import {
   YA_LO_DIJE,
 } from '../../src/director/director.ts';
 import { fechaDeCambio, leerFresco } from '../../src/director/fresco.ts';
-import { lineasDelMapa } from '../../src/director/mapa.ts';
+import { lineasDelMapa, sinCommitDeGit } from '../../src/director/mapa.ts';
 import { corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { comandoTranscripcion } from '../../src/director/transcripcion.ts';
 import { argumentos, colaDeDiagnosticos, leerTodo, memoria, nombreDe, otrosProyectos, POR_REVISION, proyectoElegido, raiz } from './comun.ts';
@@ -366,6 +366,20 @@ function commitsDesde(ruta: string | undefined, desde: string): CommitReciente[]
   }
 }
 
+/**
+ * Lo que el repositorio tiene sin commit, sin lo que git ignora (la memoria `.stl/` está excluida). Tras una revisión que
+ * no se cerró, puede ser trabajo suyo hecho y sin guardar: el 22 de octubre una dejó así seis arreglos, y la retoma solo
+ * los encontró porque miró git status por su cuenta.
+ */
+function sinCommit(ruta: string | undefined) {
+  if (!ruta) return [];
+  try {
+    return sinCommitDeGit(execFileSync('git', ['status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=all'], { cwd: ruta, encoding: 'utf8' }));
+  } catch {
+    return [];
+  }
+}
+
 // Si la pidieron desde el Studio, allá se ve que el director ya está revisando
 await marcarRevision(raiz, await proyectoElegido(pedido), 'en_curso');
 
@@ -437,7 +451,13 @@ if (reintento) {
     for (const c of commitsDeEntonces.slice(0, 20)) linea(`  - ${c.hash} ${c.cuando.slice(0, 16)} ${c.asunto}`);
     if (commitsDeEntonces.length > 20) linea(`  - … y ${commitsDeEntonces.length - 20} más (git log --since=${reintento.lanzada})`);
   }
-  if (!dejo.respuestas.length && !dejo.revisiones.length && !dejo.misiones.length && !dejo.ejecutadas.length && !commitsDeEntonces.length)
+  const aMedias = sinCommit(repo?.ruta);
+  if (aMedias.length) {
+    linea(`- Cambios del repositorio sin commit (pueden ser trabajo suyo, hecho y sin guardar: compruébalos con sus pruebas y sus tipos y guárdalos en su commit, o di en la respuesta y en el mensaje por qué no; no los rehagas):`);
+    for (const c of aMedias.slice(0, 30)) linea(`  - ${c.estado} · ${c.ruta}`);
+    if (aMedias.length > 30) linea(`  - … y ${aMedias.length - 30} más (git status)`);
+  }
+  if (!dejo.respuestas.length && !dejo.revisiones.length && !dejo.misiones.length && !dejo.ejecutadas.length && !commitsDeEntonces.length && !aMedias.length)
     linea('- No alcanzó a dejar nada en el plan ni en el repositorio: haz la revisión completa.');
 }
 

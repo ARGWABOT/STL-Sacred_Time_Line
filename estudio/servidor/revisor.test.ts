@@ -55,6 +55,8 @@ describe('el director que lanza el Studio', () => {
     for (const texto of [encargo('golf'), encargo('golf', true), urgencia]) {
       expect(texto).toContain(COMO_ORDENES);
       expect(texto).toContain('git -C no está permitido');
+      expect(texto).toContain('sin ; ni tuberías ni redirecciones');
+      expect(texto).toContain('en su commit apenas pasen sus pruebas y sus tipos');
       expect(texto).toContain('«Confirmo»');
       expect(texto).not.toContain('ni borres nada');
     }
