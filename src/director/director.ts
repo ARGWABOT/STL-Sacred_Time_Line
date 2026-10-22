@@ -1712,6 +1712,19 @@ export function pendientesDelDirector(plan: Plan, estado: EstadoDirector): { ent
   };
 }
 
+/**
+ * Lo que una revisión no puede dejar sin atender al cerrar (propuesta aceptada «El cierre no deja nada sin atender»,
+ * 21 de octubre de 2026): cada nota y cada entrega que llegó antes del corte tiene su respuesta o su veredicto. Lo que
+ * llegó después del corte espera la revisión siguiente, como en la bandeja. `bandeja.ts --listo` no cierra mientras quede algo.
+ */
+export function sinAtenderAlCerrar(plan: Plan, estado: EstadoDirector, corte: string): { notas: string[]; entregas: string[] } {
+  const p = pendientesDelDirector(plan, estado);
+  return {
+    notas: p.notas.filter((n) => n.cuando <= corte).map((n) => n.id),
+    entregas: p.entregas.filter((m) => (estado.entregas[m.id]?.cuando ?? '') <= corte).map((m) => m.id),
+  };
+}
+
 /** Lo de un proyecto para «Tu agenda»: qué espera de una persona y qué espera al director. */
 export interface Agenda {
   /** La misión de ahora de esa persona (la primera abierta), si la hay. */

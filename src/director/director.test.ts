@@ -63,6 +63,7 @@ import {
   partesDeDocumento,
   trozosDeParte,
   pendientesDelDirector,
+  sinAtenderAlCerrar,
   proyectoVacio,
   repartirCommit,
   repartoPorNivel,
@@ -370,6 +371,23 @@ describe('misiones', () => {
     expect(xpDe(p, e, 'ana')).toBe(m.xp);
     // Las de una fase futura están bajo niebla
     expect(estadoMision(p.misiones.find((x) => x.id === 'c_panel')!, p, e)).toBe('bloqueada');
+  });
+
+  it('el cierre no deja sin atender una nota ni una entrega de antes del corte; lo de después espera la siguiente', () => {
+    const p = planEjemplo();
+    const e = estadoVacio();
+    const corte = '2026-10-15T12:00:00.000Z';
+    e.notas = [
+      { id: 'n_antes', cuando: '2026-10-15T11:00:00.000Z', quien: 'Laura', sobre: { tipo: 'general' }, texto: 'Antes del corte' },
+      { id: 'n_despues', cuando: '2026-10-15T12:30:00.000Z', quien: 'Laura', sobre: { tipo: 'general' }, texto: 'Después del corte' },
+    ];
+    e.entregas.t_diag = { cuando: '2026-10-15T10:00:00.000Z', quien: 'Laura' };
+    e.entregas.t_alcance = { cuando: '2026-10-15T12:10:00.000Z', quien: 'Laura' };
+    expect(sinAtenderAlCerrar(p, e, corte)).toEqual({ notas: ['n_antes'], entregas: ['t_diag'] });
+    // Con su respuesta y su veredicto, ya no queda nada de antes del corte
+    p.respuestas = { n_antes: { cuando: '2026-10-15T13:00:00.000Z', texto: 'Hecho', tratamiento: 'informada' } };
+    p.revisiones = { t_diag: { cuando: '2026-10-15T13:00:00.000Z', veredicto: 'aprobada', comentario: 'Bien' } };
+    expect(sinAtenderAlCerrar(p, e, corte)).toEqual({ notas: [], entregas: [] });
   });
 
   it('lo que hay que rehacer va primero en la cola', () => {

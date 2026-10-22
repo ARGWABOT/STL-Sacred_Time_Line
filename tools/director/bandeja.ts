@@ -48,6 +48,7 @@ import {
   pedidoFueraDelStudio,
   pendientesDelDirector,
   respuestasSinDestino,
+  sinAtenderAlCerrar,
   selladosQueCambiaron,
   validarEstado,
   validarPlan,
@@ -211,6 +212,16 @@ if (args.includes('--listo')) {
   if (sinDestino.length) {
     console.error('No se cerró la revisión: estas respuestas llevan algo al plan pero no dicen dónde quedó (`destino`: la misión, la propuesta, la fase o la parte del documento):');
     for (const id of sinDestino) console.error(`- ${id}`);
+    process.exit(1);
+  }
+  // Nada sin atender (propuesta aceptada «El cierre no deja nada sin atender»): cada nota y cada entrega que llegó antes
+  // de empezar la revisión tiene su respuesta o su veredicto; lo que llegó después espera la siguiente, como en la bandeja
+  const corte = corteDeRevision(await leerLocal(raiz), elegido);
+  const sinAtender = corte ? sinAtenderAlCerrar(completo, estado, corte) : { notas: [], entregas: [] };
+  if (sinAtender.notas.length || sinAtender.entregas.length) {
+    console.error('No se cerró la revisión: quedó sin atender algo que llegó antes de empezarla. Cada nota necesita su respuesta (en `respuestas`, con su tratamiento) y cada entrega su veredicto (en `revisiones`):');
+    for (const id of sinAtender.notas) console.error(`- la nota ${id}`);
+    for (const id of sinAtender.entregas) console.error(`- la entrega de la misión ${id}`);
     process.exit(1);
   }
   // Un plan con errores no sale de la revisión: el titular nunca debe verlos en el Studio
