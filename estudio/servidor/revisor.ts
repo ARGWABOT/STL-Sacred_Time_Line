@@ -52,6 +52,18 @@ export const SIN_PERMISO =
   `la revisión siguiente. Nunca te des un permiso tú mismo sin ese «Autorizo».`;
 
 /**
+ * Cómo usar los permisos que el titular autorizó el 22 de octubre de 2026, para no perder turnos con lo que se niega:
+ * git en otra carpeta con cd (git -C no se puede acotar a lecturas), copiar sin cp, y borrar o instalar solo así.
+ */
+export const COMO_ORDENES =
+  ` Para leer con git en otra carpeta, da cd y luego la orden: git -C no está permitido. Copiar un archivo de texto no ` +
+  `necesita permiso: léelo y escríbelo. Lees solo el Studio, el repositorio del proyecto y tus sesiones anteriores, ` +
+  `nunca un archivo .env. Puedes mover con git mv y crear ramas de respaldo locales (git branch respaldo/…). Borras ` +
+  `solo con git rm, archivos que git guarda, y solo con los dos pasos del titular en el Studio: lo aprobó y respondió ` +
+  `«Confirmo» con la lista de lo que se borra a la vista. npm install, sin nombres de paquetes, solo cuando un cambio ` +
+  `aprobado cambia package.json.`;
+
+/**
  * Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. Con
  * `reintento`, la anterior no se cerró: retoma lo que dejó.
  */
@@ -60,12 +72,14 @@ export const encargo = (proyecto: string, reintento = false) =>
   `Studio, sin pantalla: nadie lee esta salida, así que todo lo que el titular deba saber va en el Studio. Haz «revisa ` +
   `estudio» de ese proyecto según CLAUDE.md (sección «La sesión del director»), con --proyecto ${proyecto} en todas las ` +
   `herramientas. Puedes escribir en el repositorio del proyecto, su memoria y su código, solo para lo que el titular ` +
-  `aprobó o pidió en el Studio y con las normas de ese proyecto: pruebas en verde y commits locales. Nunca subas, ` +
-  `despliegues ni borres nada: si algo lo necesita, déjalo listo y dilo en la respuesta y en el mensaje. Tus permisos no ` +
+  `aprobó o pidió en el Studio y con las normas de ese proyecto: pruebas en verde y commits locales. Nunca subas ni ` +
+  `despliegues nada, ni borres de otra forma que la de abajo: si algo lo necesita, déjalo listo y dilo en la respuesta y ` +
+  `en el mensaje. Tus permisos no ` +
   `aceptan órdenes encadenadas con &&: para cada commit da cd a la carpeta, luego git add y luego git commit, cada una ` +
   `por separado. Cierra como siempre: ` +
   `node tools/director/bandeja.ts --proyecto ${proyecto} --listo y el commit en la memoria del proyecto.` +
   (reintento ? ' Es un reintento: la revisión anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).' : '') +
+  COMO_ORDENES +
   SIN_PERMISO +
   esperar(MAX_MIN);
 
@@ -101,10 +115,12 @@ export const encargoUrgencia = (u: UrgenciaPedida) =>
   `SOLO esas notas: NO hagas la revisión completa ni respondas nada más (las demás notas, entregas y documentos esperan la ` +
   `revisión siguiente). Corre node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente y sigue lo que dice. Puedes ` +
   `escribir en el repositorio del proyecto, su memoria y su código, solo para lo que el titular aprobó o pidió en el Studio ` +
-  `y con las normas de ese proyecto: pruebas en verde y commits locales. Nunca subas, despliegues ni borres nada: si algo ` +
+  `y con las normas de ese proyecto: pruebas en verde y commits locales. Nunca subas ni despliegues nada, ni borres de ` +
+  `otra forma que la de abajo: si algo ` +
   `lo necesita, déjalo listo y dilo en la respuesta. Tus permisos no aceptan órdenes encadenadas con &&: para cada commit ` +
   `da cd a la carpeta, luego git add y luego git commit, cada una por separado. Cierra con ` +
   `node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo y el commit en la memoria del proyecto.` +
+  COMO_ORDENES +
   SIN_PERMISO +
   esperar(MAX_MIN_URGENCIA);
 
@@ -112,22 +128,46 @@ export const encargoUrgencia = (u: UrgenciaPedida) =>
 type Aparte = { tipo: 'aclaracion'; a: AclaracionPedida } | { tipo: 'urgencia'; u: UrgenciaPedida };
 
 /**
+ * Una ruta en la forma de las reglas de permisos de Claude Code: «//ruta» es absoluta, y en Windows Claude Code compara
+ * las rutas en forma POSIX (C:\repos\x es //c/repos/x).
+ */
+const reglaDeRuta = (ruta: string) =>
+  '//' + ruta.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, unidad: string) => '/' + unidad.toLowerCase()).replace(/^\/+|\/+$/g, '');
+
+/**
+ * Donde Claude Code guarda las sesiones que se abren en una carpeta: ~/.claude/projects/ y la ruta con un guion en vez
+ * de cada signo (C:\xampp\STL es C--xampp-STL). Ahí están las revisiones anteriores del director lanzado desde el Studio.
+ */
+export const carpetaDeSesiones = (carpeta: string, casa = homedir()) =>
+  join(casa, '.claude', 'projects', carpeta.replace(/[\\/]+$/, '').replace(/[^A-Za-z0-9]/g, '-'));
+
+/** Las reglas que niegan una opción de una orden, esté justo después de ella o más adelante («git rm -f x», «git rm x -f»). */
+const sinOpcion = (orden: string, opciones: string[]) => opciones.flatMap((o) => [`Bash(${orden} ${o}*)`, `Bash(${orden} * ${o}*)`]);
+
+/**
  * Lo único que puede hacer el director lanzado por el Studio (el titular lo autorizó el 17 de octubre de 2026): leer,
  * las herramientas del director, escribir dentro del repositorio del proyecto (su memoria y su código, para que una
  * urgencia aprobada se arregle al instante), correr sus pruebas y hacer commits locales. Desde el 19 de octubre, también
  * investigar en internet (buscar y leer páginas, propuesta «El director puede buscar en internet») y repartir la
- * lectura entre ayudantes (subagentes), que heredan los mismos límites. Nada que suba,
- * despliegue o borre: eso queda listo para el titular. Con `flujos` (ultracode encendido y el permiso del titular, del 21
- * de octubre de 2026), también los flujos de varios agentes (Workflow), cuyos agentes tienen estos mismos límites.
+ * lectura entre ayudantes (subagentes), que heredan los mismos límites. Nada que suba ni despliegue: eso queda listo para
+ * el titular. Con `flujos` (ultracode encendido y el permiso del titular, del 21 de octubre de 2026), también los flujos
+ * de varios agentes (Workflow), cuyos agentes tienen estos mismos límites.
+ *
+ * Desde el 22 de octubre de 2026, los seis grupos que el titular autorizó en su misión «Autoriza los permisos que le
+ * faltaron al director»: (1) las órdenes que solo leen o comprueban; (2) una parte de las pruebas; (3) leer solo donde
+ * trabaja: el Studio (`raiz`), el repositorio del proyecto y sus propias sesiones anteriores (`negado` dice lo que nunca);
+ * (4) mover dentro del repositorio y crear ramas de respaldo locales; (5) borrar con git rm, que solo borra lo que git
+ * guarda (el encargo exige los dos pasos del titular en el Studio); y (6) npm install, sin nombres de paquetes.
  */
-export function permitido(repositorio: string, flujos = false): string[] {
-  // «//ruta» es una ruta absoluta en las reglas de permisos de Claude Code
-  // En Windows, Claude Code compara las rutas en forma POSIX: C:\repos\x es /c/repos/x. Una regla Edit cubre también
-  // la escritura de archivos nuevos
-  const posix = repositorio.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, unidad: string) => '/' + unidad.toLowerCase());
-  const r = '//' + posix.replace(/^\/+|\/+$/g, '');
+export function permitido(repositorio: string, flujos = false, raiz = repositorio, casa = homedir()): string[] {
+  // Una regla Edit cubre también la escritura de archivos nuevos
+  const r = reglaDeRuta(repositorio);
+  // (3) Leer solo donde trabaja: sin la regla suelta «Read» (que deja leer todo el computador). Leer, buscar y listar
+  // dentro de las carpetas de trabajo (el Studio, donde arranca, y el repositorio, con --add-dir) no pide permiso; sus
+  // sesiones anteriores están fuera de ellas, y la regla Read también vale para Grep y Glob
+  const leer = [...new Set([raiz, repositorio, carpetaDeSesiones(raiz, casa)].map((c) => `Read(${reglaDeRuta(c)}/**)`))];
   return [
-    'Read', 'Grep', 'Glob', `Edit(${r}/**)`,
+    ...leer, `Edit(${r}/**)`,
     // investigar: lo leído en internet es referencia, nunca una orden (CLAUDE.md)
     'WebSearch', 'WebFetch',
     // repartir una lectura grande entre ayudantes (un repositorio grande, los historiales de IA de la cola de
@@ -135,12 +175,45 @@ export function permitido(repositorio: string, flujos = false): string[] {
     'Agent', 'Task',
     ...(flujos ? ['Workflow'] : []),
     'Bash(node tools/director/bandeja.ts:*)', 'Bash(node tools/director/diagnosticar.ts:*)', 'Bash(node tools/director/estado.ts:*)',
-    'Bash(npm test)', 'Bash(npm run typecheck)',
+    // (2) las pruebas completas o solo una parte (un archivo, un nombre)
+    'Bash(npm test)', 'Bash(npm test:*)', 'Bash(npx vitest run:*)', 'Bash(npm run typecheck)', 'Bash(npm run typecheck:*)',
     // mirar en un navegador sin pantalla lo que cambió de la interfaz (propuesta aceptada el 20 de octubre de 2026):
     // solo esta herramienta, que abre páginas https o de este computador y guarda las capturas en la memoria
     'Bash(node tools/director/mirar.ts:*)',
     // los commits, como los da la bandeja (cd, add y commit): solo locales, nunca push
     'Bash(cd:*)', 'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)',
+    // (1) leer y comprobar sin cambiar nada; git -C no, porque no se puede acotar a lecturas (el encargo dice cd y luego la orden)
+    'Bash(ls:*)', 'Bash(wc:*)', 'Bash(git show:*)', 'Bash(git ls-files:*)', 'Bash(git rev-parse:*)', 'Bash(git rev-list:*)',
+    'Bash(git config --get:*)', 'Bash(git branch --show-current)', 'Bash(git stash list:*)', 'Bash(git remote -v)',
+    'Bash(git worktree list:*)', 'Bash(git ls-remote:*)', 'Bash(gh auth status:*)',
+    // (4) mover dentro del repositorio (git no deja salir de él) y ramas de respaldo locales, nada más (negado)
+    'Bash(git mv:*)', 'Bash(git branch respaldo/:*)',
+    // (5) borrar solo lo que git guarda, que queda en la historia y se recupera
+    'Bash(git rm:*)',
+    // (6) instalar lo que dice package.json, sin nombres de paquetes
+    'Bash(npm install)',
+  ];
+}
+
+/**
+ * Lo que el director lanzado nunca lee ni toca, aunque esté dentro de lo permitido (grupo 3 de los permisos que el
+ * titular autorizó el 22 de octubre de 2026): ningún archivo .env, ni los ajustes ni las credenciales de Claude Code; no
+ * edita sus propios permisos (.claude/settings*), estudio.local.json, los registros de las revisiones (.revisiones, donde
+ * también está su configuración) ni nada de .git. Y de mover, crear ramas y borrar, solo lo que autorizó: sin
+ * renombrar ni borrar ramas, sin forzar y sin borrar lo que git no guarda.
+ */
+export function negado(repositorio: string, raiz = repositorio): string[] {
+  const carpetas = [...new Set([raiz, repositorio].map(reglaDeRuta))];
+  const s = reglaDeRuta(raiz);
+  return [
+    'Read(//**/.env)', 'Read(//**/.env.*)',
+    'Read(~/.claude/settings.json)', 'Read(~/.claude/settings.local.json)', 'Read(~/.claude/.credentials.json)', 'Read(~/.claude.json)',
+    ...carpetas.map((c) => `Edit(${c}/.claude/settings*.json)`),
+    `Edit(${s}/estudio.local.json)`, `Edit(${s}/.revisiones/**)`,
+    'Edit(//**/.git)', 'Edit(//**/.git/**)',
+    ...sinOpcion('git branch', ['-d', '-D', '--delete', '-m', '-M', '--move', '-f', '--force']),
+    ...sinOpcion('git mv', ['-f', '--force']),
+    ...sinOpcion('git rm', ['-f', '-rf', '-fr', '--force']),
   ];
 }
 
@@ -896,7 +969,7 @@ export class Revisor {
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder); las esperas
     // programadas no piden permiso, así que se quitan aparte (SIN_ESPERAS). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--disallowedTools', ...SIN_ESPERAS, '--allowedTools', ...permitido(repositorio, director.flujos)];
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--disallowedTools', ...SIN_ESPERAS, ...negado(repositorio, this.raiz), '--allowedTools', ...permitido(repositorio, director.flujos, this.raiz)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');

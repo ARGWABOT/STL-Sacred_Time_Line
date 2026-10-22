@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, cerroSegunPlan, compararVersion, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, COMO_ORDENES, compararVersion, negado, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -17,12 +17,47 @@ describe('el director que lanza el Studio', () => {
     expect(p).toEqual(expect.arrayContaining(['Agent', 'Task']));
     // mira la interfaz en un navegador sin pantalla, solo con su herramienta
     expect(p).toContain('Bash(node tools/director/mirar.ts:*)');
-    // nada que suba, despliegue o borre, ni escribir fuera del repositorio
-    expect(p.some((x) => /push|deploy|rm\b|reset|clean/.test(x))).toBe(false);
+    // nada que suba o despliegue, ni escribir fuera del repositorio; borrar, solo con git rm (lo que git guarda)
+    expect(p.some((x) => /push|deploy|reset|clean/.test(x))).toBe(false);
+    expect(p.filter((x) => /\brm\b/.test(x))).toEqual(['Bash(git rm:*)']);
     expect(p.filter((x) => /^(Edit|Write)/.test(x)).every((x) => x.includes('//c/repos/golf/'))).toBe(true);
     // los flujos de varios agentes, solo con el permiso del titular (ultracode)
     expect(p).not.toContain('Workflow');
     expect(permitido(String.raw`C:\repos\golf`, true)).toEqual([...p.slice(0, p.indexOf('Task') + 1), 'Workflow', ...p.slice(p.indexOf('Task') + 1)]);
+  });
+
+  it('trae los seis grupos de permisos que autorizó el titular el 22 de octubre de 2026, y nada más', () => {
+    const p = permitido(String.raw`C:\repos\golf`, false, String.raw`C:\xampp\STL`, String.raw`C:\Users\ana`);
+    // (1) leer y comprobar sin cambiar nada; git -C no, porque no se puede acotar a lecturas
+    expect(p).toEqual(expect.arrayContaining(['Bash(ls:*)', 'Bash(wc:*)', 'Bash(git show:*)', 'Bash(git ls-files:*)', 'Bash(git rev-parse:*)', 'Bash(git rev-list:*)', 'Bash(git config --get:*)', 'Bash(git branch --show-current)', 'Bash(git stash list:*)', 'Bash(git remote -v)', 'Bash(git worktree list:*)', 'Bash(git ls-remote:*)', 'Bash(gh auth status:*)']));
+    expect(p.some((x) => x.includes('git -C'))).toBe(false);
+    // (2) una parte de las pruebas
+    expect(p).toEqual(expect.arrayContaining(['Bash(npm test)', 'Bash(npm test:*)', 'Bash(npx vitest run:*)', 'Bash(npm run typecheck)', 'Bash(npm run typecheck:*)']));
+    // (3) leer solo donde trabaja: el Studio, el repositorio y sus sesiones anteriores, sin la regla suelta que deja leer todo
+    expect(p).not.toContain('Read');
+    expect(p).not.toContain('Grep');
+    expect(p).not.toContain('Glob');
+    expect(p.filter((x) => x.startsWith('Read('))).toEqual(['Read(//c/xampp/STL/**)', 'Read(//c/repos/golf/**)', 'Read(//c/Users/ana/.claude/projects/C--xampp-STL/**)']);
+    // (4) mover y ramas de respaldo; (5) git rm; (6) npm install sin nombres de paquetes
+    expect(p).toEqual(expect.arrayContaining(['Bash(git mv:*)', 'Bash(git branch respaldo/:*)', 'Bash(git rm:*)', 'Bash(npm install)']));
+    expect(p.some((x) => /npm install[: ]/.test(x))).toBe(false);
+    // lo que nunca: ningún .env, ni los ajustes de Claude, ni editar sus permisos, estudio.local.json, los registros o .git
+    const n = negado(String.raw`C:\repos\golf`, String.raw`C:\xampp\STL`);
+    expect(n).toEqual(expect.arrayContaining(['Read(//**/.env)', 'Read(//**/.env.*)', 'Read(~/.claude/settings.json)', 'Edit(//c/xampp/STL/.claude/settings*.json)', 'Edit(//c/repos/golf/.claude/settings*.json)', 'Edit(//c/xampp/STL/estudio.local.json)', 'Edit(//c/xampp/STL/.revisiones/**)', 'Edit(//**/.git/**)']));
+    // ni renombrar o borrar ramas, ni forzar al mover o al borrar, la opción vaya donde vaya
+    expect(n).toEqual(expect.arrayContaining(['Bash(git branch -D*)', 'Bash(git branch * -D*)', 'Bash(git mv * -f*)', 'Bash(git rm -rf*)', 'Bash(git rm * --force*)']));
+    // las sesiones de una carpeta, como las nombra Claude Code
+    expect(carpetaDeSesiones(String.raw`C:\xampp2024\htdocs\www\STL`, String.raw`C:\Users\leonc`)).toBe(join(String.raw`C:\Users\leonc`, '.claude', 'projects', 'C--xampp2024-htdocs-www-STL'));
+  });
+
+  it('el encargo dice cómo usar esos permisos: cd en vez de git -C, y borrar solo con git rm y los dos pasos del titular', () => {
+    const urgencia = encargoUrgencia({ proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
+    for (const texto of [encargo('golf'), encargo('golf', true), urgencia]) {
+      expect(texto).toContain(COMO_ORDENES);
+      expect(texto).toContain('git -C no está permitido');
+      expect(texto).toContain('«Confirmo»');
+      expect(texto).not.toContain('ni borres nada');
+    }
   });
 
   it('lanza un director a la vez, aunque haya dos servidores del Studio encendidos', () => {
