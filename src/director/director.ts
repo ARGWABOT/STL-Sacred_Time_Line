@@ -1943,6 +1943,18 @@ export interface Agenda {
   alDirector: number;
 }
 
+/**
+ * Las propuestas aceptadas que el director aún no ejecuta (no están en `ejecutadas`), con quién y cuándo las aceptó, de
+ * la más vieja a la más nueva. La bandeja se las da en cada revisión, sin importar el día en que se aceptaron: lo aprobado
+ * no depende de que el director lo busque (nota de voz del titular del 22 de octubre de 2026).
+ */
+export function aceptadasSinEjecutar(plan: Plan, estado: EstadoDirector): { propuesta: Propuesta; aceptada: Firma }[] {
+  return plan.propuestas
+    .filter((p) => estado.propuestas[p.id]?.estado === 'aceptada' && !plan.ejecutadas?.[p.id])
+    .map((p) => ({ propuesta: p, aceptada: estado.propuestas[p.id] }))
+    .sort((a, b) => a.aceptada.fecha.localeCompare(b.aceptada.fecha));
+}
+
 export function agendaDe(plan: Plan, estado: EstadoDirector, persona: Persona): Agenda {
   const abiertas = misionesAbiertas(plan, estado, persona);
   const actual = plan.fases.indexOf(faseActual(plan, estado));
@@ -1953,7 +1965,7 @@ export function agendaDe(plan: Plan, estado: EstadoDirector, persona: Persona): 
     mision: m ? { id: m.id, titulo: m.titulo, rehacer: estadoMision(m, plan, estado) === 'rehacer' } : null,
     enCola: Math.max(0, abiertas.length - 1),
     porDecidir: persona === TITULAR ? abiertasFase.filter((p) => !estado.propuestas[p.id]).length : 0,
-    porEjecutar: plan.propuestas.filter((p) => estado.propuestas[p.id]?.estado === 'aceptada' && !plan.ejecutadas?.[p.id]).length,
+    porEjecutar: aceptadasSinEjecutar(plan, estado).length,
     alDirector: pend.entregas.length + pend.notas.length,
   };
 }

@@ -27,6 +27,7 @@ import {
   archivoVacio,
   comentarioDe,
   lineasReescritas,
+  aceptadasSinEjecutar,
   mensajeRepite,
   mensajeRepiteAnterior,
   misionesPorVigilar,
@@ -635,6 +636,15 @@ for (const x of estado.excepciones) if (nuevas(x.fecha)) linea(`- Excepción en 
 for (const v of estado.validaciones) if (nuevas(v.fecha)) linea(`- Validación ${v.tipo}: ${v.personas} personas, lo lograron ${v.lograron}, lo aprueban ${v.aprueban}${v.hallazgos ? ` · ${v.hallazgos}` : ''} (${v.quien})`);
 for (const [id, e] of Object.entries(estado.empezadas)) if (e.cuando >= desde) linea(`- Empezó la misión ${id} (${e.quien})`);
 for (const b of estado.bitacora) if (nuevas(b.fecha) && /objetivo|proyecto|equipo/i.test(b.texto)) linea(`- ${b.texto} (${b.quien})`);
+
+// Lo aprobado y sin hacer, siempre a la vista, de cualquier día: no depende de que el director lo busque (nota de voz del
+// titular del 22 de octubre de 2026)
+const porEjecutar = aceptadasSinEjecutar(plan, estado);
+linea(`\n## Propuestas aceptadas sin ejecutar (${porEjecutar.length})`);
+if (porEjecutar.length) {
+  linea('Lo que el titular ya aprobó y aún no está hecho, de la más vieja a la más nueva. Cuando ejecutes una, va en `ejecutadas` con su nota; si ya se hizo por otro camino, también (con la evidencia), y sale de esta lista.');
+  for (const { propuesta: p, aceptada: a } of porEjecutar) linea(`- [${p.id}] «${p.titulo}» · fase ${p.fase} · aceptada el ${a.fecha.slice(0, 10)} (${a.quien})${a.nota ? ` · ${a.nota.replace(/\s+/g, ' ')}` : ''}`);
+}
 
 // Lo que el director pidió hacer afuera en los últimos días: lo hicieron porque él lo pidió, y así lo dice cuando hable de ello
 const fuera = pedidoFueraDelStudio(plan, estado.notas, new Date(Date.now() - 7 * 864e5).toISOString());

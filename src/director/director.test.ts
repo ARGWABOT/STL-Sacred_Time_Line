@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import planPlantilla from '../../plantilla/plan.json';
 import proyectoPlantilla from '../../plantilla/proyecto.json';
 import {
+  aceptadasSinEjecutar,
+  agendaDe,
   aclaracionesDe,
   archivar,
   archivoVacio,
@@ -531,6 +533,23 @@ describe('el plan no pesa: lo cerrado sale a su archivo', () => {
     p.misiones = p.misiones.map((m, i) => (i === 0 ? { ...m, vigente: '2026-10-21T21:17:00Z' } : m));
     p.ejecutadas = { pr_x: { cuando: '2026-10-21T21:18:00Z', nota: 'Hecha.' } };
     expect(loQueDejo(p, desde)).toEqual({ respuestas: ['n_nueva'], revisiones: ['t_diag'], misiones: [p.misiones[0].id], ejecutadas: ['pr_x'] });
+  });
+
+  it('lo aceptado y sin ejecutar se le da al director, de cualquier día', () => {
+    const p = planEjemplo();
+    const propuesta = (id: string) => ({ id, area: 'Núcleo', titulo: `La ${id}`, problema: 'p', propuesta: 'q', conecta: 'r', fase: p.fases[0].id });
+    p.propuestas = ['pr_vieja', 'pr_nueva', 'pr_hecha', 'pr_descartada', 'pr_sin_responder'].map(propuesta);
+    p.ejecutadas = { pr_hecha: { cuando: '2026-10-20T10:00:00Z', nota: 'Hecha.' } };
+    const e = estadoVacio();
+    e.propuestas = {
+      pr_nueva: { fecha: '2026-10-22T09:00:00Z', quien: 'titular', estado: 'aceptada' },
+      pr_vieja: { fecha: '2026-10-15T09:00:00Z', quien: 'titular', estado: 'aceptada', nota: 'Con su matiz' },
+      pr_hecha: { fecha: '2026-10-18T09:00:00Z', quien: 'titular', estado: 'aceptada' },
+      pr_descartada: { fecha: '2026-10-19T09:00:00Z', quien: 'titular', estado: 'descartada' },
+    };
+    // La aceptada hace una semana sigue ahí aunque la bandeja solo cuente las decisiones desde el día de la revisión
+    expect(aceptadasSinEjecutar(p, e).map((x) => [x.propuesta.id, x.aceptada.nota])).toEqual([['pr_vieja', 'Con su matiz'], ['pr_nueva', undefined]]);
+    expect(agendaDe(p, e, 'titular').porEjecutar).toBe(2);
   });
 
   it('el mensaje no vuelve a contar lo avanzado', () => {
