@@ -50,6 +50,7 @@ import {
   reservaDeMisiones,
   RESERVA_MINIMA,
   pasosPorComprobar,
+  pasosSinBoton,
   pedidoFueraDelStudio,
   pendientesDelDirector,
   respuestasSinDestino,
@@ -703,6 +704,9 @@ for (const p of personas) {
   linea(`- ${nombre(p)}: ${abiertas.map((m) => `${m.id} (${estadoMision(m, plan, estado)})`).join(', ') || `ninguna: asígnale la siguiente y la reserva (${RESERVA_MINIMA} en total)`}${reserva.siguientes.length ? ` · en la fase siguiente: ${reserva.siguientes.map((m) => m.id).join(', ')}` : ''}${cola}`);
   for (const m of abiertas) {
     const marcados = estado.pasos?.[m.id]?.hechos.filter((i) => i < m.pasos.length) ?? [];
+    // Llevar de la mano: un paso que manda a un lugar trae su botón (nota de voz del titular, 22 de octubre de 2026)
+    const sinBoton = pasosSinBoton(m).filter((i) => !marcados.includes(i));
+    if (sinBoton.length) linea(`  ⚠ ${m.id}: ${sinBoton.map((i) => `el paso ${i + 1}`).join(', ')} manda${sinBoton.length === 1 ? '' : 'n'} a un lugar sin botón. Ponle su \`ir\` (anclas en CLAUDE.md, «Llevar de la mano»); si lo nombrado ya está a la vista donde se lee el paso, déjalo así.`);
     if (!marcados.length) continue;
     const texto = (i: number) => { const x = m.pasos[i]; return (typeof x === 'string' ? x : x.texto).slice(0, 90); };
     linea(`  · ${m.id}: ya marcó ${marcados.length} de ${m.pasos.length} pasos. No los vuelvas a pedir ni los nombres como pendientes: ${marcados.map((i) => `${i + 1}. «${texto(i)}»`).join('; ')}`);

@@ -288,6 +288,23 @@ export function destinoDelPaso(p: Paso, m?: Pick<Mision, 'id'>): Destino | undef
   return dest && m && llevaAqui(dest, lugarDeMision(m)) ? undefined : dest;
 }
 
+/** Manda a un lugar: un verbo de ir, abrir, leer o revisar y, en la misma frase, el lugar por su nombre, entre «». */
+const MANDA_A_UN_LUGAR = /(?:^|[\s,(])(?:abre|abrir|ve a|ve al|vuelve a|entra a|entra en|lee|leer|mira|revisa|despliega|busca)\s[^.:;?!]*«/i;
+
+/**
+ * Los pasos de una misión (por índice) que mandan a ir, abrir, leer o revisar algo con su nombre y no traen botón (nota
+ * de voz del titular, 22 de octubre de 2026: un paso decía «abre «Otros documentos, para consultar»» sin un botón que
+ * llevara ahí). La bandeja los avisa en cada revisión, para que el director les ponga su `ir`. No cuentan los que ya
+ * traen botón (el de su `ir` o el de su puerta), los que hace la persona fuera del Studio (`soloTu`), los de terminal ni
+ * los «Hazlo tú». Puede avisar de más (lo que ya está a la vista, como la cabecera, no necesita botón): lo juzga el director.
+ */
+export function pasosSinBoton(m: Pick<Mision, 'pasos'>): number[] {
+  return m.pasos.flatMap((p, i) => {
+    if (typeof p !== 'string' && (destinoDelPaso(p) || p.soloTu || p.terminal || p.hazlo)) return [];
+    return MANDA_A_UN_LUGAR.test(typeof p === 'string' ? p : p.texto) ? [i] : [];
+  });
+}
+
 /**
  * Dónde está la persona cuando ve un botón: una vista y, dentro, el elemento con su `ancla` (la tarjeta de una misión,
  * una propuesta, un hilo de preguntas) o la `fase` de la ruta; o un documento (`doc`) y su parte (`seccion`).
