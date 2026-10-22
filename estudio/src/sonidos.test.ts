@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { AJUSTES_POR_DEFECTO, ajustesDe, efectoDe, elegirToma, ESCALA, MOMENTOS, siguienteNota } from './sonidos';
+import { AJUSTES_POR_DEFECTO, ajustesDe, efectoDe, efectoDeSiempre, elegirToma, ESCALA, MOMENTOS, siguienteNota } from './sonidos';
 
 describe('Los sonidos del Studio', () => {
   it('nunca suena la misma toma dos veces seguidas', () => {
@@ -43,9 +45,23 @@ describe('Los sonidos del Studio', () => {
   });
 
   it('cada momento tiene su efecto de AdWi, y el elegido manda si está en la lista', () => {
-    expect(MOMENTOS.map((m) => m.efecto)).toEqual(['acierto', 'soltar', 'turno-enviado', 'grabar-inicio', 'grabar-parar', 'firmar', 'torre-completa', 'ronda-completa', 'veredicto-listo', 'premio-ganado', 'victoria']);
+    expect(MOMENTOS.map((m) => m.efecto)).toEqual(['acierto', 'mezclar-juego-duos', 'soltar', 'turno-enviado', 'grabar-inicio', 'grabar-parar', 'firmar', 'torre-completa', 'ronda-completa', 'veredicto-listo', 'premio-ganado', 'victoria']);
     const efectos = { acierto: ['acierto-1.mp3'], soltar: ['soltar-1.mp3'] };
     expect(efectoDe('entendido', { ...AJUSTES_POR_DEFECTO, elegidos: { entendido: 'soltar' } }, efectos)).toBe('soltar');
     expect(efectoDe('entendido', { ...AJUSTES_POR_DEFECTO, elegidos: { entendido: 'no-esta' } }, efectos)).toBe('acierto');
+  });
+
+  it('marcar leída una línea de «¿Dónde quedamos?» suena, por defecto, con el de mezclar el juego de duos, aunque se llame un poco distinto (nota de voz del titular, 22 de octubre de 2026)', () => {
+    expect(MOMENTOS.find((m) => m.id === 'linea')?.nombre).toBe('Marcar leída una línea de «¿Dónde quedamos?»');
+    const a = AJUSTES_POR_DEFECTO;
+    expect(efectoDe('linea', a, { acierto: ['a.mp3'], 'mezclar-juego-duos': ['m.mp3'] })).toBe('mezclar-juego-duos');
+    expect(efectoDe('linea', a, { acierto: ['a.mp3'], 'duos-mezclar': ['m.mp3'] })).toBe('duos-mezclar');
+    expect(efectoDeSiempre('linea', { 'mezcla-duos': ['m.mp3'] })).toBe('mezcla-duos');
+    // El elegido sigue mandando, y los demás momentos no buscan parecidos
+    expect(efectoDe('linea', { ...a, elegidos: { linea: 'acierto' } }, { acierto: ['a.mp3'], 'mezclar-duos': ['m.mp3'] })).toBe('acierto');
+    expect(efectoDeSiempre('entendido', { 'acierto-duo-mezcla': ['x.mp3'] })).toBe('acierto');
+    // Al marcarla, suena
+    const director = readFileSync(join(__dirname, 'director.ts'), 'utf-8');
+    expect(director).toMatch(/est\.leidas\+\+;[\s\S]{0,140}sonar\('linea'\);/);
   });
 });

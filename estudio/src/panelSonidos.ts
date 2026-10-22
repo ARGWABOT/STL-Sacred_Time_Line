@@ -6,7 +6,7 @@
  */
 import { icono } from './iconos';
 import { esc } from './util';
-import { ajustes, cambiarAjustes, cargarSonidos, efectoDe, MOMENTOS, pistasDeFondo, probar, sonidosCargados, type Momento } from './sonidos';
+import { ajustes, cambiarAjustes, cargarSonidos, efectoDe, efectoDeSiempre, MOMENTOS, pistasDeFondo, probar, sonidosCargados, type Momento } from './sonidos';
 
 export const botonSonido = () => {
   const a = ajustes();
@@ -82,8 +82,9 @@ function abrirMomentos() {
     <p class="ayuda">Elige el efecto de cada momento y óyelo con ▶. Se guarda en este navegador.</p>
     <ul class="lista-momentos">${MOMENTOS.map((m) => {
       const actual = efectoDe(m.id, a, l.efectos);
+      const deSiempre = efectoDeSiempre(m.id, l.efectos);
       return `<li><label for="snd-${m.id}">${esc(m.nombre)}</label>
-        <span class="ps-elegir"><select id="snd-${m.id}" data-momento="${m.id}">${nombres.map((n) => `<option value="${esc(n)}"${n === actual ? ' selected' : ''}>${esc(n)}${n === m.efecto ? ' (el de siempre)' : ''}</option>`).join('')}</select>
+        <span class="ps-elegir"><select id="snd-${m.id}" data-momento="${m.id}">${nombres.map((n) => `<option value="${esc(n)}"${n === actual ? ' selected' : ''}>${esc(n)}${n === deSiempre ? ' (el de siempre)' : ''}</option>`).join('')}</select>
         <button type="button" class="boton-suave" data-oir="${m.id}" aria-label="Oír el sonido de «${esc(m.nombre)}»" title="Oírlo">▶</button></span></li>`;
     }).join('')}</ul>
     <div class="botones"><button type="submit" class="primario">Cerrar</button></div>
@@ -93,7 +94,7 @@ function abrirMomentos() {
     const s = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-momento]');
     if (!s) return;
     const m = s.dataset.momento as Momento;
-    const original = MOMENTOS.find((x) => x.id === m)!.efecto;
+    const original = efectoDeSiempre(m, l.efectos);
     const elegidos = { ...ajustes().elegidos };
     if (s.value === original) delete elegidos[m];
     else elegidos[m] = s.value;

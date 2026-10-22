@@ -11,6 +11,7 @@
 /** Los momentos del Studio que suenan, del más suave al más grande. */
 export const MOMENTOS = [
   { id: 'entendido', nombre: 'Marcar «Entendido» en una idea', efecto: 'acierto' },
+  { id: 'linea', nombre: 'Marcar leída una línea de «¿Dónde quedamos?»', efecto: 'mezclar-juego-duos' },
   { id: 'paso', nombre: 'Elegir una opción de un paso o marcarlo hecho', efecto: 'soltar' },
   { id: 'nota', nombre: 'Dejar una nota o una pregunta en el Buzón', efecto: 'turno-enviado' },
   { id: 'grabar-inicio', nombre: 'Empezar a grabar un audio', efecto: 'grabar-inicio' },
@@ -84,10 +85,24 @@ export function siguienteNota(previa: { parte: string; i: number } | null, parte
   return { parte, i, tono: ESCALA[i % ESCALA.length] };
 }
 
+/**
+ * Los momentos cuyo efecto de siempre se nombró como lo dijo el titular («el que dice mezclar el juego duos», nota de voz
+ * del 22 de octubre de 2026): si en este computador se llama un poco distinto, vale el que se le parece.
+ */
+const PARECIDOS: Partial<Record<Momento, RegExp>> = { linea: /mezcl.*duo|duo.*mezcl/ };
+
+/** El efecto de siempre de un momento en este computador: el suyo o, si no está, el que se le parece. */
+export function efectoDeSiempre(m: Momento, efectos: Record<string, string[]>): string {
+  const suyo = MOMENTOS.find((x) => x.id === m)!.efecto;
+  if (efectos[suyo]) return suyo;
+  const parecido = PARECIDOS[m];
+  return (parecido && Object.keys(efectos).sort().find((k) => parecido.test(k))) || suyo;
+}
+
 /** El efecto de cada momento: el elegido, si está en la lista; si no, el de siempre. */
 export function efectoDe(m: Momento, a: Ajustes, efectos: Record<string, string[]>): string {
   const elegido = a.elegidos[m];
-  return elegido && efectos[elegido] ? elegido : MOMENTOS.find((x) => x.id === m)!.efecto;
+  return elegido && efectos[elegido] ? elegido : efectoDeSiempre(m, efectos);
 }
 
 // —— Lo que suena (navegador) ——

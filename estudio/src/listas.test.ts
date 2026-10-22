@@ -37,7 +37,8 @@ describe('las listas no se pliegan solas al abrir algo (nota del titular, 22 de 
     const columna = director.slice(director.indexOf('function vistaDocumentos'), director.indexOf('if (!doc) return `<div class="docs">'));
     const plegables = columna.match(/<details/g) ?? [];
     expect(plegables.length).toBeGreaterThanOrEqual(2);
-    expect(columna.match(/<details class="[\w-]+"\$\{plegableEnColumna\(/g)?.length).toBe(plegables.length);
+    // Con su ancla, para que un paso lleve directo a ella
+    expect(columna.match(/<details class="[\w-]+" data-ancla="[^"]+"\$\{plegableEnColumna\(/g)?.length).toBe(plegables.length);
     expect(director).toMatch(/columna\.scrollTop = scrollColumna;/);
   });
 
@@ -54,7 +55,7 @@ describe('la columna de los documentos, con sus partes plegables a mano y las in
 
   it('«Otros documentos», «Después» y «Ya leídos» se pliegan a mano siempre, no solo mientras hay algo por leer', () => {
     expect(columna).not.toContain("${leyendo ? `<details class=\"otros-docs\"");
-    expect(columna).toContain('<details class="otros-docs"${plegableEnColumna(\'columna|otros\'');
+    expect(columna).toContain('<details class="otros-docs" data-ancla="d-otros"${plegableEnColumna(\'columna|otros\'');
     expect(columna).toMatch(/: propia \? `\$\{enRuta\.filter\(\(x\) => x\.lectura === 'siguiente'\)/);
   });
 

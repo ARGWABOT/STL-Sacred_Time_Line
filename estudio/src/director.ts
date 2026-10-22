@@ -946,9 +946,29 @@ function mostrarEntero(el: HTMLElement) {
   setTimeout(() => ir(false), 700);
 }
 
+/**
+ * Lo que un botón señala se ve: si es un plegable o está dentro de uno («Ya leído» de un documento, «Otros documentos»,
+ * «Completado»), se despliega, con cada plegable que lo contiene. Antes quedaba resaltado pero escondido (el titular
+ * llegó con un botón a una parte ya leída y vio el documento vacío, 22 de octubre de 2026).
+ */
+function abrirPlegados(el: HTMLElement) {
+  if (el instanceof HTMLDetailsElement) el.open = true;
+  for (let p = el.parentElement?.closest('details'); p; p = p.parentElement?.closest('details')) p.open = true;
+  // En la columna de los documentos, plegada a un lado, lo señalado no se vería: la columna se despliega
+  const docs = el.closest<HTMLElement>('.docs.sin-lista');
+  if (docs && el.closest('.lista-docs')) {
+    localStorage.setItem('estudio.docs.lista', 'abierta');
+    docs.classList.remove('sin-lista');
+  }
+}
+
 /** Muestra y resalta un elemento recién pintado (si es para escribir, lo deja listo). */
 function resaltar(el: HTMLElement | null | undefined) {
   if (!el) return;
+  abrirPlegados(el);
+  // La columna de los documentos tiene su propio scroll: se mueve hasta lo señalado
+  const columna = el.closest<HTMLElement>('.lista-docs');
+  if (columna && columna !== el) columna.scrollTop += desplazamientoParaVer(columna.getBoundingClientRect(), el.getBoundingClientRect());
   mostrarEntero(el);
   el.classList.remove('resaltado');
   el.style.animationDelay = '';
@@ -1498,6 +1518,8 @@ function tocarDq(dlg: HTMLElement, b: HTMLButtonElement, est: EstadoDq) {
   linea.leida = new Date().toISOString();
   guardarArchivoDq(est.proyecto, est.archivo);
   est.leidas++;
+  // Con su sonido, que se elige en «Sonidos» (nota de voz del titular, 22 de octubre de 2026)
+  sonar('linea');
   const { total } = est;
   const hito = est.leidas === total || est.leidas === Math.ceil(total / 2);
   const mover = () => {
@@ -2705,7 +2727,7 @@ function vistaDocumentos() {
   // Mientras lees, la columna muestra entero solo el que sigue: lo de después y lo ya leído, plegado en una línea
   // cada uno, para que la atención se quede en lo que toca ahora
   const plegado = (titulo: string, xs: typeof enRuta, abiertaAlNacer = false) => xs.length
-    ? `<details class="docs-plegados"${plegableEnColumna(`columna|${titulo}`, xs.map((x) => x.ruta), abiertaAlNacer)}><summary>${titulo} <span class="cifra">${xs.length}</span></summary>${xs.map((x) => `<button type="button" class="doc-l chico ${x.lectura}${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}"${x.lectura === 'despues' ? ' disabled aria-disabled="true" title="Se abre cuando termines el que sigue"' : ` title="${esc(tituloDoc(x.ruta))}"`}><b>${esc(tituloDoc(x.ruta))}</b></button>`).join('')}</details>`
+    ? `<details class="docs-plegados" data-ancla="${titulo === 'Después' ? 'd-despues' : 'd-leidos'}"${plegableEnColumna(`columna|${titulo}`, xs.map((x) => x.ruta), abiertaAlNacer)}><summary>${titulo} <span class="cifra">${xs.length}</span></summary>${xs.map((x) => `<button type="button" class="doc-l chico ${x.lectura}${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}"${x.lectura === 'despues' ? ' disabled aria-disabled="true" title="Se abre cuando termines el que sigue"' : ` title="${esc(tituloDoc(x.ruta))}"`}><b>${esc(tituloDoc(x.ruta))}</b></button>`).join('')}</details>`
     : '';
   // Lo de después y lo ya leído, siempre en su parte plegable: plegadas mientras hay algo por leer, abiertas al nacer si no
   const ordenLectura = !enRuta.length ? '<p class="intro">Tus misiones de ahora no piden documentos.</p>'
@@ -2716,9 +2738,9 @@ function vistaDocumentos() {
       <div class="cabeza-lista"><h3>${leyendo ? 'Tu misión actual' : 'Tu orden de lectura'} <small>· ${esc(nombrePersona(persona))}</small></h3>
         <button type="button" class="plegar-lista" data-plegar-lista aria-controls="lista-docs" title="Plegar la columna: el documento a todo el ancho" aria-label="Plegar la columna de los documentos">${icono('plegar')}</button></div>
       ${ordenLectura}
-      <details class="otros-docs"${plegableEnColumna('columna|otros', [...banco, ...otros].map((x) => x.ruta), !leyendo)}><summary>Otros documentos, para consultar</summary>
+      <details class="otros-docs" data-ancla="d-otros"${plegableEnColumna('columna|otros', [...banco, ...otros].map((x) => x.ruta), !leyendo)}><summary>Otros documentos, para consultar</summary>
       ${banco.length ? `<h3>Para consultar</h3>${banco.map((c) => `<button type="button" class="doc-l chico${doc?.ruta === c.ruta ? ' sel' : ''}" data-doc="${esc(c.ruta)}" title="${esc(c.porQue || c.titulo)}"><b>${esc(c.titulo)}</b><small>${esc(c.porQue)}</small></button>`).join('')}` : ''}
-      ${documentos ? `${delProyecto.length ? `<h3>Del proyecto</h3>${delProyecto.map(boton).join('')}` : ''}<h3>Del repositorio del proyecto</h3>${delRepo.map(boton).join('') || `<p class="intro">${d.repositorio.info ? (instrucciones.length ? 'El repositorio no tiene más documentación en .md.' : 'El repositorio no tiene archivos .md.') : 'Conecta el repositorio en Proyecto para leer y comentar sus documentos.'}</p>`}${instrucciones.length ? `<details class="instrucciones-agentes"${plegableEnColumna('columna|instrucciones', instrucciones.map((x) => x.ruta))}><summary>Instrucciones para los agentes <span class="cifra">${instrucciones.length}</span></summary>${instrucciones.map(boton).join('')}</details>` : ''}` : '<button type="button" data-cargar-docs>Ver todos</button>'}
+      ${documentos ? `${delProyecto.length ? `<h3>Del proyecto</h3>${delProyecto.map(boton).join('')}` : ''}<h3>Del repositorio del proyecto</h3>${delRepo.map(boton).join('') || `<p class="intro">${d.repositorio.info ? (instrucciones.length ? 'El repositorio no tiene más documentación en .md.' : 'El repositorio no tiene archivos .md.') : 'Conecta el repositorio en Proyecto para leer y comentar sus documentos.'}</p>`}${instrucciones.length ? `<details class="instrucciones-agentes" data-ancla="d-agentes"${plegableEnColumna('columna|instrucciones', instrucciones.map((x) => x.ruta))}><summary>Instrucciones para los agentes <span class="cifra">${instrucciones.length}</span></summary>${instrucciones.map(boton).join('')}</details>` : ''}` : '<button type="button" data-cargar-docs>Ver todos</button>'}
       <p class="como">La explicación del método y del Studio está en <button type="button" class="enlace" data-vista="stl">Qué es STL</button>.</p>
       </details>
     </aside>
@@ -2766,7 +2788,11 @@ function vistaDocumentos() {
       <h2>${esc(s.titulo)}</h2>
       <p class="como">${icono('candado')} Se abre al terminar «${esc(ahora!.titulo)}».</p>
     </section>`;
-  const partes = `${arriba.map((s) => (ahora && s !== ahora && s.titulo && paraLeer.has(s.titulo) && arriba.indexOf(s) > arriba.indexOf(ahora) ? cerrada(s) : parte(s))).join('')}${yaLeidas.length ? `<details class="ya-leido-doc"${plegable(`leido|${ruta}|${yaLeidas.length}`)}><summary>${icono('estrella')} Ya leído <span class="cifra">${yaLeidas.length}</span></summary>${yaLeidas.map(parte).join('')}</details>` : ''}`;
+  // Plegado, lo leído parecía un documento vacío: el rótulo dice que está ahí y cómo releerlo (nota de voz del titular,
+  // 22 de octubre de 2026)
+  const nLeidas = yaLeidas.length;
+  const ayudaLeido = `${ahora ? '' : 'Ya leíste todo el documento: '}${nLeidas === 1 ? 'la parte que leíste está aquí, plegada. Ábrela para releerla' : `las ${nLeidas} partes que leíste están aquí, plegadas. Ábrelas para releerlas`}.`;
+  const partes = `${arriba.map((s) => (ahora && s !== ahora && s.titulo && paraLeer.has(s.titulo) && arriba.indexOf(s) > arriba.indexOf(ahora) ? cerrada(s) : parte(s))).join('')}${nLeidas ? `<details class="ya-leido-doc"${plegable(`leido|${ruta}|${nLeidas}`)}><summary>${icono('estrella')} Ya leído <span class="cifra">${nLeidas}</span> <span class="ayuda-leido">${ayudaLeido}</span></summary>${yaLeidas.map(parte).join('')}</details>` : ''}`;
   return `<div class="docs${listaPlegada() ? ' sin-lista' : ''}">${lista}<article class="lector ${claseLector()}">${ajustesLector(ruta)}${partes}</article></div>`;
 }
 

@@ -709,6 +709,9 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .ya-leido-doc > summary { cursor: pointer; width: fit-content; display: inline-flex; gap: 6px; align-items: center; font-size: 14.5px; font-weight: 650; color: var(--suave); }
 .ya-leido-doc > summary .icono { width: 18px; height: 18px; fill: #e8b923; stroke: #c9a227; }
 .ya-leido-doc[open] > summary { margin-bottom: 12px; }
+/* Plegado, dice que lo leído está ahí y cómo releerlo; abierto, ya se ve */
+.ya-leido-doc > summary .ayuda-leido { font-weight: 400; }
+.ya-leido-doc[open] > summary .ayuda-leido { display: none; }
 .ya-leido-doc .parte-doc { opacity: 0.82; }
 /* El efecto al marcarla (director.ts › romperParte): se tacha, sus palabras se sueltan y caen, y la parte se cierra */
 .parte-doc.tachando-parte :is(p, li, h2, h3, td, th, blockquote) { text-decoration: line-through; text-decoration-color: var(--ok); text-decoration-thickness: 2px; color: var(--suave); transition: color 0.3s; }
