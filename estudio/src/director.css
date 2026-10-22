@@ -523,6 +523,13 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .punto-grabando { flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--peligro); animation: punto-g 1s ease-in-out infinite; }
 @keyframes punto-g { 0%, 100% { box-shadow: 0 0 0 0 rgba(179, 54, 47, 0.55); } 50% { box-shadow: 0 0 0 7px rgba(179, 54, 47, 0); opacity: 0.75; } }
 .grabando-texto { font-size: 15px; color: var(--peligro-texto); font-variant-numeric: tabular-nums; }
+/* Los controles de la grabación, en una sola fila: los botones nunca se parten ni bajan; si falta ancho, se acomoda el
+   texto (con el aviso del tope), y solo en una pantalla de verdad angosta la fila se parte */
+.fila-g { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; }
+.fila-g > :not(.grabando-texto) { flex: none; }
+.fila-g button { white-space: nowrap; }
+.fila-g .grabando-texto { flex: 0 1 auto; min-width: 0; }
+@media (max-width: 479px) { .fila-g { flex-wrap: wrap; justify-content: center; } }
 .nivel-voz { display: inline-flex; align-items: center; gap: 3px; height: 26px; }
 .nivel-voz i { width: 4px; border-radius: 2px; background: var(--peligro); height: calc(4px + var(--nivel, 0) * 18px); transition: height 0.08s linear; }
 .nivel-voz i:nth-child(2), .nivel-voz i:nth-child(4) { height: calc(4px + var(--nivel, 0) * 13px); }
@@ -531,9 +538,10 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 /* Mientras graba, el diálogo se hace a un lado: solo queda la pastilla de la grabación, abajo y al centro, grande, y la
    página se puede leer y recorrer (estudio/src/grabadora.ts) */
 dialog.a-un-lado { position: fixed; inset: auto; z-index: 90; width: 0; height: 0; margin: 0; padding: 0; border: 0; overflow: visible; background: none; box-shadow: none; visibility: hidden; }
-dialog.a-un-lado .grabadora { visibility: visible; position: fixed; left: calc(var(--lateral) + (100vw - var(--lateral)) / 2); bottom: 24px; transform: translateX(-50%); width: max-content; max-width: min(620px, calc(100vw - var(--lateral) - 48px)); padding: 10px 14px; gap: 12px; flex-wrap: wrap; justify-content: center; background: #fff7f6; border: 2px solid var(--peligro); border-radius: 18px; box-shadow: 0 0 0 4px rgba(179, 54, 47, 0.12), var(--sombra-alta); animation: pastilla-g 2s ease-in-out infinite; }
+dialog.a-un-lado .grabadora { visibility: visible; position: fixed; left: calc(var(--lateral) + (100vw - var(--lateral)) / 2); bottom: 24px; transform: translateX(-50%); width: max-content; max-width: calc(100vw - var(--lateral) - 48px); padding: 10px 14px; gap: 6px; flex-direction: column; flex-wrap: nowrap; align-items: center; justify-content: center; background: #fff7f6; border: 2px solid var(--peligro); border-radius: 18px; box-shadow: 0 0 0 4px rgba(179, 54, 47, 0.12), var(--sombra-alta); animation: pastilla-g 2s ease-in-out infinite; }
 @keyframes pastilla-g { 50% { box-shadow: 0 0 0 9px rgba(179, 54, 47, 0.08), var(--sombra-alta); } }
-dialog.a-un-lado .grabadora .ayuda-g { flex-basis: 100%; text-align: center; font-size: 12.5px; line-height: 1.35; }
+dialog.a-un-lado .grabadora .fila-g { gap: 12px; max-width: 100%; }
+dialog.a-un-lado .grabadora .ayuda-g { text-align: center; font-size: 12.5px; line-height: 1.35; }
 dialog.a-un-lado .grabadora button { min-height: 38px; }
 @media (max-width: 759px) { dialog.a-un-lado .grabadora { left: 50%; max-width: calc(100vw - 24px); bottom: 16px; } }
 .notas-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { antesDeCerrarConClicFuera, antesDeOtroSobre, modalDeArriba, ordenDeApertura, type EstadoGrabacion } from './grabadora';
 
@@ -133,5 +135,25 @@ describe('otro ✉ mientras se graba: nada grabado se pierde en silencio (nota d
       expect(frase).toMatch(/^Para no perder el audio que grabaste.*envíala o cancélala/);
       expect(frase.match(/[.!?](\s|$)/g)).toHaveLength(1);
     }
+  });
+});
+
+describe('la pastilla de la grabación toma el ancho de lo que lleva (nota de voz del titular, 22 de octubre de 2026)', () => {
+  const ts = readFileSync(join(__dirname, 'grabadora.ts'), 'utf-8');
+  const css = readFileSync(join(__dirname, 'director.css'), 'utf-8');
+
+  it('el punto, el tiempo, las ondas, «Detener y revisar» y «Enviar ya» van juntos en una sola fila', () => {
+    const fila = ts.slice(ts.indexOf('<span class="fila-g">'), ts.indexOf('<span class="ayuda-g">Puedes leer'));
+    for (const x of ['punto-grabando', 'grabando-texto', 'nivel-voz', 'data-g="parar"', 'data-g="enviar"']) expect(fila).toContain(x);
+    expect(css).toMatch(/\.fila-g \{[^}]*flex-wrap: nowrap/);
+    expect(css).toMatch(/\.fila-g button \{ white-space: nowrap; \}/);
+  });
+
+  it('sin un tope fijo de ancho: solo el de la pantalla, y la fila se parte solo en una de verdad angosta', () => {
+    const pastilla = css.match(/dialog\.a-un-lado \.grabadora \{[^}]*\}/)?.[0] ?? '';
+    expect(pastilla).toContain('width: max-content');
+    expect(pastilla).not.toContain('620px');
+    expect(pastilla).toContain('flex-direction: column');
+    expect(css).toMatch(/@media \(max-width: 479px\) \{ \.fila-g \{ flex-wrap: wrap;/);
   });
 });

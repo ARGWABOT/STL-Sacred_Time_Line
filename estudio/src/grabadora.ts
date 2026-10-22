@@ -237,11 +237,13 @@ export class Grabadora {
       const enDialogo = !!this.caja.closest('dialog');
       // En un formulario se elige: revisar antes (y añadir otro fragmento) o enviar de una vez
       const puedeEnviar = enDialogo && !!this.caja.closest('form');
-      this.caja.innerHTML = `<span class="punto-grabando" aria-hidden="true"></span>
+      // Los controles van juntos en una sola fila (fila-g): la pastilla toma el ancho de lo que lleva y nunca baja un
+      // botón a otro renglón; solo en una pantalla de verdad angosta la fila se parte (nota de voz del 22 de octubre)
+      this.caja.innerHTML = `<span class="fila-g"><span class="punto-grabando" aria-hidden="true"></span>
         <span class="grabando-texto" role="status"><b>Grabando${this.fragmentos > 1 ? ` el fragmento ${this.fragmentos}` : ''}</b> <span data-tiempo>${mmss(this.segundos)}</span> de ${mmss(MAX_SEGUNDOS)}<span class="aviso-tope" data-aviso-tope${MAX_SEGUNDOS - this.segundos > 60 ? ' hidden' : ''}> · queda menos de un minuto: a los ${mmss(MAX_SEGUNDOS)} se detiene, y lo demás va en otra nota</span></span>
         <span class="nivel-voz" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
         <button type="button" class="grabando" data-g="parar">■ ${puedeEnviar ? 'Detener y revisar' : 'Detener'}</button>
-        ${puedeEnviar ? '<button type="button" class="primario" data-g="enviar">✓ Enviar ya</button>' : ''}
+        ${puedeEnviar ? '<button type="button" class="primario" data-g="enviar">✓ Enviar ya</button>' : ''}</span>
         ${enDialogo ? '<span class="ayuda-g">Puedes leer y moverte por el Studio mientras hablas.</span>' : ''}`;
     } else if (this.blob) {
       const seguir = this.grabador?.state === 'paused' && this.segundos < MAX_SEGUNDOS;
