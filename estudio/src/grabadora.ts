@@ -102,14 +102,14 @@ export class Grabadora {
       // En un formulario se elige: revisar antes (y añadir otro fragmento) o enviar de una vez
       const puedeEnviar = enDialogo && !!this.caja.closest('form');
       this.caja.innerHTML = `<span class="punto-grabando" aria-hidden="true"></span>
-        <span class="grabando-texto" role="status"><b>Grabando${this.fragmentos > 1 ? ` el fragmento ${this.fragmentos}` : ''}</b> <span data-tiempo>${mmss(this.segundos)}</span></span>
+        <span class="grabando-texto" role="status"><b>Grabando${this.fragmentos > 1 ? ` el fragmento ${this.fragmentos}` : ''}</b> <span data-tiempo>${mmss(this.segundos)}</span> de ${mmss(MAX_SEGUNDOS)}<span class="aviso-tope" data-aviso-tope${MAX_SEGUNDOS - this.segundos > 60 ? ' hidden' : ''}> · queda menos de un minuto: a los ${mmss(MAX_SEGUNDOS)} se detiene, y lo demás va en otra nota</span></span>
         <span class="nivel-voz" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
         <button type="button" class="grabando" data-g="parar">■ ${puedeEnviar ? 'Detener y revisar' : 'Detener'}</button>
         ${puedeEnviar ? '<button type="button" class="primario" data-g="enviar">✓ Enviar ya</button>' : ''}
         ${enDialogo ? '<span class="ayuda-g">Puedes leer y moverte por el Studio mientras hablas.</span>' : ''}`;
     } else if (this.blob) {
       const seguir = this.grabador?.state === 'paused' && this.segundos < MAX_SEGUNDOS;
-      this.caja.innerHTML = `<p class="audio-listo">Audio listo (${mmss(this.segundos)}${this.fragmentos > 1 ? `, en ${this.fragmentos} fragmentos` : ''}). Al guardarlo, se transcribe solo, en tu computador.</p>
+      this.caja.innerHTML = `<p class="audio-listo">Audio listo (${mmss(this.segundos)}${this.fragmentos > 1 ? `, en ${this.fragmentos} fragmentos` : ''}).${this.segundos >= MAX_SEGUNDOS ? ` Se detuvo en el máximo de ${mmss(MAX_SEGUNDOS)}: lo que dijiste después no quedó grabado, cuéntalo en otra nota.` : ''} Al guardarlo, se transcribe solo, en tu computador.</p>
         <audio controls src="${URL.createObjectURL(this.blob)}"></audio>${seguir ? '<button type="button" class="grabar" data-g="seguir" title="Sigue grabando en el mismo audio, por si se te olvidó algo">＋ Añadir otro fragmento</button>' : ''}<button type="button" data-g="quitar">Quitar el audio</button>`;
     } else {
       this.caja.innerHTML = `<button type="button" class="grabar" data-g="grabar">● Grabar</button><span class="ayuda-g">${texto || 'Todavía no está grabando: oprime «Grabar» y habla.'}</span>`;
@@ -152,6 +152,9 @@ export class Grabadora {
       if (this.segundos >= MAX_SEGUNDOS) this.parar();
       const t = this.caja.querySelector('[data-tiempo]');
       if (t) t.textContent = mmss(this.segundos);
+      // En el último minuto avisa que llega el tope: nada se corta sin que lo sepas
+      const aviso = this.caja.querySelector<HTMLElement>('[data-aviso-tope]');
+      if (aviso) aviso.hidden = MAX_SEGUNDOS - this.segundos > 60;
     }, 250);
     this.pintar();
     this.medir();
