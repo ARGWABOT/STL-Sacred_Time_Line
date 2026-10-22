@@ -26,6 +26,9 @@ import {
   MAX_ESPERAR,
   opcionConDetalle,
   destinoDelPaso,
+  llevaAqui,
+  lugarDeMision,
+  aquiMismo,
   pedidoFueraDelStudio,
   encargoDe,
   pasoHecho,
@@ -671,6 +674,55 @@ describe('llevar de la mano', () => {
     const otro = { vista: 'proyecto' as const, ancla: 'p-objetivo', etiqueta: 'Ir' };
     expect(destinoDelPaso({ texto: 'Fija la meta', ir: otro })).toBe(otro);
     expect(destinoDelPaso('Un paso sin botón')).toBeUndefined();
+  });
+
+  it('un botón que deja a la persona donde ya está es una referencia circular: se dice en texto (nota de voz del titular, 22 de octubre)', () => {
+    // La captura del titular: la respuesta se lee en la misma parte a la que lleva su «Quedó en»
+    const parte = { vista: 'documentos' as const, doc: 'docs/director/informe.md', seccion: '3. Lo que escribes y dónde se guarda' };
+    const misma = { doc: 'docs/director/informe.md', seccion: '3. Lo que escribes y dónde se guarda', etiqueta: 'Ver la parte 3 del informe, corregida' };
+    expect(llevaAqui(misma, parte)).toBe(true);
+    expect(aquiMismo(misma)).toBe('en esta misma parte');
+    // Las marcas de Markdown no cuentan, como al comparar los títulos de las partes
+    expect(llevaAqui({ ...misma, seccion: '3. Lo que **escribes** y dónde se guarda' }, parte)).toBe(true);
+    // El documento entero, desde una de sus partes, también es aquí; otra parte u otro documento, no
+    expect(llevaAqui({ doc: parte.doc, etiqueta: 'El informe' }, parte)).toBe(true);
+    expect(aquiMismo({ doc: parte.doc, etiqueta: 'El informe' })).toBe('en este mismo documento');
+    expect(llevaAqui({ ...misma, seccion: '4. Lo que sigue' }, parte)).toBe(false);
+    expect(llevaAqui({ ...misma, doc: 'docs/director/ruta.md' }, parte)).toBe(false);
+    // Desde el Buzón, el mismo botón sí lleva a otra parte
+    expect(llevaAqui(misma, { vista: 'buzon' })).toBe(false);
+    // La misma vista con la misma ancla, o la vista entera, es aquí; nunca una página de afuera ni «Escribirle al director»
+    const tarjeta = lugarDeMision({ id: 't_meta' });
+    expect(llevaAqui({ vista: 'misiones', ancla: 'mision-t_meta', etiqueta: 'Abrir' }, tarjeta)).toBe(true);
+    expect(llevaAqui({ vista: 'misiones', etiqueta: 'Ir a Hoy' }, tarjeta)).toBe(true);
+    expect(aquiMismo({ vista: 'misiones', ancla: 'mision-t_meta', etiqueta: 'Abrir' })).toBe('en esta misma misión');
+    expect(llevaAqui({ vista: 'misiones', ancla: 'mision-otra', etiqueta: 'Otra' }, tarjeta)).toBe(false);
+    expect(llevaAqui({ vista: 'proyecto', ancla: 'p-objetivo', etiqueta: 'La meta' }, tarjeta)).toBe(false);
+    expect(llevaAqui({ url: 'https://ejemplo.co', etiqueta: 'Ver' }, tarjeta)).toBe(false);
+    expect(llevaAqui({ vista: 'buzon', ancla: 'escribir', etiqueta: 'Escribirle' }, { vista: 'buzon' })).toBe(false);
+    expect(llevaAqui({ vista: 'ruta', fase: 'mvp', ancla: 'puerta', etiqueta: 'La puerta' }, { vista: 'ruta', fase: 'beta' })).toBe(false);
+    expect(llevaAqui({ vista: 'propuestas', ancla: 'propuesta-pr_a', etiqueta: 'Ver' }, { vista: 'propuestas', ancla: 'propuesta-pr_a' })).toBe(true);
+    expect(aquiMismo({ vista: 'propuestas', ancla: 'propuesta-pr_a', etiqueta: 'Ver' })).toBe('en esta misma propuesta');
+    expect(aquiMismo({ vista: 'preguntas', etiqueta: 'Tus preguntas' })).toBe('en esta misma sección');
+  });
+
+  it('el botón de un paso que lleva a su propia misión no se da, y validarPlan lo avisa para que el director lo corrija', () => {
+    const propio = { texto: 'Abre esta misión con el botón de este paso', ir: { vista: 'misiones' as const, ancla: 'mision-t_meta', etiqueta: 'Abrir la misión' } };
+    expect(destinoDelPaso(propio)).toBe(propio.ir);
+    expect(destinoDelPaso(propio, { id: 't_meta' })).toBeUndefined();
+    // A otro lugar, sigue igual; y uno que se cumple al cruzar una puerta lleva a la puerta, no a su misión
+    const otro = { texto: 'Fija la meta', ir: { vista: 'proyecto' as const, ancla: 'p-objetivo', etiqueta: 'Ir' } };
+    expect(destinoDelPaso(otro, { id: 't_meta' })).toBe(otro.ir);
+    expect(destinoDelPaso({ ...propio, hecho: { que: 'puerta', id: 'mvp' } }, { id: 't_meta' })).toMatchObject({ vista: 'ruta', fase: 'mvp' });
+    const p = planEjemplo();
+    const mision = (paso: Paso): Mision => ({ id: 't_meta', para: 'titular', fase: 'arranque', frente: 'direccion', xp: 20, titulo: 'La meta', porQue: 'Para la ruta', pasos: [paso], entrega: 'La meta' });
+    const con = (paso: Paso) => validarPlan({ ...p, misiones: [...p.misiones, mision(paso)] }, ['titular', 'ana']);
+    const errores = con(propio);
+    expect(errores).toHaveLength(1);
+    expect(errores[0]).toMatch(/lleva a su propia misión/);
+    expect(con({ ...propio, ir: { vista: 'misiones', etiqueta: 'Ir a Hoy' } })).toHaveLength(1);
+    expect(con(otro)).toEqual([]);
+    expect(con({ ...propio, ir: { vista: 'misiones', ancla: 'mision-t_diag', etiqueta: 'La otra' } })).toEqual([]);
   });
 
   it('la bandeja recuerda lo que el director pidió hacer fuera del Studio en las misiones aprobadas recientes, con lo elegido', () => {

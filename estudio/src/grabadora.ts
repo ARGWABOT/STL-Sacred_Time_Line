@@ -12,6 +12,11 @@
 // A uno se le olvida decir algo: después de detener, «Añadir otro fragmento» sigue grabando en el mismo audio. Para que
 // quede un solo archivo válido, se graba lo que llega a un destino de audio propio (no el micrófono directo): al detener,
 // la grabación se pausa y el micrófono se suelta; al añadir, se pide otra vez y se reanuda. Se cierra al enviar.
+//
+// Nada grabado se pierde en silencio y el micrófono nunca queda encendido: el diálogo que graba no se rehace mientras
+// sigue abierto (antesDeOtroSobre) ni se cierra con un clic fuera mientras tenga un audio sin enviar
+// (antesDeCerrarConClicFuera), y la grabadora que se deja de usar apaga cada pista del micrófono, también la de un
+// permiso que llega tarde.
 import { grabando, sonar } from './sonidos';
 
 const TIPOS = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
@@ -157,6 +162,34 @@ function aUnLado(caja: HTMLElement, si: boolean) {
   caja.querySelector<HTMLElement>('[data-g]')?.focus();
 }
 
+/** Lo que tiene la grabadora de un diálogo: nada, una grabación en curso o un audio grabado que todavía no se envía. */
+export type EstadoGrabacion = 'sin_audio' | 'grabando' | 'audio_listo';
+
+/**
+ * Si se puede rehacer un diálogo para abrir otro ✉ en él (el que le escribe al director es uno solo y se rehace cada vez
+ * que se abre: director.ts › pedir). Cerrado, sí: null. Abierto, nunca: rehacerlo borraba lo que se estaba grabando y
+ * dejaba el micrófono encendido (nota de voz del titular del 22 de octubre de 2026). Desde la página solo se llega a
+ * otro ✉ mientras graba a un lado (si no, es modal y lo demás no tiene clics). Queda como está, y la frase que devuelve
+ * le dice a la persona qué pasó y qué hacer.
+ */
+export function antesDeOtroSobre(abierto: boolean, estado: EstadoGrabacion): string | null {
+  if (!abierto) return null;
+  if (estado === 'grabando') return 'Para no perder lo que estás grabando, no se abrió nada más: envía esta nota («Enviar ya») o detenla («Detener y revisar») y vuelve a intentarlo.';
+  return `Para no perder ${estado === 'audio_listo' ? 'el audio que grabaste' : 'lo que tienes abierto'}, no se abrió nada más: envía esta nota o cancélala y vuelve a intentarlo.`;
+}
+
+/**
+ * Si un clic fuera, en el fondo, puede cerrar el diálogo de una grabadora (modal.ts › cerrarConClicFuera, que solo mira
+ * lo escrito): sin audio, sí (null). Con un audio grabado sin enviar, no: se perdería sin aviso, y ese es el clic de quien
+ * detuvo la grabación («Detener y revisar») y busca otro ✉ en la página. La frase dice qué pasó y qué hacer.
+ */
+export function antesDeCerrarConClicFuera(estado: EstadoGrabacion): string | null {
+  return estado === 'sin_audio' ? null : 'Para no perder el audio que grabaste, esta nota sigue abierta: primero envíala o cancélala.';
+}
+
+/** Apaga cada pista del micrófono: el navegador deja de usarlo (y de mostrar que lo usa). */
+const apagar = (flujo: MediaStream) => flujo.getTracks().forEach((t) => t.stop());
+
 export class Grabadora {
   private grabador: MediaRecorder | null = null;
   private trozos: Blob[] = [];
@@ -167,13 +200,34 @@ export class Grabadora {
   private previos = 0;
   private fragmentos = 0;
   private enviarAlTerminar = false;
-  /** El micrófono del fragmento en curso, conectado al destino que se graba. */
-  private mic: { flujo: MediaStream; fuente: MediaStreamAudioSourceNode } | null = null;
+  /** Ya no se usa (se cerró o se rehízo su diálogo): un permiso del micrófono que llegue tarde no la pone a grabar. */
+  private terminada = false;
+  /** El micrófono del fragmento en curso, conectado al destino que se graba (la fuente, desde que se conecta). */
+  private mic: { flujo: MediaStream; fuente: MediaStreamAudioSourceNode | null } | null = null;
   private audio: { ctx: AudioContext; destino: MediaStreamAudioDestinationNode; an: AnalyserNode; datos: Uint8Array<ArrayBuffer>; cuadro: number } | null = null;
   blob: Blob | null = null;
 
   constructor(private readonly caja: HTMLElement) {
     this.pintar();
+  }
+
+  /** Lo que se perdería si se rehiciera su diálogo (antesDeOtroSobre). */
+  get estado(): EstadoGrabacion {
+    if (this.grabador?.state === 'recording') return 'grabando';
+    return this.grabador || this.blob?.size ? 'audio_listo' : 'sin_audio';
+  }
+
+  /**
+   * Dice algo en la grabación misma, que siempre está a la vista (a un lado, en su pastilla): en el lugar de su ayuda,
+   * hasta que cambie lo que muestra, y con el foco en su primer botón (nunca en «Quitar el audio»: un Enter de más lo
+   * borraría).
+   */
+  avisar(texto: string) {
+    this.caja.querySelector('.ayuda-g:not(.esperando-mic)')?.remove();
+    const aviso = Object.assign(document.createElement('span'), { className: 'ayuda-g aviso-g', textContent: texto });
+    aviso.setAttribute('role', 'alert');
+    this.caja.append(aviso);
+    this.caja.querySelector<HTMLElement>('[data-g]:not([data-g="quitar"])')?.focus();
   }
 
   private pintar(texto = '') {
@@ -216,16 +270,27 @@ export class Grabadora {
     // Suena antes de abrir el micrófono; desde ahí, nada suena (ni la música) hasta soltarlo, para que no quede grabado
     sonar('grabar-inicio');
     const flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Se dejó de usar mientras el navegador pedía el permiso (se cerró su diálogo): no graba, y el micrófono se apaga ya
+    if (this.terminada) return apagar(flujo);
+    const mic: { flujo: MediaStream; fuente: MediaStreamAudioSourceNode | null } = { flujo, fuente: null };
+    this.mic = mic;
     grabando(true);
-    if (!sigue) this.armar();
-    const a = this.audio!;
-    const fuente = a.ctx.createMediaStreamSource(flujo);
-    fuente.connect(a.destino);
-    fuente.connect(a.an);
-    this.mic = { flujo, fuente };
-    if (a.ctx.state === 'suspended') await a.ctx.resume();
-    if (sigue) this.grabador!.resume();
-    else this.grabador!.start(1000);
+    try {
+      if (!sigue) this.armar();
+      const a = this.audio!;
+      mic.fuente = a.ctx.createMediaStreamSource(flujo);
+      mic.fuente.connect(a.destino);
+      mic.fuente.connect(a.an);
+      if (a.ctx.state === 'suspended') await a.ctx.resume();
+      // Lo mismo si se dejó de usar mientras despertaba el audio: no empieza, y lo armado se deshace
+      if (this.terminada) return this.descartar();
+      if (sigue) this.grabador!.resume();
+      else this.grabador!.start(1000);
+    } catch (err) {
+      // Lo que falle con el micrófono ya abierto no lo deja encendido
+      this.soltarMic();
+      throw err;
+    }
     this.fragmentos++;
     this.inicio = Date.now();
     this.segundos = this.previos;
@@ -288,8 +353,8 @@ export class Grabadora {
     if (this.audio) cancelAnimationFrame(this.audio.cuadro);
     this.caja.style.removeProperty('--nivel');
     if (!this.mic) return;
-    this.mic.fuente.disconnect();
-    this.mic.flujo.getTracks().forEach((t) => t.stop());
+    this.mic.fuente?.disconnect();
+    apagar(this.mic.flujo);
     this.mic = null;
     grabando(false);
     sonar('grabar-parar');
@@ -340,14 +405,20 @@ export class Grabadora {
     this.pintar();
   }
 
-  /** ¿Sigue grabando, o en pausa entre fragmentos? Se cierra (al enviar, o al cerrar el diálogo) y queda el audio. */
+  /**
+   * Se deja de usar (se cierra o se rehace su diálogo): si sigue grabando, o en pausa entre fragmentos, se cierra y queda
+   * el audio; y el micrófono se apaga siempre, también el que llegue después con el permiso.
+   */
   async terminar(): Promise<void> {
+    this.terminada = true;
+    this.soltarMic();
     await this.cerrar();
   }
 
   /** El audio como data URL (sin el parámetro de códec, que el servidor no necesita), o null si no hay. */
   async datos(): Promise<string | null> {
-    await this.terminar();
+    // Se cierra la grabación, no la grabadora: si el envío no sigue (falta algo), se puede volver a grabar
+    await this.cerrar();
     if (!this.blob?.size) return null;
     const url = await new Promise<string>((ok, mal) => {
       const lector = new FileReader();

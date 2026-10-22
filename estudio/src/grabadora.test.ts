@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { modalDeArriba, ordenDeApertura } from './grabadora';
+import { antesDeCerrarConClicFuera, antesDeOtroSobre, modalDeArriba, ordenDeApertura, type EstadoGrabacion } from './grabadora';
 
 /** Un diálogo de mentira: solo lo que miran modalDeArriba y ordenDeApertura (si está abierto, si es modal, qué lleva). */
 const dialogo = (modal = false, dentro: unknown[] = []) => {
@@ -96,5 +96,42 @@ describe('el orden en que se abren los diálogos: el último que se abrió queda
     const detalles = Object.assign(dialogo(), { nodeName: 'DETAILS' });
     expect(ordenDeApertura([a], [abrio(detalles)])).toEqual([a]);
     expect(ordenDeApertura([a], [{ target: dialogo(true), attributeName: null, oldValue: null }])).toEqual([a]);
+  });
+});
+
+describe('otro ✉ mientras se graba: nada grabado se pierde en silencio (nota de voz del titular, 22 de octubre de 2026)', () => {
+  const estados: EstadoGrabacion[] = ['sin_audio', 'grabando', 'audio_listo'];
+
+  it('con el ✉ cerrado, el otro se abre: no hay nada que perder', () => {
+    for (const e of estados) expect(antesDeOtroSobre(false, e)).toBeNull();
+  });
+
+  it('abierto, nunca se rehace encima, tenga lo que tenga', () => {
+    for (const e of estados) expect(antesDeOtroSobre(true, e)).toMatch(/no se abrió nada más/);
+  });
+
+  it('grabando a un lado, la frase nombra los dos botones de su pastilla para seguir', () => {
+    const frase = antesDeOtroSobre(true, 'grabando')!;
+    expect(frase).toMatch(/^Para no perder lo que estás grabando/);
+    expect(frase).toContain('«Enviar ya»');
+    expect(frase).toContain('«Detener y revisar»');
+  });
+
+  it('con un audio grabado sin enviar, primero se envía o se cancela', () => {
+    expect(antesDeOtroSobre(true, 'audio_listo')).toMatch(/^Para no perder el audio que grabaste.*envía esta nota o cancélala/);
+    expect(antesDeOtroSobre(true, 'sin_audio')).toMatch(/^Para no perder lo que tienes abierto/);
+  });
+
+  it('la persona ve qué pasó en una sola frase', () => {
+    for (const e of estados) expect(antesDeOtroSobre(true, e)!.match(/[.!?](\s|$)/g)).toHaveLength(1);
+  });
+
+  it('detenida, un clic fuera (el que busca el otro ✉) no cierra la nota con su audio: lo dice en una frase', () => {
+    expect(antesDeCerrarConClicFuera('sin_audio')).toBeNull();
+    for (const e of ['audio_listo', 'grabando'] as const) {
+      const frase = antesDeCerrarConClicFuera(e)!;
+      expect(frase).toMatch(/^Para no perder el audio que grabaste.*envíala o cancélala/);
+      expect(frase.match(/[.!?](\s|$)/g)).toHaveLength(1);
+    }
   });
 });

@@ -9,6 +9,7 @@
 import { marked } from 'marked';
 import {
   aclaracionesDe,
+  aquiMismo,
   avanceFase,
   bloqueosPuerta,
   claveIdea,
@@ -25,6 +26,7 @@ import {
   esImagen,
   esPregunta,
   hilosDePreguntas,
+  llevaAqui,
   raizDePregunta,
   estadoIdeas,
   estadoMision,
@@ -64,6 +66,7 @@ import {
   type EstadoMision,
   type EtapaArranque,
   type Fase,
+  type Lugar,
   type Mision,
   type Nivel,
   type Nota,
@@ -85,10 +88,11 @@ import { icono, type Icono } from './iconos';
 import { pedirProyectoNuevo } from './nuevo_proyecto';
 import { cerrarConClicFuera, confirmar } from './modal';
 import { abrirPreguntas } from './preguntas';
-import { Grabadora } from './grabadora';
+import { antesDeCerrarConClicFuera, antesDeOtroSobre, Grabadora } from './grabadora';
 import { Adjuntos } from './adjuntos';
 import { activarRecorrido, paginaSTL, restaurarParada } from './stl';
 import { clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
+import { abiertaEnLista, desplazamientoParaVer } from './listas';
 import { marcarTrabajando, pantallaTrabajando, trabajandoGuardado, tituloTermino } from './trabajando';
 import { sonar } from './sonidos';
 import { botonSonido } from './panelSonidos';
@@ -180,6 +184,8 @@ interface Datos {
     limites: { cincoHoras: { uso: number; renueva: string | null } | null; semana: { uso: number; renueva: string | null } | null } | null;
     /** Lo que se le negó en ese lanzamiento: las herramientas y órdenes que sus permisos no le dejaron. */
     negados?: string[];
+    /** Cada modelo con que trabajó, lo que gastó y, si no es el principal, para qué se usó (revisor.ts › modelosDe). */
+    modelos?: { modelo: string; principal: boolean; entrada: number; cache: number; salida: number; costo?: number; para?: string[] }[];
   }[];
   /**
    * Lo que va haciendo el director que lanzó el Studio, mientras revisa (estudio/servidor/revisor.ts › progresoDe), con
@@ -356,6 +362,10 @@ async function cargar(fresco = false) {
     consulta = null;
     celda = null;
     busquedaBuzon = '';
+    // La columna de los documentos vuelve arriba. El repintado toma su scroll de la que está en pantalla, que es la del
+    // anterior: también esa vuelve arriba (si no, el proyecto nuevo heredaba hasta dónde bajaste en el otro)
+    scrollColumna = 0;
+    $('vista').querySelector<HTMLElement>('.lista-docs')?.scrollTo(0, 0);
   }
   // Si no llegó nada nuevo, no se repinta (no se pierde la lectura ni lo que suena): solo la hora de la sincronización
   const huella = (x: Datos) => JSON.stringify([x.activo, x.proyectos, x.plan, x.estado, x.transcripciones, x.transcribiendo, x.sinTranscribir, x.identidad, x.errores, x.proyecto, x.repositorio, x.arranque, x.revision, x.aclaracion, x.urgencia]);
@@ -767,9 +777,11 @@ function pistaYaLoDije(sobre: Nota['sobre'] | undefined): string {
   const p = m?.pasos[i];
   if (!m || !p || typeof p === 'string' || !p.opciones?.length || d.identidad.rol !== m.para) return '';
   if (eleccionDe(d.estado.notas, m.id, i, m.para) || pasosHechos(m.id).includes(i)) return '';
-  // Las mismas condiciones que `opcionesPaso`: el botón no se usa antes de abrir el paso ni mientras corre su cuenta
-  const cuando = p.ir && !pasoAbierto(m.id, i) ? ` cuando oprimas «${p.ir.etiqueta}»,`
-    : p.esperar && !p.ir && inicioEspera(`${m.id}|${i}`) + p.esperar * 1000 > Date.now() ? ' al terminar la cuenta,' : '';
+  // Las mismas condiciones que `opcionesPaso`: el botón no se usa antes de abrir el paso ni mientras corre su cuenta (y
+  // el que llevaría a su propia misión no se dibuja: no hay que oprimirlo)
+  const ir = destinoDelPaso(p, m);
+  const cuando = ir && !pasoAbierto(m.id, i) ? ` cuando oprimas «${ir.etiqueta}»,`
+    : p.esperar && !ir && inicioEspera(`${m.id}|${i}`) + p.esperar * 1000 > Date.now() ? ' al terminar la cuenta,' : '';
   return ` Si con eso respondiste el paso,${cuando} márcalo con «${YA_LO_DIJE}».`;
 }
 
@@ -997,8 +1009,32 @@ function confirmarUrgencia() {
   });
 }
 
+/** La grabadora del ✉ abierto (pedir), para saber qué se perdería si se rehiciera encima. */
+let grabadoraDelSobre: Grabadora | null = null;
+// Un clic fuera, en el fondo, cierra el ✉ si no tiene nada escrito (modal.ts › cerrarConClicFuera): con un audio grabado
+// sin enviar no le llega, porque se perdería sin aviso, y la grabación dice qué hacer. Solo si el clic empezó afuera
+let abajoDelSobre: EventTarget | null = null;
+$('dialogo').addEventListener('pointerdown', (e) => (abajoDelSobre = e.target));
+$('dialogo').addEventListener('click', (e) => {
+  const dlg = e.currentTarget as HTMLDialogElement;
+  const g = grabadoraDelSobre;
+  if (!g || !dlg.open || e.target !== dlg || abajoDelSobre !== dlg) return;
+  const aviso = antesDeCerrarConClicFuera(g.estado);
+  if (!aviso) return;
+  e.stopPropagation();
+  g.avisar(aviso);
+});
+
 function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: string; audio?: boolean; vacioVale?: boolean; adjuntos?: boolean; urgente?: boolean }): Promise<(Record<string, string> & { audio?: string; adjuntos?: { nombre: string; datos: string }[] }) | null> {
   const dlg = $('dialogo') as HTMLDialogElement;
+  // El ✉ es uno solo: si sigue abierto (graba a un lado y la página quedó con clics), no se rehace encima de lo grabado.
+  // Queda como está y la persona lee por qué en su pastilla, que siempre está a la vista (grabadora.ts › antesDeOtroSobre)
+  const ocupado = antesDeOtroSobre(dlg.open, grabadoraDelSobre?.estado ?? 'sin_audio');
+  if (ocupado) {
+    if (grabadoraDelSobre) grabadoraDelSobre.avisar(ocupado);
+    else avisar(ocupado);
+    return Promise.resolve(null);
+  }
   dlg.innerHTML = `<form method="dialog">
     <header class="cabeza-dialogo">${o.urgente ? `<div class="titulo-con-urgente"><h2>${esc(o.titulo)}</h2>${botonUrgente()}</div>` : `<h2>${esc(o.titulo)}</h2>`}${o.ayuda ? `<p>${o.ayuda}</p>` : ''}</header>
     ${o.campos
@@ -1018,7 +1054,7 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
     ${o.urgente ? campoUrgente() : ''}
     <div class="botones"><button type="button" data-cancelar>Cancelar</button><button type="submit" class="primario">${esc(o.boton)}</button></div>
   </form>`;
-  const grabadora = o.audio ? new Grabadora(dlg.querySelector('[data-grabadora]') as HTMLElement) : null;
+  const grabadora = (grabadoraDelSobre = o.audio ? new Grabadora(dlg.querySelector('[data-grabadora]') as HTMLElement) : null);
   const adjuntos = o.adjuntos ? new Adjuntos(dlg.querySelector('[data-adjuntos]') as HTMLElement, dlg.querySelector('form')!, (t) => avisar(t)) : null;
   return new Promise((ok) => {
     const form = dlg.querySelector('form')!;
@@ -2041,7 +2077,8 @@ function listaPasos(m: Mision) {
 
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}${conCasillas ? ' con-marca' : ''}"><span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && destinoDelPaso(p) ? irDelPaso(m, i, destinoDelPaso(p)!, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, p.ir) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas ? `<div class="pie-paso">${hechos.has(i) ? '' : aclararPaso(m, i)}${marcaPaso(m, i, p, hechos.has(i))}</div>` : ''}</li>`).join('')}</ol>`;
+  // El botón de un paso que lleva a su propia misión no se dibuja (`destinoDelPaso` con la misión): ya estás en ella
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}${conCasillas ? ' con-marca' : ''}"><span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && destinoDelPaso(p, m) ? irDelPaso(m, i, destinoDelPaso(p, m)!, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, destinoDelPaso(p, m)) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas ? `<div class="pie-paso">${hechos.has(i) ? '' : aclararPaso(m, i)}${marcaPaso(m, i, p, hechos.has(i))}</div>` : ''}</li>`).join('')}</ol>`;
 }
 
 /**
@@ -2296,7 +2333,7 @@ function puedoTrabajar() {
           ${x ? '' : '<p><button type="button" data-nueva-excepcion>Si de verdad hace falta: registrar la excepción con su razón</button></p>'}</div>`;
   }
   // Plegado: es para cuando hace falta, no algo que se lee cada día
-  return `<details class="puedo panel-d"${consulta ? ' open' : ''}><summary><h3>¿Quieres trabajar en otra cosa? Pregúntale al director</h3></summary>
+  return `<details class="puedo panel-d"${consulta ? ' data-recuerda="puedo" open' : plegable('puedo')}><summary><h3>¿Quieres trabajar en otra cosa? Pregúntale al director</h3></summary>
     <label class="campo-puedo">Quiero trabajar en
       <select data-consulta><option value="">Elige un frente…</option>${d.plan.frentes.map((x) => `<option value="${esc(x.id)}"${x.id === consulta ? ' selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select></label>
     ${respuesta}
@@ -2360,8 +2397,9 @@ document.addEventListener('toggle', (e) => {
 }, true);
 
 /**
- * Los plegables que quien mira abrió o cerró a mano («N ideas entendidas», «Ya leído», «Completado»), por su clave
- * (`data-recuerda`). El Studio se repinta solo cuando algo cambia (una transcripción que termina, una nota que llega), y
+ * Los plegables que quien mira abrió o cerró a mano («N ideas entendidas», «Ya leído», «Completado», las partes de la
+ * columna de los documentos y los paneles que explican o se consultan, como «¿Qué es el Buzón del director?»), por su
+ * clave (`data-recuerda`). Ninguno se pliega solo (nota del titular, 22 de octubre de 2026). El Studio se repinta solo cuando algo cambia (una transcripción que termina, una nota que llega), y
  * sin esto cada repintado los devolvería a como nacen: se cerraban solos a los pocos segundos de abrirlos.
  */
 const plegadosAMano = new Map<string, boolean>();
@@ -2372,21 +2410,31 @@ document.addEventListener('toggle', (e) => {
 /** El atributo de un plegable que recuerda si quien mira lo abrió: `porDefecto`, mientras no lo haya tocado. */
 const plegable = (clave: string, porDefecto = false) => ` data-recuerda="${esc(clave)}"${plegadosAMano.get(clave) ?? porDefecto ? ' open' : ''}`;
 
-/** Dónde quedó lo que dijo la nota (la misión, la propuesta, la fase o la parte de un documento), con su botón: para comprobarlo de un vistazo. */
-const quedoEn = (r: Respuesta) => (r.destino ? `<p class="quedo-en">Quedó en: ${botonIr(r.destino, 'enlace')}</p>` : '');
+/**
+ * Dónde quedó lo que dijo la nota (la misión, la propuesta, la fase o la parte de un documento), con su botón: para
+ * comprobarlo de un vistazo. Si es el mismo lugar donde se lee la respuesta (`aqui`), se dice sin botón: uno que te deja
+ * donde ya estás confunde (nota de voz del titular, 22 de octubre).
+ */
+const quedoEn = (r: Respuesta, aqui?: Lugar) => (!r.destino ? ''
+  : aqui && llevaAqui(r.destino, aqui) ? `<p class="quedo-en">Quedó aquí, ${aquiMismo(r.destino)}.</p>`
+  : `<p class="quedo-en">Quedó en: ${botonIr(r.destino, 'enlace')}</p>`);
+
+/** La parte de un documento como lugar: ahí se leen las notas sobre ella, sobre sus ideas y sobre sus decisiones. */
+const enParte = (ruta: string, seccion: string): Lugar => ({ vista: 'documentos', doc: ruta, seccion });
 
 /**
  * `plegada`: en el Buzón cada nota se ve en una línea y se despliega la que se quiera revisar (sin scroll de más).
  * `enRespuesta`: lo buscado está en lo que respondió el director, no en la línea que se ve: la línea lo dice.
+ * `aqui`: dónde se ve la nota (el Buzón, la parte de un documento, una propuesta), para no ofrecer un «Quedó en» a ese mismo lugar.
  */
-function tarjetaNota(n: Nota, conSobre = true, plegada = false, enRespuesta = false) {
+function tarjetaNota(n: Nota, conSobre = true, plegada = false, enRespuesta = false, aqui?: Lugar) {
   const r = d.plan.respuestas[n.id];
   const mia = n.de === d.identidad.rol;
   const puedeBorrar = !r && (titular() || mia);
   const urgente = n.urgente ? `<p class="urgente-n">${icono('urgente')}<span><b>Urgente</b>${typeof n.urgente === 'string' ? `: ${esc(n.urgente)}` : ''}</span></p>` : '';
   const botones = `${!r && mia && corregible(n) ? `<button type="button" data-editar-nota="${esc(n.id)}">Corregir</button>` : ''}${puedeBorrar ? `<button type="button" data-borrar-nota="${esc(n.id)}">Borrar</button>` : ''}`;
   const cuerpo = `${n.texto ? `<p>${esc(n.texto)}</p>` : ''}${audioYTexto(n.audio)}${adjuntosDeNota(n)}
-    ${r ? `<div class="respuesta-dir"><b>El director (${momento(r.cuando)}):</b>${r.tratamiento ? ` <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''} ${esc(r.texto)}${quedoEn(r)}</div>` : '<p class="esperando">Esperando al director. Hasta que lo lea, puedes corregirla o borrarla.</p>'}`;
+    ${r ? `<div class="respuesta-dir"><b>El director (${momento(r.cuando)}):</b>${r.tratamiento ? ` <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''} ${esc(r.texto)}${quedoEn(r, aqui)}</div>` : '<p class="esperando">Esperando al director. Hasta que lo lea, puedes corregirla o borrarla.</p>'}`;
   if (plegada) {
     return `<li class="nota-d plegable${r ? ' respondida' : ''}"><details data-nota="${esc(n.id)}"${notasAbiertas.has(n.id) ? ' open' : ''}>
       <summary>${n.urgente ? `<span class="urgente-s" title="Urgente">${icono('urgente')}</span>` : ''}<span class="asunto">${esc(asuntoDe(n))}</span><span class="como">${esc(n.quien)} · ${momento(n.cuando)}${conSobre ? ` · sobre ${sobreDe(n)}` : ''}${r?.tratamiento ? ` · <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}${enRespuesta ? ' · <span class="hallado-en">está en la respuesta del director</span>' : ''}</span></summary>
@@ -2405,7 +2453,7 @@ function tarjetaNota(n: Nota, conSobre = true, plegada = false, enRespuesta = fa
  * propio: se le escribe desde el comentario junto a su cara, o con «Comentar al director» en cada cosa.
  */
 function vistaBuzon() {
-  return `<details class="explica-buzon panel-d">
+  return `<details class="explica-buzon panel-d"${plegable('explica-buzon')}>
       <summary>¿Qué es el Buzón del director?</summary>
       <p>Es donde llega <b>todo lo que le dicen al director</b>: el comentario junto a la cara del director (su globo, «Comentario») y cada <span class="al-director-chip">✉ Comentar al director</span> de las misiones, las propuestas, los criterios, el diagnóstico y las partes de los documentos.</p>
       <p><b>Piensa, corrige y luego envía:</b> lo que dejas espera, y lo puedes corregir o borrar. El director solo lo lee cuando se pide la revisión (<b>«Pedir revisión»</b>, arriba): entonces transcribe los audios, lee todo junto, responde en cada nota y, si hace falta, cambia la ruta o las misiones.</p>
@@ -2434,23 +2482,24 @@ function textosDeNota(n: Nota, conRespuesta = true) {
  */
 function notasDelBuzon() {
   const notas = [...d.estado.notas].reverse().filter((n) => seVe(n.de) && !esPregunta(n));
+  const aqui: Lugar = { vista: 'buzon' };
   if (palabrasDeBusqueda(busquedaBuzon).length) {
     const halladas = notas.filter((n) => coincideBusqueda(textosDeNota(n), busquedaBuzon));
     const enPreguntas = d.estado.notas.filter((n) => seVe(n.de) && esPregunta(n) && coincideBusqueda(textosDeNota(n), busquedaBuzon)).length;
     const tambien = enPreguntas ? ` ${enPreguntas === 1 ? 'Hay una' : `Hay ${enPreguntas}`} en <button type="button" class="enlace" data-vista="preguntas">Preguntas</button>, que van aparte.` : '';
     return `<h3>Lo que encontré <small>· ${halladas.length}</small></h3>
       ${halladas.length
-        ? `${tambien ? `<p class="como">${tambien.trim()}</p>` : ''}<ul class="notas-lista">${halladas.map((n) => tarjetaNota(n, true, true, !coincideBusqueda(textosDeNota(n, false), busquedaBuzon))).join('')}</ul>`
+        ? `${tambien ? `<p class="como">${tambien.trim()}</p>` : ''}<ul class="notas-lista">${halladas.map((n) => tarjetaNota(n, true, true, !coincideBusqueda(textosDeNota(n, false), busquedaBuzon), aqui)).join('')}</ul>`
         : `<p class="intro">Ninguna nota del Buzón dice «${esc(busquedaBuzon.trim())}», ni en lo que se dijo ni en lo que respondió el director. Prueba con menos palabras o con otras.${tambien}</p>`}`;
   }
   const esperando = notas.filter((n) => !d.plan.respuestas[n.id]);
   const respondidas = notas.filter((n) => d.plan.respuestas[n.id]);
   return `<h3>Esperando respuesta del director <small>· ${esperando.length}</small></h3>
-    ${esperando.length ? `<ul class="notas-lista">${esperando.map((n) => tarjetaNota(n, true, true)).join('')}</ul>` : '<p class="intro">Nada esperando: el director está al día.</p>'}
+    ${esperando.length ? `<ul class="notas-lista">${esperando.map((n) => tarjetaNota(n, true, true, false, aqui)).join('')}</ul>` : '<p class="intro">Nada esperando: el director está al día.</p>'}
     ${respondidas.length
       // Lo ya respondido va plegado: al entrar, la atención queda en lo que espera
       ? `<details class="ya-respondidas" data-ya-respondidas${respondidasAbiertas ? ' open' : ''}><summary><h3>Ya respondidas <small>· ${respondidas.length}</small></h3></summary>
-        <ul class="notas-lista">${respondidas.map((n) => tarjetaNota(n, true, true)).join('')}</ul></details>`
+        <ul class="notas-lista">${respondidas.map((n) => tarjetaNota(n, true, true, false, aqui)).join('')}</ul></details>`
       : '<h3>Ya respondidas <small>· 0</small></h3><p class="intro">Todavía ninguna.</p>'}`;
 }
 
@@ -2511,7 +2560,7 @@ function vistaPreguntas() {
           const r = d.plan.respuestas[n.id];
           return `<li${i ? ' class="sigue"' : ''}>
             <div class="pregunta-qa">${i ? '<span class="etiqueta-sigue">Seguiste</span>' : ''}${n.texto ? `<p>${esc(n.texto)}</p>` : ''}${audioYTexto(n.audio)}${adjuntosDeNota(n)}<small class="como">${quien(n)}${momento(n.cuando)}</small></div>
-            ${r ? `<div class="respuesta-qa">${marked.parse(r.texto, { async: false }) as string}${r.tratamiento === 'decision' ? '<p class="pide-decision">Esta respuesta pide tu decisión: está en el lugar que dice.</p>' : ''}${quedoEn(r)}</div>`
+            ${r ? `<div class="respuesta-qa">${marked.parse(r.texto, { async: false }) as string}${r.tratamiento === 'decision' ? '<p class="pide-decision">Esta respuesta pide tu decisión: está en el lugar que dice.</p>' : ''}${quedoEn(r, { vista: 'preguntas', ancla: `hilo-${h.raiz.id}` })}</div>`
               : `<div class="respuesta-qa esperando"><span class="como">Esperando la respuesta del director, en su próxima revisión.</span>${acciones(n)}</div>`}
           </li>`;
         }).join('')}</ol>
@@ -2564,6 +2613,20 @@ function vistaDocumentos() {
   const delProyecto = otros.filter((x) => !x.ruta.startsWith('repo:'));
   const delRepo = otros.filter((x) => x.ruta.startsWith('repo:'));
   const porQue = (ruta: string) => curados.find((c) => c.ruta === ruta)?.porQue ?? '';
+  // Ninguna parte plegable de la columna se pliega sola, ni al abrir un documento ni al repintarse: queda como la dejaste.
+  // La que recibe el documento abierto (lo acabas de abrir, o pasó a ella al leerlo) se abre, para que lo veas marcado en
+  // ella (nota del titular, 22 de octubre)
+  mostrarEnColumna = doc !== docEnColumna;
+  docEnColumna = doc;
+  const plegableEnColumna = (clave: string, rutas: string[]) => {
+    const tiene = !!doc && rutas.includes(doc.ruta);
+    const recibe = tiene && docEnPlegable.get(clave) !== doc;
+    docEnPlegable.set(clave, tiene ? doc : null);
+    if (recibe) mostrarEnColumna = true;
+    const abierta = abiertaEnLista(plegadosAMano.get(clave), tiene, recibe);
+    plegadosAMano.set(clave, abierta);
+    return ` data-recuerda="${esc(clave)}"${abierta ? ' open' : ''}`;
+  };
   const boton = (x: Documento) => `<button type="button" class="doc-l chico${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}">${esc(x.titulo)}</button>`;
   let n = 0;
   const tarjeta = (x: (typeof enRuta)[number]) => {
@@ -2578,7 +2641,7 @@ function vistaDocumentos() {
   // Mientras lees, la columna muestra entero solo el que sigue: lo de después y lo ya leído, plegado en una línea
   // cada uno, para que la atención se quede en lo que toca ahora
   const plegado = (titulo: string, xs: typeof enRuta) => xs.length
-    ? `<details class="docs-plegados"${xs.some((x) => x.ruta === doc?.ruta) ? ' open' : ''}><summary>${titulo} <span class="cifra">${xs.length}</span></summary>${xs.map((x) => `<button type="button" class="doc-l chico ${x.lectura}${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}"${x.lectura === 'despues' ? ' disabled aria-disabled="true" title="Se abre cuando termines el que sigue"' : ''}><b>${esc(tituloDoc(x.ruta))}</b></button>`).join('')}</details>`
+    ? `<details class="docs-plegados"${plegableEnColumna(`columna|${titulo}`, xs.map((x) => x.ruta))}><summary>${titulo} <span class="cifra">${xs.length}</span></summary>${xs.map((x) => `<button type="button" class="doc-l chico ${x.lectura}${doc?.ruta === x.ruta ? ' sel' : ''}" data-doc="${esc(x.ruta)}"${x.lectura === 'despues' ? ' disabled aria-disabled="true" title="Se abre cuando termines el que sigue"' : ''}><b>${esc(tituloDoc(x.ruta))}</b></button>`).join('')}</details>`
     : '';
   const ordenLectura = !enRuta.length ? '<p class="intro">Tus misiones de ahora no piden documentos.</p>'
     : leyendo ? `${enRuta.filter((x) => x.lectura === 'siguiente').map(tarjeta).join('')}${plegado('Después', enRuta.filter((x) => x.lectura === 'despues'))}${plegado('Ya leídos', enRuta.filter((x) => x.lectura === 'leido' || x.lectura === 'revisado'))}`
@@ -2588,7 +2651,7 @@ function vistaDocumentos() {
       <div class="cabeza-lista"><h3>${leyendo ? 'Tu misión actual' : 'Tu orden de lectura'} <small>· ${esc(nombrePersona(persona))}</small></h3>
         <button type="button" class="plegar-lista" data-plegar-lista aria-controls="lista-docs" title="Plegar la columna: el documento a todo el ancho" aria-label="Plegar la columna de los documentos">${icono('plegar')}</button></div>
       ${ordenLectura}
-      ${leyendo ? '<details class="otros-docs"><summary>Otros documentos, para consultar</summary>' : ''}
+      ${leyendo ? `<details class="otros-docs"${plegableEnColumna('columna|otros', [...banco, ...otros].map((x) => x.ruta))}><summary>Otros documentos, para consultar</summary>` : ''}
       ${banco.length ? `<h3>Para consultar</h3>${banco.map((c) => `<button type="button" class="doc-l chico${doc?.ruta === c.ruta ? ' sel' : ''}" data-doc="${esc(c.ruta)}"><b>${esc(c.titulo)}</b><small>${esc(c.porQue)}</small></button>`).join('')}` : ''}
       ${documentos ? `${delProyecto.length ? `<h3>Del proyecto</h3>${delProyecto.map(boton).join('')}` : ''}<h3>Del repositorio del proyecto</h3>${delRepo.map(boton).join('') || `<p class="intro">${d.repositorio.info ? 'El repositorio no tiene archivos .md.' : 'Conecta el repositorio en Proyecto para leer y comentar sus documentos.'}</p>`}` : '<button type="button" data-cargar-docs>Ver todos</button>'}
       <p class="como">La explicación del método y del Studio está en <button type="button" class="enlace" data-vista="stl">Qué es STL</button>.</p>
@@ -2620,7 +2683,7 @@ function vistaDocumentos() {
     return `<section class="parte-doc${leida ? ' leida' : seLee ? ' por-leer' : ''}${s.titulo ? '' : ' entrada-doc'}" data-parte="${esc(s.titulo)}">
       ${cuerpo}
       ${deEsta.length || botones ? `<div class="comentar-parte">
-        ${deEsta.length ? `<ul class="notas-lista">${deEsta.map((x) => tarjetaNota(x, false)).join('')}</ul>` : ''}
+        ${deEsta.length ? `<ul class="notas-lista">${deEsta.map((x) => tarjetaNota(x, false, false, false, enParte(ruta, s.titulo))).join('')}</ul>` : ''}
         ${botones ? `<div class="botones-parte">${porIdeas ? '' : `<button type="button" class="al-director" data-comentar="documento|${esc(ruta)}|${esc(s.titulo)}">✉ Comentar ${s.titulo ? 'esta parte' : 'el documento'} al director</button>`}${marcar}</div>` : ''}
       </div>` : ''}
     </section>`;
@@ -2645,6 +2708,17 @@ const esDelStudio = (ruta: string) => ruta.startsWith('docs/metodo/') || (docume
 /** Si la columna de los documentos está plegada (es de este navegador). */
 const listaPlegada = () => localStorage.getItem('estudio.docs.lista') === 'plegada';
 
+/**
+ * Lo que la columna de los documentos mostró la última vez: el documento abierto y, por cada parte plegable, el que tenía
+ * dentro. Así sabe si lo abierto es nuevo o acaba de llegar a una parte (lo leído pasa a «Ya leídos»).
+ */
+let docEnColumna: { ruta: string; texto: string } | null = null;
+const docEnPlegable = new Map<string, { ruta: string; texto: string } | null>();
+/** Si al pintar hay que llevar la columna hasta el documento abierto, para que se vea marcado en ella. */
+let mostrarEnColumna = false;
+/** Hasta dónde bajaste en la columna de los documentos (tiene su propio scroll): un repintado no la devuelve arriba. */
+let scrollColumna = 0;
+
 /** Las ideas de las partes de un documento que ya marcaste como entendidas. */
 const trozosLeidos = (ruta: string) => new Set(d.estado.leidos?.[claveLeido(d.identidad.rol ?? TITULAR, ruta)]?.trozos ?? []);
 
@@ -2666,7 +2740,7 @@ const respondiste = (ruta: string, parte: string, decision: string) =>
  * Con un comentario ya dejado, aparece también «Decido otra cosa». Respondida, solo se le puede agregar algo.
  */
 function botonesDecision(ruta: string, parte: string, nombre: string, deEsta: Nota[]): string {
-  const previas = deEsta.length ? `<ul class="notas-lista">${deEsta.map((x) => tarjetaNota(x, false)).join('')}</ul>` : '';
+  const previas = deEsta.length ? `<ul class="notas-lista">${deEsta.map((x) => tarjetaNota(x, false, false, false, enParte(ruta, parte))).join('')}</ul>` : '';
   const base = `documento|${esc(ruta)}|${esc(parte)}|${esc(nombre)}|`;
   const botones = respondiste(ruta, parte, nombre)
     ? `<button type="button" class="al-director" data-comentar="${base}|comenta">✉ Agregar a esta decisión</button>`
@@ -2765,7 +2839,7 @@ function porTrozos(s: { titulo: string; md: string }, notas: Nota[]): string {
         <button type="button" class="entendido${hecho ? ' hecho' : ''}${recien ? ' recien' : ''}" data-entendido="${esc(s.titulo)}|${i}" aria-pressed="${hecho}" title="${hecho ? 'Quitar la marca' : 'Márcala al entender esta idea'}">${icono('check')}<span>Entendido</span></button>
         <button type="button" class="al-director comentar-idea" data-comentar="documento|${esc(ruta)}|${esc(s.titulo)}||${esc(fragmento)}" title="Comentar solo esta idea al director">✉ Comentar esta idea al director</button>
       </div>
-      ${deEste.length ? `<ul class="notas-lista">${deEste.map((x) => tarjetaNota(x, false)).join('')}</ul>` : ''}</div>`;
+      ${deEste.length ? `<ul class="notas-lista">${deEste.map((x) => tarjetaNota(x, false, false, false, enParte(ruta, s.titulo))).join('')}</ul>` : ''}</div>`;
   };
   const visibles = actual === undefined ? [] : [...(contexto !== undefined ? [contexto] : []), actual];
   const plegadas = ideas.filter((i) => hecha(i) && !visibles.includes(i));
@@ -2826,12 +2900,12 @@ const letraLector = () => Math.min(2, Math.max(0, Number(localStorage.getItem('e
 const claseLector = () => `letra-${letraLector()}`;
 
 /**
- * El modo enfoque, uno solo para un documento y para la misión: un velo desenfoca todo lo de alrededor y deja nítido lo
- * de ahora. En «Documentos», la idea que toca leer, centrada en una ventana (lo demás del documento se pliega, no se
- * desenfoca); en «Misiones», la tarjeta de tu misión de ahora, donde está (no es un diálogo: sus pasos llevan a otras
- * partes del Studio). Se pone y se quita con su botón, arriba a la derecha, que queda por encima del velo (salir está
- * donde se entró), o con su atajo junto a la cara del director; Esc para salir. Donde no aplica, ninguno de los dos se
- * ve. Es de esta visita: se apaga al salir del documento o de la sección, cuando un paso lleva a otro lugar, cuando la
+ * El modo enfoque, uno solo para un documento y para la misión: un velo cubre toda la pantalla, también la cabecera, y
+ * desenfoca todo lo de alrededor; lo de ahora queda nítido en una ventana al centro, ancha. En «Documentos», la idea
+ * que toca leer (lo demás del documento se pliega, no se desenfoca); en «Misiones», la tarjeta de tu misión de ahora
+ * (no es un diálogo: sus pasos llevan a otras partes del Studio). Se pone con su botón, arriba a la derecha, y se quita
+ * con la salida, que flota encima del velo en ese mismo lugar (salir está donde se entró), o con su atajo junto a la
+ * cara del director; Esc para salir. Donde no aplica, ni el botón ni el atajo se ven. Es de esta visita: se apaga al salir del documento o de la sección, cuando un paso lleva a otro lugar, cuando la
  * misión se entrega y con la recarga del final de una revisión. Lo enfocado: «documento» (el abierto), el ancla de la
  * tarjeta de tu misión de ahora («mision-<id>») o nada ('').
  */
@@ -2846,7 +2920,7 @@ const tituloEnfoque = (si: boolean, aqui: string) =>
 const MS_VELO = 600;
 let saliendo: ReturnType<typeof setTimeout> | undefined;
 
-/** El velo, el botón de arriba y el atajo, al día: al pintar (si lo enfocado ya no está, el enfoque se apaga) y al ponerlo o quitarlo. */
+/** El velo, el botón de arriba, la salida y el atajo, al día: al pintar (si lo enfocado ya no está, el enfoque se apaga) y al ponerlo o quitarlo. */
 function aplicarEnfoque() {
   const aqui = queEnfocar();
   if (enfoque !== aqui) enfoque = '';
@@ -2859,10 +2933,12 @@ function aplicarEnfoque() {
     clearTimeout(saliendo);
     saliendo = setTimeout(() => html.classList.remove('enfoque-saliendo'), MS_VELO);
   } else if (enfoque) html.classList.remove('enfoque-saliendo');
-  // El de arriba y el atajo dicen lo mismo; cambian en su sitio, así el foco del teclado se queda en el que se tocó
+  // El de arriba, la salida y el atajo dicen lo mismo y cambian en su sitio. La salida solo está con el enfoque puesto,
+  // y el de arriba queda entonces bajo el velo: el foco del teclado pasa de uno al otro (el del atajo se queda)
   const si = !!enfoque;
+  const conFoco = document.activeElement?.closest('[data-enfoque]');
   for (const b of document.querySelectorAll<HTMLButtonElement>('[data-enfoque]')) {
-    b.hidden = !aqui;
+    b.hidden = b.classList.contains('salida-enfoque') ? !si : !aqui;
     b.setAttribute('aria-pressed', String(si));
     b.title = tituloEnfoque(si, aqui);
     if (b.classList.contains('atajo')) {
@@ -2871,16 +2947,41 @@ function aplicarEnfoque() {
       b.classList.toggle('activo', si);
     } else b.querySelector('span')!.textContent = etiquetaEnfoque(si);
   }
+  if (conFoco && !conFoco.classList.contains('atajo')) document.querySelector<HTMLElement>(si ? '.salida-enfoque' : '#mando [data-enfoque]')?.focus();
+  ubicarEnfoque();
 }
-/** Pone o quita el enfoque en lo que se puede enfocar aquí. */
+/** Lo enfocado en la página: la ventana del documento o la tarjeta de tu misión de ahora (sin enfoque, nada). */
+function cajaEnfocada() {
+  if (enfoque === 'documento') return document.querySelector<HTMLElement>('.docs > .lector');
+  return enfoque ? $('vista').querySelector<HTMLElement>(`.mision-c.sigue[data-ancla="${CSS.escape(enfoque)}"]`) : null;
+}
+/**
+ * En el enfoque no hay franja arriba (nota del titular, 22 de octubre): el velo lo cubre todo, también la cabecera, y
+ * la salida flota encima en el lugar exacto del botón de la cabecera, que queda bajo el velo sin verse. Lo enfocado va
+ * al centro de la pantalla; solo si la salida le quedaría encima, empieza justo debajo de ella (--enfoque-arriba). En
+ * el teléfono no hay salida arriba: se sale con el atajo.
+ */
+function ubicarEnfoque() {
+  const html = document.documentElement;
+  const salida = document.querySelector<HTMLElement>('.salida-enfoque');
+  const arriba = $('mando').querySelector<HTMLElement>('.boton-enfoque');
+  const caja = cajaEnfocada();
+  if (!salida || !arriba?.offsetWidth || !caja || innerWidth < 760) {
+    html.style.removeProperty('--enfoque-arriba');
+    return;
+  }
+  const r = arriba.getBoundingClientRect();
+  salida.style.top = `${r.top}px`;
+  salida.style.right = `${html.clientWidth - r.right}px`;
+  const c = caja.getBoundingClientRect();
+  const debajo = c.left < r.right + 12 && c.right > r.left - 12;
+  html.style.setProperty('--enfoque-arriba', `${debajo ? Math.ceil(r.bottom + 12) : 24}px`);
+}
+/** Pone o quita el enfoque en lo que se puede enfocar aquí (la tarjeta de la misión ya queda al centro, en su ventana). */
 function ponerEnfoque(si: boolean) {
   enfoque = si ? queEnfocar() : '';
   aplicarEnfoque();
-  if (enfoque === 'documento') return centrarIdea();
-  // La tarjeta de la misión queda donde está: si su comienzo no se ve, o quedó muy abajo, sube hasta él
-  const t = enfoque ? $('vista').querySelector<HTMLElement>(`.mision-c.sigue[data-ancla="${CSS.escape(enfoque)}"]`) : null;
-  const r = t?.getBoundingClientRect();
-  if (t && r && (r.top < 0 || r.top > innerHeight / 3)) t.scrollIntoView({ block: 'start', behavior: quieto() ? 'auto' : 'smooth' });
+  if (enfoque === 'documento') centrarIdea();
 }
 /** Lleva al centro de la pantalla la idea que toca leer (en el modo enfoque, o al marcar la anterior). */
 function centrarIdea() {
@@ -3252,7 +3353,7 @@ function vistaProyecto() {
         <h3>Dónde está</h3>
         ${info ? `<p class="bien-repo">✓ ${esc(info.ruta)}</p>
           <p class="como">Su memoria (la ruta, las notas, los documentos del director) vive en ese repositorio, en la rama <code>stl</code>, abierta en la carpeta <code>.stl</code>. Sube a su nube solo si tú lo pides.</p>
-          <details class="detalles-repo"><summary>Detalles del repositorio</summary>
+          <details class="detalles-repo"${plegable('detalles-repo')}><summary>Detalles del repositorio</summary>
             <dl class="info-repo">
               <dt>Rama</dt><dd>${esc(info.rama)}</dd>
               <dt>Historial</dt><dd>${info.commits.toLocaleString('es')} commits · ${info.archivos.toLocaleString('es')} archivos en git${info.sinCommit ? ` · ${info.sinCommit} con cambios sin commit` : ''}</dd>
@@ -3279,7 +3380,7 @@ function vistaProyecto() {
           <label class="ancho">${esNuevo() ? 'Qué quieres lograr, en tus palabras' : 'Tu meta'}<textarea name="metaInicial" rows="3"${soloLectura} placeholder="Ej.: que 20 talleres paguen por ella antes de fin de año, sin que se caiga">${esc(meta)}</textarea>${marca(!p.metaInicial && !!det?.meta, 'Meta sugerida por el director, según lo que detectó: complétala o reemplázala con la tuya. La fijas en «La meta».')}</label>`;
           })()}
           ${esNuevo() ? `<label class="ancho">¿Cuándo se considera completo?<textarea name="terminado" rows="2"${soloLectura} placeholder="Ej.: cuando 20 talleres paguen la suscripción dos meses seguidos">${esc(p.terminado ?? '')}</textarea></label>` : ''}
-          <details class="ancho mas-datos"><summary>Más datos del repositorio (opcional)</summary>
+          <details class="ancho mas-datos"${plegable('mas-datos')}><summary>Más datos del repositorio (opcional)</summary>
             <div class="form-proyecto">
               <label>Dirección en la web<input type="text" name="url" value="${esc(p.repositorio.url)}"${soloLectura} placeholder="https://github.com/…" /></label>
               <label>Rama principal<input type="text" name="rama" value="${esc(p.repositorio.rama || info?.rama || '')}"${soloLectura} placeholder="main" /></label>
@@ -3313,7 +3414,7 @@ function vistaProyecto() {
             <label>Horizonte (opcional: un hito, no un plazo)<input type="text" name="horizonte" value="${esc(b.horizonte)}" placeholder="Ej.: antes de abrir a otra ciudad" /></label>
             <div class="botones"><button type="submit" class="primario">Fijar esta meta</button></div>
           </form>` : '<p class="nota-rol">La meta la fija el titular.</p>'}`}
-        ${(p.objetivosAnteriores ?? []).length ? `<details class="detalles-repo metas-anteriores"><summary>Metas anteriores <span class="cifra">${p.objetivosAnteriores!.length}</span></summary><ul class="adelantado">${p.objetivosAnteriores!.map((x) => `<li>«${esc(x.texto)}» <small>(fijada el ${fecha(x.firmado.fecha)}, replanteada el ${fecha(x.reabierto.fecha)}${x.reabierto.nota ? `: ${esc(x.reabierto.nota)}` : ''})</small></li>`).join('')}</ul></details>` : ''}
+        ${(p.objetivosAnteriores ?? []).length ? `<details class="detalles-repo metas-anteriores"${plegable('metas-anteriores')}><summary>Metas anteriores <span class="cifra">${p.objetivosAnteriores!.length}</span></summary><ul class="adelantado">${p.objetivosAnteriores!.map((x) => `<li>«${esc(x.texto)}» <small>(fijada el ${fecha(x.firmado.fecha)}, replanteada el ${fecha(x.reabierto.fecha)}${x.reabierto.nota ? `: ${esc(x.reabierto.nota)}` : ''})</small></li>`).join('')}</ul></details>` : ''}
       </section>`;
   const equipo = [...d.plan.boletin].reverse().find((x) => x.para === 'equipo');
   // Con la meta fijada, va arriba: es contra lo que se mide todo. Antes, el orden del arranque: dónde está, qué es, el
@@ -3443,7 +3544,21 @@ function vistaModelo() {
   const semana = lista.filter((x) => hoyLocal.getTime() - Date.parse(x.cuando) < 7 * 86_400_000);
   const deSemana = suma(semana);
   const cifra = (titulo: string, s: ReturnType<typeof suma>) => `<div><span class="tit">${titulo}</span><b>${dolares(s.costo)}</b><small>${s.n} ${s.n === 1 ? 'lanzamiento' : 'lanzamientos'} · ${miles(s.tokens)} tokens${s.negados ? ` · ${negadosDe(s.negados)}` : ''}</small></div>`;
-  const nombreModelo = (id: string) => MODELOS.find((m) => m.id === id)?.nombre ?? id;
+  // El nombre de un modelo: el de la lista o, si no está, el que dice su id («claude-haiku-4-5-20251001» es «Haiku 4.5»)
+  const nombreModelo = (id: string) => {
+    const m = /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?(\[1m\])?$/i.exec(id);
+    return MODELOS.find((x) => x.id === id)?.nombre ?? (m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}${m[3] ? `.${m[3]}` : ''}${m[4] ? ', contexto de 1 M' : ''}` : id);
+  };
+  // Los modelos de un lanzamiento, solo si usó otros además del principal: cuáles, lo que gastó cada uno y para qué
+  // (nota de voz del titular del 22 de octubre de 2026); al pasar el ratón, sus tokens por tipo
+  const lineaModelos = (x: (typeof lista)[number]) => {
+    const ms = x.modelos ?? [];
+    if (!ms.some((m) => !m.principal)) return '';
+    const para = (p: string[]) => `${p.slice(0, 3).join('; ')}${p.length > 3 ? ` y ${p.length - 3} más` : ''}`;
+    const uno = (m: (typeof ms)[number]) => `${esc(nombreModelo(m.modelo))} (${m.costo != null ? `${dolares(m.costo)} · ` : ''}${miles(m.entrada + m.cache + m.salida)} tokens${m.para?.length ? `: ${esc(para(m.para))}` : ''})`;
+    const detalle = ms.map((m) => `${nombreModelo(m.modelo)}: ${miles(m.entrada)} de entrada, ${miles(m.cache)} de la caché y ${miles(m.salida)} de salida`).join('\n');
+    return `<small class="consumo-modelos" title="${esc(detalle)}">Modelos: ${ms.map(uno).join(' · ')}</small>`;
+  };
   const nombreProyecto = (id: string) => d.proyectos.find((p) => p.id === id)?.nombre || id;
   // Lo de cada proyecto en la semana, del que más gastó al que menos: solo si el director trabajó en más de uno
   const porProyecto = [...new Set(semana.map((x) => x.proyecto))].map((id) => ({ id, ...suma(semana.filter((x) => x.proyecto === id)) })).sort((a, b) => b.costo - a.costo);
@@ -3493,10 +3608,11 @@ function vistaModelo() {
         <h3>Lo que gastó el director</h3>
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
           ${porProyecto.length > 1 ? `<ul class="consumo-proyectos" aria-label="Por proyecto, en los últimos 7 días">${porProyecto.map((p) => `<li><span>${esc(nombreProyecto(p.id))}</span><span>${dolares(p.costo)} · ${p.n} ${p.n === 1 ? 'lanzamiento' : 'lanzamientos'}</span></li>`).join('')}</ul>` : ''}
-          <details class="detalles-repo"><summary>Cada lanzamiento (últimos 35 días)</summary>
-            <ul class="consumo-lista">${lista.slice(0, 60).map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]} de ${esc(nombreProyecto(x.proyecto))}${x.modelo ? ` · ${esc(nombreModelo(x.modelo))}` : ''}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min${x.negados?.length ? ` · <span title="${esc(x.negados.join('\n'))}">${negadosDe(x.negados.length)}</span>` : ''}</span></li>`).join('')}</ul>
+          <details class="detalles-repo"${plegable('consumo-lanzamientos')}><summary>Cada lanzamiento (últimos 35 días)</summary>
+            <ul class="consumo-lista">${lista.map((x) => `<li><span>${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]} de ${esc(nombreProyecto(x.proyecto))}${x.modelo ? ` · ${esc(nombreModelo(x.modelo))}` : ''}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min${x.negados?.length ? ` · <span title="${esc(x.negados.join('\n'))}">${negadosDe(x.negados.length)}</span>` : ''}</span>${lineaModelos(x)}</li>`).join('')}</ul>
           </details>` : '<p class="como">Todavía no hay lanzamientos del director en este computador.</p>'}
         <p class="como">Los tokens son exactos: los cuenta la API y Claude Code los devuelve al terminar cada lanzamiento. Los dólares no son un cobro: Claude Code multiplica esos tokens por el precio de la API. Con un plan de suscripción no pagas eso; lo que gastas de verdad es el porcentaje de tus límites.</p>
+        <p class="como">Si un lanzamiento usó otros modelos además del principal, debajo dice cuáles, lo que gastó cada uno y para qué: lo que se le pidió al ayudante o la fase del flujo que lo usó, o «por dentro de Claude Code» si lo usó Claude Code por su cuenta (WebFetch, por ejemplo, resume con un modelo pequeño cada página que lee). Si no dice nada, trabajó solo con el principal.</p>
         <p class="como">Los permisos negados son lo que el director intentó y sus permisos no le dejaron hacer: en cada lanzamiento, pasa el ratón sobre la cifra para verlos. La revisión siguiente empieza sabiéndolo, para no intentarlo igual; si le hace falta uno para lo que aprobaste, te lo pide en tu misión con «Autorizo».</p>
       </section>
     </div>
@@ -3541,13 +3657,13 @@ function seccionDiagnostico() {
   const estrategia = est ? `<h4>La estrategia para este tipo de proyecto</h4><p class="texto-d">${esc(est.texto)}</p><p class="como">Fuentes: ${est.fuentes.map(conEnlaces).join(' · ')}</p>` : '';
   const documento = d.plan.documentos.find((x) => /(^|\/)(diagnostico|planteamiento)\.md$/.test(x.ruta));
   return `<section class="panel-d" data-ancla="p-diagnostico">
-      <details class="plegable-d"${d.proyecto.objetivo ? '' : ' open'}>
+      <details class="plegable-d"${plegable('diagnostico', !d.proyecto.objetivo)}>
         <summary><h3>${titulo}</h3><small>del ${fecha(dg.fecha)}</small></summary>
         <ul class="resumen-d">${dg.resumen.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
         ${compilado}
         ${estrategia}
         <div class="acciones-p">${documento ? botonIr({ doc: documento.ruta, etiqueta: 'Leer el documento completo' }, 'boton-suave') : ''}<button type="button" class="al-director" data-comentar="diagnostico|">✉ Comentar ${nuevo ? 'el planteamiento' : 'el diagnóstico'} al director</button></div>
-        ${dg.fuentes?.length ? `<details class="detalles-repo"><summary>Lo que leyó el director</summary><ul class="adelantado">${dg.fuentes.map((f) => `<li>${conEnlaces(f)}</li>`).join('')}</ul></details>` : ''}
+        ${dg.fuentes?.length ? `<details class="detalles-repo"${plegable('diagnostico-fuentes')}><summary>Lo que leyó el director</summary><ul class="adelantado">${dg.fuentes.map((f) => `<li>${conEnlaces(f)}</li>`).join('')}</ul></details>` : ''}
       </details>
     </section>`;
 }
@@ -3635,7 +3751,7 @@ function vistaPropuestas() {
               <header><b>${esc(p.titulo)}</b><span class="chip">${esc(p.area)}</span>${r ? `<span class="chip ${r.estado === 'aceptada' ? 'foco' : r.estado === 'en_estudio' ? 'espera' : ''}">${NOMBRE_RESPUESTA[r.estado]}</span>` : '<span class="chip espera">Por decidir</span>'}</header>
               <dl><dt>El problema</dt><dd>${esc(p.problema)}</dd><dt>La propuesta</dt><dd>${esc(p.propuesta)}</dd><dt>Qué conecta</dt><dd>${esc(p.conecta)}</dd></dl>
               ${r ? `<div class="firma">${NOMBRE_RESPUESTA[r.estado]} por ${esc(r.quien)} el ${fecha(r.fecha)}${r.nota ? `: ${esc(r.nota)}` : ''}</div>` : ''}
-              ${notas.length ? `<ul class="notas-lista">${notas.map((n) => tarjetaNota(n, false)).join('')}</ul>` : ''}
+              ${notas.length ? `<ul class="notas-lista">${notas.map((n) => tarjetaNota(n, false, false, false, { vista: 'propuestas', ancla: `propuesta-${p.id}` })).join('')}</ul>` : ''}
               <div class="respuesta">${titular() ? (['aceptada', 'descartada'] as RespuestaPropuesta[])
                 .map((e) => `<button type="button" data-responder="${esc(p.id)}|${e}" class="${r?.estado === e ? 'sel' : ''}"${r?.estado === e ? ' disabled' : ''}>${e === 'aceptada' ? 'Aceptar' : 'Descartar'}</button>`)
                 .join('') : ''}<button type="button" class="al-director" data-comentar="propuesta|${esc(p.id)}">✉ Comentar al director</button></div>
@@ -3661,7 +3777,7 @@ function vistaValidaciones() {
     })
     .join('');
   return `<p class="intro">Gente de afuera usando lo que se hizo: la única forma de saber si funciona de verdad.</p>
-    <details class="guia-plegada"><summary>Cómo se hace una validación</summary><p>De 3 a 5 personas que no conocen el proyecto usan lo hecho en una tarea concreta, diciendo en voz alta lo que piensan. Nadie les explica ni les ayuda; tú miras y anotas. Al final, tres preguntas: ¿qué había que hacer?, ¿qué fue lo mejor?, ¿lo volverías a usar (o lo pagarías)? Cuenta más lo que hacen que lo que dicen. Las pruebas técnicas (rendimiento, seguridad, carga) también se registran aquí.</p></details>
+    <details class="guia-plegada"${plegable('guia-validacion')}><summary>Cómo se hace una validación</summary><p>De 3 a 5 personas que no conocen el proyecto usan lo hecho en una tarea concreta, diciendo en voz alta lo que piensan. Nadie les explica ni les ayuda; tú miras y anotas. Al final, tres preguntas: ¿qué había que hacer?, ¿qué fue lo mejor?, ¿lo volverías a usar (o lo pagarías)? Cuenta más lo que hacen que lo que dicen. Las pruebas técnicas (rendimiento, seguridad, carga) también se registran aquí.</p></details>
     ${resumen ? `<ul class="resumen-d">${resumen}</ul>` : '<p class="intro"><b>Todavía no hay ninguna validación registrada.</b></p>'}
     <h3>Registrar una validación</h3>
     <form class="form-validacion panel-d" id="form-validacion" data-ancla="registrar-validacion">
@@ -3819,14 +3935,28 @@ function pintar() {
   // Si estabas escribiendo en «Buscar en el Buzón», el repintado no te saca del campo ni te mueve el cursor
   const buscando = document.activeElement instanceof HTMLInputElement && document.activeElement.dataset.buscarBuzon !== undefined ? document.activeElement : null;
   const cursor = buscando ? [buscando.selectionStart, buscando.selectionEnd] : null;
+  // Lo enfocado se desplaza por dentro, en su ventana: el repintado no lo devuelve arriba
+  const enfocadoEn = cajaEnfocada()?.scrollTop ?? 0;
+  scrollColumna = v.querySelector<HTMLElement>('.lista-docs')?.scrollTop ?? scrollColumna;
   v.innerHTML = errores + html;
   if (cursor) {
     const campo = v.querySelector<HTMLInputElement>('[data-buscar-buzon]');
     campo?.focus();
     campo?.setSelectionRange(cursor[0], cursor[1]);
   }
+  // La columna de los documentos sigue donde la dejaste, y el documento que acabas de abrir se ve marcado en ella: solo se
+  // mueve la columna, nunca la página
+  const columna = v.querySelector<HTMLElement>('.lista-docs');
+  if (columna) {
+    columna.scrollTop = scrollColumna;
+    const sel = mostrarEnColumna ? columna.querySelector<HTMLElement>('.doc-l.sel') : null;
+    if (sel) columna.scrollTop += desplazamientoParaVer(columna.getBoundingClientRect(), sel.getBoundingClientRect());
+  }
+  mostrarEnColumna = false;
   // El modo enfoque solo vale donde aplica (un documento abierto, la tarjeta de tu misión de ahora): si no, se apaga
   aplicarEnfoque();
+  const enfocada = enfocadoEn ? cajaEnfocada() : null;
+  if (enfocada) enfocada.scrollTop = enfocadoEn;
   if (vista === 'stl') restaurarParada(v);
   if (vista === 'documentos' && irASeccion !== null) {
     const parte = [...v.querySelectorAll<HTMLElement>('[data-parte]')].find((x) => x.dataset.parte === irASeccion);
@@ -3836,10 +3966,14 @@ function pintar() {
     const cerrada = !!parte?.classList.contains('cerrada');
     const falta = doc && (leidasDe(doc.ruta).length || cerrada) ? v.querySelector<HTMLElement>('.parte-doc.por-leer') : null;
     if (cerrada) decir(`«${irASeccion}» se abre al terminar la parte de ahora: una a la vez.`, 'pensativo');
+    // En una pantalla angosta (1100 px o menos) la columna va encima del documento y ya no se pliega sola: entonces el
+    // documento abre en su comienzo, no arriba de la lista
+    const angosta = matchMedia('(max-width: 1100px)').matches;
+    const destino = falta ?? (angosta ? v.querySelector<HTMLElement>('.docs > .lector') : null);
     if (irASeccion && parte && !cerrada) resaltar(parte);
-    else if (falta) {
+    else if (destino) {
       const cabeza = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alto-cabeza')) || 0;
-      window.scrollTo({ top: Math.max(0, falta.getBoundingClientRect().top + window.scrollY - cabeza - 12) });
+      window.scrollTo({ top: Math.max(0, destino.getBoundingClientRect().top + window.scrollY - cabeza - 12) });
     } else window.scrollTo({ top: 0 });
     irASeccion = null;
   }
@@ -4565,6 +4699,8 @@ function medirCabeza() {
   const movil = window.innerWidth < 760;
   const alto = movil ? (document.querySelector<HTMLElement>('.barra-movil')?.offsetHeight ?? 0) : $('mando').offsetHeight;
   document.documentElement.style.setProperty('--alto-cabeza', `${alto}px`);
+  // Con el enfoque puesto, la salida sigue al botón de la cabecera si esta cambia (otro ancho de ventana)
+  if (enfoque) ubicarEnfoque();
 }
 window.addEventListener('scroll', medirCabeza, { passive: true });
 // Si la página se va a recargar (por ejemplo, porque el director cambió el código del Studio) en medio de una grabación

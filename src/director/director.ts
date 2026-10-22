@@ -278,12 +278,48 @@ export const YA_LO_DIJE = 'Ya te lo dije en mi comentario';
 /**
  * Adónde lleva el botón de un paso. Un paso que se cumple al cruzar una puerta lleva siempre a esa puerta, en su fase de
  * la Ruta, y la resalta: quien aún no conoce la interfaz ve en qué vista está y dónde queda «Cruzar la puerta», abajo de
- * la fase (pedido del titular). Los demás pasos llevan a su `ir` tal cual.
+ * la fase (pedido del titular). Los demás pasos llevan a su `ir` tal cual. Con su misión (`m`), el botón que lleva a esa
+ * misma misión no se da: la persona ya está ahí (`llevaAqui`).
  */
-export function destinoDelPaso(p: Paso): Destino | undefined {
+export function destinoDelPaso(p: Paso, m?: Pick<Mision, 'id'>): Destino | undefined {
   if (typeof p === 'string') return undefined;
-  if (p.hecho?.que !== 'puerta' || !p.hecho.id) return p.ir;
-  return { vista: 'ruta', fase: p.hecho.id, ancla: 'puerta', etiqueta: p.ir?.etiqueta ?? 'Ir a la puerta' };
+  const dest: Destino | undefined = p.hecho?.que !== 'puerta' || !p.hecho.id ? p.ir
+    : { vista: 'ruta', fase: p.hecho.id, ancla: 'puerta', etiqueta: p.ir?.etiqueta ?? 'Ir a la puerta' };
+  return dest && m && llevaAqui(dest, lugarDeMision(m)) ? undefined : dest;
+}
+
+/**
+ * Dónde está la persona cuando ve un botón: una vista y, dentro, el elemento con su `ancla` (la tarjeta de una misión,
+ * una propuesta, un hilo de preguntas) o la `fase` de la ruta; o un documento (`doc`) y su parte (`seccion`).
+ */
+export type Lugar = Pick<Destino, 'vista' | 'ancla' | 'doc' | 'seccion' | 'fase'>;
+
+/** Una misión como lugar: su tarjeta, en Hoy, donde están sus pasos. */
+export const lugarDeMision = (m: Pick<Mision, 'id'>): Lugar => ({ vista: 'misiones', ancla: `mision-${m.id}` });
+
+/**
+ * ¿El botón deja a la persona donde ya está? Eso es una referencia circular: no lleva a ninguna parte y confunde (nota de
+ * voz del titular, 22 de octubre: un «Quedó en» que llevaba a la misma parte del documento donde se leía la respuesta).
+ * Es aquí el mismo documento en la misma parte (o el documento entero, si el botón no nombra una parte), o la misma vista
+ * con la misma fase y la misma ancla (o la vista entera, si el botón no dice dónde dentro de ella). Nunca lo es una página
+ * de afuera ni «Escribirle al director» (`buzon` › `escribir`), que no lleva a un lugar: abre el comentario.
+ */
+export function llevaAqui(dest: Destino, aqui: Lugar): boolean {
+  if (dest.url) return false;
+  if (dest.doc) return dest.doc === aqui.doc && (!dest.seccion || textoPlano(dest.seccion) === textoPlano(aqui.seccion ?? ''));
+  if (dest.vista === 'buzon' && dest.ancla === 'escribir') return false;
+  // Sin vista, el Studio lleva a Hoy
+  if ((dest.vista ?? 'misiones') !== aqui.vista) return false;
+  return (!dest.fase || dest.fase === aqui.fase) && (!dest.ancla || dest.ancla === aqui.ancla);
+}
+
+/** Cómo se dice, sin botón, que el lugar de un botón que `llevaAqui` es este mismo: «en esta misma parte»… */
+export function aquiMismo(dest: Destino): string {
+  if (dest.doc) return dest.seccion ? 'en esta misma parte' : 'en este mismo documento';
+  if (dest.ancla?.startsWith('mision-')) return 'en esta misma misión';
+  if (dest.ancla?.startsWith('propuesta-')) return 'en esta misma propuesta';
+  if (dest.ancla?.startsWith('hilo-')) return 'en esta misma conversación';
+  return 'en esta misma sección';
 }
 
 /**
@@ -2060,6 +2096,10 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
         if (p.terminal === undefined) errores.push(`${donde} tiene \`comprobar\` sin \`terminal\`: solo se comprueba un paso que corre una orden.`);
         if (p.hecho || p.opciones !== undefined || p.hazlo !== undefined) errores.push(`${donde} tiene \`comprobar\` junto con \`hecho\`, opciones o \`hazlo\`: ya trae otra prueba; deja una.`);
       }
+      // Un botón a su propia misión deja a la persona donde ya está, y el Studio no lo muestra (sin vista, ya se avisó
+      // arriba que no dice a dónde lleva)
+      const ir = destinoDelPaso(p);
+      if (ir?.vista && llevaAqui(ir, lugarDeMision(m))) errores.push(`${donde} tiene un botón que lleva a su propia misión (en Hoy), donde la persona ya está: el Studio no lo muestra. Llévalo al lugar donde se hace el paso, o quítale el \`ir\`.`);
       const h = p.hecho;
       if (!h) continue;
       if (!HECHOS.includes(h.que)) errores.push(`${donde} se marca solo con algo desconocido («${h.que}»).`);

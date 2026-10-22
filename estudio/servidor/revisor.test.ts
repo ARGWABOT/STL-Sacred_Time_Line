@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, COMO_ORDENES, compararVersion, negado, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, permitido, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, COMO_ORDENES, compararVersion, negado, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -79,6 +79,25 @@ describe('el director que lanza el Studio', () => {
       writeFileSync(turno, JSON.stringify({ pid: 2 ** 30, cuando: new Date().toISOString() }));
       soltarTurno(turno);
       expect(existsSync(turno)).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('no lanza otro director mientras el de un servidor que se reinició sigue trabajando', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stl-turno-'));
+    try {
+      const turno = join(dir, 'lanzando.json');
+      const ahora = Date.now();
+      // el servidor 111 se reinició (ya no existe), pero su director 222 sigue trabajando: el turno sigue tomado
+      writeFileSync(turno, JSON.stringify({ pid: 111, hijo: 222, cuando: new Date(ahora).toISOString() }));
+      expect(tomarTurno(turno, ahora, (p) => p === 222)).toBe(false);
+      expect(tomarTurno(turno, ahora, (p) => p === 111)).toBe(false);
+      // cuando terminó también el director, se toma
+      expect(tomarTurno(turno, ahora, () => false)).toBe(true);
+      // pasado el límite de una revisión se toma aunque el número siga vivo (puede ser ya de otro programa)
+      writeFileSync(turno, JSON.stringify({ pid: 111, hijo: 222, cuando: '2026-01-01T00:00:00.000Z' }));
+      expect(tomarTurno(turno, ahora, () => true)).toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -266,6 +285,48 @@ describe('el director que lanza el Studio', () => {
     expect(c.negados).toBeUndefined();
     const negado = registro.replace('"usage":{}', '"usage":{},"permission_denials":[{"tool_name":"Bash","tool_input":{"command":"git -C .stl status"}},{"tool_name":"Bash","tool_input":{"command":"git -C .stl status"}}]');
     expect(consumoDe(negado)!.negados).toEqual(['Bash: git -C .stl status']);
+  });
+
+  it('dice con qué modelos trabajó cada lanzamiento, lo que gastó cada uno y para qué (nota de voz del titular, 22 de octubre de 2026)', () => {
+    const uso = (entrada: number, salida: number, costo: number) => ({ inputTokens: entrada, outputTokens: salida, cacheReadInputTokens: 1000, cacheCreationInputTokens: 100, webSearchRequests: 0, costUSD: costo });
+    const usa = (id: string, name: string, input: Record<string, unknown>) => JSON.stringify({ type: 'assistant', message: { model: 'claude-opus-5-5', content: [{ type: 'tool_use', id, name, input }] }, parent_tool_use_id: null });
+    // Una respuesta de un ayudante: trae el id del uso de Agent que lo lanzó
+    const ayudante = (padre: string, model: string) => JSON.stringify({ type: 'assistant', message: { model, content: [{ type: 'text', text: 'Leo.' }] }, parent_tool_use_id: padre });
+    // Los agentes de un flujo no escriben en el registro: lo dice el aviso de su progreso (el alias antes de empezar)
+    const flujo = JSON.stringify({ type: 'system', subtype: 'task_progress', task_id: 'w1', workflow_progress: [{ type: 'workflow_phase', index: 1, title: 'Investigar' }, { type: 'workflow_agent', index: 1, label: 'investigar:mapa', phaseTitle: 'Investigar', model: 'sonnet', state: 'start' }, { type: 'workflow_agent', index: 2, label: 'verificar:mapa', phaseTitle: 'Verificar', model: 'claude-sonnet-5-5', state: 'done' }] });
+    // Cada turno trae su resultado: `usage` es solo el del turno, `modelUsage` lo de toda la sesión
+    const resultado = (modelUsage: Record<string, unknown>, costo: number) => JSON.stringify({ type: 'result', total_cost_usd: costo, duration_ms: 60_000, usage: { input_tokens: 1, cache_creation_input_tokens: 2, cache_read_input_tokens: 3, output_tokens: 4 }, modelUsage });
+    const init = JSON.stringify({ type: 'system', subtype: 'init', model: 'claude-opus-5-5' });
+    const registro = [
+      lineaPedido('claude-opus-5-5', 'high').trim(),
+      init,
+      usa('t1', 'WebFetch', { url: 'https://example.com', prompt: 'Resume la página' }),
+      usa('t2', 'Agent', { description: 'Leer el repositorio', prompt: 'Lee todo' }),
+      ayudante('t2', 'claude-sonnet-5-5'),
+      usa('t3', 'Agent', { description: 'Ordenar las notas', prompt: 'Ordena', model: 'opus' }),
+      ayudante('t3', 'claude-opus-5-5'),
+      resultado({ 'claude-opus-5-5': uso(10, 100, 1) }, 1),
+      flujo,
+      resultado({ 'claude-opus-5-5': uso(50, 2000, 10), 'claude-haiku-5-5': uso(9000, 300, 0.01), 'claude-sonnet-5-5': uso(70, 900, 3.2) }, 13.21),
+    ].join('\n');
+    // El principal primero; los demás, del que más gastó al que menos, con para qué: el ayudante, el flujo o Claude Code
+    expect(modelosDe(registro)).toEqual([
+      { modelo: 'claude-opus-5-5', principal: true, entrada: 150, cache: 1000, salida: 2000, costo: 10 },
+      { modelo: 'claude-sonnet-5-5', principal: false, entrada: 170, cache: 1000, salida: 900, costo: 3.2, para: ['Leer el repositorio', 'Investigar', 'Verificar'] },
+      { modelo: 'claude-haiku-5-5', principal: false, entrada: 9100, cache: 1000, salida: 300, costo: 0.01, para: [`${POR_DENTRO}, al leer páginas web`] },
+    ]);
+    // Sin páginas leídas, solo «por dentro de Claude Code»; sin el inicio, el principal es el de la primera respuesta suya
+    const sinInicio = [usa('t1', 'Read', { file_path: 'plan.json' }), resultado({ 'claude-opus-5-5[1m]': uso(1, 1, 0.5), 'claude-haiku-5-5': uso(5, 1, 0.001) }, 0.501)].join('\n');
+    expect(modelosDe(sinInicio).map((m) => [m.modelo, m.principal, m.para])).toEqual([['claude-opus-5-5[1m]', true, undefined], ['claude-haiku-5-5', false, [POR_DENTRO]]]);
+    // Sin su resultado, o si Claude Code no dijo los modelos, nada
+    expect(modelosDe([init, usa('t1', 'Read', {})].join('\n'))).toEqual([]);
+    expect(modelosDe([init, JSON.stringify({ type: 'result', total_cost_usd: 1, usage: {} })].join('\n'))).toEqual([]);
+    // «Lo que gastó» cuenta los tokens de todos los modelos y de toda la sesión, no solo los del último turno del director
+    const c = consumoDe(registro)!;
+    expect(c).toMatchObject({ modelo: 'claude-opus-5-5', costo: 13.21, entrada: 150 + 170 + 9100, cache: 3000, salida: 3200 });
+    expect(c.modelos).toEqual(modelosDe(registro));
+    // y los tokens en vivo, al terminar, dicen lo mismo
+    expect(tokensDe(usoDe(registro))).toBe(9420 + 3000 + 3200);
   });
 
   it('dice si trabajó con el modelo pedido', () => {

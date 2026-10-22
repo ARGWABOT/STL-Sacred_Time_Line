@@ -286,6 +286,15 @@ export function progresoDe(registro: string, max = 40): PasoRevision[] {
 
 const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
 const sumaUso = (u: Record<string, unknown>) => n(u.input_tokens) + n(u.cache_creation_input_tokens) + n(u.cache_read_input_tokens) + n(u.output_tokens);
+/**
+ * Los tokens de todos los modelos de la sesión (`modelUsage` del evento `result`, sumado desde que empezó: el director,
+ * sus ayudantes, sus flujos y lo de Claude Code por dentro), o null si no los trae. El `usage` del mismo evento es solo lo
+ * del director en su último turno: con un flujo o un ayudante en segundo plano, una revisión tiene varios.
+ */
+const sumaModelos = (m: unknown): number | null => {
+  const usos = m && typeof m === 'object' ? Object.values(m as Record<string, Record<string, unknown> | null>).filter((u) => u && typeof u === 'object') : [];
+  return usos.length ? usos.reduce((s, u) => s + n(u!.inputTokens) + n(u!.cacheCreationInputTokens) + n(u!.cacheReadInputTokens) + n(u!.outputTokens), 0) : null;
+};
 /** La clave del total exacto, el del evento `result` (no es el id de ninguna respuesta). */
 const RESULTADO = '·resultado';
 
@@ -299,10 +308,10 @@ const RESULTADO = '·resultado';
 export function usoDe(registro: string, porRespuesta: Map<string, number> = new Map()): Map<string, number> {
   for (const linea of registro.split('\n')) {
     if (!linea.startsWith('{')) continue;
-    let ev: { type?: string; usage?: Record<string, unknown>; message?: { id?: string; usage?: Record<string, unknown> } };
+    let ev: { type?: string; usage?: Record<string, unknown>; modelUsage?: unknown; message?: { id?: string; usage?: Record<string, unknown> } };
     try { ev = JSON.parse(linea); } catch { continue; }
     if (ev.type === 'assistant' && ev.message?.id && ev.message.usage) porRespuesta.set(ev.message.id, Math.max(porRespuesta.get(ev.message.id) ?? 0, sumaUso(ev.message.usage)));
-    if (ev.type === 'result' && ev.usage) porRespuesta.set(RESULTADO, sumaUso(ev.usage));
+    if (ev.type === 'result' && (ev.modelUsage || ev.usage)) porRespuesta.set(RESULTADO, sumaModelos(ev.modelUsage) ?? sumaUso(ev.usage ?? {}));
   }
   return porRespuesta;
 }
@@ -377,7 +386,10 @@ export interface Consumo {
    */
   pedido?: { modelo: string | null; esfuerzo: string | null; cumplido?: boolean | null };
   costo: number;
-  /** Tokens de entrada nuevos, los leídos de la caché y los escritos en ella. */
+  /**
+   * Tokens de entrada nuevos (con los escritos en la caché), los leídos de la caché y los de salida: de todos los modelos
+   * de la sesión, si Claude Code los dice (`modelUsage`); si no, los del director (`usage`).
+   */
   entrada: number;
   cache: number;
   salida: number;
@@ -389,6 +401,96 @@ export interface Consumo {
    * dice al director siguiente (propuesta aceptada «Lo que se le negó al director, a la vista»). Sin negaciones, no viene.
    */
   negados?: string[];
+  /** Cada modelo con que trabajó, lo que gastó y para qué (modelosDe). No viene si Claude Code no los dijo. */
+  modelos?: ModeloUsado[];
+}
+
+/**
+ * Un modelo con que trabajó un lanzamiento (nota de voz del titular del 22 de octubre de 2026: que se vea qué modelo se
+ * usó para cada cosa). Lo suyo viene de `modelUsage`, que el evento `result` trae sumado de toda la sesión: el director,
+ * sus ayudantes, los agentes de sus flujos y lo que Claude Code usa por dentro (WebFetch, por ejemplo, resume con un
+ * modelo pequeño cada página que lee).
+ */
+export interface ModeloUsado {
+  modelo: string;
+  /** Si es el modelo con que trabajó el director (el del evento `init`). */
+  principal: boolean;
+  /** Tokens de entrada nuevos (con los escritos en la caché), los leídos de la caché y los de salida, como en Consumo. */
+  entrada: number;
+  cache: number;
+  salida: number;
+  /** En dólares a precio de API, si Claude Code lo dice. */
+  costo?: number;
+  /**
+   * Para qué se usó, si no es el principal: lo que se le pidió a cada ayudante que trabajó con él y la fase de cada agente
+   * de un flujo; si no lo usó ninguno, lo usó Claude Code por su cuenta (POR_DENTRO).
+   */
+  para?: string[];
+}
+
+/** Lo que usa Claude Code por su cuenta, sin que lo pida el director ni un ayudante. */
+export const POR_DENTRO = 'por dentro de Claude Code';
+
+/**
+ * Los modelos con que trabajó un lanzamiento, de su registro en stream-json: el principal primero y los demás del que más
+ * gastó al que menos, cada uno con para qué se usó. Vacío si no terminó con su resultado o si Claude Code no dijo los
+ * modelos (`modelUsage`). Puro: sin archivos. Solo lee las líneas que pueden decir algo de esto (como negacionesDe).
+ */
+export function modelosDe(registro: string): ModeloUsado[] {
+  let principal: string | null = null;
+  let porModelo: Record<string, any> | null = null;
+  // Lo que se le pidió a cada ayudante, por el id de su uso de Agent; quién trabajó con qué modelo; y si leyó páginas
+  const ayudantes = new Map<string, string>();
+  const usos: { modelo: string; para: string }[] = [];
+  let paginas = false;
+  for (const linea of registro.split('\n')) {
+    if (!linea.startsWith('{')) continue;
+    if (principal && !linea.includes('"modelUsage"') && !linea.includes('"workflow_progress"') && !linea.includes('"parent_tool_use_id":"') && !/"name":"(Agent|Task|WebFetch)"/.test(linea)) continue;
+    let ev: any;
+    try { ev = JSON.parse(linea); } catch { continue; }
+    if (!principal && ev.type === 'system' && ev.subtype === 'init' && typeof ev.model === 'string') principal = ev.model;
+    if (ev.type === 'assistant') {
+      const padre = ev.parent_tool_use_id ? String(ev.parent_tool_use_id) : null;
+      const modelo = typeof ev.message?.model === 'string' ? ev.message.model : null;
+      if (!principal && !padre && modelo) principal = modelo;
+      // Una respuesta de un ayudante trae el id del uso de Agent que lo lanzó
+      if (padre && modelo && ayudantes.has(padre)) usos.push({ modelo, para: ayudantes.get(padre)! });
+      for (const b of Array.isArray(ev.message?.content) ? ev.message.content : []) {
+        if (b?.type !== 'tool_use') continue;
+        if (b.name === 'WebFetch') paginas = true;
+        if ((b.name === 'Agent' || b.name === 'Task') && b.id) {
+          const para = corto(b.input?.description || b.input?.prompt || 'un ayudante', 80);
+          ayudantes.set(String(b.id), para);
+          // El modelo que se le pidió, por si sus respuestas no llegan al registro
+          if (typeof b.input?.model === 'string') usos.push({ modelo: b.input.model, para });
+        }
+      }
+    }
+    // Los agentes de un flujo no escriben en el registro: el aviso de su progreso dice con qué modelo trabaja cada uno
+    if (ev.type === 'system' && Array.isArray(ev.workflow_progress))
+      for (const a of ev.workflow_progress)
+        if (a?.type === 'workflow_agent' && typeof a.model === 'string') usos.push({ modelo: a.model, para: corto(a.phaseTitle || a.label || 'un agente de un flujo', 80) });
+    if (ev.type === 'result' && ev.modelUsage && typeof ev.modelUsage === 'object') porModelo = ev.modelUsage;
+  }
+  if (!porModelo) return [];
+  const lista = Object.entries(porModelo)
+    .filter(([, u]) => u && typeof u === 'object')
+    .map(([modelo, u]): ModeloUsado => {
+      const esPrincipal = !!principal && trabajoConElPedido(principal, modelo);
+      const para = [...new Set(usos.filter((x) => trabajoConElPedido(x.modelo, modelo)).map((x) => x.para))];
+      // Sin ayudante ni flujo que lo usara, lo usó Claude Code: con páginas leídas, su modelo pequeño las resume
+      const porDentro = paginas && /haiku/i.test(modelo) ? `${POR_DENTRO}, al leer páginas web` : POR_DENTRO;
+      return {
+        modelo,
+        principal: esPrincipal,
+        entrada: n(u.inputTokens) + n(u.cacheCreationInputTokens),
+        cache: n(u.cacheReadInputTokens),
+        salida: n(u.outputTokens),
+        ...(typeof u.costUSD === 'number' && Number.isFinite(u.costUSD) ? { costo: u.costUSD } : {}),
+        ...(esPrincipal ? {} : { para: para.length ? para : [porDentro] }),
+      };
+    });
+  return lista.sort((a, b) => Number(b.principal) - Number(a.principal) || (b.costo ?? 0) - (a.costo ?? 0));
 }
 
 /** Una ventana de los límites del plan: el porcentaje usado (0 a 100) y cuándo se renueva (ISO). */
@@ -427,14 +529,18 @@ export function consumoDe(registro: string): Omit<Consumo, 'cuando' | 'proyecto'
   // Si se pidió un modelo, si trabajó con él (null: no se pidió ninguno, o Claude Code no dijo cuál usó)
   if (pedido) pedido.cumplido = pedido.modelo && modelo ? trabajoConElPedido(pedido.modelo, modelo) : null;
   const negados = negacionesDe(registro);
+  // Los tokens, de todos los modelos y de toda la sesión; `usage` es solo lo del director en su último turno
+  const modelos = modelosDe(registro);
+  const suma = (k: 'entrada' | 'cache' | 'salida') => modelos.reduce((s, m) => s + m[k], 0);
   return {
     modelo,
     ...(pedido ? { pedido } : {}),
     ...(negados.length ? { negados } : {}),
+    ...(modelos.length ? { modelos } : {}),
     costo: n(resultado.total_cost_usd),
-    entrada: n(u.input_tokens) + n(u.cache_creation_input_tokens),
-    cache: n(u.cache_read_input_tokens),
-    salida: n(u.output_tokens),
+    entrada: modelos.length ? suma('entrada') : n(u.input_tokens) + n(u.cache_creation_input_tokens),
+    cache: modelos.length ? suma('cache') : n(u.cache_read_input_tokens),
+    salida: modelos.length ? suma('salida') : n(u.output_tokens),
     minutos: Math.round(n(resultado.duration_ms) / 6000) / 10,
     limites: limites && (limites.cincoHoras || limites.semana) ? limites : null,
   };
@@ -787,32 +893,35 @@ function sinSesion(programa: string): Promise<string | null> {
 /**
  * El turno de lanzar al director, entre todos los servidores del Studio de este computador: un archivo que se crea solo
  * si no existe (atómico), con el proceso que lo tiene. Sin él, dos servidores encendidos a la vez vieron la misma
- * revisión pedida y lanzaron dos directores sobre el mismo plan (21 de octubre de 2026). Si su proceso ya no existe o
- * pasó el límite de una revisión, está abandonado y se toma.
+ * revisión pedida y lanzaron dos directores sobre el mismo plan (21 de octubre de 2026). Si pasó el límite de una
+ * revisión, o ya no existen ni su proceso ni el director que lanzó, está abandonado y se toma.
  */
-export function tomarTurno(archivo: string, ahora = Date.now()): boolean {
+export function tomarTurno(archivo: string, ahora = Date.now(), vive: (pid: number) => boolean = existe): boolean {
   for (let intento = 0; intento < 2; intento++) {
     try {
       writeFileSync(archivo, JSON.stringify({ pid: process.pid, cuando: new Date(ahora).toISOString() }), { flag: 'wx' });
       return true;
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== 'EEXIST') return false;
-      if (!turnoAbandonado(archivo, ahora)) return false;
+      if (!turnoAbandonado(archivo, ahora, vive)) return false;
       try { unlinkSync(archivo); } catch { return false; }
     }
   }
   return false;
 }
 
-function turnoAbandonado(archivo: string, ahora: number): boolean {
+/**
+ * Si el servidor que tomó el turno se reinició pero el director que lanzó sigue trabajando, el turno sigue tomado: antes
+ * quedaba libre y podía lanzarse otro director a su lado. Nunca dos directores a la vez, tampoco después de un reinicio
+ * (regla del titular, 22 de octubre de 2026). Solo pregunta si los procesos existen: nunca los detiene.
+ */
+function turnoAbandonado(archivo: string, ahora: number, vive: (pid: number) => boolean): boolean {
   try {
     const t = JSON.parse(readFileSync(archivo, 'utf-8'));
     if (!(ahora - Date.parse(t.cuando) < (MAX_MIN + 5) * 60_000)) return true;
-    process.kill(t.pid, 0); // solo pregunta si el proceso existe
-    return false;
-  } catch (e) {
-    // EPERM: existe, pero es de otro usuario
-    return (e as NodeJS.ErrnoException).code !== 'EPERM';
+    return !((typeof t.pid === 'number' && vive(t.pid)) || (typeof t.hijo === 'number' && vive(t.hijo)));
+  } catch {
+    return true;
   }
 }
 
