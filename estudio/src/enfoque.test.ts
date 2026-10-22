@@ -102,4 +102,14 @@ describe('el modo enfoque (notas del titular, 22 de octubre de 2026)', () => {
     expect(director).toContain('← Volver a tu misión');
     expect(director).toContain('} else if (ds.volverMision) {');
   });
+
+  it('una nota cuyo audio ya no existe queda solo con su texto, sin reproductor roto (22 de octubre de 2026)', () => {
+    const audio = director.match(/function audioYTexto\(audio: string \| undefined\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+    // Con su texto, no hay reproductor
+    expect(audio).toContain("const reproductor = t ? '' :");
+    // Si el <audio> falla al cargar, se quita (el error no sube: se escucha en la captura)
+    const quita = director.match(/document\.addEventListener\('error', \(e\) => \{[\s\S]*?\}, true\);/)?.[0] ?? '';
+    expect(quita).toContain('a instanceof HTMLAudioElement');
+    expect(quita).toContain('a.remove()');
+  });
 });

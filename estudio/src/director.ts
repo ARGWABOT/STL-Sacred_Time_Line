@@ -2093,6 +2093,17 @@ function audioYTexto(audio: string | undefined) {
   return `<div class="nota-voz">${texto}${reproductor}</div>`;
 }
 
+// Un audio que ya no existe (el Studio los borra apenas tienen su texto) no deja un reproductor roto: si falla al
+// cargar, se quita, y la nota queda con su texto; sin texto, lo dice (el error de un <audio> no sube: se escucha en la
+// captura)
+document.addEventListener('error', (e) => {
+  const a = e.target;
+  if (!(a instanceof HTMLAudioElement) || !a.closest('.nota-voz')) return;
+  const caja = a.closest('.nota-voz')!;
+  a.remove();
+  if (!caja.querySelector('.transcripcion:not(.procesando)')) caja.insertAdjacentHTML('beforeend', '<p class="transcripcion pendiente">El audio ya no está en este computador.</p>');
+}, true);
+
 /** Lo adjuntado a una nota: las imágenes en miniatura (se abren grandes en otra pestaña) y el resto con su nombre, para descargarlo. */
 function adjuntosDeNota(n: Nota) {
   if (!n.adjuntos?.length) return '';
