@@ -95,6 +95,7 @@ import { Adjuntos } from './adjuntos';
 import { activarRecorrido, paginaSTL, restaurarParada } from './stl';
 import { clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
 import { abiertaEnLista, desplazamientoParaVer, instruccionDeAgente } from './listas';
+import { avisoDeEspera, segundosParaLeer } from './lectura';
 import { marcarTrabajando, pantallaTrabajando, trabajandoGuardado, tituloTermino } from './trabajando';
 import { sonar } from './sonidos';
 import { botonSonido } from './panelSonidos';
@@ -2917,9 +2918,12 @@ function porTrozos(s: { titulo: string; md: string }, notas: Nota[]): string {
     const hecho = entendida[i];
     const recien = hecho && recienEntendida === `${ruta}|${claveIdea(s.titulo, t.md)}`;
     const cambiada = cambio[i] ? `<p class="idea-cambiada">${icono('estrella')} Cambió desde que leíste esta parte</p>` : '';
+    // El seguro: la idea de ahora, la primera vez, deja marcar «Entendido» después de lo que tarda en leerse
+    const falta = clase.includes('actual') ? esperaDeIdea(ruta, claveIdea(s.titulo, t.md), t.md, hecho) : 0;
+    const seguro = falta > 0 ? ` con-seguro" data-listo="${Date.now() + falta}` : '';
     return `<div class="trozo${hecho ? ' hecho' : ''}${clase}">${cambiada}<div class="cuerpo-trozo">${conSobres(t.md, puntos)}</div>
       <div class="marcas-trozo">
-        <button type="button" class="entendido${hecho ? ' hecho' : ''}${recien ? ' recien' : ''}" data-entendido="${esc(s.titulo)}|${i}" aria-pressed="${hecho}" title="${hecho ? 'Quitar la marca' : 'Márcala al entender esta idea'}">${icono('check')}<span>Entendido</span></button>
+        <button type="button" class="entendido${hecho ? ' hecho' : ''}${recien ? ' recien' : ''}${seguro}" data-entendido="${esc(s.titulo)}|${i}" aria-pressed="${hecho}" title="${hecho ? 'Quitar la marca' : 'Márcala al entender esta idea'}">${icono('check')}<span>Entendido</span>${falta > 0 ? `<span class="seguro-e" aria-hidden="true">${Math.ceil(falta / 1000)}</span>` : ''}</button>
         <button type="button" class="al-director comentar-idea" data-comentar="documento|${esc(ruta)}|${esc(s.titulo)}||${esc(fragmento)}" title="Comentar solo esta idea al director">✉ Comentar esta idea al director</button>
       </div>
       ${deEste.length ? `<ul class="notas-lista">${deEste.map((x) => tarjetaNota(x, false, false, false, enParte(ruta, s.titulo))).join('')}</ul>` : ''}</div>`;
@@ -2937,6 +2941,34 @@ function porTrozos(s: { titulo: string; md: string }, notas: Nota[]): string {
 
 /** La idea que se acaba de marcar (documento|clave): su botón lleva el estímulo una sola vez. */
 let recienEntendida = '';
+
+/** Cuándo se vio por primera vez cada idea por leer (documento|clave): desde ahí corre su seguro. */
+const ideaVista = new Map<string, number>();
+/**
+ * Los milisegundos que le faltan al «Entendido» de una idea para activarse (0: ya se puede). La primera vez que se lee,
+ * lo que tarda en leerse a buen ritmo (lectura.ts › segundosParaLeer); lo ya marcado, o un documento ya leído (al
+ * releer), sin espera (nota de voz del titular, 22 de octubre de 2026).
+ */
+function esperaDeIdea(ruta: string, clave: string, md: string, hecho: boolean): number {
+  if (hecho || yaLeido(ruta, d.identidad.rol ?? TITULAR)) return 0;
+  const k = `${ruta}|${clave}`;
+  if (!ideaVista.has(k)) ideaVista.set(k, Date.now());
+  return Math.max(0, ideaVista.get(k)! + segundosParaLeer(md) * 1000 - Date.now());
+}
+// La cuenta del seguro, en el botón mismo: al llegar a cero, «Entendido» queda listo
+setInterval(() => {
+  for (const b of document.querySelectorAll<HTMLButtonElement>('.entendido[data-listo]')) {
+    const faltan = Number(b.dataset.listo) - Date.now();
+    if (faltan > 0) {
+      const cuenta = b.querySelector('.seguro-e');
+      if (cuenta) cuenta.textContent = String(Math.ceil(faltan / 1000));
+      continue;
+    }
+    b.classList.remove('con-seguro');
+    delete b.dataset.listo;
+    b.querySelector('.seguro-e')?.remove();
+  }
+}, 250);
 
 /**
  * Marca (o desmarca) una idea como entendida; con la última de la parte (y sus decisiones respondidas), la parte queda
@@ -4621,6 +4653,9 @@ async function clicEnVista(b: HTMLButtonElement) {
     if (await accion({ tipo: 'comentar', sobre: { tipo: 'documento', id: ruta, seccion, decision, postura: 'aprueba' } }, 'Aprobado: quedó en el Buzón como tu respuesta.')) await decisionRespondida(ruta, seccion);
     else b.removeAttribute('disabled');
   } else if (ds.entendido !== undefined) {
+    // Antes de tiempo, el seguro lo dice con humor y con lo que falta, y la idea no se marca
+    const faltan = Number(ds.listo ?? 0) - Date.now();
+    if (faltan > 0) return avisar(avisoDeEspera(faltan / 1000));
     const corte = ds.entendido.lastIndexOf('|');
     await marcarTrozo(ds.entendido.slice(0, corte), Number(ds.entendido.slice(corte + 1)));
   } else if (ds.plegarLista !== undefined) {

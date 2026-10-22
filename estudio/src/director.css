@@ -752,6 +752,10 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .entendido .icono { width: 16px; height: 16px; stroke: var(--borde-fuerte); }
 .entendido:hover .icono { stroke: var(--ok); }
 .entendido.hecho { background: var(--ok-fondo); border-color: var(--ok); color: var(--ok-texto); font-weight: 600; }
+/* El seguro: la primera vez, «Entendido» espera lo que tarda en leerse la idea, con su cuenta en el botón */
+.entendido.con-seguro { opacity: 0.6; cursor: progress; }
+.entendido.con-seguro:hover .icono { stroke: var(--borde-fuerte); }
+.entendido .seguro-e { min-width: 1.6em; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--borde); color: var(--suave); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }
 .entendido.hecho .icono { stroke: var(--ok); }
 /* Al marcarla, un estímulo corto y discreto: el botón late, el check entra girando y un anillo verde se abre y se apaga */
 .entendido.recien { position: relative; animation: late-entendido 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
