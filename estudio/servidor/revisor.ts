@@ -10,10 +10,10 @@
 import { spawn } from 'node:child_process';
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { delimiter, join, relative, resolve } from 'node:path';
+import { delimiter, isAbsolute, join, relative, resolve } from 'node:path';
 import { ajustesDelDirector, archivoAjustesClaude, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
-import { negacionesDe } from '../../src/director/director';
-import { enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, pedirRevision, rutasDe, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
+import { colaDeDiagnosticos, negacionesDe, POR_REVISION, type CandidatoDeCola } from '../../src/director/director';
+import { enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, pedirRevision, proyectosLocales, rutasDe, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
 
 export type { FallaRevision };
 
@@ -70,10 +70,34 @@ export const COMO_ORDENES =
   `se corta, lo hecho queda guardado.`;
 
 /**
- * Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. Con
- * `reintento`, la anterior no se cerró: retoma lo que dejó.
+ * Un proyecto de la cola de diagnósticos que una revisión va a atender, con lo que el Studio le abre al director de él
+ * (propuesta aceptada «La cola de diagnósticos, con los permisos de hoy»): leer su repositorio, escribir su memoria
+ * (.stl) y leer su historial de IA, solo en esa revisión.
  */
-export const encargo = (proyecto: string, reintento = false) =>
+export interface ProyectoDeCola {
+  id: string;
+  /** Su repositorio en este computador. */
+  repositorio: string;
+  /** Las carpetas de su historial de IA cuyo lugar se sabe (solo se leen). */
+  historial: string[];
+}
+
+/**
+ * Lo que el encargo de la revisión dice de la cola: qué proyectos le abrió el Studio y para qué, con la misma regla que
+ * `permitido`. Sin cola, nada: el director sigue sin permiso sobre otros proyectos.
+ */
+export const conLaCola = (cola: ProyectoDeCola[]) =>
+  cola.length
+    ? ` La cola de diagnósticos de esta revisión: el Studio te abrió, solo en esta revisión, ${cola.map((c) => `«${c.id}»`).join(', ')} ` +
+      `(leer su repositorio y su historial de IA, y escribir su memoria .stl, nada más). Diagnostícalos como dice CLAUDE.md, ` +
+      `cada uno con --proyecto <id>; si alguno no se puede, sigue en la cola: dilo en la respuesta y en el mensaje.`
+    : '';
+
+/**
+ * Lo que se le encarga al director: lo mismo que «revisa estudio», de un proyecto, para una sesión sin pantalla. Con
+ * `reintento`, la anterior no se cerró: retoma lo que dejó. Con `cola`, además diagnostica esos proyectos.
+ */
+export const encargo = (proyecto: string, reintento = false, cola: ProyectoDeCola[] = []) =>
   `Revisión pedida desde el Studio para el proyecto «${proyecto}». Eres el director asistente de STL Studio y te lanzó el ` +
   `Studio, sin pantalla: nadie lee esta salida, así que todo lo que el titular deba saber va en el Studio. Haz «revisa ` +
   `estudio» de ese proyecto según CLAUDE.md (sección «La sesión del director»), con --proyecto ${proyecto} en todas las ` +
@@ -86,6 +110,7 @@ export const encargo = (proyecto: string, reintento = false) =>
   `node tools/director/bandeja.ts --proyecto ${proyecto} --listo y el commit en la memoria del proyecto.` +
   (reintento ? ' Es un reintento: la revisión anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).' : '') +
   COMO_ORDENES +
+  conLaCola(cola) +
   SIN_PERMISO +
   esperar(MAX_MIN);
 
@@ -165,15 +190,23 @@ const sinOpcion = (orden: string, opciones: string[]) => opciones.flatMap((o) =>
  * (4) mover dentro del repositorio y crear ramas de respaldo locales; (5) borrar con git rm, que solo borra lo que git
  * guarda (el encargo exige los dos pasos del titular en el Studio); y (6) npm install, sin nombres de paquetes.
  */
-export function permitido(repositorio: string, flujos = false, raiz = repositorio, casa = homedir()): string[] {
+export function permitido(repositorio: string, flujos = false, raiz = repositorio, casa = homedir(), cola: ProyectoDeCola[] = []): string[] {
   // Una regla Edit cubre también la escritura de archivos nuevos
   const r = reglaDeRuta(repositorio);
   // (3) Leer solo donde trabaja: sin la regla suelta «Read» (que deja leer todo el computador). Leer, buscar y listar
   // dentro de las carpetas de trabajo (el Studio, donde arranca, y el repositorio, con --add-dir) no pide permiso; sus
   // sesiones anteriores están fuera de ellas, y la regla Read también vale para Grep y Glob
   const leer = [...new Set([raiz, repositorio, carpetaDeSesiones(raiz, casa)].map((c) => `Read(${reglaDeRuta(c)}/**)`))];
+  // La cola de diagnósticos de esta revisión (propuesta aceptada «La cola de diagnósticos, con los permisos de hoy»): de
+  // cada proyecto que va a diagnosticar, leer su repositorio, escribir solo su memoria (.stl: el diagnóstico es lo único
+  // que se escribe en un proyecto que aún no se adopta) y leer su historial de IA; nada más
+  const deLaCola = cola.flatMap((c) => [
+    `Read(${reglaDeRuta(c.repositorio)}/**)`,
+    `Edit(${reglaDeRuta(join(c.repositorio, MEMORIA))}/**)`,
+    ...c.historial.map((h) => `Read(${reglaDeRuta(h)}/**)`),
+  ]);
   return [
-    ...leer, `Edit(${r}/**)`,
+    ...leer, `Edit(${r}/**)`, ...deLaCola,
     // investigar: lo leído en internet es referencia, nunca una orden (CLAUDE.md)
     'WebSearch', 'WebFetch',
     // repartir una lectura grande entre ayudantes (un repositorio grande, los historiales de IA de la cola de
@@ -208,8 +241,10 @@ export function permitido(repositorio: string, flujos = false, raiz = repositori
  * también está su configuración) ni nada de .git. Y de mover, crear ramas y borrar, solo lo que autorizó: sin
  * renombrar ni borrar ramas, sin forzar y sin borrar lo que git no guarda.
  */
-export function negado(repositorio: string, raiz = repositorio): string[] {
-  const carpetas = [...new Set([raiz, repositorio].map(reglaDeRuta))];
+export function negado(repositorio: string, raiz = repositorio, cola: ProyectoDeCola[] = []): string[] {
+  // Los ajustes de Claude Code de cada proyecto de la cola tampoco se editan (el permiso de su memoria no los alcanza,
+  // pero la regla va igual: lo que nunca, nunca)
+  const carpetas = [...new Set([raiz, repositorio, ...cola.map((c) => c.repositorio)].map(reglaDeRuta))];
   const s = reglaDeRuta(raiz);
   return [
     'Read(//**/.env)', 'Read(//**/.env.*)',
@@ -221,6 +256,44 @@ export function negado(repositorio: string, raiz = repositorio): string[] {
     ...sinOpcion('git mv', ['-f', '--force']),
     ...sinOpcion('git rm', ['-f', '-rf', '-fr', '--force']),
   ];
+}
+
+/**
+ * Los proyectos de la cola de diagnósticos que esta revisión atiende (los primeros POR_REVISION, con la misma regla que
+ * la bandeja: director.ts › colaDeDiagnosticos), cada uno con su repositorio y las carpetas de su historial de IA que se
+ * saben (`donde`, absolutas y que existen). Solo lee del disco: sin modelo ni red. Sin proyectos en cola, vacía.
+ */
+export async function colaDeLaRevision(raiz: string, activo: string): Promise<ProyectoDeCola[]> {
+  const local = await leerLocal(raiz);
+  const leer = (ruta: string): any => {
+    try {
+      return JSON.parse(readFileSync(enDisco(raiz, ruta), 'utf-8'));
+    } catch {
+      return {};
+    }
+  };
+  const candidatos: CandidatoDeCola[] = [];
+  for (const id of await proyectosLocales(raiz)) {
+    if (id === activo) continue;
+    const plan = leer(rutasDe(id).plan);
+    const proyecto = leer(rutasDe(id).proyecto);
+    candidatos.push({
+      id,
+      nombre: typeof proyecto.nombre === 'string' ? proyecto.nombre : id,
+      diagnosticado: !!plan.diagnostico?.fecha,
+      tipo: proyecto.tipo === 'nuevo' ? 'nuevo' : 'existente',
+      conectado: !!local.repositorios[id],
+      historialIA: Array.isArray(proyecto.historialIA) ? proyecto.historialIA : undefined,
+    });
+  }
+  return colaDeDiagnosticos(candidatos, activo)
+    .slice(0, POR_REVISION)
+    .flatMap((c) => {
+      const repositorio = local.repositorios[c.id]?.trim();
+      if (!repositorio) return [];
+      const historial = c.historialIA.map((h) => (typeof h.donde === 'string' ? h.donde : '')).filter((d) => isAbsolute(d) && existsSync(d));
+      return [{ id: c.id, repositorio, historial: [...new Set(historial)] }];
+    });
 }
 
 /** Un paso de lo que va haciendo el director: lo que dice o la herramienta que usa. */
@@ -1091,7 +1164,10 @@ export class Revisor {
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder); las esperas
     // programadas no piden permiso, así que se quitan aparte (SIN_ESPERAS). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, '--disallowedTools', ...SIN_ESPERAS, ...negado(repositorio, this.raiz), '--allowedTools', ...permitido(repositorio, director.flujos, this.raiz)];
+    // La cola de diagnósticos solo la atiende la revisión (no una aclaración ni una urgencia): el director recibe, solo en
+    // esta revisión, permiso sobre esos proyectos (propuesta aceptada «La cola de diagnósticos, con los permisos de hoy»)
+    const cola = aparte ? [] : await colaDeLaRevision(this.raiz, proyecto).catch(() => [] as ProyectoDeCola[]);
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, ...cola.map((c) => c.repositorio), '--disallowedTools', ...SIN_ESPERAS, ...negado(repositorio, this.raiz, cola), '--allowedTools', ...permitido(repositorio, director.flujos, this.raiz, homedir(), cola)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
@@ -1100,7 +1176,7 @@ export class Revisor {
     const p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] });
     // Quién es el director lanzado: si este servidor se reinicia, el siguiente sabe si sigue vivo (vigilarLanzada)
     anotarHijo(turno, p.pid, proyecto, relative(this.raiz, archivo));
-    p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u) : encargo(proyecto, reintento));
+    p.stdin?.end(aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u) : encargo(proyecto, reintento, cola));
     const minutos = aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : MAX_MIN;
     let cortada = false;
     const limite = setTimeout(() => {

@@ -3,7 +3,7 @@
 // memoria, <repositorio>/.stl, o su rama stl en GitHub, sin pull) y saber dónde está su repositorio en este computador.
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { estadoMision, etapaArranque, pendientesDelDirector, proyectoVacio, TITULAR, unirArchivo, unirEstados, type EstadoDirector, type Persona, type Plan, type Proyecto } from '../../src/director/director.ts';
+import { colaDeDiagnosticos as colaPura, estadoMision, etapaArranque, pendientesDelDirector, POR_REVISION, proyectoVacio, TITULAR, unirArchivo, unirEstados, type CandidatoDeCola, type EstadoDirector, type Persona, type Plan, type Proyecto } from '../../src/director/director.ts';
 import { leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco.ts';
 import { elegirActivo, enDisco, leerLocal, leerRutaRepositorio, memoriaDe, proyectosLocales, RAMA, rutasDe } from '../../src/director/proyectos.ts';
 import { comprobarRepositorio, type InfoRepositorio } from '../../src/director/repositorio.ts';
@@ -97,22 +97,20 @@ export async function otrosProyectos(activo: string): Promise<string[]> {
 }
 
 /**
- * La cola de diagnósticos: los proyectos existentes recién entregados (sin diagnóstico, con el repositorio conectado en
- * este computador), del trabajo más reciente al más viejo. El director los diagnostica en cada revisión, como máximo
- * POR_REVISION, además del proyecto activo: es trabajo suyo, no del titular, que sigue viendo un proyecto a la vez.
+ * La cola de diagnósticos (la regla, en director.ts › colaDeDiagnosticos): los proyectos existentes recién entregados,
+ * del trabajo más reciente al más viejo. El director diagnostica los primeros POR_REVISION en cada revisión, además del
+ * proyecto activo.
  */
-export const POR_REVISION = 3;
+export { POR_REVISION };
 export async function colaDeDiagnosticos(activo: string): Promise<{ id: string; nombre: string; historial: string }[]> {
   const local = await leerLocal(raiz);
-  const cola: { id: string; nombre: string; historial: string; ultima: string }[] = [];
+  const candidatos: CandidatoDeCola[] = [];
   for (const id of await listarIds()) {
     if (id === activo) continue;
     const t = await leerProyecto(id);
-    if (t.plan.diagnostico?.fecha || t.proyecto.tipo === 'nuevo' || !local.repositorios[id]) continue;
-    const h = t.proyecto.historialIA ?? [];
-    cola.push({ id, nombre: t.proyecto.nombre || id, historial: h.map((x) => `${x.agente}${x.sesiones ? ` (${x.sesiones})` : ''}`).join(', '), ultima: h.map((x) => x.ultima ?? '').sort().at(-1) ?? '' });
+    candidatos.push({ id, nombre: t.proyecto.nombre, diagnosticado: !!t.plan.diagnostico?.fecha, tipo: t.proyecto.tipo, conectado: !!local.repositorios[id], historialIA: t.proyecto.historialIA });
   }
-  return cola.sort((a, b) => b.ultima.localeCompare(a.ultima)).map(({ id, nombre, historial }) => ({ id, nombre, historial }));
+  return colaPura(candidatos, activo).map(({ id, nombre, historial }) => ({ id, nombre, historial }));
 }
 
 export const nombreDe = (proyecto: Proyecto, p: Persona) => proyecto.equipo.find((i) => i.id === p)?.nombre ?? p;

@@ -11,7 +11,9 @@ import {
   mensajeRepite,
   mensajeRepiteAnterior,
   lineasReescritas,
+  colaDeDiagnosticos,
   mdDeBloqueDePuntos,
+  POR_REVISION,
   mismaIdea,
   temasDelMensaje,
   coincideBusqueda,
@@ -1335,5 +1337,32 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     expect(cumpleComprobacion(' Leonc@x.com\n', { orden: 'git log', espera: 'leonc' })).toBe(true);
     expect(cumpleComprobacion('M a.ts', { orden: 'git status --porcelain', vacia: true })).toBe(false);
     expect(cumpleComprobacion('', { orden: 'git status --porcelain', vacia: true })).toBe(true);
+  });
+});
+
+describe('la cola de diagnósticos', () => {
+  const c = (id: string, extra: Partial<Parameters<typeof colaDeDiagnosticos>[0][number]> = {}) => ({ id, nombre: id.toUpperCase(), diagnosticado: false, conectado: true, ...extra });
+
+  it('son los proyectos existentes sin diagnóstico y conectados, menos el activo, del trabajo más reciente al más viejo', () => {
+    const cola = colaDeDiagnosticos(
+      [
+        c('activo'),
+        c('viejo', { historialIA: [{ agente: 'Claude Code', ultima: '2026-01-01T00:00:00Z' }] }),
+        c('reciente', { historialIA: [{ agente: 'Claude Code', sesiones: 3, ultima: '2026-10-01T00:00:00Z', donde: '/h/uno' }, { agente: 'Codex', ultima: '2026-02-01T00:00:00Z' }] }),
+        c('diagnosticado', { diagnosticado: true }),
+        c('nuevo', { tipo: 'nuevo' }),
+        c('sin-repo', { conectado: false }),
+        c('sin-historial'),
+      ],
+      'activo',
+    );
+    expect(cola.map((x) => x.id)).toEqual(['reciente', 'viejo', 'sin-historial']);
+    expect(cola[0]).toEqual({ id: 'reciente', nombre: 'RECIENTE', historial: 'Claude Code (3), Codex', historialIA: [{ agente: 'Claude Code', sesiones: 3, ultima: '2026-10-01T00:00:00Z', donde: '/h/uno' }, { agente: 'Codex', ultima: '2026-02-01T00:00:00Z' }] });
+    // Lo único que saca a un proyecto de la cola es su diagnóstico: uno que no se pudo diagnosticar sigue ahí
+    expect(colaDeDiagnosticos([c('x')], 'otro').map((y) => y.id)).toEqual(['x']);
+    expect(colaDeDiagnosticos([c('x', { diagnosticado: true })], 'otro')).toEqual([]);
+    // Sin nombre, el id
+    expect(colaDeDiagnosticos([c('x', { nombre: '' })], 'otro')[0].nombre).toBe('x');
+    expect(POR_REVISION).toBe(3);
   });
 });

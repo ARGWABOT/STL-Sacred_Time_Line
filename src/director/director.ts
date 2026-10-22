@@ -2311,3 +2311,39 @@ export function negacionesDe(registro: string): string[] {
   }
   return [...vistas];
 }
+
+/**
+ * Cuántos proyectos de la cola de diagnósticos atiende el director en cada revisión, además del activo: es trabajo
+ * suyo, no del titular, que sigue viendo un proyecto a la vez.
+ */
+export const POR_REVISION = 3;
+
+/** Lo que hace falta saber de un proyecto del Studio para decidir si está en la cola de diagnósticos. */
+export interface CandidatoDeCola {
+  id: string;
+  nombre: string;
+  /** Si ya tiene diagnóstico (en uno nuevo, su planteamiento). */
+  diagnosticado: boolean;
+  tipo?: TipoProyecto;
+  /** Si su repositorio está conectado en este computador. */
+  conectado: boolean;
+  historialIA?: NonNullable<Proyecto['historialIA']>;
+}
+
+/**
+ * La cola de diagnósticos: los proyectos existentes recién entregados (sin diagnóstico y con el repositorio conectado en
+ * este computador), menos el activo, del trabajo más reciente al más viejo. Un proyecto que no se pudo diagnosticar
+ * sigue aquí en la revisión siguiente, porque lo único que lo saca es su diagnóstico: nunca se da por hecho. La
+ * bandeja la lista y el Studio, al lanzar la revisión, le abre al director los primeros POR_REVISION (propuesta aceptada
+ * «La cola de diagnósticos, con los permisos de hoy»).
+ */
+export function colaDeDiagnosticos(candidatos: CandidatoDeCola[], activo: string): { id: string; nombre: string; historial: string; historialIA: NonNullable<Proyecto['historialIA']> }[] {
+  return candidatos
+    .filter((c) => c.id !== activo && !c.diagnosticado && c.tipo !== 'nuevo' && c.conectado)
+    .map((c) => {
+      const h = c.historialIA ?? [];
+      return { id: c.id, nombre: c.nombre || c.id, historial: h.map((x) => `${x.agente}${x.sesiones ? ` (${x.sesiones})` : ''}`).join(', '), historialIA: h, ultima: h.map((x) => x.ultima ?? '').sort().at(-1) ?? '' };
+    })
+    .sort((a, b) => b.ultima.localeCompare(a.ultima))
+    .map(({ ultima: _ultima, ...resto }) => resto);
+}

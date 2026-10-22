@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, COMO_ORDENES, compararVersion, negado, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, negado, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -48,6 +48,70 @@ describe('el director que lanza el Studio', () => {
     expect(n).toEqual(expect.arrayContaining(['Bash(git branch -D*)', 'Bash(git branch * -D*)', 'Bash(git mv * -f*)', 'Bash(git rm -rf*)', 'Bash(git rm * --force*)']));
     // las sesiones de una carpeta, como las nombra Claude Code
     expect(carpetaDeSesiones(String.raw`C:\xampp2024\htdocs\www\STL`, String.raw`C:\Users\leonc`)).toBe(join(String.raw`C:\Users\leonc`, '.claude', 'projects', 'C--xampp2024-htdocs-www-STL'));
+  });
+
+  it('abre la cola de diagnósticos solo en esa revisión: lee el repositorio de cada proyecto, escribe solo su memoria y lee su historial, nada más (propuesta aceptada «La cola de diagnósticos, con los permisos de hoy»)', () => {
+    const cola = [
+      { id: 'tesis', repositorio: String.raw`C:\repos\tesis`, historial: [String.raw`C:\Users\ana\.claude\projects\C--repos-tesis`] },
+      { id: 'sitio', repositorio: String.raw`D:\web\sitio`, historial: [] },
+    ];
+    const golf = [String.raw`C:\repos\golf`, false, String.raw`C:\xampp\STL`, String.raw`C:\Users\ana`] as const;
+    const sin = permitido(...golf);
+    // Sin cola, lo mismo de siempre
+    expect(permitido(...golf, [])).toEqual(sin);
+    const con = permitido(...golf, cola);
+    expect(con.filter((x) => !sin.includes(x))).toEqual([
+      'Read(//c/repos/tesis/**)', 'Edit(//c/repos/tesis/.stl/**)', 'Read(//c/Users/ana/.claude/projects/C--repos-tesis/**)',
+      'Read(//d/web/sitio/**)', 'Edit(//d/web/sitio/.stl/**)',
+    ]);
+    // Escribir, solo en el repositorio del proyecto que revisa y en la memoria (.stl) de los de la cola, no en su código
+    expect(con.filter((x) => /^(Edit|Write)/.test(x))).toEqual(['Edit(//c/repos/golf/**)', 'Edit(//c/repos/tesis/.stl/**)', 'Edit(//d/web/sitio/.stl/**)']);
+    expect(con).not.toContain('Read');
+    // Lo que nunca sigue negado también en esos proyectos
+    expect(negado(String.raw`C:\repos\golf`, String.raw`C:\xampp\STL`, cola)).toEqual(expect.arrayContaining(['Edit(//c/repos/tesis/.claude/settings*.json)', 'Edit(//d/web/sitio/.claude/settings*.json)', 'Edit(//**/.git/**)', 'Read(//**/.env)']));
+    // El encargo de la revisión dice cuáles y para qué; sin cola, no dice nada
+    expect(encargo('golf', false, cola)).toContain('«tesis», «sitio»');
+    expect(encargo('golf', false, cola)).toContain('si alguno no se puede, sigue en la cola');
+    expect(encargo('golf')).not.toContain('La cola de diagnósticos');
+    // Los permisos de una cola no caben en lo que el encargo de una urgencia o una aclaración da: esas no la llevan
+    expect(encargoUrgencia({ proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' })).not.toContain('La cola de diagnósticos');
+  });
+
+  it('la cola de la revisión: los primeros tres sin diagnóstico y con repositorio conectado, del más reciente al más viejo, con el historial de IA cuyo lugar se sabe', async () => {
+    const raiz = mkdtempSync(join(tmpdir(), 'stl-cola-'));
+    try {
+      const repos: Record<string, string> = {};
+      const crear = (id: string, proyecto: object, plan: object) => {
+        const repo = join(raiz, 'repos', id);
+        mkdirSync(join(repo, '.stl', 'director'), { recursive: true });
+        writeFileSync(join(repo, '.stl', 'proyecto.json'), JSON.stringify(proyecto));
+        writeFileSync(join(repo, '.stl', 'director', 'plan.json'), JSON.stringify(plan));
+        repos[id] = repo;
+      };
+      const historia = join(raiz, 'historias', 'uno');
+      mkdirSync(historia, { recursive: true });
+      crear('activo', { nombre: 'Activo' }, {});
+      crear('viejo', { nombre: 'Viejo', historialIA: [{ agente: 'Claude Code', ultima: '2026-01-01T00:00:00Z' }] }, {});
+      crear('reciente', { nombre: 'Reciente', historialIA: [{ agente: 'Claude Code', sesiones: 3, ultima: '2026-10-01T00:00:00Z', donde: historia }, { agente: 'Archivos de IA', donde: 'CLAUDE.md, AGENTS.md' }, { agente: 'Codex', donde: join(raiz, 'no-existe') }] }, {});
+      crear('medio', { nombre: 'Medio', historialIA: [{ agente: 'Cursor', ultima: '2026-05-01T00:00:00Z' }] }, {});
+      crear('hecho', { nombre: 'Hecho' }, { diagnostico: { fecha: '2026-10-01' } });
+      crear('nuevo', { nombre: 'Nuevo', tipo: 'nuevo' }, {});
+      crear('extra', { nombre: 'Extra', historialIA: [{ agente: 'Claude Code', ultima: '2025-01-01T00:00:00Z' }] }, {});
+      writeFileSync(join(raiz, 'estudio.local.json'), JSON.stringify({ activo: 'activo', repositorios: repos }));
+      const cola = await colaDeLaRevision(raiz, 'activo');
+      // El activo, el ya diagnosticado y el nuevo no entran; el cuarto (el más viejo) espera su turno
+      expect(cola.map((c) => c.id)).toEqual(['reciente', 'medio', 'viejo']);
+      // Del historial, solo lo que dice dónde está y existe: ni los archivos de IA del repositorio ni una carpeta que no está
+      expect(cola[0]).toEqual({ id: 'reciente', repositorio: repos.reciente, historial: [historia] });
+      expect(cola[1].historial).toEqual([]);
+      // Un proyecto que no se pudo diagnosticar sigue en la cola la vez siguiente: lo único que lo saca es su diagnóstico
+      writeFileSync(join(repos.reciente, '.stl', 'director', 'plan.json'), JSON.stringify({ diagnostico: { fecha: '2026-10-22' } }));
+      expect((await colaDeLaRevision(raiz, 'activo')).map((c) => c.id)).toEqual(['medio', 'viejo', 'extra']);
+      // Con otro proyecto activo, el que era activo entra a la cola (sin historial de IA, va al final)
+      expect((await colaDeLaRevision(raiz, 'medio')).map((c) => c.id)).toEqual(['viejo', 'extra', 'activo']);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
   });
 
   it('el encargo dice cómo usar esos permisos: cd en vez de git -C, y borrar solo con git rm y los dos pasos del titular', () => {
