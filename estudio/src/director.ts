@@ -587,7 +587,7 @@ function pintarSegundoPlano() {
     ...(u ? [`<span class="sp-linea alerta">${u.lanzada ? 'El director atiende lo urgente' : 'Lo urgente va al director'}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     // Sin nada nuevo en su registro en un buen rato, no parece que avance: lo dice (lo que se ve es verdad)
     ...(r.estado === 'en_curso' ? [`<button type="button" class="sp-linea${parada ? ' alerta' : ''}" data-progreso title="${parada ? esc(PARADA(parada)) : 'Ver lo que va haciendo'}">${parada ? `Sin actividad desde hace ${parada} min` : 'El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>'}${d.tokensVivos ? `<span class="sp-tokens" title="Lo que lleva leído y escrito el modelo en esta revisión; el total exacto queda en «Modelo y consumo»">${miles(tokensMostrados ?? d.tokensVivos)} tokens</span>` : ''}</button>`] : []),
-    ...(r.estado === 'pedida' ? [`<span class="sp-linea">Revisión pedida · ${hora(d.revision!.pedida)}</span>`] : []),
+    ...(r.estado === 'pedida' ? [`<span class="sp-linea" title="${esc(r.texto)}">Revisión pedida · ${hora(d.revision!.pedida)}${automatica() && d.revisor?.revisando ? ' · espera su turno' : ''}</span>`] : []),
     ...(r.estado === 'sin_vigilia' ? [`<button type="button" class="sp-linea alerta" data-revision="explicar">⚠ ${d.revision?.error ? 'La revisión no terminó · ¿Por qué?' : 'Revisión pedida, sin tomar'}</button>`] : []),
   ];
   caja.innerHTML = lineas.join('');
@@ -1797,6 +1797,10 @@ function estadoRevision(): { estado: 'ninguna' | 'pedida' | 'en_curso' | 'sin_vi
   if (r && !r.hecha && (r.enCurso || r.lanzada)) return { estado: 'en_curso', texto: 'El director está revisando' };
   if (r && !r.hecha && r.error && !vigilando())
     return { estado: 'sin_vigilia', texto: `${r.error} Pídela de nuevo, o en la sesión del director escribe «revisa estudio».` };
+  // Un director sigue trabajando (el de la revisión anterior, que ya la cerró y termina lo último, o el de otro
+  // proyecto): esta espera su turno y empieza sola, porque trabaja un director a la vez (nota de voz del 22 de octubre)
+  if (r && !r.hecha && automatica() && d.revisor?.revisando)
+    return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: espera su turno. ${d.revisor.revisando === d.activo ? 'El director de la revisión anterior ya la cerró, pero sigue terminando lo último' : 'Un director está trabajando en otro proyecto'}; esta empieza sola en cuanto él termine, porque trabaja un director a la vez.` };
   if (r && !r.hecha && automatica()) return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: el Studio está llamando al director.` };
   if (r && !r.hecha && !vigilando())
     return { estado: 'sin_vigilia', texto: `Revisión pedida a las ${hora(r.pedida)}, pero nadie la está tomando. ${d.revisor?.problema ?? 'El Studio no encontró Claude Code en este computador para llamar al director.'} Mientras tanto, en la sesión del director, escribe /loop 5m /vigila, o «revisa estudio».` };
@@ -1823,7 +1827,7 @@ function botonRevision() {
   if (e.estado === 'en_curso') return `<span class="estado-revision en-curso" role="status">El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`;
   // Lanzada y fallida no es «sin tomar»: se dice lo que pasó, y «¿Por qué?» abre su reporte
   if (e.estado === 'sin_vigilia') return `<span class="estado-revision sin-vigilia" role="alert" title="${esc(e.texto)}">⚠ ${r?.error ? 'La revisión no terminó' : 'Revisión pedida, sin tomar'}<button type="button" class="enlace" data-revision="explicar">¿Por qué?</button>${r?.error ? '<button type="button" class="enlace" data-revision="pedir">Pedirla de nuevo</button>' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
-  if (e.estado === 'pedida') return `<span class="estado-revision pedida" role="status" title="${esc(e.texto)}">Revisión pedida · ${hora(r!.pedida)}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
+  if (e.estado === 'pedida') return `<span class="estado-revision pedida" role="status" title="${esc(e.texto)}">Revisión pedida · ${hora(r!.pedida)}${automatica() && d.revisor?.revisando ? ' · espera su turno' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
   const pendientes = cifras().buzon + cifras().preguntas;
   return `<button type="button" class="boton-suave pedir-revision" data-revision="pedir" title="El director revisa todo lo pendiente (notas, preguntas, entregas). ${automatica() ? 'El Studio lo llama en cuanto la pides.' : vigilando() ? `Su sesión mira cada ${VIGILIA_MIN} minutos.` : 'Para que la tome sola, su sesión debe tener corriendo /loop 5m /vigila.'}${r?.hecha ? ` Última revisión: ${hora(r.hecha)}.` : ''}">${icono('revisar')} Pedir revisión${pendientes ? ` <span class="cifra">${pendientes}</span>` : ''}</button>`;
 }
