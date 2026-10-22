@@ -35,6 +35,7 @@ import {
   type Plan,
   documentosDeMision,
   documentosEnOrden,
+  documentosPorCerrar,
   esPregunta,
   hilosDePreguntas,
   ideasSueltas,
@@ -238,6 +239,24 @@ if (args.includes('--listo')) {
   if (porVigilar.length) {
     console.error('No se cerró la revisión: desde la última hubo trabajo que puede dejar hecho algo de estas misiones abiertas. Por cada una, comprueba que nada de sus pasos ni de sus documentos ya se hizo o se decidió (si sí, sácalo), y ponle `"vigente": "<ISO ahora>"`:');
     for (const { mision, hubo } of porVigilar) console.error(`- ${mision.id} («${mision.titulo}»): ${hubo.length} cosa(s), como ${hubo.slice(0, 3).join('; ')}`);
+    process.exit(1);
+  }
+  // Los documentos, bien cortados y sin tocar los ya revisados (propuesta aceptada «El cierre no deja nada sin atender»,
+  // parte 2): lo que antes la bandeja solo avisaba, ahora no deja cerrar
+  const base = rutasDe(elegido).base;
+  const cambiado: Record<string, string> = {};
+  const textos: Record<string, string> = {};
+  for (const ruta of new Set(completo.misiones.flatMap(documentosDeMision))) {
+    if (ruta.startsWith('repo:')) continue;
+    const propio = existsSync(enDiscoDe(raiz, `${base}/${ruta}`)) ? `${base}/${ruta}` : ruta;
+    const f = await fechaDeCambio(raiz, propio);
+    if (f) cambiado[ruta] = f;
+    if (existsSync(enDiscoDe(raiz, propio))) textos[ruta] = readFileSync(enDiscoDe(raiz, propio), 'utf8');
+  }
+  const deDocumentos = documentosPorCerrar(completo, estado, proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : ['titular'], desde, cambiado, textos);
+  if (deDocumentos.length) {
+    console.error('No se cerró la revisión: hay que arreglar estos documentos (CLAUDE.md › «Siempre hacia adelante» y «Ningún corte malo»):');
+    for (const m of deDocumentos) console.error(`- ${m}`);
     process.exit(1);
   }
   // La reserva de misiones (regla del titular, 21 de octubre de 2026): nadie se queda sin misión esperando al director

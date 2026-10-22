@@ -41,6 +41,8 @@ import {
   claveTrozo,
   decisionesDe,
   documentosEnOrden,
+  documentosPorCerrar,
+  claveLeido,
   enLectura,
   esDocumento,
   esPregunta,
@@ -678,6 +680,25 @@ describe('un solo orden de lectura, siempre hacia adelante', () => {
     // Si el director lo cambia después, no vuelve a la lista: queda sellado, y el freno se lo marca al director
     expect(selladosQueCambiaron(p, e, { 'docs/director/diagnostico.md': '2026-10-15T12:00:00.000Z' }).map((x) => x.ruta)).toEqual(['docs/director/diagnostico.md']);
     expect(selladosQueCambiaron(p, e, { 'docs/director/diagnostico.md': '2026-10-15T09:00:00.000Z' })).toEqual([]);
+  });
+
+  it('el cierre no deja un sellado cambiado ni un corte malo en lo escrito en la revisión (propuesta «El cierre no deja nada sin atender», parte 2)', () => {
+    const p = planEjemplo();
+    const e = estadoVacio();
+    const malo = '# Alcance\n\n## 1. Lo que entendí\n\nUna idea completa, con lo que hace falta para entenderla sola y sin depender de nada más alrededor.\n\n- Corto.\n\nOtra idea completa, también con su contexto y lo que la sostiene, para que se lea de corrido.\n';
+    const textos = { 'docs/director/alcance.md': malo };
+    const desde = '2026-10-15T00:00:00.000Z';
+    // escrito en esta revisión y sin empezar a leer: el corte malo no deja cerrar
+    const motivos = documentosPorCerrar(p, e, ['titular'], desde, { 'docs/director/alcance.md': '2026-10-15T10:00:00.000Z' }, textos);
+    expect(motivos).toHaveLength(1);
+    expect(motivos[0]).toContain('docs/director/alcance.md');
+    // escrito antes de esta revisión, o ya empezado a leer: no obliga a tocarlo
+    expect(documentosPorCerrar(p, e, ['titular'], desde, { 'docs/director/alcance.md': '2026-10-14T10:00:00.000Z' }, textos)).toEqual([]);
+    e.leidos = { [claveLeido('titular', 'docs/director/alcance.md')]: { partes: ['1. Lo que entendí'], cuando: desde, quien: 'Laura' } };
+    expect(documentosPorCerrar(p, e, ['titular'], desde, { 'docs/director/alcance.md': '2026-10-15T10:00:00.000Z' }, textos)).toEqual([]);
+    // un documento ya revisado que cambió después: tampoco
+    e.entregas.t_diag = { cuando: '2026-10-15T10:00:00.000Z', quien: 'Laura' };
+    expect(documentosPorCerrar(p, e, ['titular'], desde, { 'docs/director/diagnostico.md': '2026-10-15T12:00:00.000Z' }, {})).toEqual([expect.stringContaining('docs/director/diagnostico.md ya lo revisó titular')]);
   });
 
   it('se leen documentos de este Estudio y del repositorio del proyecto, nunca fuera de ellos', () => {

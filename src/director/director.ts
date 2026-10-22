@@ -1704,6 +1704,31 @@ export function selladosQueCambiaron(plan: Plan, estado: EstadoDirector, cambiad
   return salida;
 }
 
+/**
+ * Lo que la revisión no puede dejar en los documentos al cerrar (propuesta aceptada «El cierre no deja nada sin
+ * atender», parte 2), que antes la bandeja solo avisaba: un documento ya revisado que cambió después (sellado), y una
+ * idea mal cortada en un documento por leer que se escribió o cambió en esta revisión (`cambiado` posterior a `desde`)
+ * y que su lector todavía no empezó: si ya leyó alguna parte, corregirla se la volvería a mostrar como cambiada.
+ * `cambiado`: la fecha del último cambio de cada documento; `textos`: lo que dice cada uno.
+ */
+export function documentosPorCerrar(plan: Plan, estado: EstadoDirector, personas: Persona[], desde: string, cambiado: Record<string, string>, textos: Record<string, string>): string[] {
+  const motivos = selladosQueCambiaron(plan, estado, cambiado)
+    .filter((x) => !x.ruta.startsWith('repo:'))
+    .map((x) => `${x.ruta} ya lo revisó ${x.persona} en «${x.mision.titulo}» y cambió después: devuélvelo como estaba (git show HEAD:<ruta> te da lo guardado) y escribe lo que cambió en un documento nuevo, como paso siguiente.`);
+  const vistos = new Set<string>();
+  for (const p of personas)
+    for (const d of documentosEnOrden(plan, estado, p)) {
+      if (d.estado === 'revisado' || d.ruta.startsWith('repo:') || vistos.has(d.ruta)) continue;
+      vistos.add(d.ruta);
+      if (desde && !((cambiado[d.ruta] ?? '') > desde)) continue;
+      const leido = estado.leidos?.[claveLeido(p, d.ruta)];
+      if (leido && (leido.partes.length || leido.trozos?.length)) continue;
+      const sueltas = textos[d.ruta] === undefined ? [] : ideasSueltas(textos[d.ruta]);
+      if (sueltas.length) motivos.push(`${d.ruta}: ${sueltas.length} idea(s) quedarían mal cortadas; reescríbelas para que cada una se entienda sola y completa: ${sueltas.map((s) => `«${s.parte}» › «${s.idea.replace(/\s+/g, ' ').slice(0, 100)}» (${s.motivo})`).join('; ')}`);
+    }
+  return motivos;
+}
+
 /** Lo que espera al director: entregas sin veredicto y notas sin respuesta. */
 export function pendientesDelDirector(plan: Plan, estado: EstadoDirector): { entregas: Mision[]; notas: Nota[] } {
   return {
