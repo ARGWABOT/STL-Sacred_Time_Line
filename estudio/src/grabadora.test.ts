@@ -1,27 +1,100 @@
 import { describe, expect, it } from 'vitest';
-import { modalDebajo } from './grabadora';
+import { modalDeArriba, ordenDeApertura } from './grabadora';
 
-/** Un diálogo de mentira: solo lo que mira modalDebajo (si es modal y qué tiene dentro). */
-const dialogo = (modal: boolean, dentro: unknown[] = []) =>
-  ({ matches: (s: string) => s === ':modal' && modal, contains: (x: unknown) => dentro.includes(x) }) as unknown as HTMLDialogElement;
+/** Un diálogo de mentira: solo lo que miran modalDeArriba y ordenDeApertura (si está abierto, si es modal, qué lleva). */
+const dialogo = (modal = false, dentro: unknown[] = []) => {
+  const d = {
+    nodeName: 'DIALOG',
+    open: true,
+    isConnected: true,
+    matches: (s: string) => s === ':modal' && modal && d.open,
+    contains: (x: unknown) => dentro.includes(x),
+  };
+  return d as unknown as HTMLDialogElement;
+};
+/** Lo que anota el MutationObserver de la página cuando un diálogo se abre (el atributo open no estaba) o se cierra. */
+const abrio = (d: HTMLDialogElement) => ({ target: d, attributeName: 'open', oldValue: null });
+const cerro = (d: HTMLDialogElement) => ({ target: d, attributeName: 'open', oldValue: '' });
 
-describe('la pastilla de la grabación, siempre encima (nota del titular, 21 de octubre de 2026)', () => {
-  it('se lleva dentro del diálogo modal que queda debajo, el último que se abrió', () => {
-    const graba = dialogo(false);
+describe('la pastilla de la grabación, siempre encima (notas del titular, 21 y 22 de octubre de 2026)', () => {
+  it('se lleva dentro del diálogo modal que queda debajo, si el ✉ se abrió desde él', () => {
+    const graba = dialogo();
     const dondeQuedamos = dialogo(true);
+    expect(modalDeArriba(graba, [graba, dondeQuedamos], ordenDeApertura([], [abrio(dondeQuedamos), abrio(graba)]))).toBe(dondeQuedamos);
+    // Sin saber en qué orden se abrieron, el último de la página
     const otro = dialogo(true);
-    expect(modalDebajo(graba, [dondeQuedamos, graba])).toBe(dondeQuedamos);
-    expect(modalDebajo(graba, [otro, dondeQuedamos, graba])).toBe(dondeQuedamos);
+    expect(modalDeArriba(graba, [otro, dondeQuedamos, graba])).toBe(dondeQuedamos);
+  });
+
+  it('se lleva dentro del diálogo modal que se abre después de empezar a grabar, aunque esté antes en la página', () => {
+    // Grabando en Preguntas, se abre «¿Dónde quedamos?» y, desde él, el ✉, que es de los primeros de la página
+    const sobre = dialogo(true);
+    const preguntas = dialogo();
+    const dondeQuedamos = dialogo(true);
+    const pagina = [sobre, preguntas, dondeQuedamos];
+    const orden = ordenDeApertura([], [abrio(preguntas), abrio(dondeQuedamos), abrio(sobre)]);
+    expect(modalDeArriba(preguntas, pagina, orden)).toBe(sobre);
+    // El que se vio abrirse es más nuevo que uno que ya estaba abierto antes de empezar a mirar
+    expect(modalDeArriba(preguntas, pagina, [dondeQuedamos])).toBe(dondeQuedamos);
+  });
+
+  it('si el de arriba se cierra, vuelve al que queda abierto debajo; si no queda ninguno, a su lugar', () => {
+    const sobre = dialogo(true);
+    const preguntas = dialogo();
+    const dondeQuedamos = dialogo(true);
+    const pagina = [sobre, preguntas, dondeQuedamos];
+    let orden = ordenDeApertura([], [abrio(preguntas), abrio(dondeQuedamos), abrio(sobre)]);
+    Object.assign(sobre, { open: false });
+    orden = ordenDeApertura(orden, [cerro(sobre)]);
+    expect(modalDeArriba(preguntas, pagina, orden)).toBe(dondeQuedamos);
+    Object.assign(dondeQuedamos, { open: false });
+    orden = ordenDeApertura(orden, [cerro(dondeQuedamos)]);
+    expect(modalDeArriba(preguntas, pagina, orden)).toBeNull();
+  });
+
+  it('un diálogo abierto sin ser modal no se la lleva, aunque se abra después: no tapa ni deja sin clics', () => {
+    const graba = dialogo();
+    const abajo = dialogo(true);
+    const suelto = dialogo(false);
+    expect(modalDeArriba(graba, [abajo, graba, suelto], ordenDeApertura([], [abrio(abajo), abrio(graba), abrio(suelto)]))).toBe(abajo);
   });
 
   it('se queda donde está si no hay otro diálogo modal abierto', () => {
-    const graba = dialogo(false);
-    expect(modalDebajo(graba, [graba, dialogo(false)])).toBeNull();
+    const graba = dialogo();
+    expect(modalDeArriba(graba, [graba, dialogo(false)])).toBeNull();
   });
 
   it('nunca se lleva dentro de sí misma ni de un diálogo que está dentro de ella', () => {
     const interno = dialogo(true);
     const graba = dialogo(true, [interno]);
-    expect(modalDebajo(graba, [graba, interno])).toBeNull();
+    expect(modalDeArriba(graba, [graba, interno], [graba, interno])).toBeNull();
+  });
+});
+
+describe('el orden en que se abren los diálogos: el último que se abrió queda arriba', () => {
+  it('el que se abre pasa al final, también si se cierra y se vuelve a abrir en el mismo momento', () => {
+    const a = dialogo(true);
+    const b = dialogo(true);
+    const orden = ordenDeApertura([], [abrio(a), abrio(b)]);
+    expect(orden).toEqual([a, b]);
+    // Así vuelve al frente el diálogo que grababa: se cierra y se abre otra vez, modal
+    expect(ordenDeApertura(orden, [cerro(a), abrio(a)])).toEqual([b, a]);
+  });
+
+  it('sale el que se cerró y el que ya no está en la página, aunque nadie lo haya cerrado', () => {
+    const a = dialogo(true);
+    const b = dialogo(true);
+    const c = dialogo(true);
+    const orden = ordenDeApertura([], [abrio(a), abrio(b), abrio(c)]);
+    Object.assign(a, { open: false });
+    Object.assign(c, { isConnected: false });
+    expect(ordenDeApertura(orden, [cerro(a)])).toEqual([b]);
+  });
+
+  it('un <details> también tiene open, pero no es un diálogo; y lo que entra o sale de la página no cambia el orden', () => {
+    const a = dialogo(true);
+    const detalles = Object.assign(dialogo(), { nodeName: 'DETAILS' });
+    expect(ordenDeApertura([a], [abrio(detalles)])).toEqual([a]);
+    expect(ordenDeApertura([a], [{ target: dialogo(true), attributeName: null, oldValue: null }])).toEqual([a]);
   });
 });

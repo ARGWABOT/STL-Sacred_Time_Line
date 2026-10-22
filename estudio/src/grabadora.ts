@@ -6,8 +6,8 @@
 // micrófono sin aparentar que ya graba); mientras graba, un punto rojo que late, el tiempo y un medidor que se mueve con
 // la voz. Dentro de un diálogo, el diálogo se hace a un lado y queda solo esa pastilla, con «Detener y revisar» y
 // «Enviar ya»: la página se puede leer y recorrer mientras se habla, y la pastilla queda siempre encima, también si el
-// diálogo se abrió desde otro diálogo. Los diálogos que graban ignoran su evento «close» si siguen abiertos: es este
-// cambio, no un cierre.
+// diálogo se abrió desde otro diálogo o si después se abre otro. Los diálogos que graban ignoran su evento «close» si
+// siguen abiertos: es este cambio, no un cierre.
 //
 // A uno se le olvida decir algo: después de detener, «Añadir otro fragmento» sigue grabando en el mismo audio. Para que
 // quede un solo archivo válido, se graba lo que llega a un destino de audio propio (no el micrófono directo): al detener,
@@ -18,33 +18,125 @@ const TIPOS = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 
 const MAX_SEGUNDOS = 10 * 60;
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
+/** Un cambio de un atributo, como lo anota un MutationObserver (oldValue null: no estaba, se acaba de poner). */
+type Cambio = Pick<MutationRecord, 'target' | 'attributeName' | 'oldValue'>;
+
 /**
- * El diálogo modal que queda debajo cuando el que graba deja de ser modal (el de «¿Dónde quedamos?», si el ✉ se abrió
- * desde él), o null. Un diálogo modal tapa todo lo que no está dentro de él y lo deja sin clics, aunque tenga más
- * z-index: la pastilla de la grabación tiene que ir dentro de él. Si hay varios, el último de la página, que es el
- * último que se abrió.
+ * Los diálogos abiertos, en el orden en que se abrieron, al día con lo que cambió: el que se abre (también si se cerró y
+ * se volvió a abrir) pasa al final, que es lo de arriba de la capa superior del navegador, y sale el que se cerró o ya
+ * no está en la página. Un <details> también tiene open: no cuenta.
  */
-export function modalDebajo(dlg: HTMLDialogElement, dialogos: ArrayLike<HTMLDialogElement>): HTMLDialogElement | null {
-  return Array.from(dialogos).reverse().find((d) => d !== dlg && !dlg.contains(d) && d.matches(':modal')) ?? null;
-}
-
-/** Dónde estaba el diálogo que se llevó dentro de otro modal para grabar, para devolverlo al terminar. */
-const llevados = new WeakMap<HTMLDialogElement, { padre: Node; siguiente: Node | null; soltar: () => void }>();
-
-/** Devuelve a su lugar el diálogo que se llevó dentro de otro modal (o nada, si no se llevó). */
-function devolver(dlg: HTMLDialogElement) {
-  const l = llevados.get(dlg);
-  if (!l) return;
-  llevados.delete(dlg);
-  l.soltar();
-  l.padre.insertBefore(dlg, l.siguiente?.parentNode === l.padre ? l.siguiente : null);
+export function ordenDeApertura(antes: readonly HTMLDialogElement[], cambios: Iterable<Cambio>): HTMLDialogElement[] {
+  const orden = [...antes];
+  for (const c of cambios) {
+    const d = c.target as HTMLDialogElement;
+    if (c.attributeName !== 'open' || c.oldValue !== null || d.nodeName !== 'DIALOG') continue;
+    const i = orden.indexOf(d);
+    if (i >= 0) orden.splice(i, 1);
+    orden.push(d);
+  }
+  return orden.filter((d) => d.open && d.isConnected);
 }
 
 /**
- * Hace a un lado el diálogo (no modal, solo la pastilla de la grabación) o lo devuelve al frente (modal otra vez). La
- * pastilla queda siempre encima de todo y con sus botones vivos (nota del titular del 21 de octubre de 2026): si debajo
- * hay otro diálogo modal abierto, se lleva dentro de él, porque fuera quedaría tapada y sin clics, y se devuelve al
- * terminar o si ese diálogo se cierra antes.
+ * El diálogo modal donde tiene que ir la pastilla del que graba a un lado, o null si no hay otro modal abierto. Un
+ * diálogo modal tapa todo lo que no está dentro de él y lo deja sin clics, aunque tenga más z-index: la pastilla va
+ * dentro del de arriba, que es el último que se abrió y no siempre el último de la página (el ✉ es de los primeros y se
+ * abre encima de «¿Dónde quedamos?»). `abiertos`, en el orden en que se abrieron; un modal que no está ahí (se abrió
+ * antes de empezar a mirar) cuenta como más viejo, en el orden de la página. Nunca el que graba ni uno que lleve dentro.
+ */
+export function modalDeArriba(dlg: HTMLDialogElement, dialogos: ArrayLike<HTMLDialogElement>, abiertos: readonly HTMLDialogElement[] = []): HTMLDialogElement | null {
+  const modales = Array.from(dialogos).filter((d) => d !== dlg && !dlg.contains(d) && d.matches(':modal'));
+  return [...modales.filter((d) => !abiertos.includes(d)), ...abiertos.filter((d) => modales.includes(d))].at(-1) ?? null;
+}
+
+/** Los diálogos de la página, en el orden en que se abrieron. */
+let abiertos: HTMLDialogElement[] = [];
+/** Los diálogos que graban a un lado y su lugar, para devolverlos cuando se llevan dentro de otro. */
+const apartados = new Map<HTMLDialogElement, { padre: Node; siguiente: Node | null }>();
+
+/** Los clics de la pastilla no le llegan al diálogo que la lleva dentro (podría tomarlos como suyos). */
+function aislar(e: Event) {
+  if ((e.currentTarget as HTMLElement).parentElement?.closest('dialog')) e.stopPropagation();
+}
+
+/** Devuelve a su lugar el diálogo que se llevó dentro de otro (o nada, si no se llevó). */
+function devolver(dlg: HTMLDialogElement) {
+  const l = apartados.get(dlg);
+  if (l && dlg.parentNode !== l.padre) l.padre.insertBefore(dlg, l.siguiente?.parentNode === l.padre ? l.siguiente : null);
+}
+
+/** El diálogo deja de estar a un lado; si ya ninguno graba, deja de mirarse lo que entra y sale de la página. */
+function dejar(dlg: HTMLDialogElement) {
+  apartados.delete(dlg);
+  dlg.removeEventListener('click', aislar);
+  if (!apartados.size) mirar(false);
+}
+
+/**
+ * Pone la pastilla de cada diálogo que graba a un lado encima de todo y con sus botones vivos (notas del titular del 21
+ * y del 22 de octubre de 2026): dentro del diálogo modal de arriba, si hay uno abierto, o en su lugar. Corre cada vez
+ * que un diálogo se abre o se cierra, sin importar cuándo ni desde dónde (también el que se abre después de empezar a
+ * grabar, y si ese se cierra, la pastilla pasa al que quede debajo), y cada vez que algo entra o sale de la página
+ * mientras se graba: un diálogo que se quita o que se vuelve a pintar entero se llevaría la pastilla consigo.
+ */
+function ubicar() {
+  if (!apartados.size) return;
+  const dialogos = document.querySelectorAll('dialog');
+  for (const dlg of [...apartados.keys()]) {
+    // Lo cerró quien lo abrió, no la grabadora (que lo vuelve a abrir en el acto): ya no está a un lado
+    if (!dlg.open) {
+      if (dlg.parentNode) devolver(dlg);
+      dlg.classList.remove('a-un-lado');
+      dejar(dlg);
+      continue;
+    }
+    const arriba = modalDeArriba(dlg, dialogos, abiertos);
+    if (!arriba) devolver(dlg);
+    else if (!arriba.contains(dlg)) arriba.append(dlg);
+  }
+}
+
+/**
+ * Un solo mecanismo para toda la página, en vez de un parche en cada showModal: mira cuándo se abre o se cierra cada
+ * diálogo (su atributo open, para saber cuál quedó arriba) y, mientras alguno graba a un lado, lo que entra o sale de
+ * ella. Fuera del navegador (en las pruebas) no hay nada que mirar.
+ */
+const observador = typeof MutationObserver === 'undefined' ? null : new MutationObserver((cambios) => {
+  abiertos = ordenDeApertura(abiertos, cambios);
+  ubicar();
+});
+function mirar(conLoQueEntraYSale: boolean) {
+  observador?.observe(document.documentElement, { subtree: true, childList: conLoQueEntraYSale, attributeFilter: ['open'], attributeOldValue: true });
+}
+mirar(false);
+
+/**
+ * Esc cierra el diálogo de arriba aunque lleve la pastilla dentro, y nunca la grabación. Cada vez que el diálogo que
+ * graba se abre a un lado o se lleva a otro lugar, el navegador lo anota de nuevo en lo que cierra Esc (sus close
+ * watchers) y puede quedar el último: como no es modal, Esc no lo cierra, pero tampoco sigue con el de arriba. Si el
+ * navegador no le pidió cerrarse al de arriba (su «cancel»), se le pide como lo haría él, igual que con un clic fuera
+ * (modal.ts › cerrarConClicFuera).
+ */
+if (typeof document !== 'undefined') document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || e.isComposing || !apartados.size) return;
+  const [dlg] = apartados.keys();
+  const arriba = modalDeArriba(dlg, document.querySelectorAll('dialog'), abiertos);
+  if (!arriba) return;
+  let pidio = false;
+  const vio = () => (pidio = true);
+  arriba.addEventListener('cancel', vio, { capture: true, once: true });
+  // Después de lo que hace el navegador con la tecla, que va justo tras este evento
+  setTimeout(() => {
+    arriba.removeEventListener('cancel', vio, { capture: true });
+    if (!pidio && !e.defaultPrevented && arriba.open && arriba.dispatchEvent(new Event('cancel', { cancelable: true }))) arriba.close();
+  });
+}, true);
+
+/**
+ * Hace a un lado el diálogo (no modal, solo la pastilla de la grabación) o lo devuelve al frente (modal otra vez, en su
+ * lugar). A un lado, su pastilla queda siempre encima de todo y con sus botones vivos: si hay un diálogo modal abierto,
+ * debajo o encima, va dentro del de arriba (ubicar).
  */
 function aUnLado(caja: HTMLElement, si: boolean) {
   const dlg = caja.closest('dialog');
@@ -52,24 +144,14 @@ function aUnLado(caja: HTMLElement, si: boolean) {
   dlg.classList.toggle('a-un-lado', si);
   dlg.close();
   if (si) {
-    const anfitrion = modalDebajo(dlg, document.querySelectorAll('dialog'));
-    if (anfitrion) {
-      // Los clics de la pastilla no le llegan al diálogo de debajo (podría tomarlos como suyos)
-      const aislar = (e: Event) => e.stopPropagation();
-      // Si el de debajo se cierra mientras graba, la pastilla vuelve a su lugar y sigue a la vista
-      const alCerrar = () => devolver(dlg);
-      llevados.set(dlg, {
-        padre: dlg.parentNode!,
-        siguiente: dlg.nextSibling,
-        soltar: () => { dlg.removeEventListener('click', aislar); anfitrion.removeEventListener('close', alCerrar); },
-      });
-      dlg.addEventListener('click', aislar);
-      anfitrion.addEventListener('close', alCerrar);
-      anfitrion.append(dlg);
-    }
+    apartados.set(dlg, { padre: dlg.parentNode!, siguiente: dlg.nextSibling });
+    dlg.addEventListener('click', aislar);
+    mirar(true);
     dlg.show();
+    ubicar();
   } else {
     devolver(dlg);
+    dejar(dlg);
     dlg.showModal();
   }
   caja.querySelector<HTMLElement>('[data-g]')?.focus();

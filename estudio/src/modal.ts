@@ -47,7 +47,8 @@ export function cerrarConClicFuera() {
   document.addEventListener('click', (e) => {
     const dlg = e.target;
     if (!(dlg instanceof HTMLDialogElement) || !dlg.open || abajo !== dlg || !fuera(dlg, e)) return;
-    const escrito = [...dlg.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('textarea, input[type="text"], input:not([type])')].some((x) => x.value.trim() && x.value !== x.defaultValue);
+    // Solo lo escrito en él: lo del diálogo que graba a un lado y va dentro de este no se pierde al cerrarlo (grabadora.ts)
+    const escrito = [...dlg.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('textarea, input[type="text"], input:not([type])')].some((x) => x.closest('dialog') === dlg && x.value.trim() && x.value !== x.defaultValue);
     if (escrito) return;
     if (dlg.dispatchEvent(new Event('cancel', { cancelable: true }))) dlg.close();
   });
