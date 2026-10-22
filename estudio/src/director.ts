@@ -2729,12 +2729,15 @@ function vistaDocumentos() {
   const paraLeer = new Set(partesDeDocumento(doc.texto));
   const leidas = new Set(leidasDe(ruta));
   const parte = (s: { titulo: string; md: string }) => {
-    const deEsta = notas.filter((x) => (x.sobre.seccion ?? '') === s.titulo && !x.sobre.decision && !x.sobre.fragmento);
     // Una parte leída en la que el director reescribió una idea se vuelve a abrir, solo en esa idea
     const leida = leidas.has(s.titulo) && !reabierta(ruta, s);
     const seLee = !!d.identidad.rol && paraLeer.has(s.titulo);
     // Lo que falta por leer se lee de a una idea: cada párrafo o punto se marca «Entendido» y cada decisión se responde
     const porIdeas = seLee && !leida && !!s.titulo;
+    // Leída de a una idea, lo comentado de cada idea va debajo de ella; ya leída (entera, sin ideas), va al pie de la
+    // parte con lo demás, con su respuesta y su «Quedó aquí»: antes no se veía en ninguna parte (el titular no vio la
+    // respuesta a su comentario sobre una idea de una parte ya leída, 22 de octubre de 2026)
+    const deEsta = notas.filter((x) => (x.sobre.seccion ?? '') === s.titulo && !x.sobre.decision && (!x.sobre.fragmento || !porIdeas));
     const falta = porIdeas ? faltaEnParte(ruta, s) : null;
     // La entrada (el título y quién lo escribió) no se marca ni se comenta: no hay nada que leer ahí. Leída de a una
     // idea, se comenta cada idea (debajo de ella, junto a su «Entendido»), no la parte entera: un solo botón, sin dudas

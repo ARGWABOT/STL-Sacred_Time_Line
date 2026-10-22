@@ -30,3 +30,12 @@ describe('el seguro de «Entendido» (nota de voz del titular, 22 de octubre de 
     expect(clic).toContain('avisoDeEspera(');
   });
 });
+
+describe('lo comentado sobre una idea de una parte ya leída se ve, con su respuesta (22 de octubre de 2026)', () => {
+  it('al pie de la parte leída van también las notas de sus ideas; leyéndola de a una idea, debajo de cada idea', () => {
+    const parte = director.slice(director.indexOf('const parte = (s: { titulo: string; md: string }) => {'), director.indexOf('const cuerpo = porIdeas ? porTrozos('));
+    expect(parte).toContain('!x.sobre.decision && (!x.sobre.fragmento || !porIdeas)');
+    // porIdeas se sabe antes de elegir las notas
+    expect(parte.indexOf('const porIdeas =')).toBeLessThan(parte.indexOf('const deEsta ='));
+  });
+});
