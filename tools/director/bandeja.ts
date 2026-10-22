@@ -714,7 +714,7 @@ if (cola.length) {
   linea(`
 ## Cola de diagnósticos (${cola.length}): proyectos recién entregados, sin diagnóstico`);
   linea(`Después del proyecto activo, diagnostica los primeros ${Math.min(POR_REVISION, cola.length)} (CLAUDE.md › La cola de diagnósticos), cada uno con --proyecto <id>. No cambian el proyecto activo del titular.`);
-  linea('Si el Studio te lanzó, ya te abrió esos proyectos (leer su repositorio y su historial de IA donde se sabe dónde está, y escribir su memoria .stl); si algo se te niega, dilo. Un proyecto que no puedas diagnosticar sigue en la cola: dilo en la respuesta y en el mensaje, no lo des por hecho.');
+  linea('Si el Studio te lanzó, solo tienes permiso sobre estos proyectos si tu encargo los nombra («La cola de diagnósticos de esta revisión»): entonces puedes leer su repositorio y su historial de IA donde se sabe dónde está, y escribir su memoria .stl. Si no los nombra, o algo se te niega, dilo. Un proyecto que no puedas diagnosticar sigue en la cola: dilo en la respuesta y en el mensaje, no lo des por hecho.');
   cola.forEach((c, i) => linea(`- ${i < POR_REVISION ? 'AHORA' : 'después'}: ${c.nombre} (${c.id})${c.historial ? ` · historial de IA: ${c.historial}` : ''}`));
 }
 

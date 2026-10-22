@@ -1,8 +1,8 @@
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, negado, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, negado, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, soltarTurno, tokensDe, tokensDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('el director que lanza el Studio', () => {
   it('escribe solo dentro del repositorio del proyecto, corre sus pruebas y hace commits locales', () => {
@@ -89,28 +89,62 @@ describe('el director que lanza el Studio', () => {
         repos[id] = repo;
       };
       const historia = join(raiz, 'historias', 'uno');
+      const ajena = join(raiz, 'ajena');
       mkdirSync(historia, { recursive: true });
+      mkdirSync(ajena);
+      const raices = [join(raiz, 'historias')];
       crear('activo', { nombre: 'Activo' }, {});
       crear('viejo', { nombre: 'Viejo', historialIA: [{ agente: 'Claude Code', ultima: '2026-01-01T00:00:00Z' }] }, {});
-      crear('reciente', { nombre: 'Reciente', historialIA: [{ agente: 'Claude Code', sesiones: 3, ultima: '2026-10-01T00:00:00Z', donde: historia }, { agente: 'Archivos de IA', donde: 'CLAUDE.md, AGENTS.md' }, { agente: 'Codex', donde: join(raiz, 'no-existe') }] }, {});
+      crear('reciente', { nombre: 'Reciente', historialIA: [{ agente: 'Claude Code', sesiones: 3, ultima: '2026-10-01T00:00:00Z', donde: historia }, { agente: 'Archivos de IA', donde: 'CLAUDE.md, AGENTS.md' }, { agente: 'Codex', donde: join(raiz, 'no-existe') }, { agente: 'Cursor', donde: ajena }] }, {});
       crear('medio', { nombre: 'Medio', historialIA: [{ agente: 'Cursor', ultima: '2026-05-01T00:00:00Z' }] }, {});
       crear('hecho', { nombre: 'Hecho' }, { diagnostico: { fecha: '2026-10-01' } });
       crear('nuevo', { nombre: 'Nuevo', tipo: 'nuevo' }, {});
       crear('extra', { nombre: 'Extra', historialIA: [{ agente: 'Claude Code', ultima: '2025-01-01T00:00:00Z' }] }, {});
       writeFileSync(join(raiz, 'estudio.local.json'), JSON.stringify({ activo: 'activo', repositorios: repos }));
-      const cola = await colaDeLaRevision(raiz, 'activo');
+      const cola = await colaDeLaRevision(raiz, 'activo', raices);
       // El activo, el ya diagnosticado y el nuevo no entran; el cuarto (el más viejo) espera su turno
       expect(cola.map((c) => c.id)).toEqual(['reciente', 'medio', 'viejo']);
-      // Del historial, solo lo que dice dónde está y existe: ni los archivos de IA del repositorio ni una carpeta que no está
-      expect(cola[0]).toEqual({ id: 'reciente', repositorio: repos.reciente, historial: [historia] });
+      // Del historial, solo lo que dice dónde está, existe y está dentro de donde los agentes guardan sus sesiones: ni los
+      // archivos de IA del repositorio, ni una carpeta que no está, ni una que existe pero es de afuera
+      expect(cola[0]).toEqual({ id: 'reciente', repositorio: repos.reciente, historial: [realpathSync(historia)] });
       expect(cola[1].historial).toEqual([]);
       // Un proyecto que no se pudo diagnosticar sigue en la cola la vez siguiente: lo único que lo saca es su diagnóstico
       writeFileSync(join(repos.reciente, '.stl', 'director', 'plan.json'), JSON.stringify({ diagnostico: { fecha: '2026-10-22' } }));
-      expect((await colaDeLaRevision(raiz, 'activo')).map((c) => c.id)).toEqual(['medio', 'viejo', 'extra']);
+      expect((await colaDeLaRevision(raiz, 'activo', raices)).map((c) => c.id)).toEqual(['medio', 'viejo', 'extra']);
       // Con otro proyecto activo, el que era activo entra a la cola (sin historial de IA, va al final)
-      expect((await colaDeLaRevision(raiz, 'medio')).map((c) => c.id)).toEqual(['viejo', 'extra', 'activo']);
+      expect((await colaDeLaRevision(raiz, 'medio', raices)).map((c) => c.id)).toEqual(['viejo', 'extra', 'activo']);
+      // Un plan que existe y no se entiende deja al proyecto fuera: no se abre escritura sobre lo que no se sabe leer
+      writeFileSync(join(repos.viejo, '.stl', 'director', 'plan.json'), '{"diagnostico": {"fec');
+      expect((await colaDeLaRevision(raiz, 'medio', raices)).map((c) => c.id)).toEqual(['extra', 'activo']);
     } finally {
       rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it('el historial de IA solo se abre dentro de donde los agentes guardan sus sesiones, nunca otra carpeta (hallazgo del revisor de código)', () => {
+    const casa = mkdtempSync(join(tmpdir(), 'stl-historial-'));
+    try {
+      const sesiones = join(casa, '.claude', 'projects');
+      const hijo = join(sesiones, 'C--repos-tesis');
+      const ssh = join(casa, '.ssh');
+      mkdirSync(hijo, { recursive: true });
+      mkdirSync(ssh);
+      expect(historialAbrible([hijo, hijo], [sesiones])).toEqual([realpathSync(hijo)]);
+      // Ni la raíz misma, ni una carpeta ajena, ni una ruta relativa, ni una que no existe, ni el truco de «..»
+      expect(historialAbrible([sesiones, ssh, casa, 'relativa', join(casa, 'no-existe'), join(hijo, '..', '..', '..', '.ssh')], [sesiones])).toEqual([]);
+      // Sin raíces que existan, nada se abre
+      expect(historialAbrible([hijo], [join(casa, 'no-hay')])).toEqual([]);
+      // Un enlace dentro de las sesiones que lleva afuera tampoco abre lo de afuera (si el sistema deja crearlo)
+      let enlace = false;
+      try {
+        symlinkSync(ssh, join(sesiones, 'enlace'), 'junction');
+        enlace = true;
+      } catch {
+        // sin permiso para crear enlaces en este computador: ese caso no se prueba aquí
+      }
+      if (enlace) expect(historialAbrible([join(sesiones, 'enlace')], [sesiones])).toEqual([]);
+    } finally {
+      rmSync(casa, { recursive: true, force: true });
     }
   });
 

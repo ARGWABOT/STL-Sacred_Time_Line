@@ -8,11 +8,13 @@
 // Sin Claude Code con su sesión iniciada en este computador, las revisiones pedidas las toma esa sesión con
 // /loop 5m /vigila, como antes.
 import { spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, isAbsolute, join, relative, resolve } from 'node:path';
 import { ajustesDelDirector, archivoAjustesClaude, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { fuentesDeEscaneo } from './escaneo';
 import { colaDeDiagnosticos, negacionesDe, POR_REVISION, type CandidatoDeCola } from '../../src/director/director';
+import { leerFrescoTexto } from '../../src/director/fresco';
 import { enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, pedirRevision, proyectosLocales, rutasDe, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
 
 export type { FallaRevision };
@@ -89,8 +91,9 @@ export interface ProyectoDeCola {
 export const conLaCola = (cola: ProyectoDeCola[]) =>
   cola.length
     ? ` La cola de diagnósticos de esta revisión: el Studio te abrió, solo en esta revisión, ${cola.map((c) => `«${c.id}»`).join(', ')} ` +
-      `(leer su repositorio y su historial de IA, y escribir su memoria .stl, nada más). Diagnostícalos como dice CLAUDE.md, ` +
-      `cada uno con --proyecto <id>; si alguno no se puede, sigue en la cola: dilo en la respuesta y en el mensaje.`
+      `(leer su repositorio y su historial de IA, y escribir su memoria .stl, nada más). Diagnostica los que la bandeja marque ` +
+      `AHORA, como dice CLAUDE.md, cada uno con --proyecto <id>; si alguno no se puede, sigue en la cola: dilo en la ` +
+      `respuesta y en el mensaje.`
     : '';
 
 /**
@@ -258,42 +261,79 @@ export function negado(repositorio: string, raiz = repositorio, cola: ProyectoDe
   ];
 }
 
+const realODeNada = (ruta: string): string | null => {
+  try {
+    return realpathSync(ruta);
+  } catch {
+    return null;
+  }
+};
+
 /**
- * Los proyectos de la cola de diagnósticos que esta revisión atiende (los primeros POR_REVISION, con la misma regla que
- * la bandeja: director.ts › colaDeDiagnosticos), cada uno con su repositorio y las carpetas de su historial de IA que se
- * saben (`donde`, absolutas y que existen). Solo lee del disco: sin modelo ni red. Sin proyectos en cola, vacía.
+ * Las carpetas de historial de IA que el director puede leer: solo las que están dentro de donde los agentes guardan sus
+ * sesiones (`raices`: ~/.claude/projects, ~/.codex/sessions y el almacén de Cursor). El `donde` de un proyecto lo escribe
+ * el escaneo, pero también llega por la memoria que alguien comparta: una ruta ajena (~/.ssh, el home entero, una
+ * unidad) no se abre nunca. Se comparan las rutas reales, sin enlaces ni «..»; una carpeta que no existe no cuenta.
  */
-export async function colaDeLaRevision(raiz: string, activo: string): Promise<ProyectoDeCola[]> {
+export function historialAbrible(donde: string[], raices: string[], real: (ruta: string) => string | null = realODeNada): string[] {
+  const norma = (r: string) => {
+    const p = r.replace(/\\/g, '/').replace(/\/+$/, '');
+    return process.platform === 'linux' ? p : p.toLowerCase();
+  };
+  const bases = raices.map(real).filter((r): r is string => !!r).map(norma);
+  const abribles: string[] = [];
+  for (const d of [...new Set(donde)]) {
+    if (!isAbsolute(d)) continue;
+    const r = real(d);
+    if (r && bases.some((b) => norma(r).startsWith(`${b}/`))) abribles.push(r);
+  }
+  return [...new Set(abribles)];
+}
+
+/**
+ * Los proyectos de la cola de diagnósticos que esta revisión atiende (los primeros POR_REVISION, con la misma regla y la
+ * misma lectura que la bandeja: director.ts › colaDeDiagnosticos y leerFrescoTexto, lo más nuevo entre la carpeta y
+ * GitHub), cada uno con su repositorio y las carpetas de su historial de IA que se pueden abrir (historialAbrible). Un
+ * proyecto cuyo plan o proyecto.json existe y no se entiende queda fuera: no se abre escritura sobre lo que no se sabe
+ * leer. Sin proyectos en cola, vacía. `raices`: dónde guardan sus sesiones los agentes (por defecto, las de este
+ * computador).
+ */
+export async function colaDeLaRevision(raiz: string, activo: string, raices?: string[]): Promise<ProyectoDeCola[]> {
   const local = await leerLocal(raiz);
-  const leer = (ruta: string): any => {
+  // null: existe y no se entiende; {}: no existe todavía
+  const leer = async (ruta: string): Promise<any | null> => {
+    const texto = await leerFrescoTexto(raiz, ruta);
+    if (texto === null) return {};
     try {
-      return JSON.parse(readFileSync(enDisco(raiz, ruta), 'utf-8'));
+      return JSON.parse(texto);
     } catch {
-      return {};
+      return null;
     }
   };
   const candidatos: CandidatoDeCola[] = [];
   for (const id of await proyectosLocales(raiz)) {
     if (id === activo) continue;
-    const plan = leer(rutasDe(id).plan);
-    const proyecto = leer(rutasDe(id).proyecto);
+    const plan = await leer(rutasDe(id).plan);
+    if (!plan || plan.diagnostico?.fecha) continue; // sin entender, fuera; ya diagnosticado, no es de la cola
+    const proyecto = await leer(rutasDe(id).proyecto);
+    if (!proyecto) continue;
     candidatos.push({
       id,
       nombre: typeof proyecto.nombre === 'string' ? proyecto.nombre : id,
-      diagnosticado: !!plan.diagnostico?.fecha,
+      diagnosticado: false,
       tipo: proyecto.tipo === 'nuevo' ? 'nuevo' : 'existente',
       conectado: !!local.repositorios[id],
       historialIA: Array.isArray(proyecto.historialIA) ? proyecto.historialIA : undefined,
     });
   }
-  return colaDeDiagnosticos(candidatos, activo)
-    .slice(0, POR_REVISION)
-    .flatMap((c) => {
-      const repositorio = local.repositorios[c.id]?.trim();
-      if (!repositorio) return [];
-      const historial = c.historialIA.map((h) => (typeof h.donde === 'string' ? h.donde : '')).filter((d) => isAbsolute(d) && existsSync(d));
-      return [{ id: c.id, repositorio, historial: [...new Set(historial)] }];
-    });
+  const cola = colaDeDiagnosticos(candidatos, activo).slice(0, POR_REVISION);
+  if (!cola.length) return [];
+  const lugares = raices ?? (await fuentesDeEscaneo()).agentes.map((a) => a.donde);
+  return cola.flatMap((c) => {
+    const repositorio = local.repositorios[c.id]?.trim();
+    if (!repositorio) return [];
+    return [{ id: c.id, repositorio, historial: historialAbrible(c.historialIA.map((h) => (typeof h.donde === 'string' ? h.donde : '')), lugares) }];
+  });
 }
 
 /** Un paso de lo que va haciendo el director: lo que dice o la herramienta que usa. */
@@ -1165,9 +1205,12 @@ export class Revisor {
     // programadas no piden permiso, así que se quitan aparte (SIN_ESPERAS). En stream-json, el
     // registro tiene cada paso a medida que ocurre: el Studio lo resume en vivo (progresoDe)
     // La cola de diagnósticos solo la atiende la revisión (no una aclaración ni una urgencia): el director recibe, solo en
-    // esta revisión, permiso sobre esos proyectos (propuesta aceptada «La cola de diagnósticos, con los permisos de hoy»)
+    // esta revisión, permiso sobre esos proyectos (propuesta aceptada «La cola de diagnósticos, con los permisos de hoy»).
+    // Si no se pudo calcular, va sin cola (cerrado): el encargo no la nombra y la bandeja le dice que no tiene permiso.
+    // Como carpeta de trabajo, de cada proyecto de la cola solo su memoria (donde hace sus commits): leer su repositorio
+    // ya lo da la regla Read, y las órdenes de git (add, commit, mv, rm) no se acotan por carpeta
     const cola = aparte ? [] : await colaDeLaRevision(this.raiz, proyecto).catch(() => [] as ProyectoDeCola[]);
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, ...cola.map((c) => c.repositorio), '--disallowedTools', ...SIN_ESPERAS, ...negado(repositorio, this.raiz, cola), '--allowedTools', ...permitido(repositorio, director.flujos, this.raiz, homedir(), cola)];
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), '--settings', ajustes, '--permission-mode', 'dontAsk', '--add-dir', repositorio, ...cola.map((c) => join(c.repositorio, MEMORIA)), '--disallowedTools', ...SIN_ESPERAS, ...negado(repositorio, this.raiz, cola), '--allowedTools', ...permitido(repositorio, director.flujos, this.raiz, homedir(), cola)];
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
