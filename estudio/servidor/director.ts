@@ -4,7 +4,8 @@
 // historial) vive en SU repositorio, en la carpeta .stl/ (rama stl), y aquí se nombra proyectos/<id>/…. El Estudio solo
 // guarda su código y estudio.local.json (el proyecto activo y la carpeta de cada repositorio, fuera de git). Todo lo que
 // muestra y decide el Estudio es del proyecto activo de este computador. Cada Estudio escribe solo el archivo de su
-// persona en ese proyecto (y sus audios) y el titular, además, lo del proyecto (proyecto.json). Cada decisión queda en un
+// persona en ese proyecto (y la transcripción de sus audios: el audio nunca entra a git y se borra apenas su texto queda
+// escrito) y el titular, además, lo del proyecto (proyecto.json). Cada decisión queda en un
 // commit local en la memoria del proyecto y, si el titular activó la sincronización, sube sola a GitHub
 // (sincronizar.ts). Lo de las otras personas, la ruta y las respuestas del director (plan.json, que escribe la sesión del
 // director), las transcripciones y los documentos se leen de donde estén más nuevos (src/director/fresco.ts). Del
@@ -12,7 +13,7 @@
 //
 // GET /__estudio/director: el proyecto activo (su ruta, su estado, su repositorio, sus señales) y el resumen de todos.
 // GET /documentos y /documento?ruta=docs/…|repo:…: para leer y comentar. GET /archivo?ruta=proyectos/…/notas/…: un
-// audio o un adjunto de una nota. POST /proyecto-nuevo: abre la memoria en el repositorio, crea el proyecto desde la plantilla (o retoma el que ya
+// audio (mientras no se haya transcrito) o un adjunto de una nota. POST /proyecto-nuevo: abre la memoria en el repositorio, crea el proyecto desde la plantilla (o retoma el que ya
 // tenía) y lo activa. POST /proyectos-varios: lo mismo con varios. POST /activo: cambia el proyecto activo. POST
 // /repositorio: la carpeta nueva del repositorio del proyecto activo, si se movió (debe tener su memoria).
 // POST /accion: una decisión firmada con la identidad de git del clon, en el proyecto activo. GET /sonidos y
@@ -76,7 +77,7 @@ import {
 import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
 import { abrirMemoria, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, guardarActivo, guardarEsfuerzoMaximo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar } from '../../src/director/proyectos';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
-import { transcribirEnLocal } from '../../src/director/transcripcion';
+import { borrarSiTranscrito, quitarSiVacia, transcribirEnLocal } from '../../src/director/transcripcion';
 import { escanear, fuentesDeEscaneo } from './escaneo';
 import { conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
 import { actividadDeProyecto, agruparPasos, buscarClaude, consumoDeRevisiones, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
@@ -346,8 +347,9 @@ export function servidorDirector(): Plugin {
   // ─────────────────────────────────────────── las notas de voz: se transcriben en cuanto llegan
   /**
    * Cada audio que llega (o que se encuentra sin su .txt) se transcribe en este computador, uno tras otro, sin esperar a
-   * la revisión del director: así el Buzón y el lugar donde se grabó muestran lo que se dijo. Si no se puede (sin WSL o
-   * sin el entorno de transcripción), se anota y el director lo transcribe al revisar.
+   * la revisión del director: así el Buzón y el lugar donde se grabó muestran lo que se dijo. Con su texto escrito, el
+   * audio se borra (nunca entra a git). Si no se puede (sin WSL o sin el entorno de transcripción) o sale vacía, se anota,
+   * el audio se queda y el director lo transcribe al revisar.
    */
   const transcribiendo = new Set<string>();
   const sinTranscribir = new Map<string, string>();
@@ -371,8 +373,14 @@ export function servidorDirector(): Plugin {
         const r = await transcribirEnLocal(raiz, lote.map((x) => enDisco(raiz, x.audio)), lote[0].pista);
         for (const x of lote) {
           transcribiendo.delete(x.audio);
-          if (existsSync(enDisco(raiz, txtDe(x.audio)))) programarCommit(x.id, quienGuarda || 'el Studio', 'transcribe en local una nota de voz', [txtDe(x.audio)]);
-          else sinTranscribir.set(x.audio, r.error ?? 'No quedó texto.');
+          // Con su texto escrito, el audio se borra (nunca entra a git) y el commit lleva solo el .txt. Si falló o salió
+          // vacía, el audio se queda en este computador hasta que salga bien
+          const audio = enDisco(raiz, x.audio);
+          if (quitarSiVacia(audio)) sinTranscribir.set(x.audio, 'La transcripción salió vacía: el audio se queda para volver a intentarlo.');
+          else if (existsSync(enDisco(raiz, txtDe(x.audio)))) {
+            borrarSiTranscrito(audio);
+            programarCommit(x.id, quienGuarda || 'el Studio', 'transcribe en local una nota de voz', [txtDe(x.audio)]);
+          } else sinTranscribir.set(x.audio, r.error ?? 'No quedó texto.');
         }
       }
     } finally {
@@ -459,7 +467,7 @@ export function servidorDirector(): Plugin {
     await escribirDeUnaVez(archivo, JSON.stringify(datos, null, 2) + '\n');
   }
 
-  async function decidir(id: string, cuerpo: any, yo: Identidad & { rol: Persona }): Promise<{ estado: EstadoDirector; proyecto: Proyecto; que: string; archivos: string[] }> {
+  async function decidir(id: string, cuerpo: any, yo: Identidad & { rol: Persona }): Promise<{ estado: EstadoDirector; proyecto: Proyecto; que: string; archivos: string[]; audios: string[] }> {
     const rutas = rutasDe(id);
     const plan = await leerPlan(id);
     const proyecto = await leerProyecto(id);
@@ -499,6 +507,8 @@ export function servidorDirector(): Plugin {
     };
     const cuando = new Date().toISOString();
     const archivos: string[] = [rutas.persona(yo.rol)];
+    // El audio de una nota de voz nunca entra a git: va aparte, a transcribirse; en el commit va su .txt cuando salga
+    const audios: string[] = [];
     let que = '';
     let callado = false; // lo que no va a la bitácora (marcar una idea de una parte)
     switch (cuerpo.tipo) {
@@ -514,7 +524,7 @@ export function servidorDirector(): Plugin {
         if (estadoMision(m, plan, estado) === 'bloqueada') throw new Rechazo('Esa misión es de una fase que todavía está bajo niebla.');
         const nota = textoDe(cuerpo.nota, MAX_TEXTO, 'Lo que cuentas de la entrega');
         const audio = cuerpo.audio ? await guardarAudio(raiz, rutas.notas, `e_${m.id}_${Date.now().toString(36)}`, cuerpo.audio) : undefined;
-        if (audio) archivos.push(audio);
+        if (audio) audios.push(audio);
         propio.entregas[m.id] = { cuando, quien: yo.nombre, ...(nota ? { nota } : {}), ...(audio ? { audio } : {}) };
         que = `entrega la misión «${m.titulo}»`;
         break;
@@ -559,7 +569,7 @@ export function servidorDirector(): Plugin {
         // Seguir una pregunta: la que sigue debe existir y ser una pregunta (así arma su hilo)
         if (sobre.tipo === 'pregunta' && sobre.id && !estado.notas.some((x) => x.id === sobre.id && esPregunta(x))) throw new Rechazo('Esa pregunta ya no está: la conversación no se puede seguir.');
         const audio = cuerpo.audio ? await guardarAudio(raiz, rutas.notas, nid, cuerpo.audio) : undefined;
-        if (audio) archivos.push(audio);
+        if (audio) audios.push(audio);
         const adjuntos: Adjunto[] = [];
         for (const [i, x] of lista.entries()) adjuntos.push(await guardarAdjunto(raiz, rutas.notas, `${nid}-${i + 1}`, x));
         archivos.push(...adjuntos.map((a) => a.ruta));
@@ -609,6 +619,8 @@ export function servidorDirector(): Plugin {
         const txt = audio.replace(/\.[a-z0-9]+$/i, '.txt');
         await writeFile(enDisco(raiz, txt), texto + '\n', 'utf-8');
         archivos.push(txt);
+        // Su texto ya quedó escrito: si el audio seguía aquí (su transcripción había salido vacía o fallado), se borra
+        borrarSiTranscrito(enDisco(raiz, audio));
         que = 'corrige lo que se entendió de su nota de voz';
         break;
       }
@@ -851,7 +863,7 @@ export function servidorDirector(): Plugin {
       olvidarIdentidad();
       caches.delete(id);
     }
-    return { estado: unido, proyecto, que, archivos };
+    return { estado: unido, proyecto, que, archivos, audios };
   }
 
   /**
@@ -1370,9 +1382,9 @@ export function servidorDirector(): Plugin {
             const cuerpo = await leerCuerpo(req);
             const yo = await leerIdentidad(raiz, id);
             if (!yo.rol) return responder(res, 403, { error: yo.problema ?? 'Este Estudio no sabe quién eres: configura git user.name y user.email.' });
-            const { estado, proyecto, que, archivos } = await enFila(() => decidir(id, cuerpo, yo as Identidad & { rol: Persona }));
+            const { estado, proyecto, que, archivos, audios } = await enFila(() => decidir(id, cuerpo, yo as Identidad & { rol: Persona }));
             programarCommit(id, yo.nombre, que, archivos);
-            transcribirLuego(id, archivos.filter((a) => /\.(webm|ogg|m4a|mp3)$/.test(a)), `Notas para el director del proyecto ${proyecto.nombre || id}.`);
+            transcribirLuego(id, audios, `Notas para el director del proyecto ${proyecto.nombre || id}.`);
             // Lo urgente va solo y al instante: el Studio llama al director para esas notas, sin el resto de la revisión.
             // Sin quién lo llame, las notas esperan la revisión, que se pide
             if (cuerpo.tipo === 'comentar' && que === 'deja una nota urgente para el director') {

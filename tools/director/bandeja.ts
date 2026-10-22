@@ -61,10 +61,10 @@ import {
   validarProyecto,
   YA_LO_DIJE,
 } from '../../src/director/director.ts';
-import { fechaDeCambio, leerFresco } from '../../src/director/fresco.ts';
+import { fechaDeCambio, leerFresco, leerFrescosTexto } from '../../src/director/fresco.ts';
 import { lineasDelMapa, sinCommitDeGit } from '../../src/director/mapa.ts';
-import { corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
-import { comandoTranscripcion } from '../../src/director/transcripcion.ts';
+import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { audioBorrable, borrarSiTranscrito, comandoTranscripcion, quitarSiVacia, txtDeAudio } from '../../src/director/transcripcion.ts';
 import { argumentos, colaDeDiagnosticos, leerTodo, memoria, nombreDe, otrosProyectos, POR_REVISION, proyectoElegido, raiz } from './comun.ts';
 import { guardarMapa, mapaDe, rutaDelMapa } from './mapa.ts';
 
@@ -173,14 +173,19 @@ if (args.includes('--urgente')) {
   const txt = (audio: string) => enDiscoDe(raiz, audio.replace(/\.[a-z0-9]+$/, '.txt'));
   const faltan = () => urgentes.map((n) => n.audio).filter((a): a is string => !!a && existsSync(enDiscoDe(raiz, a)) && !existsSync(txt(a)));
   for (let i = 0; i < 40 && faltan().length; i++) await new Promise((ok) => setTimeout(ok, 3000));
-  if (faltan().length) {
-    const { cmd, args: argumentosT } = comandoTranscripcion(raiz, faltan().map((a) => enDiscoDe(raiz, a)), `Notas para el director del proyecto ${leido.proyecto.nombre || elegido}.`);
+  const pendientes = faltan();
+  if (pendientes.length) {
+    const { cmd, args: argumentosT } = comandoTranscripcion(raiz, pendientes.map((a) => enDiscoDe(raiz, a)), `Notas para el director del proyecto ${leido.proyecto.nombre || elegido}.`);
     try {
       execFileSync(cmd, argumentosT, { stdio: 'inherit', shell: false });
     } catch (e) {
       console.error(`No se pudo transcribir: ${(e as Error).message}`);
     }
+    // Vacía no es su texto: el audio se queda para volver a intentarlo
+    for (const a of pendientes) quitarSiVacia(enDiscoDe(raiz, a));
   }
+  // Con su texto escrito, el audio se borra del disco (nunca entra a git)
+  for (const n of urgentes) if (n.audio) borrarSiTranscrito(enDiscoDe(raiz, n.audio));
   const { plan, proyecto } = leido;
   const l = (s = '') => console.log(s);
   l(`# Urgencia · ${proyecto.nombre} (${elegido})`);
@@ -386,12 +391,21 @@ await marcarRevision(raiz, await proyectoElegido(pedido), 'en_curso');
 
 const { id, rutas, plan, proyecto, estado, personas, repo, errorRepo } = await leerTodo(pedido);
 const enDisco = (ruta: string) => enDiscoDe(raiz, ruta);
-const txtDe = (audio: string) => enDisco(audio.replace(/\.[a-z0-9]+$/, '.txt'));
-const transcripcion = (audio?: string) => (audio && existsSync(txtDe(audio)) ? readFileSync(txtDe(audio), 'utf-8').trim() : null);
+const txtDe = (audio: string) => enDisco(txtDeAudio(audio));
+// Lo transcrito en otro computador: su .txt está en GitHub y aún no en esta carpeta (el audio no viaja: nunca entra a git)
+const deFuera = new Map<string, string>();
+const transcripcion = (audio?: string) => (!audio ? null : existsSync(txtDe(audio)) ? readFileSync(txtDe(audio), 'utf-8').trim() : (deFuera.get(audio) ?? null));
 const todosLosAudios = () => [...estado.notas.map((n) => n.audio), ...Object.values(estado.entregas).map((e) => e.audio)].filter((a): a is string => !!a);
 
-// ── Los audios y adjuntos de otras personas que aún no están en esta carpeta se bajan de GitHub ──
-for (const a of [...todosLosAudios(), ...estado.notas.flatMap((n) => n.adjuntos ?? []).map((x) => x.ruta)]) {
+// ── Lo de otras personas que aún no está en esta carpeta se lee de GitHub: la transcripción de cada audio y los
+// adjuntos. Un audio solo se baja si no tiene texto (uno de antes, que aún está en git): sirve solo para transcribirlo ──
+const sinTexto = todosLosAudios().filter((a) => !existsSync(txtDe(a)));
+const textosFuera = sinTexto.length ? await leerFrescosTexto(raiz, sinTexto.map(txtDeAudio)) : new Map<string, string | null>();
+for (const a of sinTexto) {
+  const t = textosFuera.get(txtDeAudio(a))?.trim();
+  if (t) deFuera.set(a, t);
+}
+for (const a of [...todosLosAudios().filter((x) => !audioBorrable(transcripcion(x))), ...estado.notas.flatMap((n) => n.adjuntos ?? []).map((x) => x.ruta)]) {
   if (existsSync(enDisco(a))) continue;
   const datos = await leerFresco(raiz, a);
   if (!datos) continue;
@@ -400,8 +414,10 @@ for (const a of [...todosLosAudios(), ...estado.notas.flatMap((n) => n.adjuntos 
 }
 
 // ── Transcribir los audios que falten, en local (nada sale del equipo). El Studio ya transcribe cada audio en cuanto
-// llega: aquí solo quedan los que no pudo (o los que llegaron de otro computador) ──
-const audios = todosLosAudios().filter((a) => existsSync(enDisco(a)) && !existsSync(txtDe(a)));
+// llega: aquí solo quedan los que no pudo (sin el entorno, o que salieron vacíos) ──
+const audios = todosLosAudios().filter((a) => existsSync(enDisco(a)) && !existsSync(txtDe(a)) && !deFuera.has(a));
+// Los .txt que deja esta bandeja: van en el commit del director (el audio no: nunca entra a git)
+const transcritosAqui: string[] = [];
 if (audios.length && !args.includes('--sin-transcribir')) {
   console.error(`Transcribiendo ${audios.length} ${audios.length === 1 ? 'audio' : 'audios'} en local…`);
   const { cmd, args: argumentosT } = comandoTranscripcion(raiz, audios.map(enDisco), `Notas para el director del proyecto ${proyecto.nombre || 'nuevo'}.`);
@@ -410,7 +426,16 @@ if (audios.length && !args.includes('--sin-transcribir')) {
   } catch (e) {
     console.error(`No se pudo transcribir (¿falta tools/entorno/instalar_transcripcion.sh?): ${(e as Error).message}`);
   }
+  for (const a of audios) {
+    // Vacía no es su texto: el audio se queda para volver a intentarlo
+    if (quitarSiVacia(enDisco(a))) console.error(`La transcripción de ${a} salió vacía: el audio se queda para volver a intentarlo.`);
+    else if (existsSync(txtDe(a))) transcritosAqui.push(txtDeAudio(a).slice(`${CARPETA}/${id}/`.length));
+  }
 }
+// ── Con su texto escrito, el audio se borra del disco (nunca entra a git). Uno de antes que ya estaba en git queda como
+// borrado en la memoria: su git rm va aparte ──
+const audiosBorrados = todosLosAudios().filter((a) => borrarSiTranscrito(enDisco(a)));
+if (audiosBorrados.length) console.error(`Borré ${audiosBorrados.length} ${audiosBorrados.length === 1 ? 'audio ya transcrito' : 'audios ya transcritos'}: queda su texto.`);
 
 // ── Lo que hay para el director ──
 const linea = (s = '') => console.log(s);
@@ -745,7 +770,9 @@ const archivado = existsSync(enDisco(rutas.archivo)) || kb > TOPE_PLAN_KB;
 // El mapa que esta bandeja acaba de guardar va con lo del director; si no está (no se pudo guardar), no se nombra:
 // git add falla entero con una ruta que no existe
 const conMapa = existsSync(enDisco(rutaDelMapa(id)));
-const suyos = `director/plan.json${archivado ? ' director/archivo.json' : ''}${conMapa ? ' director/mapa.json' : ''} docs director/radiografia.md`;
+// Las transcripciones que hizo esta bandeja también (el audio no: nunca entra a git), si siguen ahí
+const transcritos = transcritosAqui.filter((t) => existsSync(enDisco(`${CARPETA}/${id}/${t}`)));
+const suyos = `director/plan.json${archivado ? ' director/archivo.json' : ''}${conMapa ? ' director/mapa.json' : ''} docs director/radiografia.md${transcritos.map((t) => ` ${t}`).join('')}`;
 linea(`luego \`node tools/director/bandeja.ts --listo\` y el commit en la memoria (rama stl), solo con lo del director (lo del equipo lo guarda el Studio): cd "${memoria(id)}", luego git add ${suyos}, luego git commit -m "Director (${id}): …" -- ${suyos} (tres órdenes, cada una por separado: tus permisos no aceptan &&).`);
 if (!plan.resumen) linea('⚠ Este proyecto aún no tiene resumen «Dónde quedamos»: escríbelo antes de cerrar.');
 if (kb > TOPE_PLAN_KB) linea(`El plan pesa ${kb} KB (el tope es ${TOPE_PLAN_KB} KB): al cerrar, --listo archiva solo las respuestas y los veredictos cerrados antes de esta revisión.`);
