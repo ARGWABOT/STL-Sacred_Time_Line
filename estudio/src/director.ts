@@ -2985,6 +2985,8 @@ let saliendo: ReturnType<typeof setTimeout> | undefined;
 function aplicarEnfoque() {
   const aqui = queEnfocar();
   if (enfoque !== aqui) enfoque = '';
+  // Nunca una ventana vacía: un documento sin nada por leer no tiene idea que enfocar, y el enfoque se apaga
+  if (enfoque === 'documento' && nadaPorLeer()) enfoque = '';
   const html = document.documentElement;
   const estaba = html.classList.contains('enfoque') || html.classList.contains('enfoque-mision');
   html.classList.toggle('enfoque', enfoque === 'documento');
@@ -3041,6 +3043,8 @@ function ubicarEnfoque() {
 /** Pone o quita el enfoque en lo que se puede enfocar aquí (la tarjeta de la misión ya queda al centro, en su ventana). */
 function ponerEnfoque(si: boolean) {
   enfoque = si ? queEnfocar() : '';
+  // Un documento ya leído entero no tiene idea que enfocar: se dice, en vez de abrir una ventana vacía
+  if (enfoque === 'documento' && nadaPorLeer()) avisar('Ya leíste todo este documento: no queda ninguna idea por enfocar. Lo tienes entero aquí, para releer lo que quieras.', true);
   aplicarEnfoque();
   if (enfoque === 'documento') centrarIdea();
 }
@@ -3219,6 +3223,9 @@ async function marcarParte(titulo: string) {
   const yo = d.identidad.rol;
   if (!doc || !yo || animandoParte) return;
   const ruta = doc.ruta;
+  // Si se leía en el modo enfoque: al terminar, no queda idea que enfocar y se vuelve a la misión (antes de pintar,
+  // que apaga el enfoque sin nada por leer)
+  const enEnfoque = enfoque === 'documento';
   const todas = partesDeDocumento(doc.texto);
   const leidas = new Set(leidasDe(ruta));
   const trozos = trozosLeidos(ruta);
@@ -3241,15 +3248,48 @@ async function marcarParte(titulo: string) {
   pintar();
   if (!completo || antes) {
     if (leidas.has(titulo)) decir('¡Bien! Una parte menos: se abrió la siguiente.', 'feliz');
-    return void (await guardado);
+    await guardado;
+    // Releído entero en el enfoque: nunca una ventana vacía, se vuelve a la misión
+    if (completo && enEnfoque) volverAMision();
+    return;
   }
   // La última parte: el paso que pedía leerlo queda hecho y, si era el último, la misión se entrega sola
   const pasos = pasosDeLeer(ruta).filter((x) => !x.hecho);
   if (!(await guardado)) return;
   const marcados = pasos.map((x) => ({ id: x.m.id, guardado: marcarPaso(x.m.id, x.i, true) }));
+  // En el enfoque, el velo se va antes de lo que sigue (la celebración de la misión o la misión misma)
+  if (enEnfoque && enfoque) ponerEnfoque(false);
   pintar();
   for (const x of marcados) if (await completarSiToca(x.id, x.guardado)) return void decir('¡Misión completada! La reviso cuando me pidas la revisión.', 'riendo');
+  // Leído en el modo enfoque: sin diálogo de por medio, de vuelta a la tarjeta de tu misión, con el paso de leer ya
+  // marcado y el siguiente a la vista (captura del titular, 22 de octubre de 2026: quedaba una ventana vacía)
+  if (enEnfoque) {
+    decir('¡Leído de punta a punta! Seguimos con tu misión.', 'feliz');
+    return volverAMision();
+  }
   await documentoTerminado(ruta, marcados.length > 0);
+}
+
+/** De un documento terminado a la tarjeta de tu misión de ahora (sin misión abierta, a «Hoy»), fuera del enfoque. */
+function volverAMision() {
+  if (enfoque) ponerEnfoque(false);
+  const mia = misionesAbiertas(d.plan, d.estado, d.identidad.rol ?? TITULAR)[0];
+  const sigue = mia ? tarjetaDe(mia) : null;
+  if (sigue) void ir(sigue);
+  else irA('misiones');
+}
+
+/**
+ * Si el documento abierto ya no tiene nada por leer para ti (todas sus partes por leer están leídas): en el modo
+ * enfoque no quedaría idea que mostrar, solo una ventana vacía.
+ */
+function nadaPorLeer(): boolean {
+  if (!doc || !d.identidad.rol) return false;
+  const ruta = doc.ruta;
+  const paraLeer = new Set(partesDeDocumento(doc.texto));
+  const leidas = new Set(leidasDe(ruta));
+  const porLeer = secciones(doc.texto).filter((s) => s.titulo && paraLeer.has(s.titulo));
+  return porLeer.length > 0 && porLeer.every((s) => leidas.has(s.titulo) && !reabierta(ruta, s));
 }
 
 /** Terminaste de leer un documento: se celebra y vuelves a tu misión, con lo que sigue listo para empezar. */

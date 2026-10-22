@@ -72,4 +72,21 @@ describe('el modo enfoque (notas del titular, 22 de octubre de 2026)', () => {
     expect(ubicar).toContain("$('mando').querySelector<HTMLElement>('.boton-enfoque')");
     expect(ubicar).toContain('--enfoque-arriba');
   });
+
+  it('al terminar un documento en el enfoque no queda una ventana vacía: se sale y se vuelve a la misión (captura del titular, 22 de octubre de 2026)', () => {
+    // Sin nada por leer, el enfoque se apaga siempre, y ponerlo lo dice en vez de abrir la ventana
+    const aplicar = director.match(/function aplicarEnfoque\(\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(aplicar).toContain("if (enfoque === 'documento' && nadaPorLeer()) enfoque = '';");
+    const poner = director.match(/function ponerEnfoque\(si: boolean\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(poner).toContain('nadaPorLeer()');
+    // La última parte leída en el enfoque lleva a la tarjeta de la misión, sin el diálogo de por medio
+    const marcar = director.match(/async function marcarParte\(titulo: string\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(marcar).toContain("const enEnfoque = enfoque === 'documento';");
+    expect(marcar.indexOf('return volverAMision();')).toBeGreaterThan(0);
+    expect(marcar.indexOf('return volverAMision();')).toBeLessThan(marcar.indexOf('await documentoTerminado('));
+    const volver = director.match(/function volverAMision\(\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(volver).toContain('ponerEnfoque(false)');
+    expect(volver).toContain('void ir(sigue)');
+    expect(volver).toContain("irA('misiones')");
+  });
 });
