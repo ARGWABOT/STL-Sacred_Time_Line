@@ -1728,9 +1728,13 @@ export function notaFoco(focoPct: number): NotaBoletin {
   return focoPct >= 70 ? 'A' : focoPct >= 55 ? 'B' : focoPct >= 40 ? 'C' : focoPct >= 25 ? 'D' : 'F';
 }
 
-/** ¿Es una ruta de documento que el Estudio deja leer y comentar? (docs/… de aquí, o repo:… del proyecto). */
+/**
+ * ¿Es una ruta de documento que el Estudio deja leer y comentar? (docs/… de aquí, o repo:… del proyecto). Con tildes,
+ * eñes y espacios, que traen los proyectos en español (nota de voz del titular, 22 de octubre de 2026); nunca «..» ni
+ * una ruta absoluta.
+ */
 export function esDocumento(ruta: string): boolean {
-  return !ruta.includes('..') && (/^docs\/[\w./-]+\.md$/i.test(ruta) || /^repo:[\w./-]+\.md$/i.test(ruta));
+  return !ruta.includes('..') && /^(docs\/|repo:)(?!\/)[\p{L}\p{N}_ .\/()'&+,-]+\.md$/iu.test(ruta);
 }
 
 /** Los documentos que pide una misión: los de sus pasos (en orden) y los de su lista. */

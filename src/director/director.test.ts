@@ -844,6 +844,11 @@ describe('un solo orden de lectura, siempre hacia adelante', () => {
     expect(esDocumento('repo:docs/arquitectura.md')).toBe(true);
     expect(esDocumento('repo:../secreto.md')).toBe(false);
     expect(esDocumento('contenido/proyecto.json')).toBe(false);
+    // con tildes, eñes y espacios (nota de voz del titular, 22 de octubre de 2026), pero nunca absoluta
+    expect(esDocumento('repo:docs/Diseño del módulo/guía rápida.md')).toBe(true);
+    expect(esDocumento('docs/director/año-uno.md')).toBe(true);
+    expect(esDocumento('repo:/etc/secreto.md')).toBe(false);
+    expect(esDocumento('repo:docs/a\\..\\b.md')).toBe(false);
   });
 
   it('solo se abre el documento que sigue: lo de después espera a que termines de leerlo', () => {

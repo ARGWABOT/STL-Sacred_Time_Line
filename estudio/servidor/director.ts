@@ -107,7 +107,11 @@ function responder(res: ServerResponse, codigo: number, cuerpo: unknown) {
 }
 
 /** El título de un documento: su `#`, o el nombre del archivo. */
-const tituloMd = (texto: string, ruta: string) => /^#\s+(.+)$/m.exec(texto)?.[1]?.trim() ?? ruta.split('/').pop()!;
+// Un comando o una habilidad de un agente (.claude/commands, .agents/skills) dice qué es en su cabecera (description:)
+const tituloMd = (texto: string, ruta: string) =>
+  (texto.startsWith('---') ? /^description:\s*["']?(.+?)["']?\s*$/m.exec(texto.split(/^---\s*$/m)[1] ?? '')?.[1]?.trim() : undefined) ??
+  /^#\s+(.+)$/m.exec(texto)?.[1]?.trim() ??
+  ruta.split('/').pop()!;
 /** ¿Dos rutas son la misma carpeta? (sin importar las barras ni las mayúsculas) */
 const misma = (a: string, b: string) => a.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase() === b.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
 const enteroDe = (v: unknown) => Math.max(0, Math.round(Number(v) || 0));
@@ -921,10 +925,13 @@ export function servidorDirector(): Plugin {
     }
     const r = await repositorio(id);
     if (r.info) {
-      const ls = await gitEn(r.info.ruta, ['ls-files', '--', '*.md', '*.MD']);
-      // Si el proyecto es el propio Studio, sus documentos del método ya están en «Del Estudio» y los de los demás proyectos no son suyos
+      // Sin comillas ni escapes en las rutas con tildes o eñes (core.quotepath): así se leen tal cual
+      const ls = await gitEn(r.info.ruta, ['-c', 'core.quotepath=off', 'ls-files', '--', '*.md', '*.MD']);
+      // Si el proyecto es el propio Studio, sus documentos del método ya están en «Del Estudio» y los de los demás
+      // proyectos no son suyos; del método, solo el diseño y la evaluación del Studio, que son de este proyecto
       const propio = misma(r.info.ruta, raiz);
-      const mds = ls.out.split('\n').map((l) => l.trim()).filter((l) => l && !/(^|\/)(node_modules|vendor|dist|build)\//.test(l) && !(propio && /^(proyectos|docs)\//.test(l))).slice(0, MAX_DOCS_REPO);
+      const delStudio = (l: string) => /^proyectos\//.test(l) || (/^docs\//.test(l) && !/^docs\/metodo\/(diseno|evaluacion)-studio\.md$/.test(l));
+      const mds = ls.out.split('\n').map((l) => l.trim()).filter((l) => l && !/(^|\/)(node_modules|vendor|dist|build)\//.test(l) && !(propio && delStudio(l))).slice(0, MAX_DOCS_REPO);
       for (const m of mds) {
         const ruta = `repo:${m}`;
         if (!esDocumento(ruta)) continue;
