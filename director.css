@@ -940,6 +940,13 @@ html.enfoque-mision .mision-c.sigue.mia { pointer-events: auto; -webkit-user-sel
 .consumo-proyectos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
 .consumo-proyectos li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13.5px; }
 .consumo-proyectos li > span:last-child { color: var(--suave); }
+/* La bitácora de este computador (al final de «Modelo y consumo»): una acción por fila, filtrable; se desplaza por dentro */
+.filtro-bitacora { display: grid; gap: 6px; max-width: 420px; margin-top: 10px; font-size: 14px; font-weight: 600; }
+.lista-bitacora { list-style: none; margin: 8px 0 0; padding: 0; display: grid; font-size: 13.5px; max-height: 60vh; overflow-y: auto; }
+.lista-bitacora li { display: grid; grid-template-columns: 120px 140px minmax(0, 1fr); gap: 2px 12px; padding: 6px 0; border-bottom: 1px solid var(--borde); line-height: 1.45; }
+.lista-bitacora .f, .lista-bitacora .q, .lista-bitacora small { color: var(--suave); font-size: 12.5px; }
+.lista-bitacora small { display: block; }
+@media (max-width: 700px) { .lista-bitacora li { grid-template-columns: minmax(0, 1fr); } }
 .form-proyecto { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; font-size: 14px; margin-top: 12px; }
 .form-proyecto label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-weight: 600; }
 .form-proyecto label.ancho { grid-column: 1 / -1; }
