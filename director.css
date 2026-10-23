@@ -61,6 +61,15 @@ html.oscuro {
 .monograma { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-weight: 700; font-size: 18px; background: var(--acento-fondo); color: var(--acento-texto); }
 .monograma.director { background: var(--tinta); color: #f6e7b4; }
 .vacio-m { font-size: 15px; color: var(--suave); margin: 4px 0; padding: 18px 20px; border: 1px dashed var(--borde-fuerte); border-radius: var(--radio-g); background: var(--panel-suave); }
+/* La cola, plegada debajo de la misión de ahora: se lee para comprobar la reserva, no compite con la misión */
+.cola-m { margin: 12px 0; }
+.cola-m > summary { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; cursor: pointer; }
+.cola-m > summary h4 { margin: 0; font-size: 14px; color: var(--suave); }
+.reserva-m { font-size: 12px; color: var(--suave); }
+.cola-lista { margin: 10px 0 4px; padding-left: 22px; display: grid; gap: 8px; }
+.cola-lista li b { display: block; font-size: 14px; font-weight: 600; }
+.cola-lista li small { display: block; font-size: 13px; color: var(--suave); line-height: 1.5; max-width: var(--lectura); }
+.cola-lista.espera li b { color: var(--suave); }
 
 /* Las tarjetas en cuadrícula no se ensanchan por un contenido largo (una ruta, una tabla, un audio) */
 .mision-c, .columna-persona, .tarjeta-proyecto, .nota-d, .lista-validaciones li, .candidato, .objetivo-firmado, .redactar { grid-template-columns: minmax(0, 1fr); }
