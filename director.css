@@ -388,6 +388,10 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .frentes-fase li b { font-weight: 600; }
 .frentes-fase li span.t { grid-column: 1 / -1; color: var(--suave); font-size: 13.5px; line-height: 1.45; }
 .adelantado { margin: 0; padding-left: 20px; font-size: 14.5px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; line-height: 1.5; }
+/* Una misión aprobada se abre en «La ruta» para releerla: sus pasos, lo comentado y el veredicto */
+.mision-pasada > summary { cursor: pointer; }
+.mision-pasada .cuerpo-pasada { margin: 8px 0 12px; padding: 4px 0 4px 12px; border-left: 3px solid var(--borde); }
+.mision-pasada .cuerpo-pasada h4 { margin: 12px 0 6px; }
 
 /* ── El diagnóstico, dentro de Proyecto: abierto mientras no hay meta, plegado después ── */
 .resumen-d { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 15.5px; line-height: 1.65; max-width: var(--lectura); }
@@ -523,6 +527,13 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .punto-grabando { flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--peligro); animation: punto-g 1s ease-in-out infinite; }
 @keyframes punto-g { 0%, 100% { box-shadow: 0 0 0 0 rgba(179, 54, 47, 0.55); } 50% { box-shadow: 0 0 0 7px rgba(179, 54, 47, 0); opacity: 0.75; } }
 .grabando-texto { font-size: 15px; color: var(--peligro-texto); font-variant-numeric: tabular-nums; }
+/* Los controles de la grabación, en una sola fila: los botones nunca se parten ni bajan; si falta ancho, se acomoda el
+   texto (con el aviso del tope), y solo en una pantalla de verdad angosta la fila se parte */
+.fila-g { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; }
+.fila-g > :not(.grabando-texto) { flex: none; }
+.fila-g button { white-space: nowrap; }
+.fila-g .grabando-texto { flex: 0 1 auto; min-width: 0; }
+@media (max-width: 479px) { .fila-g { flex-wrap: wrap; justify-content: center; } }
 .nivel-voz { display: inline-flex; align-items: center; gap: 3px; height: 26px; }
 .nivel-voz i { width: 4px; border-radius: 2px; background: var(--peligro); height: calc(4px + var(--nivel, 0) * 18px); transition: height 0.08s linear; }
 .nivel-voz i:nth-child(2), .nivel-voz i:nth-child(4) { height: calc(4px + var(--nivel, 0) * 13px); }
@@ -531,9 +542,10 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 /* Mientras graba, el diálogo se hace a un lado: solo queda la pastilla de la grabación, abajo y al centro, grande, y la
    página se puede leer y recorrer (estudio/src/grabadora.ts) */
 dialog.a-un-lado { position: fixed; inset: auto; z-index: 90; width: 0; height: 0; margin: 0; padding: 0; border: 0; overflow: visible; background: none; box-shadow: none; visibility: hidden; }
-dialog.a-un-lado .grabadora { visibility: visible; position: fixed; left: calc(var(--lateral) + (100vw - var(--lateral)) / 2); bottom: 24px; transform: translateX(-50%); width: max-content; max-width: min(620px, calc(100vw - var(--lateral) - 48px)); padding: 10px 14px; gap: 12px; flex-wrap: wrap; justify-content: center; background: #fff7f6; border: 2px solid var(--peligro); border-radius: 18px; box-shadow: 0 0 0 4px rgba(179, 54, 47, 0.12), var(--sombra-alta); animation: pastilla-g 2s ease-in-out infinite; }
+dialog.a-un-lado .grabadora { visibility: visible; position: fixed; left: calc(var(--lateral) + (100vw - var(--lateral)) / 2); bottom: 24px; transform: translateX(-50%); width: max-content; max-width: calc(100vw - var(--lateral) - 48px); padding: 10px 14px; gap: 6px; flex-direction: column; flex-wrap: nowrap; align-items: center; justify-content: center; background: #fff7f6; border: 2px solid var(--peligro); border-radius: 18px; box-shadow: 0 0 0 4px rgba(179, 54, 47, 0.12), var(--sombra-alta); animation: pastilla-g 2s ease-in-out infinite; }
 @keyframes pastilla-g { 50% { box-shadow: 0 0 0 9px rgba(179, 54, 47, 0.08), var(--sombra-alta); } }
-dialog.a-un-lado .grabadora .ayuda-g { flex-basis: 100%; text-align: center; font-size: 12.5px; line-height: 1.35; }
+dialog.a-un-lado .grabadora .fila-g { gap: 12px; max-width: 100%; }
+dialog.a-un-lado .grabadora .ayuda-g { text-align: center; font-size: 12.5px; line-height: 1.35; }
 dialog.a-un-lado .grabadora button { min-height: 38px; }
 @media (max-width: 759px) { dialog.a-un-lado .grabadora { left: 50%; max-width: calc(100vw - 24px); bottom: 16px; } }
 .notas-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
@@ -643,11 +655,12 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 /* La columna de los documentos queda fija a la izquierda, debajo de la cabecera, con su propio desplazamiento */
 .lista-docs { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 6px; position: sticky; top: calc(var(--alto-cabeza, 0px) + 12px); max-height: calc(100vh - var(--alto-cabeza, 0px) - 24px); overflow: auto; overscroll-behavior: contain; padding-right: 2px; }
 /* Mientras lees, lo de después y lo ya leído van plegados en una línea cada uno: la atención, en lo que sigue */
-.docs-plegados { display: grid; gap: 6px; }
-.docs-plegados > summary { cursor: pointer; width: fit-content; margin-top: 6px; font-size: 13.5px; font-weight: 600; color: var(--suave); }
-.docs-plegados > summary .cifra { margin-left: 4px; }
-.docs-plegados[open] > summary { margin-bottom: 2px; }
-.docs-plegados .doc-l { display: block; }
+.docs-plegados, .instrucciones-agentes { display: grid; gap: 6px; }
+.docs-plegados > summary, .instrucciones-agentes > summary { cursor: pointer; width: fit-content; margin-top: 6px; font-size: 13.5px; font-weight: 600; color: var(--suave); }
+.docs-plegados > summary .cifra, .instrucciones-agentes > summary .cifra { margin-left: 4px; }
+.docs-plegados[open] > summary, .instrucciones-agentes[open] > summary { margin-bottom: 2px; }
+.docs-plegados .doc-l, .instrucciones-agentes .doc-l { display: block; }
+.instrucciones-agentes { margin-top: 10px; }
 .lista-docs h3 { margin: 12px 0 2px !important; }
 .doc-l { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 4px; text-align: left; font-size: 14px; padding: 10px 12px; min-height: 0; }
 .doc-l small { font-size: 12.5px; color: var(--suave); line-height: 1.4; }
@@ -700,6 +713,9 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .ya-leido-doc > summary { cursor: pointer; width: fit-content; display: inline-flex; gap: 6px; align-items: center; font-size: 14.5px; font-weight: 650; color: var(--suave); }
 .ya-leido-doc > summary .icono { width: 18px; height: 18px; fill: #e8b923; stroke: #c9a227; }
 .ya-leido-doc[open] > summary { margin-bottom: 12px; }
+/* Plegado, dice que lo leído está ahí y cómo releerlo; abierto, ya se ve */
+.ya-leido-doc > summary .ayuda-leido { font-weight: 400; }
+.ya-leido-doc[open] > summary .ayuda-leido { display: none; }
 .ya-leido-doc .parte-doc { opacity: 0.82; }
 /* El efecto al marcarla (director.ts › romperParte): se tacha, sus palabras se sueltan y caen, y la parte se cierra */
 .parte-doc.tachando-parte :is(p, li, h2, h3, td, th, blockquote) { text-decoration: line-through; text-decoration-color: var(--ok); text-decoration-thickness: 2px; color: var(--suave); transition: color 0.3s; }
@@ -743,6 +759,10 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .entendido .icono { width: 16px; height: 16px; stroke: var(--borde-fuerte); }
 .entendido:hover .icono { stroke: var(--ok); }
 .entendido.hecho { background: var(--ok-fondo); border-color: var(--ok); color: var(--ok-texto); font-weight: 600; }
+/* El seguro: la primera vez, «Entendido» espera lo que tarda en leerse la idea, con su cuenta en el botón */
+.entendido.con-seguro { opacity: 0.6; cursor: progress; }
+.entendido.con-seguro:hover .icono { stroke: var(--borde-fuerte); }
+.entendido .seguro-e { min-width: 1.6em; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--borde); color: var(--suave); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }
 .entendido.hecho .icono { stroke: var(--ok); }
 /* Al marcarla, un estímulo corto y discreto: el botón late, el check entra girando y un anillo verde se abre y se apaga */
 .entendido.recien { position: relative; animation: late-entendido 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
@@ -756,8 +776,12 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 /* El ✉ de cada punto de un bloque de puntos cortos: pequeño y en el mismo renglón, al final del texto del punto, sin
    hacer más alto el renglón (margen negativo) ni separar los puntos entre sí; con el ratón se nota al pasar por el
    punto, y en una pantalla táctil se ve siempre */
-.cuerpo-trozo li > .comentar-punto { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; min-width: 28px; padding: 0 6px; margin: -3px 0 -3px 6px; font-size: 12px; line-height: 1; vertical-align: baseline; opacity: 0.55; }
-.cuerpo-trozo li:hover > .comentar-punto, .cuerpo-trozo li > .comentar-punto:focus-visible { opacity: 1; }
+/* El ✉ de cada punto se ve siempre, discreto pero a la vista (nota del titular, 22 de octubre de 2026: solo se notaba
+   al pasar el ratón y no lo vio); al pasar el ratón por su punto, resalta */
+.cuerpo-trozo li > .comentar-punto { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; min-width: 28px; padding: 0 6px; margin: -3px 0 -3px 6px; font-size: 12px; line-height: 1; vertical-align: baseline; opacity: 1; }
+.cuerpo-trozo li:hover > .comentar-punto, .cuerpo-trozo li > .comentar-punto:focus-visible { border-color: #e0c98a; box-shadow: 0 0 0 2px var(--sobre); }
+/* Llegaste al documento desde un paso de tu misión: arriba, la vuelta a ella */
+.ajustes-lector .volver-mision { flex: none; font-size: 14px; font-weight: 600; white-space: nowrap; }
 @media (hover: none) { .cuerpo-trozo li > .comentar-punto { opacity: 1; min-height: 28px; min-width: 36px; margin-block: -5px; } }
 .estado-decision { font-size: 12.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); white-space: nowrap; display: inline-flex; gap: 4px; align-items: center; }
 .estado-decision.hecha { background: var(--ok-fondo); border-color: var(--ok); color: var(--ok-texto); }
@@ -961,7 +985,8 @@ html.enfoque-mision .mision-c.sigue.mia { pointer-events: auto; -webkit-user-sel
 /* Pedir revisión y en qué va (estudio/src/director.ts › botonRevision) */
 .pedir-revision .cifra { margin-left: 2px; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--acento); color: var(--texto-en-color); font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
 .estado-revision { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: var(--radio); font-size: 13.5px; border: 1px solid var(--acento-borde); background: var(--acento-fondo); color: var(--acento-texto); }
-.estado-revision.en-curso { gap: 0; }
+.estado-revision.en-curso, .estado-revision.ocupado { gap: 0; }
+.estado-revision.ocupado { cursor: help; }
 .estado-revision .enlace { font-size: 13px; margin-left: 4px; }
 .estado-revision.sin-vigilia { border-color: #e7a9a6; background: var(--peligro-fondo); color: var(--peligro-texto); font-weight: 600; }
 .cabeza-proyecto .donde { min-width: 0; }
