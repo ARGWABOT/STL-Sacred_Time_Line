@@ -1116,6 +1116,9 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .celebracion .cumplidas b { color: var(--oro); white-space: nowrap; }
 .celebracion .todas-hechas { margin: 0; padding: 10px 14px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 15px; line-height: 1.5; }
 .celebracion .barra-xp > div { animation: celebra-barra 1.2s ease-out both; }
+/* La recomendación del director de pedir la revisión: se ve, pero la revisión la pide solo la persona con su botón */
+.recomienda-revision { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; padding: 10px 14px; border-radius: var(--radio); border: 1px dashed var(--acento, #2f6fdf); font-size: 15px; line-height: 1.5; }
+.recomienda-revision p { margin: 0; flex: 1 1 260px; }
 .sube-nivel, .logros-nuevos { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; color: #7a5a06; }
 .sube-nivel .icono { width: 20px; height: 20px; color: var(--oro); fill: #f2c94c; }
 /* El confeti cae dentro de su diálogo: recortado ahí, nunca abre un desplazamiento horizontal */
