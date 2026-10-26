@@ -70,6 +70,9 @@ html.oscuro {
 .cola-lista li b { display: block; font-size: 14px; font-weight: 600; }
 .cola-lista li small { display: block; font-size: 13px; color: var(--suave); line-height: 1.5; max-width: var(--lectura); }
 .cola-lista.espera li b { color: var(--suave); }
+/* La cola del director, aparte de las misiones de la persona (colaDirector.ts): otra cola, que se mueve en equipo con la suya */
+.cola-director { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--borde-fuerte); }
+.cola-dir-resto > summary { cursor: pointer; font-size: 13px; color: var(--suave); margin-left: 22px; }
 
 /* Las tarjetas en cuadrícula no se ensanchan por un contenido largo (una ruta, una tabla, un audio) */
 .mision-c, .columna-persona, .tarjeta-proyecto, .nota-d, .lista-validaciones li, .candidato, .objetivo-firmado, .redactar { grid-template-columns: minmax(0, 1fr); }
@@ -198,6 +201,17 @@ body.director-trabajando .aclarar-paso { opacity: 0.45; cursor: not-allowed; }
 .opciones-paso .boton-opcion.ya-lo-dije { border-style: dashed; color: var(--suave); font-weight: 500; }
 .opciones-paso .boton-opcion.ya-lo-dije:hover, .opciones-paso .boton-opcion.ya-lo-dije:focus-visible { color: #f6e7b4; }
 .opciones-paso.en-espera .boton-opcion.ya-lo-dije:hover { color: var(--suave); }
+/* Un paso con `varias`: cada opción se marca (con su ✓) y «Listo» las entrega juntas (nota de voz del titular nmvoi1e0etit) */
+.opciones-paso .pista-varias { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--suave); }
+.opciones-paso.varias .boton-opcion[data-marcar-opcion] { display: inline-flex; gap: 6px; align-items: center; }
+.opciones-paso.varias .boton-opcion[data-marcar-opcion] .icono { width: 15px; height: 15px; display: none; }
+.opciones-paso.varias .boton-opcion[aria-pressed="true"] { background: var(--tinta); color: #f6e7b4; }
+.opciones-paso.varias .boton-opcion[aria-pressed="true"] .icono { display: inline-block; }
+.opciones-paso .boton-opcion.listo-varias { border-color: var(--acento); border-style: dashed; }
+.opciones-paso .boton-opcion.listo-varias:not(:disabled) { border-style: solid; background: var(--acento); color: var(--texto-en-color); }
+.opciones-paso .boton-opcion.listo-varias:not(:disabled):hover, .opciones-paso .boton-opcion.listo-varias:not(:disabled):focus-visible { background: var(--acento-oscuro); border-color: var(--acento-oscuro); color: var(--texto-en-color); }
+.opciones-paso .boton-opcion.listo-varias:disabled { opacity: .55; cursor: not-allowed; }
+.opciones-paso .boton-opcion.listo-varias:disabled:hover { background: var(--panel); color: var(--texto); }
 .eleccion-paso { display: flex; gap: 5px; align-items: center; margin: 8px 0 0; font-size: 14px; color: var(--ok); }
 .eleccion-paso .icono { width: 16px; height: 16px; }
 /* Un paso que pide esperar antes de responder: la cuenta regresiva, y las opciones bloqueadas hasta que llegue a cero */
@@ -401,6 +415,10 @@ details.puedo[open] > summary { margin-bottom: 10px; }
 .mision-pasada > summary { cursor: pointer; }
 .mision-pasada .cuerpo-pasada { margin: 8px 0 12px; padding: 4px 0 4px 12px; border-left: 3px solid var(--borde); }
 .mision-pasada .cuerpo-pasada h4 { margin: 12px 0 6px; }
+/* Lo por hacer y lo hecho, aparte en «La ruta»: un subtítulo pequeño entre los dos, y la fecha y hora de lo hecho */
+.sub-hechas { margin: 12px 0 6px; font-size: 12.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); }
+.sub-hechas:first-child { margin-top: 4px; }
+.cuando-hecha { margin-left: 4px; white-space: nowrap; font-size: 12.5px; }
 
 /* ── El diagnóstico, dentro de Proyecto: abierto mientras no hay meta, plegado después ── */
 .resumen-d { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 15.5px; line-height: 1.65; max-width: var(--lectura); }
@@ -624,6 +642,12 @@ dialog.imagen-grande::backdrop { background: rgba(20, 19, 17, 0.82); }
 dialog.imagen-grande figure { margin: 0; display: grid; gap: 8px; justify-items: center; }
 dialog.imagen-grande img { display: block; max-width: 94vw; max-height: 86vh; object-fit: contain; border-radius: 8px; background: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45); }
 dialog.imagen-grande figcaption { color: #f6f1e0; font-size: 13.5px; }
+/* Un dibujo del director se abre en grande con un clic (dibujos.ts): al ancho de la pantalla y, en una angosta, a su
+   tamaño, para recorrerlo de lado en vez de achicarlo hasta no leerse */
+.lector svg[role="img"], .respuesta-dir svg[role="img"], .respuesta-qa svg[role="img"] { cursor: zoom-in; }
+dialog.dibujo-grande .lienzo-grande { max-width: 94vw; max-height: 86vh; overflow: auto; padding: 14px; border-radius: 8px; background: var(--panel); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45); }
+dialog.dibujo-grande .lienzo-grande > svg { display: block; width: min(90vw, 1400px); min-width: 760px; max-width: none !important; height: auto; }
+dialog.dibujo-grande figcaption { max-width: 90vw; text-align: center; }
 .cerrar-grande { position: fixed; top: 14px; right: 14px; display: inline-flex; gap: 6px; align-items: center; background: #fff; }
 .cerrar-grande .icono { width: 14px; height: 14px; }
 .nombre-adjunto { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; font-size: 13.5px; overflow-wrap: anywhere; color: inherit; }
@@ -635,9 +659,25 @@ dialog.imagen-grande figcaption { color: #f6f1e0; font-size: 13.5px; }
 .boton-adjuntar:focus-within { outline: 2px solid var(--acento, #2f5fa8); outline-offset: 2px; }
 form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px; }
 .nota-d p { margin: 0; line-height: 1.55; }
+/* Lo que dijo la persona (sin niebla de lectura); en un documento, plegado a su primer renglón hasta que lo toca */
+.dicho-nota { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.dicho-nota.plegable-dicho { cursor: pointer; border-radius: 6px; }
+.dicho-nota.plegable-dicho:hover { background: var(--fondo); }
+.dicho-nota.plegado { gap: 0; color: var(--suave); }
+.dicho-nota.plegado > :not(:first-child), .dicho-nota.plegado audio, .dicho-nota.plegado .lista-adjuntos { display: none; }
+.dicho-nota.plegado > p:first-child, .dicho-nota.plegado .transcripcion > span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; }
 .nota-d .esperando { color: var(--espera); font-size: 13.5px; }
 .respuesta-dir { background: var(--tinta); color: #f6f1e0; border-radius: var(--radio); padding: 10px 12px; line-height: 1.55; }
 .respuesta-dir b { color: #f6e7b4; }
+/* Lo que respondió, con formato y sus dibujos, como las respuestas a las preguntas (pedido pd_graficos_svg): cada párrafo
+   aparte, los enlaces y el código legibles sobre el recuadro oscuro, y el dibujo sobre su papel claro, con sus colores */
+.respuesta-dir .texto-resp { margin-top: 4px; }
+.respuesta-dir .texto-resp > * + * { margin-top: 8px; }
+.respuesta-dir .texto-resp ul, .respuesta-dir .texto-resp ol { margin-bottom: 0; padding-left: 20px; }
+.respuesta-dir .texto-resp strong { color: #f6e7b4; }
+.respuesta-dir .texto-resp a { color: #f6e7b4; }
+.respuesta-dir .texto-resp code { padding: 0 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); color: inherit; }
+.respuesta-dir .texto-resp svg[role="img"] { display: block; max-width: 100%; height: auto; padding: 8px; border-radius: 8px; background: var(--panel); }
 /* «Quedó en: …»: el lugar del plan que recoge la nota, con su botón (el doble check del director) */
 .quedo-en { margin: 8px 0 0; font-size: 14px; }
 .respuesta-dir .quedo-en .enlace, .respuesta-dir .quedo-en .enlace:hover { color: #f6e7b4; }
@@ -773,6 +813,24 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .entendido.con-seguro:hover .icono { stroke: var(--borde-fuerte); }
 .entendido .seguro-e { min-width: 1.6em; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--borde); color: var(--suave); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }
 .entendido.hecho .icono { stroke: var(--ok); }
+/* «Entendido» es lo último de la idea, abajo a la derecha y resaltado, como un «Siguiente»: se suele comentar primero y
+   marcar después (nota de voz del titular nmvn0vsbmtit, 24 de octubre de 2026). Ya marcada, vuelve a ser discreta */
+.marcas-trozo > .entendido { margin-left: auto; }
+.entendido:not(.hecho) { min-height: 36px; padding: 4px 16px; font-size: 14px; background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+.entendido:not(.hecho) .icono, .entendido:not(.hecho):hover .icono { stroke: var(--texto-en-color); }
+.entendido:not(.hecho):hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
+.entendido .sigue-e { font-size: 16px; line-height: 1; transition: transform 0.15s; }
+.entendido:not(.con-seguro):hover .sigue-e { transform: translateX(3px); }
+.entendido.con-seguro .seguro-e { background: rgba(255, 255, 255, 0.25); color: var(--texto-en-color); }
+/* Lo comentado de una idea, con las respuestas del director: plegado por defecto pero a la vista, aparte de la idea,
+   porque no hace falta para seguir (nota de voz del titular nmvn0vsbmtit) */
+.notas-idea { margin: 2px 0 6px; }
+.notas-idea > summary { cursor: pointer; width: fit-content; display: inline-flex; gap: 6px; align-items: center; min-height: 30px; padding: 3px 12px; font-size: 13px; font-weight: 600; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); }
+.notas-idea > summary:hover { border-color: #e0c98a; }
+.notas-idea > summary .icono { width: 15px; height: 15px; transition: transform 0.15s; }
+.notas-idea[open] > summary { margin-bottom: 8px; }
+.notas-idea[open] > summary .icono { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .entendido .sigue-e, .notas-idea > summary .icono { transition: none; } }
 /* Al marcarla, un estímulo corto y discreto: el botón late, el check entra girando y un anillo verde se abre y se apaga */
 .entendido.recien { position: relative; animation: late-entendido 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
 .entendido.recien .icono { animation: entra-check 0.45s ease-out; }
@@ -790,7 +848,15 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .cuerpo-trozo li > .comentar-punto { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; min-width: 28px; padding: 0 6px; margin: -3px 0 -3px 6px; font-size: 12px; line-height: 1; vertical-align: baseline; opacity: 1; }
 .cuerpo-trozo li:hover > .comentar-punto, .cuerpo-trozo li > .comentar-punto:focus-visible { border-color: #e0c98a; box-shadow: 0 0 0 2px var(--sobre); }
 /* Llegaste al documento desde un paso de tu misión: arriba, la vuelta a ella */
-.ajustes-lector .volver-mision { flex: none; font-size: 14px; font-weight: 600; white-space: nowrap; }
+/* «← Volver a tu misión», flotante: abajo al centro, siempre en el mismo lugar y encima del velo del enfoque (z 45, como
+   su salida), mientras dure el ir y volver desde un paso (director.ts › volverAMisionDe; pd_volver_flotante) */
+.volver-flotante {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 45;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 22px; border-radius: 999px;
+  background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+.volver-flotante b { font-size: 14px; white-space: nowrap; }
+.volver-flotante small { font-size: 12px; opacity: 0.9; white-space: nowrap; }
 @media (hover: none) { .cuerpo-trozo li > .comentar-punto { opacity: 1; min-height: 28px; min-width: 36px; margin-block: -5px; } }
 .estado-decision { font-size: 12.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); white-space: nowrap; display: inline-flex; gap: 4px; align-items: center; }
 .estado-decision.hecha { background: var(--ok-fondo); border-color: var(--ok); color: var(--ok-texto); }
@@ -835,10 +901,21 @@ html:is(.enfoque, .enfoque-mision) .progreso-director { z-index: 46; }
    atajo y su separación) y sigue justo encima de los atajos */
 body:has(#atajos-director > [data-enfoque][hidden]) .segundo-plano { translate: 0 52px; }
 @media (max-width: 759px) { body:has(#atajos-director > [data-enfoque][hidden]) .segundo-plano { translate: 0 48px; } }
+/* Con el enfoque puesto aparece un atajo más, el de la niebla de lectura: la pastilla sube lo que él ocupa */
+body:has(#atajos-director > [data-niebla]:not([hidden])) .segundo-plano { translate: 0 -52px; }
+@media (max-width: 759px) { body:has(#atajos-director > [data-niebla]:not([hidden])) .segundo-plano { translate: 0 -48px; } }
 /* En el enfoque, el tema también se cambia desde la franja de la ventana (fuera de él, está arriba, en la cabecera) */
 html:not(.enfoque) .opciones-lector .boton-tema { display: none; }
 .opciones-lector .boton-tema { min-height: 34px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 .opciones-lector .boton-tema .icono { width: 17px; height: 17px; }
+/* Los controles del enfoque, en cuatro grupos separados por una línea fina (controlesEnfoque.ts; pd_controles_enfoque):
+   el tema (con la letra), la niebla, la narración y el sonido. La línea es el comienzo de cada grupo menos el primero, así
+   un grupo que no se ve no deja la suya: la narración solo está con la niebla puesta, y fuera del enfoque, en la franja
+   del documento, solo queda el del tema (la letra) */
+.grupo-enfoque { display: inline-flex; align-items: center; gap: 4px; }
+.grupo-enfoque-tema { gap: 8px; }
+.grupo-enfoque + .grupo-enfoque::before { content: ''; flex: none; align-self: center; width: 1px; height: 20px; margin-right: 4px; background: var(--borde); }
+html:not(.enfoque) .opciones-lector .grupo-enfoque:not(.grupo-enfoque-tema), html:not(.niebla-lectura) .grupo-enfoque-narracion { display: none; }
 /* El velo (zen.ts lo monta): cubre toda la pantalla, también la cabecera, sin franja ni recuadro aparte (nota del
    titular, 22 de octubre: la franja de arriba empujaba lo enfocado hacia abajo y lo estrechaba). Desenfoca y tiñe todo
    lo de alrededor y lo cierra con un viñeteado quieto y tenue, del color del tema. Entra y sale suave, con el
@@ -883,6 +960,8 @@ html.enfoque .docs > .lector { --franja-enfoque: 60px; padding-top: 0; }
    ventana, sobre el texto que pasa por detrás */
 html.enfoque .lector .ajustes-lector { position: sticky; top: 0; z-index: 3; box-sizing: border-box; height: var(--franja-enfoque); flex-wrap: nowrap; background: var(--panel); padding: 6px 0 0; margin: 0 0 8px; }
 html.enfoque .lector .parte-doc > :is(h2, h3):first-child { top: var(--franja-enfoque); }
+/* Una idea alta se lleva arriba (director.ts › centrarIdea): empieza justo bajo la franja y el título de la parte, no detrás */
+html.enfoque .lector .trozo { scroll-margin-top: calc(var(--franja-enfoque) + 64px); }
 html.enfoque .lector .parte-doc.por-leer { border-bottom: 0; padding-block: 4px 8px; }
 /* En pantallas angostas la ventana deja a la derecha un margen para los atajos y la cara del director, que siguen
    encima del enfoque (con su atajo se sale): así no tapan el texto. La salida de arriba no hace falta */
@@ -900,6 +979,20 @@ html.enfoque-mision #vista { pointer-events: none; user-select: none; }
 /* La tarjeta se selecciona y se copia (rutas, direcciones, órdenes): «text» y no «auto», que bajo un padre con
    user-select: none también vale none. Es la tuya: con todo el equipo a la vista, las de los demás quedan bajo el velo */
 html.enfoque-mision .mision-c.sigue.mia { pointer-events: auto; -webkit-user-select: text; user-select: text; }
+/* Su franja de arriba, como la del documento: el tema y la niebla de lectura, con su ▶ y su velocidad (director.ts ›
+   opcionesMision; nota de voz del titular nmvofr7x3tit). Se queda a la vista al desplazar la tarjeta, y las nubes pasan
+   por debajo. Fuera del enfoque solo queda «Tu misión ahora» */
+.franja-mision { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
+.opciones-mision { display: none; gap: 8px; align-items: center; }
+html.enfoque-mision .mision-c.sigue.mia .opciones-mision { display: flex; }
+html.enfoque-mision .mision-c.sigue.mia .franja-mision { position: sticky; top: 0; z-index: 3; background: var(--panel); padding-block: 2px 6px; }
+.opciones-mision .boton-tema { min-height: 34px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.opciones-mision .boton-tema .icono { width: 17px; height: 17px; }
+/* Los mismos controles arriba de «¿Dónde quedamos?» (director.ts › opcionesDq; nota de voz del titular nmvpi5ydttit): se ven
+   siempre, con el enfoque o sin él */
+.opciones-dq { display: inline-flex; gap: 8px; align-items: center; flex: none; }
+.opciones-dq .boton-tema { min-height: 34px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.opciones-dq .boton-tema .icono { width: 17px; height: 17px; }
 @media (prefers-reduced-motion: reduce) {
   .trozo.llega { animation: none; }
   .velo-zen { transition: none; }
@@ -927,6 +1020,35 @@ html.enfoque-mision .mision-c.sigue.mia { pointer-events: auto; -webkit-user-sel
 .campo-modelo select { width: 100%; }
 .abrir-claude { margin-top: 14px; }
 .abrir-claude button { min-height: 36px; }
+/* Cómo pide permisos el director: el modo de hoy, a la vista (director.ts › seccionPermisos) */
+.modo-permisos { display: flex; gap: 8px; align-items: center; margin: 4px 0 8px; padding: 8px 12px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); }
+.modo-permisos .icono { flex: none; width: 18px; height: 18px; stroke: var(--suave); }
+/* Lo que se le negó al director, para autorizarlo con una casilla (director.ts › seccionNegados) */
+.negados-panel { margin-top: 14px; }
+.negados-panel h4 { margin: 14px 0 4px; }
+.negado-d code { overflow-wrap: anywhere; }
+.negado-d select { margin-left: 6px; }
+/* Al corregir una nota, lo que ya tiene adjunto, cada uno con su casilla para quitarlo (pd_corregir_adjuntos) */
+.adjuntos-actuales { display: grid; gap: 4px; margin: 10px 0 0; padding: 8px 12px; border: 1px solid var(--borde); border-radius: var(--radio); }
+.adjuntos-actuales legend { padding: 0 4px; font-size: 13px; color: var(--suave); }
+/* Lo negado en la última revisión, en una línea de «¿Dónde quedamos?», con su botón al panel (director.ts › informeNegadosDq) */
+.negados-dq { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; padding: 8px 12px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); font-size: 14px; line-height: 1.5; }
+.negados-dq .icono { flex: none; width: 16px; height: 16px; margin-top: 2px; stroke: var(--suave); }
+/* «Autorizo los marcados», con aire sobre la tarjeta de arriba (nota de voz del titular nmvow70jqtit) */
+.negados-panel .acciones-p { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+/* Tus ajustes de Claude Code en el director, clave por clave (director.ts › seccionAjustesPropios) */
+.ajustes-d { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.ajuste-d { padding: 8px 12px; border: 1px solid var(--borde); border-radius: var(--radio); }
+.ajuste-d .casilla-d { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ajuste-d .casilla-d .icono { width: 16px; height: 16px; stroke: var(--suave); }
+.ajuste-d p.como { margin: 4px 0 0; font-size: 13.5px; }
+.consejo-ajuste { margin-left: auto; font-size: 12px; color: var(--suave); }
+.consejo-si .consejo-ajuste { color: var(--acento); font-weight: 600; }
+/* Una clave que apareció después de guardar la selección: se marca para confirmarla */
+.ajuste-nueva { padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: var(--aviso-fondo); color: var(--aviso-texto); }
+.aviso-ajustes-nuevas { margin: 0 0 10px; padding: 8px 12px; border-radius: var(--radio); background: var(--aviso-fondo); color: var(--aviso-texto); font-size: 14px; line-height: 1.5; }
+.consejo-nunca { background: var(--panel-suave); }
+.panel-d[data-ancla="m-ajustes"] .acciones-p { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .consumo-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
 .consumo-cifras > div { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px; }
 .consumo-cifras .tit { font-size: 12px; color: var(--suave); }
@@ -936,7 +1058,7 @@ html.enfoque-mision .mision-c.sigue.mia { pointer-events: auto; -webkit-user-sel
 .consumo-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .consumo-lista li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; padding-bottom: 6px; border-bottom: 1px solid var(--borde); }
 .consumo-lista li > span:last-of-type { color: var(--suave); }
-.consumo-lista li > .consumo-modelos { flex-basis: 100%; font-size: 12px; color: var(--suave); }
+.consumo-lista li > .consumo-modelos, .consumo-lista li > .consumo-paquete { flex-basis: 100%; font-size: 12px; color: var(--suave); }
 .consumo-proyectos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
 .consumo-proyectos li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13.5px; }
 .consumo-proyectos li > span:last-child { color: var(--suave); }
@@ -1030,6 +1152,9 @@ html.enfoque-mision .mision-c.sigue.mia { pointer-events: auto; -webkit-user-sel
 .donde-quedamos { width: min(620px, calc(100vw - 32px)); }
 .donde-quedamos form { gap: 10px; }
 .donde-quedamos h2 { outline: none; }
+/* Arriba, junto al título, los controles de lectura (director.ts › opcionesDq); si no caben, bajan a otra línea */
+.dq-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.dq-cabeza h2 { margin: 0; flex: 1 1 200px; min-width: 0; }
 /* En qué quedamos: el primer párrafo, el estado del proyecto (no un título, ni una lista de pendientes) */
 .dq-quedamos { margin: 0; font-size: 17px; line-height: 1.55; color: var(--texto); }
 .donde-quedamos h3 { margin: 8px 0 0; }
@@ -1532,6 +1657,10 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .pestana-stl { min-height: 34px; padding: 6px 14px; font-size: 14px; border-radius: 999px; background: var(--panel); color: var(--suave); }
 .pestana-stl.sel { background: var(--acento-fondo); border-color: var(--acento); color: var(--acento-texto); font-weight: 650; }
 .doc-studio > .como:first-child { display: flex; gap: 6px; align-items: center; margin-top: 0; }
+/* «Modelo y consumo», en pestañas (nota de voz del titular nmvoqwicctit, 25 de octubre de 2026): las mismas pastillas
+   de «Qué es STL». Cada tarjeta usa todo el ancho que tiene, sin tope, y las de lo que gasta van una encima de la otra
+   (nota de voz del titular nmvow70jqtit, 26 de octubre de 2026: «no quiero una carta que deje demasiado espacio libre a
+   la derecha») */
 
 /* El botón del tema, junto a «¿Dónde quedamos?»: solo el ícono */
 .boton-tema { width: 38px; padding: 0; }
@@ -1541,21 +1670,35 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .panel-sonido {
   position: fixed; z-index: 60; width: min(300px, calc(100vw - 16px)); padding: 12px 14px;
   background: var(--panel); color: var(--texto); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra-alta);
-  display: grid; gap: 10px; font-size: 14px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 14px;
 }
-.panel-sonido .ps-grupo { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
-.panel-sonido .ps-fila { display: flex; align-items: center; gap: 8px; }
+/* Nada se sale del panel (nota de voz del titular nmvoqgl0stit, 25 de octubre de 2026): el nombre largo de una voz o
+   de una pista no ensancha la columna; el selector se corta con sus puntos suspensivos y se lee entero al abrirlo */
+.panel-sonido .ps-grupo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+.panel-sonido .ps-fila { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.panel-sonido select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 .panel-sonido .ps-vol { padding-left: 24px; color: var(--suave); }
 .panel-sonido .ps-vol span { min-width: 58px; }
 .panel-sonido .ps-vol input[type='range'], .panel-sonido .ps-vol select { flex: 1; min-width: 0; accent-color: var(--acento); }
 .panel-sonido .ps-nota { margin: 0; color: var(--suave); line-height: 1.5; }
 .panel-sonido .ps-nota b { color: var(--texto); }
 .panel-sonido .ps-momentos { justify-self: start; }
+/* La voz de la niebla, al final del panel: su voz y ▶ para oírla */
+.panel-sonido .ps-grupo:last-child { border-bottom: 0; padding-bottom: 0; }
+.panel-sonido .ps-voz button { width: 38px; padding: 0; flex: none; }
+/* Cada momento en una sola línea (nota de voz del titular nmvpfiupftit, 26 de octubre de 2026: unos en dos líneas y
+   otros en una se veía confuso): el diálogo, más ancho, y los selectores alineados en su columna, del mismo ancho. En
+   una pantalla angosta, el selector baja bajo su nombre, como antes */
+.dialogo-director.dialogo-sonidos { width: min(820px, calc(100vw - 32px)); }
 .dialogo-sonidos .lista-momentos { list-style: none; margin: 10px 0 14px; padding: 0; display: grid; gap: 8px; }
-.dialogo-sonidos .lista-momentos li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 6px 0; border-bottom: 1px solid var(--borde); }
-.dialogo-sonidos .lista-momentos label { color: var(--texto); }
+.dialogo-sonidos .lista-momentos li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 16px; padding: 6px 0; border-bottom: 1px solid var(--borde); }
+.dialogo-sonidos .lista-momentos label { color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dialogo-sonidos .ps-elegir { display: inline-flex; gap: 6px; align-items: center; }
-.dialogo-sonidos .ps-elegir button { width: 38px; padding: 0; }
+.dialogo-sonidos .ps-elegir button { width: 38px; padding: 0; flex: none; }
+@media (max-width: 760px) {
+  .dialogo-sonidos .lista-momentos li { grid-template-columns: minmax(0, 1fr); }
+  .dialogo-sonidos .lista-momentos label { white-space: normal; }
+}
 
 /* ── El tema oscuro: lo que no usa variables (los fondos blancos y los tonos claros fijos) ── */
 html.oscuro :is(.dialogo-director, .dialogo-director .botones, .menu-proyectos, .item-nav.sel, .candidato, .tipo-proyecto, .opcion, .ficha-unidad, .candidatos-e li, .mision-c.cola[open], .pasos-arranque li.actual, .lista-preguntas li.editando, .cerrar-grande, .puerta) { background: var(--panel); color: var(--texto); }
@@ -1596,3 +1739,6 @@ html.oscuro .ruta li.futura .hito::before { background: radial-gradient(circle a
 html.oscuro .lienzo-stl { --panel: #ffffff; --panel-suave: #fbfaf7; --borde: #e2ded4; --texto: #23221f; --suave: #5c5b55; --tenue: #6a6862; --tinta: #2c2c2a; --acento: #2f5fb3; --acento-fondo: #eaf1fb; --acento-texto: #0c447c; --ok: #3b7d2a; --ok-texto: #27500a; padding: 10px; border-radius: var(--radio); background: #fbfaf7; }
 html.oscuro .parte-doc > h2:first-child { box-shadow: 0 6px 6px -6px rgba(0, 0, 0, 0.5); }
 html.oscuro img:not([src$='.svg']) { filter: brightness(0.92); }
+/* Un archivo que nombra el director (enlacesArchivos.ts): su nombre, igual que antes, con el subrayado de un enlace */
+a.enlace-archivo, button.enlace-archivo { all: unset; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+a.enlace-archivo:hover, button.enlace-archivo:hover, button.enlace-archivo:focus-visible, a.enlace-archivo:focus-visible { text-decoration-style: solid; outline: none; }
