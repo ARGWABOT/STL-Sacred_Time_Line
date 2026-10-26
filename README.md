@@ -1,14 +1,12 @@
 # Qué es STL · la metodología STL (Sacred Time Line)
 
-**Léela aquí:** https://argwabot.github.io/STL-Sacred_Time_Line/
+**Míralo aquí:** https://argwabot.github.io/STL-Sacred_Time_Line/
 
-Versión pública de la página «Qué es STL» del STL Studio. La publicamos para que ingenieros y modelos de IA revisen si lo
-que dice es cierto y si la metodología cumple lo que promete.
+Versión pública del STL Studio. La publicamos para que ingenieros y modelos de IA revisen si lo que dice es cierto y si la
+metodología cumple lo que promete.
 
 - `index.html`: la portada, una animación que muestra el mismo proyecto sin STL y con STL. Un solo archivo, sin
   librerías.
-- `metodologia.html`: la página completa, un recorrido por paradas con sus gráficos dentro. Es estática: se lee entera
-  sin ejecutar JavaScript.
 - `demo/`: el Studio de demostración, con un proyecto de ejemplo y un recorrido guiado. Nada se guarda.
 
 Se genera desde el STL Studio (`node tools/publicar-stl.ts`). No incluye el código del Studio ni datos de ningún proyecto.
