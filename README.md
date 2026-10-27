@@ -7,7 +7,6 @@ metodología cumple lo que promete.
 
 - `index.html`: la portada, una animación que muestra el mismo proyecto sin STL y con STL. Un solo archivo, sin
   librerías.
-- `demo/`: el Studio de demostración, con un proyecto de ejemplo y un recorrido guiado. Nada se guarda.
 
 Se genera desde el STL Studio (`node tools/publicar-stl.ts`). No incluye el código del Studio ni datos de ningún proyecto.
 Versión del 2026-10-26.
