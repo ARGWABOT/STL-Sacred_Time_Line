@@ -8,7 +8,7 @@
 // Sin Claude Code con su sesión iniciada en este computador, las revisiones pedidas las toma esa sesión con
 // /loop 5m /vigila, como antes.
 import { spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { basename, delimiter, isAbsolute, join, relative, resolve } from 'node:path';
@@ -26,6 +26,7 @@ import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, 
 import { anotar, EL_STUDIO } from '../../src/director/bitacora';
 import { anotarDirector, archivoDelCandado, quienLoTiene, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado';
 import { guardarLineasDeRevision } from '../../src/director/lineasDeRevision';
+import { esFinEscrito, type FinEscrito, type QuienTermino } from '../../src/director/finDeLanzamiento';
 import { paqueteDeRegistro, REGISTRO, REVISIONES, tokensEstimados, VARIABLE_REGISTRO } from '../../src/director/paquete';
 import { autorizadasPara, NEGACION, NUNCA_SIEMPRE, ordenDePruebas, permisosNegados, pruebasOfrecidas, reglaDeRuta, type PermisoNegado, type RegistroLeido } from './permisosNegados';
 
@@ -791,6 +792,8 @@ export interface Consumo {
   negados?: string[];
   /** Cada modelo con que trabajó, lo que gastó y para qué (modelosDe). No viene si Claude Code no los dijo. */
   modelos?: ModeloUsado[];
+  /** Quién lo terminó, por qué y cuánto duró de verdad, como lo escribió el Studio (finEscrito). No viene en los de antes. */
+  fin?: FinEscrito;
   /**
    * El paquete con que empezó (pedido del titular del 23 de octubre de 2026): lo que el director recibió al empezar,
    * guardado junto a su registro (src/director/paquete.ts). No viene en los registros de antes, sin encargo ni bandeja.
@@ -826,7 +829,10 @@ export interface SinTerminar {
   modelo: string | null;
   /** Si sigue trabajando: es el registro del director que tiene el turno en este computador, y su proceso vive. */
   enCurso: boolean;
-  paquete: PaqueteDeConsumo;
+  /** Paquete, si lo tiene: los de antes no lo traen, y uno que terminó sin resultado se lista igual si el Studio escribió su final. */
+  paquete?: PaqueteDeConsumo;
+  /** Quién lo terminó y por qué, como lo escribió el Studio (finEscrito). */
+  fin?: FinEscrito;
 }
 
 /**
@@ -947,17 +953,19 @@ export function consumoDe(registro: string): (ConsumoLeido & { arranque?: number
  * Lo que se lee de un registro en una sola pasada: su consumo (null si no terminó con su resultado) y, aunque no haya
  * terminado, con qué modelo empezó y su arranque, que no necesitan el resultado (lanzamientosDelDirector › sinTerminar).
  */
-function lecturaDe(registro: string): { consumo: ConsumoLeido | null; modelo: string | null; arranque?: number } {
+function lecturaDe(registro: string): { consumo: ConsumoLeido | null; modelo: string | null; arranque?: number; fin?: FinEscrito } {
   let modelo: string | null = null;
   let pedido: Consumo['pedido'];
   let resultado: any = null;
   let ventanas: any = null;
   let arranque: number | undefined;
+  let fin: FinEscrito | undefined;
   for (const linea of registro.split('\n')) {
     if (!linea.startsWith('{')) continue;
     let ev: any;
     try { ev = JSON.parse(linea); } catch { continue; }
     if (ev.type === 'studio' && ev.pedido) pedido = { modelo: ev.pedido.modelo ?? null, esfuerzo: ev.pedido.esfuerzo ?? null };
+    if (ev.type === 'studio' && esFinEscrito(ev.fin)) fin = ev.fin;
     if (!modelo && ev.type === 'system' && ev.subtype === 'init' && typeof ev.model === 'string') modelo = ev.model;
     if (!modelo && ev.type === 'assistant' && typeof ev.message?.model === 'string') modelo = ev.message.model;
     // Lo que leyó al empezar: el encargo, sus reglas y lo que trae Claude Code, todo en la primera llamada (un ayudante no)
@@ -968,7 +976,7 @@ function lecturaDe(registro: string): { consumo: ConsumoLeido | null; modelo: st
     if (ev.type === 'rate_limit_event' && ev.rate_limit_info?.unifiedWindows) ventanas = ev.rate_limit_info.unifiedWindows;
     if (ev.type === 'result') resultado = ev;
   }
-  const empezo = { modelo, ...(arranque !== undefined ? { arranque } : {}) };
+  const empezo = { modelo, ...(arranque !== undefined ? { arranque } : {}), ...(fin ? { fin } : {}) };
   if (!resultado) return { consumo: null, ...empezo };
   const u = resultado.usage ?? {};
   const limites = ventanas ? { cincoHoras: ventanaDe(ventanas.five_hour), semana: ventanaDe(ventanas.seven_day) } : null;
@@ -983,6 +991,7 @@ function lecturaDe(registro: string): { consumo: ConsumoLeido | null; modelo: st
     ...(pedido ? { pedido } : {}),
     ...(negados.length ? { negados } : {}),
     ...(modelos.length ? { modelos } : {}),
+    ...(fin ? { fin } : {}),
     costo: n(resultado.total_cost_usd),
     entrada: modelos.length ? suma('entrada') : n(u.input_tokens) + n(u.cache_creation_input_tokens),
     cache: modelos.length ? suma('cache') : n(u.cache_read_input_tokens),
@@ -1004,7 +1013,7 @@ export function trabajoConElPedido(pedido: string, real: string): boolean {
 }
 
 /** Lo leído de cada registro: un registro terminado no cambia, así que se lee una sola vez. */
-const consumos = new Map<string, { tam: number; c: Consumo | null; modelo: string | null; arranque?: number }>();
+const consumos = new Map<string, { tam: number; c: Consumo | null; modelo: string | null; arranque?: number; fin?: FinEscrito }>();
 
 /** Lo leído de cada parte de un paquete: se vuelve a leer solo si cambió su tamaño (la bandeja puede correr otra vez). */
 const pesos = new Map<string, { tam: number; peso: PesoDelPaquete }>();
@@ -1071,12 +1080,12 @@ export function lanzamientosDelDirector(raiz: string, dias = 35, ahora = Date.no
     if (!leido || leido.tam !== tam) {
       // El arranque va en el paquete, no suelto en el consumo
       const l = lecturaDe(readFileSync(archivo, 'utf-8'));
-      leido = { tam, c: l.consumo ? { cuando, proyecto: m[1], tipo, ...l.consumo } : null, modelo: l.modelo, arranque: l.arranque };
+      leido = { tam, c: l.consumo ? { cuando, proyecto: m[1], tipo, ...l.consumo } : null, modelo: l.modelo, arranque: l.arranque, ...(l.fin ? { fin: l.fin } : {}) };
       consumos.set(archivo, leido);
     }
     const paquete = paqueteDe(archivo, leido.arranque);
     if (leido.c) consumo.push(paquete ? { ...leido.c, paquete } : leido.c);
-    else if (paquete) sinTerminar.push({ cuando, proyecto: m[1], tipo, modelo: leido.modelo, enCurso: a === enCurso, paquete });
+    else if (paquete || leido.fin) sinTerminar.push({ cuando, proyecto: m[1], tipo, modelo: leido.modelo, enCurso: a === enCurso, ...(paquete ? { paquete } : {}), ...(leido.fin ? { fin: leido.fin } : {}) });
   }
   const delMasNuevo = (x: { cuando: string }, y: { cuando: string }) => y.cuando.localeCompare(x.cuando);
   return { consumo: consumo.sort(delMasNuevo), sinTerminar: sinTerminar.sort(delMasNuevo) };
@@ -1225,6 +1234,40 @@ export function diagnosticarFalla(registro: string, f: FinDeRevision = {}): Fall
   if (idsNegados.length)
     return reporte('Claude Code terminó sin cerrar la revisión', `Se le ${idsNegados.length === 1 ? 'negó un permiso' : `negaron ${idsNegados.length} permisos`}${negados.length ? ` (${negados.slice(0, 2).join('; ')})` : ''} y terminó su turno sin cerrar con «bandeja.ts --listo».${ultimo.result ? ` Lo último que dijo: «${corto(ultimo.result, 160)}».` : ''}`);
   return reporte('Claude Code terminó sin cerrar la revisión', `El director terminó su turno sin cerrar con «bandeja.ts --listo».${ultimo.result ? ` Lo último que dijo: «${corto(ultimo.result, 160)}».` : ''}`);
+}
+
+/**
+ * El final de un lanzamiento (propuesta aceptada «Cada proceso, a la vista», pr_procesos_vista, punto 1; quién lo terminó,
+ * en finDeLanzamiento.ts), de lo que se sabe al terminar (si cerró, si el Studio lo detuvo tras su cierre, si lo cortó
+ * su límite, su código) y de su registro. Puro: sin archivos.
+ */
+export function finEscrito(registro: string, f: FinDeRevision & { cerro: boolean; trasCierre?: boolean }): FinEscrito {
+  const minutos = f.inicio && f.fin && f.fin >= f.inicio ? Math.round((f.fin - f.inicio) / 6000) / 10 : null;
+  const codigo = f.codigo ?? null;
+  if (f.cerro)
+    return f.trasCierre
+      ? { quien: 'tras_cierre', causa: `Cerró, pero seguía vivo ${GRACIA_CIERRE_MIN} minutos después de su cierre: el Studio lo detuvo.`, minutos, codigo }
+      : { quien: 'cierre', causa: 'Cerró con su cierre y terminó solo.', minutos, codigo };
+  const d = diagnosticarFalla(registro, f);
+  const conResultado = registro.split('\n').some((l) => l.startsWith('{') && l.includes('"type":"result"'));
+  const quien: QuienTermino = f.limite ? 'limite' : d.accion === 'cuenta' ? 'cuenta' : d.que === 'No arrancó' ? 'no_arranco' : conResultado ? 'claude' : 'afuera';
+  return { quien, causa: d.porque, minutos, codigo };
+}
+
+/** La línea con que el Studio escribe el final en el registro del lanzamiento. */
+export const lineaDeFin = (fin: FinEscrito) => `${JSON.stringify({ type: 'studio', fin })}\n`;
+
+/** El final escrito en un registro, si lo tiene (el último, si por algo hay más de uno). */
+export function finDelRegistro(registro: string): FinEscrito | null {
+  let fin: FinEscrito | null = null;
+  for (const linea of registro.split('\n')) {
+    if (!linea.startsWith('{"type":"studio","fin"')) continue;
+    try {
+      const x = JSON.parse(linea).fin;
+      if (esFinEscrito(x)) fin = x;
+    } catch { /* una línea a medio escribir */ }
+  }
+  return fin;
 }
 
 /** Cuándo se renueva el límite de uso, del aviso de límites que lo rechazó (resetsAt, en segundos). */
@@ -1660,6 +1703,14 @@ export class Revisor {
     if (lanzado.estado === 'muerto') {
       const problema = 'La revisión que lanzó el Studio se detuvo: Claude Code ya no está corriendo y no la cerró.';
       const falla = fallaDeProyecto(this.raiz, proyecto, { problema, muerto: true });
+      // El final, escrito también aquí: el servidor que lo lanzó ya no estaba para verlo (pr_procesos_vista, punto 1)
+      const suyo = ultimoRegistro(this.raiz, proyecto);
+      if (suyo)
+        try {
+          if (!finDelRegistro(readFileSync(suyo, 'utf-8'))) appendFileSync(suyo, lineaDeFin({ quien: 'afuera', causa: falla.porque, minutos: falla.duracion, codigo: null }));
+        } catch {
+          // sin el registro, el reporte dice lo que se sabe
+        }
       return void (await marcarLanzada(this.raiz, proyecto, `${problema}${falla.registro ? ` Lo que alcanzó a hacer quedó en ${falla.registro}.` : ''}`, falla));
     }
     if (!(Date.now() - Date.parse(lanzada) > (limite + 5) * 60_000)) return;
@@ -1862,11 +1913,13 @@ export class Revisor {
       return cerroSegunPlan(revisadoDelPlan(this.raiz, proyecto), { pedida: pedidaEn, lanzada: new Date(inicio).toISOString() });
     };
     let cerroDesde: number | null = null;
+    let trasCierre = false;
     const tras = setInterval(() => {
       void (async () => {
         if (cerroDesde === null && (await cerroYa().catch(() => false))) cerroDesde = Date.now();
         if (!detenerTrasCierre(cerroDesde)) return;
         clearInterval(tras);
+        trasCierre = true;
         try {
           writeSync(registro, `${JSON.stringify({ type: 'studio', detenido: `seguía vivo ${GRACIA_CIERRE_MIN} minutos después de su cierre` })}\n`);
         } catch {
@@ -1890,6 +1943,14 @@ export class Revisor {
           } catch {
             // el registro ya no se puede escribir: el permiso no queda en el panel, pero la revisión cierra igual
           }
+      // El final, escrito (pr_procesos_vista, punto 1): quién terminó el lanzamiento, por qué y cuánto duró de verdad, para
+      // «Modelo y consumo», «Qué pasó con la revisión» y la línea de cada revisión
+      try {
+        const cerro = await cerroYa().catch(() => false);
+        writeSync(registro, lineaDeFin(finEscrito(readFileSync(archivo, 'utf-8'), { cerro, trasCierre, ...(cortada ? { limite: minutos } : {}), codigo, problema, inicio, fin: Date.now() })));
+      } catch {
+        // sin el registro, el final no se escribe: «Qué pasó con la revisión» lo deduce como antes
+      }
       closeSync(registro);
       // Su línea, para buscarla después aunque el registro se pode (pd_lineas_por_revision)
       try {

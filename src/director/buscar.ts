@@ -5,6 +5,7 @@
 // que instalar: BM25 (la búsqueda léxica de los buscadores) sobre las raíces de las palabras en español. Pura: la
 // herramienta (tools/director/buscar.ts) le da lo que lee.
 import { aceptadasSinEjecutar, estadoMision, origenDePrevista, reemplazos, type EstadoDirector, type Plan } from './director.ts';
+import { NOMBRE_FIN } from './finDeLanzamiento.ts';
 import type { LineaDeRevision } from './lineasDeRevision.ts';
 
 /** Los grupos de lo que se encuentra, en el orden en que se muestran. */
@@ -130,7 +131,7 @@ export function piezasDelProyecto(plan: Plan, estado: EstadoDirector, commits: r
   for (const c of commits) piezas.push({ id: c.hash, grupo: 'hecho', estado: `commit del ${dia(c.cuando)}`, titulo: corto(c.asunto), texto: c.asunto, hilo: [] });
   for (const r of revisiones) {
     const que = r.tipo === 'urgencia' ? 'urgencia' : r.tipo === 'aclaracion' ? 'aclaración' : 'revisión';
-    const cifras = [r.cerro ? 'cerró' : 'no cerró', r.minutos !== null ? `${Math.round(r.minutos)} min` : '', r.costo !== null ? `${r.costo} USD a precio de API` : ''].filter(Boolean).join(' · ');
+    const cifras = [r.termino ? NOMBRE_FIN[r.termino] : r.cerro ? 'cerró' : 'no cerró', r.minutos !== null ? `${Math.round(r.minutos)} min` : '', r.costo !== null ? `${r.costo} USD a precio de API` : ''].filter(Boolean).join(' · ');
     const texto = [
       r.notas.length ? `Respondió ${r.notas.join(', ')}` : '',
       ...r.commits.map((c) => `Commit ${c.hash}: ${c.asunto}`),

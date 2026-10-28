@@ -104,6 +104,7 @@ import type { InfoRepositorio } from '../../src/director/repositorio';
 import type { FallaRevision, ModoPermisos } from '../../src/director/proyectos';
 import type { EventoBitacora } from '../../src/director/bitacora';
 import { duracionAprox, type Alcance as AlcanceMedicion } from '../../src/director/corrida';
+import { contarFinales, NOMBRE_FIN, type FinEscrito } from '../../src/director/finDeLanzamiento';
 import type { ResumenProyecto } from '../servidor/director';
 import type { OpcionAjuste } from '../servidor/ajustesPropios';
 import { ofrecidoEnVivo, pendientesEnVivo, type PermisoAutorizado, type PermisoNegado } from '../servidor/permisosNegados';
@@ -244,12 +245,15 @@ interface Datos {
     modelos?: { modelo: string; principal: boolean; entrada: number; cache: number; salida: number; costo?: number; para?: string[] }[];
     /** Lo que recibió al empezar. No viene en los lanzamientos de antes. */
     paquete?: Paquete;
+    /** Quién lo terminó, por qué y cuánto duró de verdad (revisor.ts › finEscrito). No viene en los de antes. */
+    fin?: FinEscrito;
   }[];
   /**
    * Los lanzamientos que no terminaron con su resultado (siguen trabajando, el Studio los cortó o Claude Code murió), con
-   * su paquete para abrirlo igual (revisor.ts › SinTerminar). No cuentan en lo gastado: Claude Code no lo devolvió.
+   * su paquete para abrirlo igual y quién los terminó (revisor.ts › SinTerminar). No cuentan en lo gastado: Claude Code no
+   * lo devolvió.
    */
-  sinTerminar?: { cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; enCurso: boolean; paquete: Paquete }[];
+  sinTerminar?: { cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; enCurso: boolean; paquete?: Paquete; fin?: FinEscrito }[];
   /** La medición del núcleo con casos fijos (estudio/servidor/medidor.ts › estadoDeMedicion): la de ahora o la última, y lo que costaría otra. */
   medicion?: EstadoMedicion;
   /**
@@ -4809,10 +4813,17 @@ function vistaModelo() {
   // terminar, pero con su paquete, porque son justo los que más conviene mirar
   const cual = (x: { cuando: string; tipo: keyof typeof NOMBRE_LANZAMIENTO; proyecto: string; modelo: string | null }) =>
     `${fecha(x.cuando)} ${hora(x.cuando)} · ${NOMBRE_LANZAMIENTO[x.tipo]} de ${esc(nombreProyecto(x.proyecto))}${x.modelo ? ` · ${esc(nombreModelo(x.modelo))}` : ''}`;
+  // Quién terminó cada uno, como lo escribió el Studio al terminar (pr_procesos_vista, punto 1): al pasar el ratón, por qué
+  const termino = (f: FinEscrito | undefined) => (f ? `<small class="consumo-fin" title="${esc(f.causa)}">Terminó: ${esc(NOMBRE_FIN[f.quien])}${f.minutos != null ? `, a los ${Math.round(f.minutos).toLocaleString('es')} min de lanzarlo` : ''}</small>` : '');
   const filas = [
-    ...lista.map((x) => ({ cuando: x.cuando, html: `<li><span>${cual(x)}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min${x.negados?.length ? ` · <span title="${esc(x.negados.join('\n'))}">${negadosDe(x.negados.length)}</span>` : ''}</span>${lineaModelos(x)}${lineaPaquete(x.paquete)}</li>` })),
-    ...sinTerminar.map((x) => ({ cuando: x.cuando, html: `<li><span>${cual(x)}</span><span>${x.enCurso ? 'En curso: lo que gasta se sabe al terminar' : 'Sin terminar: Claude Code no devolvió lo que gastó'}</span>${lineaPaquete(x.paquete)}</li>` })),
+    ...lista.map((x) => ({ cuando: x.cuando, html: `<li><span>${cual(x)}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min${x.negados?.length ? ` · <span title="${esc(x.negados.join('\n'))}">${negadosDe(x.negados.length)}</span>` : ''}</span>${termino(x.fin)}${lineaModelos(x)}${lineaPaquete(x.paquete)}</li>` })),
+    ...sinTerminar.map((x) => ({ cuando: x.cuando, html: `<li><span>${cual(x)}</span><span>${x.enCurso ? 'En curso: lo que gasta se sabe al terminar' : 'Sin terminar: Claude Code no devolvió lo que gastó'}</span>${termino(x.fin)}${lineaPaquete(x.paquete)}</li>` })),
   ].sort((a, b) => b.cuando.localeCompare(a.cuando)).map((f) => f.html).join('');
+  // Cómo terminaron los de la semana, también los que se cortaron sin resultado: solo los que tienen su final escrito
+  const finales = contarFinales([...semana.map((x) => x.fin), ...sinTerminar.filter((x) => hoyLocal.getTime() - Date.parse(x.cuando) < 7 * 86_400_000).map((x) => x.fin)]);
+  const comoTerminaron = finales.length
+    ? `<p class="como consumo-finales">Cómo terminaron en los últimos 7 días: ${finales.map((f) => `${f.n} ${NOMBRE_FIN[f.quien]}`).join(' · ')}. Cuentan los que el Studio anotó al terminar, también los que se cortaron sin lo gastado.</p>`
+    : '';
   // Con cuál trabajó de verdad: Claude Code lo dice al empezar cada lanzamiento, y el Studio anota lo que pidió
   const ultimo = lista.find((x) => x.modelo);
   const cuandoUltimo = ultimo ? `${fecha(ultimo.cuando)} ${hora(ultimo.cuando)}` : '';
@@ -4865,6 +4876,7 @@ function vistaModelo() {
         <h3>Lo que gastó el director</h3>
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
           ${porProyecto.length > 1 ? `<ul class="consumo-proyectos" aria-label="Por proyecto, en los últimos 7 días">${porProyecto.map((p) => `<li><span>${esc(nombreProyecto(p.id))}</span><span>${dolares(p.costo)} · ${p.n} ${p.n === 1 ? 'lanzamiento' : 'lanzamientos'}</span></li>`).join('')}</ul>` : ''}` : ''}
+        ${comoTerminaron}
         ${filas ? `<details class="detalles-repo"${plegable('consumo-lanzamientos')}><summary>Cada lanzamiento (últimos 35 días)</summary>
             <ul class="consumo-lista">${filas}</ul>
           </details>` : '<p class="como">Todavía no hay lanzamientos del director en este computador.</p>'}

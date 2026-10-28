@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realp
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, inicioDeRegistro, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
 
 describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», confirmada con 15 días)', () => {
   it('borra lo de más de quince días con su paquete, y conserva el último de cada proyecto y de cada tipo', () => {
@@ -618,6 +618,37 @@ describe('el director que lanza el Studio', () => {
         const despues = lanzamientosDelDirector(raiz, 35, ahora, () => false);
         expect(despues.sinTerminar.map((x) => x.tipo)).toEqual(['urgencia']);
         expect(despues.consumo[0].paquete).toEqual({ registro: 'golf-2026-10-23T10-00-00-000Z.log', encargo: { bytes: 33, tokens: 9 }, bandeja: { bytes: 27, tokens: 7 }, arranque: 21_503 });
+      } finally {
+        rmSync(raiz, { recursive: true, force: true });
+      }
+    });
+
+    it('el final, escrito: quién terminó cada lanzamiento, por qué y cuánto duró, también el que se cortó sin resultado (pr_procesos_vista, punto 1)', () => {
+      const empezo = [lineaPedido(null, null).trim(), init, responde(uso(3, 20_000, 1_500))].join('\n');
+      const inicio = Date.parse('2026-10-23T10:00:00Z');
+      const f = { inicio, fin: inicio + 30 * 60_000 };
+      expect(finEscrito(`${empezo}\n${resultado}`, { ...f, cerro: true })).toMatchObject({ quien: 'cierre', minutos: 30 });
+      expect(finEscrito(`${empezo}\n${resultado}`, { ...f, cerro: true, trasCierre: true })).toMatchObject({ quien: 'tras_cierre', causa: expect.stringContaining(`${GRACIA_CIERRE_MIN} minutos`) });
+      expect(finEscrito(empezo, { ...f, cerro: false, limite: 60 })).toMatchObject({ quien: 'limite', causa: expect.stringContaining('60 minutos') });
+      expect(finEscrito(`${empezo}\n${resultado}`, { ...f, cerro: false }).quien).toBe('claude');
+      expect(finEscrito(empezo, { ...f, cerro: false, codigo: null }).quien).toBe('afuera');
+      expect(finEscrito('', { ...f, cerro: false, problema: 'El Studio no pudo lanzar Claude Code (ENOENT).' }).quien).toBe('no_arranco');
+      const rechazo = JSON.stringify({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', resetsAt: 1_761_300_000 } });
+      expect(finEscrito(`${empezo}\n${rechazo}`, { ...f, cerro: false }).quien).toBe('cuenta');
+      // Escrito en su registro, se lee: en lo gastado y en los que no terminaron, aunque no tengan paquete
+      const raiz = mkdtempSync(join(tmpdir(), 'stl-fin-'));
+      try {
+        const carpeta = join(raiz, '.revisiones');
+        mkdirSync(carpeta);
+        const cortada = join(carpeta, 'golf-2026-10-23T10-00-00-000Z.log');
+        writeFileSync(cortada, `${empezo}\n${lineaDeFin(finEscrito(empezo, { ...f, cerro: false, limite: 60 }))}`);
+        writeFileSync(join(carpeta, 'golf-2026-10-23T09-00-00-000Z.log'), `${empezo}\n${resultado}\n${lineaDeFin({ quien: 'cierre', causa: 'Cerró con su cierre y terminó solo.', minutos: 12 })}`);
+        const { consumo, sinTerminar } = lanzamientosDelDirector(raiz, 35, Date.parse('2026-10-23T12:00:00Z'), () => false);
+        expect(consumo[0].fin).toMatchObject({ quien: 'cierre', minutos: 12 });
+        expect(sinTerminar).toEqual([expect.objectContaining({ tipo: 'revision', fin: expect.objectContaining({ quien: 'limite', minutos: 30 }) })]);
+        expect(sinTerminar[0]).not.toHaveProperty('paquete');
+        expect(finDelRegistro(readFileSync(cortada, 'utf8'))).toMatchObject({ quien: 'limite' });
+        expect(finDelRegistro(empezo)).toBeNull();
       } finally {
         rmSync(raiz, { recursive: true, force: true });
       }

@@ -6,6 +6,7 @@
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { negacionesDe } from './director.ts';
+import { esFinEscrito, type QuienTermino } from './finDeLanzamiento.ts';
 import { REGISTRO, REVISIONES } from './paquete.ts';
 
 /** Donde viven las líneas: junto a la bitácora de este computador, fuera de git. */
@@ -33,6 +34,8 @@ export interface LineaDeRevision {
   commits: { hash: string; asunto: string }[];
   /** Lo que se le negó. */
   negados: string[];
+  /** Quién lo terminó, como lo escribió el Studio al terminar (finDeLanzamiento.ts); no viene en los de antes. */
+  termino?: QuienTermino;
 }
 
 /** Lo que dice la bandeja cuando cierra: la revisión, la urgencia o la aclaración. */
@@ -59,6 +62,7 @@ export function lineaDeRegistro(nombre: string, texto: string, ultimo?: number, 
   };
   let modelo: string | null = null;
   let resultado: { costo: number; minutos: number } | null = null;
+  let termino: QuienTermino | undefined;
   let cerro = false;
   const notas = new Set<string>();
   const archivos = new Set<string>();
@@ -69,6 +73,7 @@ export function lineaDeRegistro(nombre: string, texto: string, ultimo?: number, 
     try { ev = JSON.parse(linea); } catch { continue; }
     if (!modelo && ev.type === 'system' && ev.subtype === 'init' && typeof ev.model === 'string') modelo = ev.model;
     if (ev.type === 'result') resultado = { costo: Number(ev.total_cost_usd) || 0, minutos: Math.round((Number(ev.duration_ms) || 0) / 6000) / 10 };
+    if (ev.type === 'studio' && esFinEscrito(ev.fin)) termino = ev.fin.quien;
     for (const c of Array.isArray(ev.message?.content) ? ev.message.content : []) {
       if (c?.type === 'tool_use' && ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'].includes(c.name) && typeof c.input?.file_path === 'string') {
         archivos.add(corta(c.input.file_path));
@@ -100,6 +105,7 @@ export function lineaDeRegistro(nombre: string, texto: string, ultimo?: number, 
     archivos: [...archivos],
     commits: [...commits].map(([hash, asunto]) => ({ hash, asunto })),
     negados: negacionesDe(texto),
+    ...(termino ? { termino } : {}),
   };
 }
 

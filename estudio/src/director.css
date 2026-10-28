@@ -1055,7 +1055,7 @@ html.enfoque-mision .mision-c.sigue.mia .franja-mision { position: sticky; top: 
 .consumo-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .consumo-lista li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; padding-bottom: 6px; border-bottom: 1px solid var(--borde); }
 .consumo-lista li > span:last-of-type { color: var(--suave); }
-.consumo-lista li > .consumo-modelos, .consumo-lista li > .consumo-paquete { flex-basis: 100%; font-size: 12px; color: var(--suave); }
+.consumo-lista li > .consumo-modelos, .consumo-lista li > .consumo-paquete, .consumo-lista li > .consumo-fin { flex-basis: 100%; font-size: 12px; color: var(--suave); }
 .consumo-proyectos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
 .consumo-proyectos li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13.5px; }
 .consumo-proyectos li > span:last-child { color: var(--suave); }
