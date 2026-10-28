@@ -75,7 +75,7 @@ import {
 } from '../../src/director/director';
 import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
 import { leerEstadoDelEquipo, leerPlanParaVer, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria';
-import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, seguidasActivas, retomarAparte, type AclaracionPedida, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
+import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, seguidasActivas, retomarAparte, planCambiadoTrasCierre, type AclaracionPedida, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO, eventoDeAccion, leerBitacora } from '../../src/director/bitacora';
 import { archivoDelPaquete } from '../../src/director/paquete';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
@@ -1174,7 +1174,21 @@ export function servidorDirector(): Plugin {
                 return r?.proyecto === id && r.lanzada && !r.hecha && !r.error ? enCursoDeProyecto(raiz, id) : null;
               })(),
               hoy: hoy(),
-              errores: [...(avisoDelPlan ? [avisoDelPlan] : []), ...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)],
+              errores: [
+                ...(avisoDelPlan ? [avisoDelPlan] : []),
+                // El plan cambió después del último cierre, sin un director trabajando en él (pr_cierre_vigilado, punto 4)
+                ...(await (async () => {
+                  const l = await leerLocal(raiz);
+                  const corre = (x: { proyecto: string; lanzada?: string; enCurso?: string; hecha?: string; error?: string } | undefined) => !!x && x.proyecto === id && !x.hecha && !x.error && !!(x.lanzada || x.enCurso);
+                  const trabaja = revisor?.estado().revisando === id || corre(l.revision) || corre(l.aclaracion) || corre(l.urgencia);
+                  const texto = await readFile(enDisco(raiz, rutasDe(id).plan), 'utf-8').catch(() => null);
+                  const aviso = planCambiadoTrasCierre(l.huellas?.[id], texto, trabaja);
+                  return aviso ? [aviso] : [];
+                })()),
+                ...validarPlan(plan, personas),
+                ...validarEstado(estado, plan),
+                ...validarProyecto(proyecto),
+              ],
             });
           }
           if (ruta === '/proyecto-nuevo' && req.method === 'POST') {

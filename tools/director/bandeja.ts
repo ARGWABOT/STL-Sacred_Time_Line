@@ -98,7 +98,7 @@ import { piezasPendientes, pistasSinAtender, puedeQueYaEsteHecho } from '../../s
 import { fechaDeCambio, igualQueEntonces, leerFresco, leerFrescosTexto } from '../../src/director/fresco.ts';
 import { lineasDelMapa, sinCommitDeGit } from '../../src/director/mapa.ts';
 import { aplicarParche } from '../../src/director/parche.ts';
-import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, reintentoDe, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, guardarHuella, planCambiadoTrasCierre, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, reintentoDe, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { archivoDelCandado, MIN_CANDADO_SESION, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado.ts';
 import { audioBorrable, borrarSiTranscrito, comandoTranscripcion, limpiarTranscrito, quitarSiVacia, txtDeAudio } from '../../src/director/transcripcion.ts';
 import { bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, idsPorFase, separadorDeBandeja, VARIABLE_REGISTRO } from '../../src/director/paquete.ts';
@@ -233,6 +233,7 @@ if (args.includes('--aclarar')) {
       for (const e of errores) console.error(`- ${e}`);
       process.exit(1);
     }
+    await guardarHuella(raiz, elegido);
     await marcarAclaracion(raiz, a.nota, 'hecha');
     await soltarElCandado(elegido);
     console.log(`Aclaración hecha: ${a.nota}`);
@@ -303,6 +304,7 @@ if (args.includes('--urgente')) {
       for (const e of errores) console.error(`- ${e}`);
       process.exit(1);
     }
+    await guardarHuella(raiz, elegido);
     await marcarUrgencia(raiz, u.pedida, 'hecha');
     await soltarElCandado(elegido);
     console.log(`Urgencia atendida: ${u.notas.join(', ')}`);
@@ -609,6 +611,8 @@ if (args.includes('--listo')) {
   }
   // De una vez: el Studio lo lee mientras tanto (para saber si cerró) y no debe encontrarlo a medio escribir
   await escribirDeUnaVez(rutaPlan, JSON.stringify(final, null, 2) + '\n');
+  // La huella del plan tal como lo deja el cierre: lo que cambie después, sin un director, el Studio lo avisa (pr_cierre_vigilado, punto 4)
+  await guardarHuella(raiz, elegido);
   await marcarRevision(raiz, elegido, 'hecha');
   await soltarElCandado(elegido);
   console.log(`Revisión marcada: ${plan.revisado}`);
@@ -822,6 +826,20 @@ if (reintento) {
   linea(`La que lanzó el Studio el ${new Date(reintento.lanzada).toLocaleString('es-CO')} no se cerró (${reintento.que})${reintento.registro ? `; su registro: ${reintento.registro}` : ''}. Lo que esa revisión ya dejó está hecho y no se rehace: esta revisión solo termina lo que falta y cierra con --listo. Lo que está abajo como pendiente es lo que falta.`);
   for (const l of lineasDeRetoma(id, plan, reintento.lanzada, repo?.ruta, 'haz la revisión completa')) linea(l);
 }
+
+// ── El plan cambió después del cierre anterior, antes de que empezara esta revisión (pr_cierre_vigilado, punto 4) ──
+const huellaAnterior = local.huellas?.[id];
+if (huellaAnterior)
+  try {
+    const rutaDelPlan = enDisco(rutasDe(id).plan);
+    const antesDeEmpezar = statSync(rutaDelPlan).mtimeMs < Date.parse(corte);
+    if (antesDeEmpezar && planCambiadoTrasCierre(huellaAnterior, readFileSync(rutaDelPlan, 'utf-8'), false)) {
+      linea('\n## ⚠ El plan cambió después del cierre anterior');
+      linea(`Su huella no es la que dejó el cierre del ${new Date(huellaAnterior.cuando).toLocaleString('es-CO')}: algo lo cambió sin un director trabajando. Antes de escribir encima, mira qué cambió en la memoria (cd a ella y luego git diff director/plan.json, o git log), y dilo en el mensaje: el titular lo ve como un aviso en el Studio hasta que cierres.`);
+    }
+  } catch {
+    // sin el plan en el disco no hay nada que comparar
+  }
 
 const errores = [...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)];
 if (errores.length) {

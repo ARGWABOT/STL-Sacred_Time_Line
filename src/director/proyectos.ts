@@ -17,6 +17,7 @@
 // de proyectos de este Estudio. Lo usan el servidor del Estudio y tools/director/*.ts (por eso no importa nada relativo
 // en tiempo de ejecución: Node lo corre tal cual).
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { appendFile, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
@@ -114,6 +115,11 @@ export interface Local {
    * (pedirRevision; propuesta aceptada pr_retoma_automatica, punto 3). Una revisión que cierra lo borra.
    */
   retoma?: Reintento & { proyecto: string };
+  /**
+   * La huella del plan de cada proyecto al cerrar su última revisión, urgencia o aclaración (propuesta aceptada
+   * pr_cierre_vigilado, punto 4): si el plan cambia después sin un director trabajando, el Studio lo avisa.
+   */
+  huellas?: Record<string, { sha: string; cuando: string }>;
   /** «No lo entiendo, explícamelo mejor» de un paso: la lanza el Studio aparte, sin el resto de la revisión. */
   aclaracion?: AclaracionPedida;
   /** Una nota urgente: la lanza el Studio sola y al instante, sin el resto de la revisión. */
@@ -457,6 +463,7 @@ const normal = (x: any): Local => ({
   ...(x?.ajustesPropios === false && Array.isArray(x?.ajustesVistos) ? { ajustesVistos: x.ajustesVistos.filter((c: unknown): c is string => typeof c === 'string') } : {}),
   ...(esModoPermisos(x?.modoPermisos) ? { modoPermisos: x.modoPermisos } : {}),
   ...(esPlanDeClaude(x?.planDeClaude) ? { planDeClaude: x.planDeClaude } : {}),
+  ...((h) => (Object.keys(h).length ? { huellas: h } : {}))(Object.fromEntries(Object.entries(x?.huellas && typeof x.huellas === 'object' ? x.huellas : {}).filter(([, v]: [string, any]) => typeof v?.sha === 'string' && typeof v?.cuando === 'string').map(([k, v]: [string, any]) => [k, { sha: v.sha, cuando: v.cuando }]))),
   ...(x?.retoma && typeof x.retoma.proyecto === 'string' && typeof x.retoma.lanzada === 'string' && typeof x.retoma.que === 'string'
     ? { retoma: { proyecto: x.retoma.proyecto, lanzada: x.retoma.lanzada, que: x.retoma.que, ...(typeof x.retoma.registro === 'string' ? { registro: x.retoma.registro } : {}) } }
     : {}),
@@ -785,6 +792,34 @@ export async function prorrogarRevision(raiz: string, proyecto: string, limite: 
     const r = l.revision?.proyecto === proyecto && !l.revision.hecha && !l.revision.error && (l.revision.lanzada || l.revision.enCurso) ? l.revision : null;
     return r ? { ...l, revision: { ...r, limite } } : undefined;
   });
+}
+
+/** La huella de un plan: lo primero de su sha256, sin los saltos de línea de Windows (git los puede cambiar). Pura. */
+export const huellaDelPlan = (texto: string): string => createHash('sha256').update(texto.replace(/\r\n/g, '\n')).digest('hex').slice(0, 16);
+
+/**
+ * El cierre guarda la huella del plan de ese proyecto tal como quedó en el disco (pr_cierre_vigilado, punto 4): lo último
+ * que lo toca es el cierre, y lo que cambie después, sin un director trabajando, el Studio lo avisa. Sin plan, nada.
+ */
+export async function guardarHuella(raiz: string, proyecto: string): Promise<void> {
+  let texto: string;
+  try {
+    texto = await readFile(enDisco(raiz, rutasDe(proyecto).plan), 'utf-8');
+  } catch {
+    return;
+  }
+  const sha = huellaDelPlan(texto);
+  await cambiarLocal(raiz, (l) => ({ ...l, huellas: { ...(l.huellas ?? {}), [proyecto]: { sha, cuando: new Date().toISOString() } } }));
+}
+
+/**
+ * Si el plan de un proyecto cambió después de su último cierre: su huella guardada no es la del plan de ahora. `trabaja`:
+ * un director trabaja en ese proyecto (entonces es suyo cambiarlo). null si no cambió o no hay huella. Pura.
+ */
+export function planCambiadoTrasCierre(huella: { sha: string; cuando: string } | undefined, texto: string | null, trabaja: boolean): string | null {
+  if (!huella || texto === null || trabaja || huellaDelPlan(texto) === huella.sha) return null;
+  const cuando = new Date(huella.cuando).toLocaleString('es', { weekday: 'long', hour: 'numeric', minute: '2-digit' });
+  return `El plan cambió después del último cierre del director (el ${cuando}), sin un director trabajando: lo que ves puede no ser lo que él dejó. Si no lo cambió una revisión de otro computador, la revisión siguiente lo comprueba en la memoria y lo dice.`;
 }
 
 /** La revisión pedida empieza (`en_curso`) o termina (`hecha`). Sin una pedida, `hecha` igual deja la fecha. */

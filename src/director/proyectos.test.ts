@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { proyectoVacio, validarPlan, validarProyecto, type Integrante } from './director';
-import { abrirMemoria, prorrogarRevision, retomarAparte, pedirAclaracion, marcarAclaracion, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, prorrogarRevision, retomarAparte, pedirAclaracion, marcarAclaracion, huellaDelPlan, guardarHuella, planCambiadoTrasCierre, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -177,6 +177,30 @@ describe('la revisión pedida desde el Studio', () => {
     expect(r.lanzada ?? r.enCurso).toBeUndefined();
     await pedirRevision(raiz, 'rev', 'Laura', 'cabecera');
     expect((await leerLocal(raiz)).revision?.error).toBeUndefined();
+  });
+
+  it('el cierre guarda la huella del plan, y lo que cambie después sin un director se avisa (pr_cierre_vigilado, punto 4)', async () => {
+    const plan = '{\n  "a": 1\n}\n';
+    expect(huellaDelPlan(plan)).toBe(huellaDelPlan(plan.replace(/\n/g, '\r\n')));
+    expect(huellaDelPlan(plan)).not.toBe(huellaDelPlan(plan.replace('1', '2')));
+    const huella = { sha: huellaDelPlan(plan), cuando: '2026-10-28T19:00:00.000Z' };
+    expect(planCambiadoTrasCierre(huella, plan, false)).toBeNull();
+    expect(planCambiadoTrasCierre(huella, plan.replace('1', '2'), false)).toContain('El plan cambió después del último cierre');
+    // Con un director trabajando, cambiarlo es suyo; sin huella o sin plan, nada que comparar
+    expect(planCambiadoTrasCierre(huella, plan.replace('1', '2'), true)).toBeNull();
+    expect(planCambiadoTrasCierre(undefined, plan, false)).toBeNull();
+    expect(planCambiadoTrasCierre(huella, null, false)).toBeNull();
+    // Se guarda por proyecto en este computador, y sobrevive a la lectura; sin plan, nada
+    await guardarHuella(raiz, 'no-existe');
+    expect((await leerLocal(raiz)).huellas?.['no-existe']).toBeUndefined();
+    mkdirSync(join(raiz, 'proyectos', 'huella', 'director'), { recursive: true });
+    writeFileSync(join(raiz, 'proyectos', 'huella', 'director', 'plan.json'), plan);
+    await guardarHuella(raiz, 'huella');
+    expect((await leerLocal(raiz)).huellas?.huella).toMatchObject({ sha: huellaDelPlan(plan), cuando: expect.any(String) });
+    // La guardan los tres cierres (la revisión, la aclaración y lo urgente), y el servidor la compara en lo que muestra
+    const bandeja = readFileSync(join(import.meta.dirname, '..', '..', 'tools', 'director', 'bandeja.ts'), 'utf8');
+    expect(bandeja.match(/await guardarHuella\(raiz, elegido\);/g)).toHaveLength(3);
+    expect(readFileSync(join(import.meta.dirname, '..', '..', 'estudio', 'servidor', 'director.ts'), 'utf8')).toContain('planCambiadoTrasCierre(l.huellas?.[id], texto, trabaja)');
   });
 
   it('una aclaración o una urgencia que no se cerró se retoma con su reporte y lo que dejó (pr_retoma_automatica, punto 5)', async () => {

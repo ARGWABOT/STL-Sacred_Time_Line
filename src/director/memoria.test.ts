@@ -116,7 +116,10 @@ describe('el plan, con lo archivado', () => {
   it('el Studio lo muestra así, con su aviso entre lo que el director tiene por corregir', () => {
     const servidor = readFileSync(join(import.meta.dirname, '..', '..', 'estudio', 'servidor', 'director.ts'), 'utf8');
     expect(servidor).toContain('const [{ plan, aviso: avisoDelPlan }, proyecto, r] = await Promise.all([leerPlanParaVer(raiz, id), leerProyecto(id), repositorio(id, fresco)]);');
-    expect(servidor).toContain('errores: [...(avisoDelPlan ? [avisoDelPlan] : []), ...validarPlan(plan, personas)');
+    // El aviso va primero entre lo que el director tiene por corregir (después, el de la huella del plan y su validación)
+    const errores = servidor.slice(servidor.indexOf('errores: ['), servidor.indexOf('...validarProyecto(proyecto)'));
+    expect(errores).toContain('...(avisoDelPlan ? [avisoDelPlan] : []),');
+    expect(errores.indexOf('avisoDelPlan')).toBeLessThan(errores.indexOf('...validarPlan(plan, personas)'));
   });
 });
 
