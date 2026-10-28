@@ -38,6 +38,15 @@ export interface Acuerdo {
   quien: string;
 }
 
+/**
+ * Qué casos mide una corrida (nota de voz del titular del 28 de octubre de 2026, nmvrimph5tit: no repetir lo que no
+ * cambió). Un cambio de las reglas solo puede romper lo que pasaba: después de él se miden `pasaban`, los casos que
+ * pasaban en su última medición (y los que nunca se midieron, que nada dice que pasen). Lo que ya fallaba no se rompe:
+ * se mide con `fallaban` cuando un cambio quiere arreglarlo. `todos`, como la de base.
+ */
+export type Alcance = 'pasaban' | 'fallaban' | 'todos';
+export const ALCANCES: readonly Alcance[] = ['pasaban', 'fallaban', 'todos'];
+
 /** Una corrida entera: con qué director se midió y lo que salió de cada vuelta. */
 export interface Corrida {
   cuando: string;
@@ -49,6 +58,10 @@ export interface Corrida {
   terminada?: string;
   /** Lo que dijo la persona de la nota de quien califica, por caso: así se ve si su pauta mide lo que ella mide. */
   acuerdos?: Record<string, Acuerdo>;
+  /** Los casos que mide, por su id; sin esto (las de antes), todos los medibles. */
+  casos?: string[];
+  /** Qué eligió medir la persona; sin esto, todos. */
+  alcance?: Alcance;
 }
 
 /** Cada caso, dos vueltas: el modelo no responde siempre igual. */
@@ -56,6 +69,36 @@ const VUELTAS = 2;
 
 /** Los casos que se miden con el director de verdad: los que tienen su situación, en el orden de la lista. */
 export const casosMedibles = (): CasoFijo[] => CASOS_FIJOS.filter((c) => SITUACIONES[c.id]);
+
+/** Los casos que mide una corrida: los suyos o, en las de antes, todos. */
+export const casosDeCorrida = (c: Corrida, casos: CasoFijo[] = casosMedibles()): CasoFijo[] => (c.casos ? casos.filter((x) => c.casos!.includes(x.id)) : casos);
+
+/** Por qué no pasaron las vueltas de un caso, sin repetir. */
+const porqueDelCaso = (caso: CasoFijo, vueltas: Vuelta[]) => [...new Set(vueltas.flatMap((v) => (pasaLaVuelta(v, caso) ? [] : [!v.cerro ? 'la revisión no cerró' : v.fallas[0] ?? v.calificacion?.porque ?? 'no se pudo calificar'])))];
+
+/**
+ * El último resultado de cada caso: el de la corrida más nueva que lo midió hasta tener veredicto (`corridas`, de la más
+ * nueva a la más vieja), con su porqué. Un caso sin ninguna no está.
+ */
+export function ultimosVeredictos(corridas: Corrida[], casos: CasoFijo[] = casosMedibles()): Map<string, { veredicto: 'pasa' | 'falla'; cuando: string; porque: string[] }> {
+  const r = new Map<string, { veredicto: 'pasa' | 'falla'; cuando: string; porque: string[] }>();
+  for (const caso of casos)
+    for (const c of corridas) {
+      if (!casosDeCorrida(c, casos).includes(caso)) continue;
+      const veredicto = veredictoDelCaso(caso, c.vueltas);
+      if (veredicto === 'pendiente') continue;
+      r.set(caso.id, { veredicto, cuando: c.cuando, porque: porqueDelCaso(caso, deCaso(c.vueltas, caso.id)) });
+      break;
+    }
+  return r;
+}
+
+/** Los casos de un alcance, por el último resultado de cada uno en las corridas guardadas (de la más nueva a la más vieja). */
+export function casosDelAlcance(alcance: Alcance, corridas: Corrida[], casos: CasoFijo[] = casosMedibles()): CasoFijo[] {
+  if (alcance === 'todos') return casos;
+  const ultimos = ultimosVeredictos(corridas, casos);
+  return casos.filter((c) => (alcance === 'fallaban' ? ultimos.get(c.id)?.veredicto === 'falla' : ultimos.get(c.id)?.veredicto !== 'falla'));
+}
 
 /** ¿Pasó la vuelta? Cerró, el código no encontró fallas y, si el caso tiene pauta, quien califica la aprueba. */
 export function pasaLaVuelta(v: Vuelta, caso: Pick<CasoFijo, 'pauta'> | undefined): boolean {
@@ -106,12 +149,15 @@ export function discrepancias(corridas: Corrida[]): string[] {
   return [...cuenta].filter(([, n]) => n >= 2).map(([caso]) => caso);
 }
 
-/** Lo que dice una corrida, para «Modelo y consumo»: cuántos casos pasan y fallan, lo que gastó y cada caso con su porqué. */
-export function resumenDeCorrida(c: Corrida, casos: CasoFijo[] = casosMedibles()) {
+/**
+ * Lo que dice una corrida, para «Modelo y consumo»: cuántos casos pasan y fallan, lo que gastó y cada caso con su porqué
+ * y, con las corridas de antes, cómo estaba (`antes`): un caso que pasaba y ahora falla se rompió con el último cambio.
+ */
+export function resumenDeCorrida(c: Corrida, casos: CasoFijo[] = casosMedibles(), anteriores: Corrida[] = []) {
+  const antes = ultimosVeredictos(anteriores, casos);
   const porCaso = casos.map((caso) => {
     const vueltas = deCaso(c.vueltas, caso.id);
-    const porque = vueltas.flatMap((v) => (pasaLaVuelta(v, caso) ? [] : [!v.cerro ? 'la revisión no cerró' : v.fallas[0] ?? v.calificacion?.porque ?? 'no se pudo calificar']));
-    return { id: caso.id, titulo: caso.titulo, veredicto: veredictoDelCaso(caso, c.vueltas), vueltas: vueltas.length, porque: [...new Set(porque)], califica: notaDeQuienCalifica(c, caso.id), acuerdo: c.acuerdos?.[caso.id]?.de ?? null };
+    return { id: caso.id, titulo: caso.titulo, veredicto: veredictoDelCaso(caso, c.vueltas), vueltas: vueltas.length, porque: porqueDelCaso(caso, vueltas), califica: notaDeQuienCalifica(c, caso.id), acuerdo: c.acuerdos?.[caso.id]?.de ?? null, antes: antes.get(caso.id)?.veredicto ?? null };
   });
   const costos = c.vueltas.map((v) => v.costo).filter((x): x is number => typeof x === 'number');
   return {
@@ -129,11 +175,21 @@ export function resumenDeCorrida(c: Corrida, casos: CasoFijo[] = casosMedibles()
  * persona. Así cada cambio del núcleo empieza sabiendo cómo está medido. `corridas`, de la más nueva a la más vieja.
  */
 export function lineasDeMedicion(corridas: Corrida[], casos: CasoFijo[] = casosMedibles()): string[] {
-  const [ultima] = corridas;
+  const [ultima, ...anteriores] = corridas;
   if (!ultima) return ['- Todavía no hay ninguna en este computador: la pide la persona, con «Medir el núcleo», en «Modelo y consumo» › «Lo que gasta» (`m-medicion`).'];
-  const r = resumenDeCorrida(ultima, casos);
-  const lineas = [`- La última, ${ultima.cuando.slice(0, 16).replace('T', ' ')} UTC${ultima.terminada ? '' : ' (detenida antes de terminar)'}, con ${ultima.modelo ?? 'el modelo de la cuenta'}${ultima.esfuerzo ? ` y esfuerzo ${ultima.esfuerzo}` : ''}: ${r.pasan} de ${casos.length} casos pasan, ${r.fallan} fallan${r.pendientes ? `, ${r.pendientes} sin terminar` : ''}${r.costo != null ? ` · ${r.costo} USD a precio de API` : ''}.`];
-  for (const c of r.porCaso.filter((x) => x.veredicto === 'falla')) lineas.push(`  - Falla [${c.id}] «${c.titulo}»: ${c.porque.join(' · ')}`);
+  const suyos = casosDeCorrida(ultima, casos);
+  const r = resumenDeCorrida(ultima, suyos, anteriores);
+  const cuales = suyos.length === casos.length ? '' : ultima.alcance === 'pasaban' ? ' (midió los que pasaban: lo que el último cambio pudo romper)' : ultima.alcance === 'fallaban' ? ' (midió los que fallaban)' : ` (midió ${suyos.length} de ${casos.length})`;
+  const lineas = [`- La última, ${ultima.cuando.slice(0, 16).replace('T', ' ')} UTC${ultima.terminada ? '' : ' (detenida antes de terminar)'}, con ${ultima.modelo ?? 'el modelo de la cuenta'}${ultima.esfuerzo ? ` y esfuerzo ${ultima.esfuerzo}` : ''}: ${r.pasan} de ${suyos.length} casos pasan, ${r.fallan} fallan${r.pendientes ? `, ${r.pendientes} sin terminar` : ''}${cuales}${r.costo != null ? ` · ${r.costo} USD a precio de API` : ''}.`];
+  // Lo que pasaba y ahora falla, primero: es lo que rompió el último cambio
+  const fallan = r.porCaso.filter((x) => x.veredicto === 'falla').sort((a, b) => Number(b.antes === 'pasa') - Number(a.antes === 'pasa'));
+  for (const c of fallan) lineas.push(`  - ${c.antes === 'pasa' ? 'Se rompió' : 'Falla'} [${c.id}] «${c.titulo}»: ${c.porque.join(' · ')}`);
+  // Lo que esta no midió sigue como quedó en la que lo midió
+  const antes = ultimosVeredictos(anteriores, casos);
+  for (const c of casos.filter((x) => !suyos.includes(x))) {
+    const v = antes.get(c.id);
+    if (v?.veredicto === 'falla') lineas.push(`  - Falla [${c.id}] «${c.titulo}», sin medir en esta (así quedó en la del ${v.cuando.slice(0, 10)}): ${v.porque.join(' · ')}`);
+  }
   const discrepan = discrepancias(corridas);
   if (discrepan.length) lineas.push(`- La persona no estuvo de acuerdo con quien califica en dos corridas en ${discrepan.join(', ')}: su pauta (src/director/casosFijos.ts) no mide lo que ella mide; propón reescribirla.`);
   return lineas;
@@ -158,6 +214,21 @@ export function costoEstimado(casos: number, ultima: Corrida | null, revisiones:
   // prueba queda entre los dos
   const piso = deLaUltima.length ? null : mediana(cortos);
   return { total: redondo(porVuelta * casos * VUELTAS), porVuelta: redondo(porVuelta), de: deLaUltima.length ? 'corrida' : 'revisiones', ...(piso !== null && piso < porVuelta ? { desde: redondo(piso * casos * VUELTAS) } : {}) };
+}
+
+/** Lo que tarda algo largo, redondeado como se dice: «unos 40 minutos», «una hora y media», «unas 3 horas». */
+export function duracionAprox(minutos: number): string {
+  if (minutos < 75) return `unos ${Math.max(5, Math.round(minutos / 5) * 5)} minutos`;
+  const medias = Math.round(minutos / 30);
+  const horas = Math.floor(medias / 2);
+  const y = medias % 2 ? ' y media' : '';
+  return horas === 1 ? `una hora${y}` : `unas ${horas} horas${y}`;
+}
+
+/** Lo que tardará una corrida, en minutos: dos vueltas por caso, por lo que tardó en promedio cada vuelta de la última; null sin ella. */
+export function minutosEstimados(casos: number, ultima: Corrida | null): number | null {
+  const tardaron = (ultima?.vueltas ?? []).map((v) => v.minutos).filter((x): x is number => typeof x === 'number' && x > 0);
+  return tardaron.length ? Math.round((tardaron.reduce((s, x) => s + x, 0) / tardaron.length) * casos * VUELTAS) : null;
 }
 
 // ── Quien califica: otro modelo, con la pauta del caso, sin saber qué modelo dirigió

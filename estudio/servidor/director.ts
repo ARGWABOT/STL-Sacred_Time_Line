@@ -85,7 +85,8 @@ import { clavesDeTusAjustes, conMaximo, guardarEsfuerzoClaude, guardarModeloClau
 import { conNuevas, opcionesDeTusAjustes, recomendadas } from './ajustesPropios';
 import { POR_QUE_SIN_AUTOMATICO } from './modoPermisos';
 import { actividadDeProyecto, agruparPasos, automaticoDisponible, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
-import { detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, midiendo } from './medidor';
+import { corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, midiendo } from './medidor';
+import { ALCANCES, casosDelAlcance, type Alcance } from '../../src/director/corrida';
 import { revisarPedido, sinAutorizar, valePara } from './permisosNegados';
 import { queAnotarDeLaLlamada, queAnotarDeLaRespuesta, respuestaValida } from './permisoAlMomento';
 import { decidirParaElGancho, permisosEnEspera } from './permisosEnEspera';
@@ -1461,13 +1462,17 @@ export function servidorDirector(): Plugin {
               return responder(res, 400, { error: 'Hay una revisión pedida o un director trabajando: la medición gasta del mismo límite de tu cuenta, así que se pide cuando termine.' });
             const programa = buscarClaude();
             if (!programa) return responder(res, 400, { error: 'No encontré Claude Code en este computador: sin él no se puede medir al director.' });
+            // Qué casos: lo que el último cambio pudo romper, lo que fallaba o todos (nota de voz del titular nmvrimph5tit)
+            const alcance: Alcance = ALCANCES.includes(cuerpo.alcance as Alcance) ? (cuerpo.alcance as Alcance) : 'todos';
+            const casos = casosDelAlcance(alcance, corridasGuardadas(raiz));
+            if (!casos.length) return responder(res, 400, { error: alcance === 'fallaban' ? 'Ningún caso fallaba en la última medición: no hay nada que medir con esa opción.' : 'No hay casos que medir con esa opción.' });
             const { modelo, esfuerzo } = conMaximo(await leerAjustesClaude(), l.esfuerzoMaximo === true);
             const empezo = empezarMedicion({
-              raiz, modelo, esfuerzo, programa, quien,
+              raiz, modelo, esfuerzo, programa, quien, casos, alcance,
               alTerminar: (c, problema) => void anotar(raiz, { quien: EL_STUDIO, que: c ? `termina la medición del núcleo que pidió ${quien}: ${c.vueltas.length} vueltas${c.terminada ? '' : ', detenida antes de terminar'}` : `no pudo terminar la medición del núcleo que pidió ${quien}: ${problema ?? 'se cayó'}`, desde: 'la medición del núcleo' }).catch(() => {}),
             });
             if (!empezo) return responder(res, 400, { error: 'Ya se está midiendo.' });
-            await anotar(raiz, { quien, que: `pide la medición del núcleo del director, con ${modelo ?? 'el modelo de su cuenta'}${esfuerzo ? ` y esfuerzo ${esfuerzo}` : ''}`, desde });
+            await anotar(raiz, { quien, que: `pide la medición del núcleo del director, con ${modelo ?? 'el modelo de su cuenta'}${esfuerzo ? ` y esfuerzo ${esfuerzo}` : ''}: ${alcance === 'pasaban' ? `los ${casos.length} casos que pasaban` : alcance === 'fallaban' ? `los ${casos.length} casos que fallaban` : `los ${casos.length} casos`}`, desde });
             return responder(res, 200, { medicion: estadoDeMedicion(raiz, costosDeRevisiones(), costosCortos()) });
           }
           // Los sonidos (sonidos.ts): de su carpeta, estudio/sonidos, que viaja con el Studio

@@ -103,6 +103,7 @@ import {
 import type { InfoRepositorio } from '../../src/director/repositorio';
 import type { FallaRevision, ModoPermisos } from '../../src/director/proyectos';
 import type { EventoBitacora } from '../../src/director/bitacora';
+import { duracionAprox, type Alcance as AlcanceMedicion } from '../../src/director/corrida';
 import type { ResumenProyecto } from '../servidor/director';
 import type { OpcionAjuste } from '../servidor/ajustesPropios';
 import { ofrecidoEnVivo, pendientesEnVivo, type PermisoAutorizado, type PermisoNegado } from '../servidor/permisosNegados';
@@ -269,12 +270,17 @@ interface EstadoMedicion {
   enMarcha: { quien: string; desde: string; vueltas: number } | null;
   ultima: {
     cuando: string; modelo: string | null; esfuerzo: string | null; terminada: string | null; vueltas: number;
+    /** Qué casos midió: los que pasaban, los que fallaban o todos (null: todos, como las de antes). */
+    alcance: AlcanceMedicion | null;
     pasan: number; fallan: number; pendientes: number; costo: number | null;
-    porCaso: { id: string; titulo: string; veredicto: 'pasa' | 'falla' | 'pendiente'; vueltas: number; porque: string[]; califica: { pasa: boolean; porque: string[] } | null; acuerdo: boolean | null }[];
+    /** Solo los casos que midió; `antes`, cómo estaba cada uno en la medición anterior que lo midió. */
+    porCaso: { id: string; titulo: string; veredicto: 'pasa' | 'falla' | 'pendiente'; vueltas: number; porque: string[]; califica: { pasa: boolean; porque: string[] } | null; acuerdo: boolean | null; antes: 'pasa' | 'falla' | null }[];
   } | null;
   casos: number;
   /** Lo que costaría otra; sin una corrida, entre lo de un encargo corto del director (`desde`) y lo de una revisión. */
   estimado: { total: number; porVuelta: number; de: 'corrida' | 'revisiones'; desde?: number } | null;
+  /** Lo que mediría, costaría y tardaría cada alcance (nota de voz del titular nmvrimph5tit: no repetir lo que no cambió). */
+  alcances?: { alcance: AlcanceMedicion; casos: number; estimado: EstadoMedicion['estimado']; minutos: number | null }[];
   /** Los casos en que no estuviste de acuerdo con quien califica en dos corridas: su pauta se revisa. */
   discrepan: { id: string; titulo: string }[];
 }
@@ -4898,19 +4904,27 @@ function seccionMedicion(nombreModelo: (id: string) => string) {
     const boton = (de: boolean, texto: string) => `<button type="button" class="enlace" data-acuerdo="${esc(`${u!.cuando}|${c.id}|${de ? 'si' : 'no'}`)}" aria-pressed="${c.acuerdo === de}">${c.acuerdo === de ? `<b>${texto}</b>` : texto}</button>`;
     return `<small>Quien califica: ${c.califica.pasa ? 'pasa' : 'falla'}, porque ${esc(c.califica.porque.join(' · '))} · ${boton(true, 'De acuerdo')} ${boton(false, 'No de acuerdo')}</small>`;
   };
+  // Cómo estaba cada caso en la medición anterior: lo que pasaba y ahora falla se rompió con el último cambio
+  const cambio = (c: NonNullable<typeof u>['porCaso'][number]) => (c.antes === 'pasa' && c.veredicto === 'falla' ? ' · <b>se rompió</b>' : c.antes === 'falla' && c.veredicto === 'pasa' ? ' · se arregló' : '');
   const casos = u?.porCaso.length
-    ? `<details class="detalles-repo"${plegable('medicion-casos')}><summary>Cada caso</summary><ul class="consumo-lista">${u.porCaso.map((c) => `<li><span>${esc(c.titulo)}</span><span>${VEREDICTO[c.veredicto]}${c.vueltas ? ` · ${c.vueltas} ${c.vueltas === 1 ? 'vuelta' : 'vueltas'}` : ''}</span>${c.porque.length ? `<small>${esc(c.porque.join(' · '))}</small>` : ''}${acuerdo(c)}</li>`).join('')}</ul></details>`
+    ? `<details class="detalles-repo"${plegable('medicion-casos')}><summary>Cada caso</summary><ul class="consumo-lista">${u.porCaso.map((c) => `<li><span>${esc(c.titulo)}</span><span>${VEREDICTO[c.veredicto]}${c.vueltas ? ` · ${c.vueltas} ${c.vueltas === 1 ? 'vuelta' : 'vueltas'}` : ''}${cambio(c)}</span>${c.porque.length ? `<small>${esc(c.porque.join(' · '))}</small>` : ''}${acuerdo(c)}</li>`).join('')}</ul></details>`
     : '';
   const discrepan = m.discrepan?.length
     ? `<p class="aviso-modelo">En dos mediciones no estuviste de acuerdo con quien califica en ${m.discrepan.map((x) => `«${esc(x.titulo)}»`).join(', ')}: su pauta no mide lo que tú mides. Te propondré reescribirla.</p>`
     : '';
+  const midio = !u || u.porCaso.length >= m.casos ? '' : `${u.alcance === 'pasaban' ? `Midió los ${u.porCaso.length} casos que pasaban, lo que el último cambio pudo romper` : u.alcance === 'fallaban' ? `Midió los ${u.porCaso.length} casos que fallaban` : `Midió ${u.porCaso.length} de los ${m.casos} casos`}: `;
+  const rotos = u?.porCaso.filter((c) => c.antes === 'pasa' && c.veredicto === 'falla').length ?? 0;
   const ultima = !u
     ? '<p class="como">Todavía no se ha medido en este computador.</p>'
-    : `<p class="como">${m.enMarcha ? 'Esta' : u.terminada ? 'La última' : 'La última, detenida antes de terminar'}: ${fecha(u.cuando)} ${hora(u.cuando)}, con ${conQue(u)}. <b>${u.pasan} de ${m.casos} casos pasan</b>${u.fallan ? `, ${u.fallan} ${u.fallan === 1 ? 'falla' : 'fallan'}` : ''}${u.costo != null ? ` · ${dolares(u.costo)}` : ''}.</p>${casos}`;
+    : `<p class="como">${m.enMarcha ? 'Esta' : u.terminada ? 'La última' : 'La última, detenida antes de terminar'}: ${fecha(u.cuando)} ${hora(u.cuando)}, con ${conQue(u)}. ${midio}<b>${u.pasan} de ${u.porCaso.length} casos pasan</b>${u.fallan ? `, ${u.fallan} ${u.fallan === 1 ? 'falla' : 'fallan'}` : ''}${rotos ? ` (${rotos === 1 ? 'uno pasaba antes y se rompió' : `${rotos} pasaban antes y se rompieron`})` : ''}${u.costo != null ? ` · ${dolares(u.costo)}` : ''}.</p>${casos}`;
   const e = m.estimado;
-  const costo = e
-    ? `Una corrida mide ${m.casos} casos, dos vueltas cada uno: ${cuantoCuesta(e)}. Si un caso sale distinto en sus dos vueltas, una tercera: unos ${dolares(e.porVuelta)} más, como mucho.`
-    : `Una corrida mide ${m.casos} casos, dos vueltas cada uno: lo que cuesta se sabe después de la primera revisión del director en este computador.`;
+  // Con una medición anterior no hace falta medirlo todo: se elige al pedirla
+  const parte = (m.alcances ?? []).filter((a) => a.alcance !== 'todos' && a.casos > 0 && a.casos < m.casos);
+  const costo = parte.length
+    ? `No hace falta medirlo todo: al pedirla eliges ${parte.map((a) => (a.alcance === 'pasaban' ? `lo que el último cambio pudo romper (los ${a.casos} casos que pasaban)` : `lo que fallaba (${a.casos} ${a.casos === 1 ? 'caso' : 'casos'})`)).join(', ')} o los ${m.casos} casos, y cada opción dice lo que cuesta y tarda.`
+    : e
+      ? `Una corrida mide ${m.casos} casos, dos vueltas cada uno: ${cuantoCuesta(e)}. Si un caso sale distinto en sus dos vueltas, una tercera: unos ${dolares(e.porVuelta)} más, como mucho.`
+      : `Una corrida mide ${m.casos} casos, dos vueltas cada uno: lo que cuesta se sabe después de la primera revisión del director en este computador.`;
   const accion = m.enMarcha
     ? `<p class="como"><b>Midiendo:</b> ${m.enMarcha.vueltas} ${m.enMarcha.vueltas === 1 ? 'vuelta hecha' : 'vueltas hechas'}, desde las ${hora(m.enMarcha.desde)} (la pidió ${esc(m.enMarcha.quien)}). Mientras tanto no se lanza ningún director.</p>
         <div class="abrir-claude"><button type="button" class="boton-suave" data-medir="detener">Detener</button><p class="como">Termina la vuelta que está corriendo y no empieza otra: lo hecho queda guardado.</p></div>`
@@ -5836,19 +5850,30 @@ async function clicEnVista(b: HTMLButtonElement) {
   } else if (ds.medir) {
     // La medición del núcleo: se pide con su costo a la vista, en un diálogo, y se detiene al terminar la vuelta que corre
     const pedirla = ds.medir === 'pedir';
+    let alcance: AlcanceMedicion = 'todos';
     if (pedirla) {
       const e = d.medicion?.estimado;
+      const total = d.medicion?.casos ?? 0;
+      // Con una medición anterior, qué medir: lo que el último cambio pudo romper (lo recomendado), lo que fallaba o todo
+      const opciones = (d.medicion?.alcances ?? []).filter((a) => a.casos > 0);
+      const elegir = opciones.some((a) => a.casos < total);
+      const NOMBRE = { pasaban: 'Lo que el último cambio pudo romper', fallaban: 'Lo que fallaba', todos: 'Todo' } as const;
+      const cuanto = (a: (typeof opciones)[number]) => [a.estimado ? `unos ${dolares(a.estimado.total)}` : '', a.minutos ? duracionAprox(a.minutos) : ''].filter(Boolean).join(' y ');
+      const etiqueta = (a: (typeof opciones)[number]) => `${NOMBRE[a.alcance]}: ${a.alcance === 'todos' ? `los ${a.casos} casos` : `los ${a.casos} ${a.casos === 1 ? 'caso' : 'casos'} que ${a.alcance}`}${cuanto(a) ? ` (${cuanto(a)})` : ''}`;
       const si = await pedir({
         titulo: 'Medir el núcleo del director',
-        ayuda: `El director de verdad hace ${d.medicion?.casos ?? 0} revisiones de prueba, dos por caso, con el modelo y el esfuerzo que elegiste. ${e ? `A precio de API cuesta ${cuantoCuesta(e)}, y como mucho unos ${dolares(e.porVuelta)} más por cada caso que salga distinto en sus dos vueltas. Con un plan de suscripción no se cobra aparte: lo que gasta es parte de tus límites.` : 'Lo que cuesta se sabe al terminar: es como una revisión por cada vuelta.'} Mientras mide, no se lanza ningún director; la puedes detener cuando quieras.`,
-        campos: [],
+        ayuda: elegir
+          ? `El director de verdad hace dos revisiones de prueba por caso, con el modelo y el esfuerzo que elegiste. Después de un cambio de sus reglas, lo que hay que repetir es lo que pasaba: es lo único que el cambio puede romper. Lo que ya fallaba sigue fallando hasta que un cambio lo arregle: para ver si lo arregló, elige «Lo que fallaba». Lo que cuesta va a precio de API; con un plan de suscripción no se cobra aparte: es parte de tus límites. Mientras mide, no se lanza ningún director; la puedes detener cuando quieras.`
+          : `El director de verdad hace ${total} revisiones de prueba, dos por caso, con el modelo y el esfuerzo que elegiste. ${e ? `A precio de API cuesta ${cuantoCuesta(e)}, y como mucho unos ${dolares(e.porVuelta)} más por cada caso que salga distinto en sus dos vueltas. Con un plan de suscripción no se cobra aparte: lo que gasta es parte de tus límites.` : 'Lo que cuesta se sabe al terminar: es como una revisión por cada vuelta.'} Mientras mide, no se lanza ningún director; la puedes detener cuando quieras.`,
+        campos: elegir ? [{ id: 'alcance', etiqueta: 'Qué casos medir', tipo: 'select', opciones: opciones.map((a) => [a.alcance, etiqueta(a)]), valor: opciones.some((a) => a.alcance === 'pasaban') ? 'pasaban' : opciones[0].alcance }] : [],
         boton: 'Medir',
         vacioVale: true,
       });
       if (!si) return;
+      if (elegir && opciones.some((a) => a.alcance === si.alcance)) alcance = si.alcance as AlcanceMedicion;
     }
     b.setAttribute('disabled', '');
-    const r = await fetch('/__estudio/director/medicion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedirla ? { pedir: true } : { detener: true }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    const r = await fetch('/__estudio/director/medicion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedirla ? { pedir: true, alcance } : { detener: true }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
     b.removeAttribute('disabled');
     if (r instanceof Error) return avisar('No se pudo hablar con el servidor del Studio.');
     const j = await r.json().catch(() => ({}));

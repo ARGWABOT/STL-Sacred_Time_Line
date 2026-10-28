@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CASOS_FIJOS } from './casosFijos.ts';
-import { casosMedibles, costoEstimado, discrepancias, encargoDeCalificacion, leerCalificacion, lineasDeMedicion, loQueDejo, notaDeQuienCalifica, pasaLaVuelta, resumenDeCorrida, veredictoDelCaso, vueltasQueFaltan, type Corrida, type Vuelta } from './corrida.ts';
+import { casosDeCorrida, casosDelAlcance, casosMedibles, costoEstimado, discrepancias, duracionAprox, encargoDeCalificacion, leerCalificacion, lineasDeMedicion, loQueDejo, minutosEstimados, notaDeQuienCalifica, pasaLaVuelta, resumenDeCorrida, ultimosVeredictos, veredictoDelCaso, vueltasQueFaltan, type Corrida, type Vuelta } from './corrida.ts';
 import type { Plan } from './director.ts';
 import { SITUACIONES } from './medicion.ts';
 
@@ -98,6 +98,52 @@ describe('la corrida de la medición del núcleo', () => {
     expect(lineas[0]).toBe('- La última, 2026-10-28 10:00 UTC, con opus y esfuerzo high: 1 de 2 casos pasan, 1 fallan.');
     expect(lineas[1]).toBe(`  - Falla [${SIN_PAUTA.id}] «${SIN_PAUTA.titulo}»: no dejó su pedido`);
     expect(lineas[2]).toMatch(new RegExp(`no estuvo de acuerdo con quien califica en dos corridas en ${id}`));
+  });
+
+  // Nota de voz del titular nmvrimph5tit: no repetir lo que no cambió. Un cambio de las reglas solo rompe lo que pasaba
+  it('después de un cambio se mide lo que pudo romperse: los casos que pasaban en la última que los midió, y los nunca medidos', () => {
+    const otro = caso('c_cortes_sin_sentido');
+    const casos = [SIN_PAUTA, CON_PAUTA, otro];
+    const ok = (id: string) => [bien(id, 1, { calificacion: { pasa: true, porque: 'Bien.' } }), bien(id, 2, { calificacion: { pasa: true, porque: 'Bien.' } })];
+    // La de base: SIN_PAUTA pasa, CON_PAUTA falla; «otro» no se midió nunca
+    const base: Corrida = { cuando: '2026-10-27T19:00:00.000Z', modelo: null, esfuerzo: null, terminada: 'x', casos: [SIN_PAUTA.id, CON_PAUTA.id], vueltas: [...ok(SIN_PAUTA.id), mal(CON_PAUTA.id, 1), mal(CON_PAUTA.id, 2)] };
+    const ids = (cs: { id: string }[]) => cs.map((c) => c.id);
+    expect(ids(casosDelAlcance('pasaban', [base], casos))).toEqual([SIN_PAUTA.id, otro.id]);
+    expect(ids(casosDelAlcance('fallaban', [base], casos))).toEqual([CON_PAUTA.id]);
+    expect(ids(casosDelAlcance('todos', [base], casos))).toEqual(ids(casos));
+    // Sin ninguna medición, nada falla todavía: lo que pudo romperse es todo
+    expect(ids(casosDelAlcance('pasaban', [], casos))).toEqual(ids(casos));
+    expect(casosDelAlcance('fallaban', [], casos)).toEqual([]);
+    // Una parcial después: SIN_PAUTA se rompió. Su último resultado es el de la parcial; el de CON_PAUTA, el de la base
+    const parcial: Corrida = { cuando: '2026-10-28T19:00:00.000Z', modelo: null, esfuerzo: null, terminada: 'y', alcance: 'pasaban', casos: [SIN_PAUTA.id, otro.id], vueltas: [mal(SIN_PAUTA.id, 1), mal(SIN_PAUTA.id, 2), ...ok(otro.id)] };
+    const ultimos = ultimosVeredictos([parcial, base], casos);
+    expect(ultimos.get(SIN_PAUTA.id)).toMatchObject({ veredicto: 'falla', cuando: parcial.cuando, porque: ['no dejó su pedido'] });
+    expect(ultimos.get(CON_PAUTA.id)).toMatchObject({ veredicto: 'falla', cuando: base.cuando });
+    expect(ids(casosDelAlcance('fallaban', [parcial, base], casos))).toEqual([SIN_PAUTA.id, CON_PAUTA.id]);
+    expect(ids(casosDelAlcance('pasaban', [parcial, base], casos))).toEqual([otro.id]);
+    // Una vuelta sin terminar no da veredicto: sigue el de antes
+    const cortada: Corrida = { cuando: '2026-10-29T19:00:00.000Z', modelo: null, esfuerzo: null, casos: [otro.id], vueltas: [mal(otro.id, 1)] };
+    expect(ultimosVeredictos([cortada, parcial, base], casos).get(otro.id)).toMatchObject({ veredicto: 'pasa', cuando: parcial.cuando });
+    // El resumen de la parcial cuenta solo sus casos y dice cómo estaba cada uno: lo que pasaba y ahora falla se rompió
+    const r = resumenDeCorrida(parcial, casosDeCorrida(parcial, casos), [base]);
+    expect(r).toMatchObject({ pasan: 1, fallan: 1 });
+    expect(r.porCaso.map((c) => [c.id, c.veredicto, c.antes])).toEqual([[SIN_PAUTA.id, 'falla', 'pasa'], [otro.id, 'pasa', null]]);
+    // La bandeja: lo que se rompió primero, y lo que esta no midió, como quedó en la que lo midió
+    const lineas = lineasDeMedicion([parcial, base], casos);
+    expect(lineas[0]).toMatch(/: 1 de 2 casos pasan, 1 fallan \(midió los que pasaban: lo que el último cambio pudo romper\)\.$/);
+    expect(lineas[1]).toBe(`  - Se rompió [${SIN_PAUTA.id}] «${SIN_PAUTA.titulo}»: no dejó su pedido`);
+    expect(lineas[2]).toBe(`  - Falla [${CON_PAUTA.id}] «${CON_PAUTA.titulo}», sin medir en esta (así quedó en la del 2026-10-27): no dejó su pedido`);
+  });
+
+  it('lo que tardará una corrida, por lo que tardó cada vuelta de la última, y dicho como se dice', () => {
+    const ultima: Corrida = { cuando: '', modelo: null, esfuerzo: null, vueltas: [bien('a', 1, { minutos: 8 }), bien('a', 2, { minutos: 10 }), bien('b', 1)] };
+    expect(minutosEstimados(9, ultima)).toBe(162);
+    expect(minutosEstimados(9, null)).toBeNull();
+    expect(duracionAprox(42)).toBe('unos 40 minutos');
+    expect(duracionAprox(2)).toBe('unos 5 minutos');
+    expect(duracionAprox(80)).toBe('una hora y media');
+    expect(duracionAprox(162)).toBe('unas 2 horas y media');
+    expect(duracionAprox(240)).toBe('unas 4 horas');
   });
 
   it('la nota de quien califica se lee de su última línea de JSON válida', () => {

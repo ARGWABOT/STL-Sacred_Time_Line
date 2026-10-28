@@ -13,7 +13,7 @@ import { ajustesDelDirector, fuentesDelDirector } from './ajustesClaude';
 import { NUNCA_SIEMPRE } from './permisosNegados';
 import { consumoDe, detener, encargo, lanzarClaude, negado, permitido, SIN_ESPERAS } from './revisor';
 import { CASOS_FIJOS, type CasoFijo } from '../../src/director/casosFijos';
-import { casosMedibles, costoEstimado, discrepancias, encargoDeCalificacion, leerCalificacion, loQueDejo, resumenDeCorrida, vueltasQueFaltan, type Calificacion, type Corrida, type Vuelta } from '../../src/director/corrida';
+import { ALCANCES, casosDeCorrida, casosDelAlcance, casosMedibles, costoEstimado, discrepancias, encargoDeCalificacion, leerCalificacion, loQueDejo, minutosEstimados, resumenDeCorrida, vueltasQueFaltan, type Alcance, type Calificacion, type Corrida, type Vuelta } from '../../src/director/corrida';
 import { unirEstados } from '../../src/director/director';
 import { COMPROBACIONES, SITUACIONES } from '../../src/director/medicion';
 import { leerLocal } from '../../src/director/proyectos';
@@ -177,8 +177,10 @@ export function corridasGuardadas(raiz: string, carpeta = carpetaDeMediciones(ra
  * guardando lo que sale de cada una apenas termina, para que nada se pierda si se corta. Se detiene solo entre una vuelta
  * y otra (`senal`). Una vuelta que no se pudo correr cuenta como fallida, con su porqué, y la corrida sigue.
  */
-export async function correrMedicion(o: Omit<OpcionesDeVuelta, 'base' | 'caso' | 'numero'> & { casos?: CasoFijo[]; senal?: AbortSignal; alAvanzar?: (c: Corrida) => void; carpeta?: string }): Promise<Corrida> {
-  const corrida: Corrida = { cuando: new Date().toISOString(), modelo: o.modelo, esfuerzo: o.esfuerzo, vueltas: [] };
+export async function correrMedicion(o: Omit<OpcionesDeVuelta, 'base' | 'caso' | 'numero'> & { casos?: CasoFijo[]; alcance?: Alcance; senal?: AbortSignal; alAvanzar?: (c: Corrida) => void; carpeta?: string }): Promise<Corrida> {
+  const casos = o.casos ?? casosMedibles();
+  // Los casos que mide quedan con ella: su resumen y la bandeja cuentan solo esos, y lo demás sigue como quedó antes
+  const corrida: Corrida = { cuando: new Date().toISOString(), modelo: o.modelo, esfuerzo: o.esfuerzo, casos: casos.map((c) => c.id), ...(o.alcance ? { alcance: o.alcance } : {}), vueltas: [] };
   const carpeta = o.carpeta ?? carpetaDeMediciones(o.raiz);
   const archivo = join(carpeta, `${corrida.cuando.replace(/[:.]/g, '-')}.json`);
   const guardar = () => {
@@ -186,7 +188,6 @@ export async function correrMedicion(o: Omit<OpcionesDeVuelta, 'base' | 'caso' |
     writeFileSync(archivo, JSON.stringify(corrida, null, 2) + '\n');
   };
   guardar();
-  const casos = o.casos ?? casosMedibles();
   const base = mkdtempSync(join(tmpdir(), 'stl-medicion-'));
   try {
     for (let faltan = vueltasQueFaltan(casos, corrida.vueltas); faltan.length && !o.senal?.aborted; faltan = vueltasQueFaltan(casos, corrida.vueltas)) {
@@ -218,17 +219,25 @@ export const midiendo = () => enMarcha !== null;
 
 /**
  * Lo que muestra «Modelo y consumo» › «Lo que gasta»: la corrida en marcha, la última guardada con su resumen (la de
- * ahora, si se está midiendo) y lo que costaría otra, por la última que terminó o por lo que costaron las revisiones.
+ * ahora, si se está midiendo; solo sus casos, con cómo estaba cada uno antes) y lo que costaría y tardaría otra, por la
+ * última que terminó o por lo que costaron las revisiones, con cada alcance: lo que pudo romperse, lo que fallaba o todo.
  */
 export function estadoDeMedicion(raiz: string, revisiones: number[], cortos: number[] = []) {
   const casos = casosMedibles();
   const guardadas = corridasGuardadas(raiz);
-  const ultima = guardadas[0];
+  const [ultima, ...anteriores] = guardadas;
+  const terminada = guardadas.find((c) => c.terminada) ?? null;
+  // Los alcances, por el último resultado de cada caso: sin la corrida en marcha, que todavía no lo tiene
+  const medidas = enMarcha ? anteriores : guardadas;
   return {
     enMarcha: enMarcha ? { quien: enMarcha.quien, desde: enMarcha.desde, vueltas: enMarcha.vueltas } : null,
-    ultima: ultima ? { cuando: ultima.cuando, modelo: ultima.modelo, esfuerzo: ultima.esfuerzo, terminada: ultima.terminada ?? null, vueltas: ultima.vueltas.length, ...resumenDeCorrida(ultima, casos) } : null,
+    ultima: ultima ? { cuando: ultima.cuando, modelo: ultima.modelo, esfuerzo: ultima.esfuerzo, terminada: ultima.terminada ?? null, vueltas: ultima.vueltas.length, alcance: ultima.alcance ?? null, ...resumenDeCorrida(ultima, casosDeCorrida(ultima, casos), anteriores) } : null,
     casos: casos.length,
-    estimado: costoEstimado(casos.length, guardadas.find((c) => c.terminada) ?? null, revisiones, cortos),
+    estimado: costoEstimado(casos.length, terminada, revisiones, cortos),
+    alcances: ALCANCES.map((alcance) => {
+      const n = casosDelAlcance(alcance, medidas, casos).length;
+      return { alcance, casos: n, estimado: n ? costoEstimado(n, terminada, revisiones, cortos) : null, minutos: n ? minutosEstimados(n, terminada) : null };
+    }),
     // Donde la persona no estuvo de acuerdo con quien califica en dos corridas: su pauta no mide lo que ella mide
     discrepan: discrepancias(guardadas).map((id) => ({ id, titulo: CASOS_FIJOS.find((c) => c.id === id)?.titulo ?? id })),
   };

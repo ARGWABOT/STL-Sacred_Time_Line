@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { argumentosDeCalificacion, argumentosDeVuelta, correrMedicion, correrVuelta, corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, idDeVuelta, midiendo } from './medidor';
 import { CASOS_FIJOS } from '../../src/director/casosFijos';
-import { resumenDeCorrida, type Corrida } from '../../src/director/corrida';
+import { casosMedibles, resumenDeCorrida, type Corrida, type Vuelta } from '../../src/director/corrida';
 
 const RAIZ = resolve(import.meta.dirname, '..', '..');
 const base = mkdtempSync(join(tmpdir(), 'estudio-medidor-'));
@@ -155,6 +155,37 @@ describe('la corrida de la medición, con el director de verdad', () => {
     // Sin una corrida terminada, lo que costaría otra sale de las revisiones
     expect(estado.estimado).toMatchObject({ porVuelta: 2, de: 'revisiones' });
   }, 120_000);
+
+  // Nota de voz del titular nmvrimph5tit: no repetir lo que no cambió
+  it('con una medición guardada se elige qué medir (lo que pudo romperse, lo que fallaba o todo), con lo que cuesta y tarda; una parcial se resume con sus casos', () => {
+    const otro = join(base, 'alcances');
+    const carpeta = join(otro, '.estudio', 'mediciones');
+    mkdirSync(carpeta, { recursive: true });
+    const todos = casosMedibles();
+    const [a, b] = todos;
+    const n = todos.length;
+    const bien = (caso: string, numero: number): Vuelta => ({ caso, numero, cerro: true, fallas: [], calificacion: { pasa: true, porque: 'Bien.' }, costo: 3, minutos: 10 });
+    const mal = (caso: string, numero: number): Vuelta => ({ caso, numero, cerro: true, fallas: ['no'], costo: 3, minutos: 10 });
+    const dos = (id: string, falla: boolean) => (falla ? [mal(id, 1), mal(id, 2)] : [bien(id, 1), bien(id, 2)]);
+    // La de base: todos pasan menos b
+    const deBase: Corrida = { cuando: '2026-10-27T10:00:00.000Z', modelo: null, esfuerzo: null, terminada: 'x', vueltas: todos.flatMap((c) => dos(c.id, c.id === b.id)) };
+    writeFileSync(join(carpeta, '2026-10-27T10-00-00-000Z.json'), JSON.stringify(deBase));
+    expect(estadoDeMedicion(otro, []).alcances).toEqual([
+      { alcance: 'pasaban', casos: n - 1, estimado: { total: 6 * (n - 1), porVuelta: 3, de: 'corrida' }, minutos: 20 * (n - 1) },
+      { alcance: 'fallaban', casos: 1, estimado: { total: 6, porVuelta: 3, de: 'corrida' }, minutos: 20 },
+      { alcance: 'todos', casos: n, estimado: { total: 6 * n, porVuelta: 3, de: 'corrida' }, minutos: 20 * n },
+    ]);
+    // Una parcial de lo que pasaba, con a roto: su resumen cuenta solo sus casos, con cómo estaba cada uno
+    const pasaban = todos.filter((c) => c.id !== b.id);
+    const parcial: Corrida = { cuando: '2026-10-28T10:00:00.000Z', modelo: null, esfuerzo: null, terminada: 'y', alcance: 'pasaban', casos: pasaban.map((c) => c.id), vueltas: pasaban.flatMap((c) => dos(c.id, c.id === a.id)) };
+    writeFileSync(join(carpeta, '2026-10-28T10-00-00-000Z.json'), JSON.stringify(parcial));
+    const e = estadoDeMedicion(otro, []);
+    expect(e.ultima).toMatchObject({ alcance: 'pasaban', pasan: n - 2, fallan: 1 });
+    expect(e.ultima!.porCaso).toHaveLength(n - 1);
+    expect(e.ultima!.porCaso.find((c) => c.id === a.id)).toMatchObject({ veredicto: 'falla', antes: 'pasa' });
+    // Ahora fallan dos: el roto y el que ya fallaba, que la parcial no midió
+    expect(e.alcances.find((x) => x.alcance === 'fallaban')?.casos).toBe(2);
+  });
 
   it('el acuerdo de la persona con quien califica se guarda en su corrida, solo en un caso calificado; en dos corridas sin acuerdo, se dice', () => {
     const otro = join(base, 'acuerdos');
