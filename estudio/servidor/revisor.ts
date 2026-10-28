@@ -24,6 +24,7 @@ import { leerJsonFresco } from '../../src/director/memoria';
 import { PROCEDIMIENTOS } from '../../src/director/procedimientos';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora';
+import { anotarDirector, archivoDelCandado, quienLoTiene, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado';
 import { paqueteDeRegistro, REGISTRO, REVISIONES, tokensEstimados, VARIABLE_REGISTRO } from '../../src/director/paquete';
 import { autorizadasPara, NEGACION, NUNCA_SIEMPRE, ordenDePruebas, permisosNegados, pruebasOfrecidas, reglaDeRuta, type PermisoNegado, type RegistroLeido } from './permisosNegados';
 
@@ -34,6 +35,11 @@ export interface EstadoRevisor {
   agente: string | null;
   problema: string | null;
   revisando: string | null;
+  /**
+   * Por qué lo pedido espera aunque nadie trabaje desde este Studio: otro director tiene el candado del proyecto (la sesión
+   * del director, o uno que lanzó otra copia del Studio), en una frase, con su proyecto (pd_un_director).
+   */
+  espera?: { proyecto: string; texto: string } | null;
 }
 
 /** Una revisión que tarda más que esto se da por perdida: el Studio la detiene y lo dice. */
@@ -1536,6 +1542,8 @@ function sigueSinLanzar(l: Awaited<ReturnType<typeof leerLocal>>, proyecto: stri
 
 export class Revisor {
   private hijo: string | null = null;
+  private espera: { proyecto: string; texto: string } | null = null;
+  private esperaAnotada: string | null = null;
   private ocupado = false;
   private programa: string | null = null;
   private problema: string | null = null;
@@ -1550,7 +1558,20 @@ export class Revisor {
   constructor(private raiz: string, private ajustes = archivoAjustesClaude()) {}
 
   estado(): EstadoRevisor {
-    return { agente: this.programa ? 'Claude Code' : null, problema: this.problema, revisando: this.hijo };
+    return { agente: this.programa ? 'Claude Code' : null, problema: this.problema, revisando: this.hijo, espera: this.espera };
+  }
+
+  /**
+   * Lo pedido espera porque otro director tiene el candado del proyecto: el Studio lo dice en la cabecera y, una vez por
+   * cada director que lo tiene, en la bitácora. El reloj de 15 segundos lo vuelve a intentar.
+   */
+  private async esperarCandado(proyecto: string, de: Candado): Promise<void> {
+    const texto = quienLoTiene(de, { estudio: this.raiz });
+    this.espera = { proyecto, texto };
+    const clave = `${proyecto}|${de.quien}|${de.estudio}|${de.desde}`;
+    if (this.esperaAnotada === clave) return;
+    this.esperaAnotada = clave;
+    await anotar(this.raiz, { quien: EL_STUDIO, que: `no lanza al director: ${texto.charAt(0).toLowerCase()}${texto.slice(1)}, y trabaja un director a la vez en cada proyecto. Lo pedido espera su turno y se lanza solo cuando ese director cierre`, desde: 'el lanzador del director', proyecto }).catch(() => undefined);
   }
 
   /** Busca Claude Code y si tiene sesión: cada minuto como mucho. `agente: false` en estudio.local.json lo apaga. */
@@ -1575,6 +1596,8 @@ export class Revisor {
       const a = local.aclaracion;
       const u = local.urgencia;
       const revisando = !!r && !r.hecha && !!(r.enCurso || r.lanzada);
+      // Sin nada pedido, nada espera el candado de nadie
+      if (!urgenciaActiva(u) && !(a && !a.hecha && !a.error) && !(r && !r.hecha && !r.error)) this.espera = null;
       if (urgenciaActiva(u)) {
         if (u.lanzada) {
           // Lanzada por un servidor del Studio que ya no está: pasado el límite, queda para la revisión
@@ -1758,6 +1781,19 @@ export class Revisor {
     // Los minutos de la revisión: los que estimó el director al cerrar la anterior (plan.tramo), entre lo de siempre y
     // TOPE_MIN_TRAMO, para una ejecución larga (nota de voz del titular nmvqwclpitit, 27 de octubre de 2026)
     const minutos = aparte?.tipo === 'aclaracion' ? MAX_MIN_ACLARAR : aparte?.tipo === 'urgencia' ? MAX_MIN_URGENCIA : limiteDelTramo(tramoDelPlan(this.raiz, proyecto), MAX_MIN);
+    // Un director a la vez en cada proyecto, también entre copias del Studio y con la sesión del director que corre
+    // «revisa estudio» a mano (pd_un_director): si otro tiene el candado del proyecto, este no se lanza y lo pedido espera
+    // su turno. Se toma aquí, justo antes de marcar y lanzar, para no dejarlo tomado si algo de antes falla
+    const candado = archivoDelCandado(repositorio);
+    const ahoraCandado = Date.now();
+    const toma = tomarCandado(candado, { quien: 'studio', estudio: this.raiz, proyecto, tipo: aparte?.tipo ?? 'revision', desde: new Date(ahoraCandado).toISOString(), hasta: new Date(ahoraCandado + (minutos + GRACIA_CIERRE_MIN + 5) * 60_000).toISOString(), pid: process.pid, registro: archivo });
+    if (!toma.tomado) {
+      closeSync(registro);
+      try { unlinkSync(archivo); } catch { /* el registro vacío ya no estaba */ }
+      soltarTurno(turno);
+      return void (await this.esperarCandado(proyecto, toma.de));
+    }
+    this.espera = null;
     this.hijo = proyecto;
     if (aparte?.tipo === 'aclaracion') await marcarAclaracion(this.raiz, aparte.a.nota, 'lanzada');
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
@@ -1774,10 +1810,13 @@ export class Revisor {
       p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] }, archivo, modelo, entornoDelPermiso);
     } catch (e) {
       if (clavePermiso) permisosEnEspera.cerrar(clavePermiso);
+      soltarCandado(candado, { estudio: this.raiz, registro: archivo });
       throw e;
     }
-    // Quién es el director lanzado: si este servidor se reinicia, el siguiente sabe si sigue vivo (vigilarLanzada)
+    // Quién es el director lanzado: si este servidor se reinicia, el siguiente sabe si sigue vivo (vigilarLanzada), y el
+    // candado del proyecto, también para las otras copias del Studio y la sesión del director
     anotarHijo(turno, p.pid, proyecto, relative(this.raiz, archivo));
+    anotarDirector(candado, archivo, p.pid);
     // A la bitácora: qué lanzó el Studio y por pedido de quién, con su botón (así se sabe siempre qué disparó una revisión)
     const pidio = antes.revision?.proyecto === proyecto ? antes.revision : null;
     await anotar(this.raiz, {
@@ -1862,6 +1901,7 @@ export class Revisor {
         }
       this.hijo = null;
       soltarTurno(turno);
+      soltarCandado(candado, { estudio: this.raiz, registro: archivo });
       if (cortada) problema = `La revisión que lanzó el Studio se cortó al llegar a su límite de ${minutos} minutos.`;
       // La cuenta no acepta el modelo elegido: vuelve al de siempre (también en Claude Code, que con él tampoco
       // arrancaría), y el aviso lo dice

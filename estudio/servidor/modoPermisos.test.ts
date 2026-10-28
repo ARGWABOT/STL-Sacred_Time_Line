@@ -269,8 +269,8 @@ describe('el lanzador abre la pregunta antes de lanzar y la cierra al terminar, 
     expect(fin).toContain("p.on('error', (e) => void fin(");
     expect(fin).toContain("p.on('exit', (codigo) => void fin(");
     expect(fin).toContain('if (cerrado) return;');
-    // Lanzar puede fallar antes de que exista el proceso: la clave tampoco queda abierta
-    expect(lanzar).toMatch(/catch \(e\) \{\s*if \(clavePermiso\) permisosEnEspera\.cerrar\(clavePermiso\);\s*throw e;/);
+    // Lanzar puede fallar antes de que exista el proceso: la clave tampoco queda abierta, ni el candado del proyecto tomado
+    expect(lanzar).toMatch(/catch \(e\) \{\s*if \(clavePermiso\) permisosEnEspera\.cerrar\(clavePermiso\);\s*soltarCandado\(candado, \{ estudio: this\.raiz, registro: archivo \}\);\s*throw e;/);
   });
 
   it('sirve igual a la revisión, a la urgencia y a la aclaración: no distingue por aparte', () => {

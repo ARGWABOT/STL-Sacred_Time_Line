@@ -97,7 +97,8 @@ import { piezasPendientes, pistasSinAtender, puedeQueYaEsteHecho } from '../../s
 import { fechaDeCambio, igualQueEntonces, leerFresco, leerFrescosTexto } from '../../src/director/fresco.ts';
 import { lineasDelMapa, sinCommitDeGit } from '../../src/director/mapa.ts';
 import { aplicarParche } from '../../src/director/parche.ts';
-import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { archivoDelCandado, MIN_CANDADO_SESION, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado.ts';
 import { audioBorrable, borrarSiTranscrito, comandoTranscripcion, limpiarTranscrito, quitarSiVacia, txtDeAudio } from '../../src/director/transcripcion.ts';
 import { bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, idsPorFase, separadorDeBandeja, VARIABLE_REGISTRO } from '../../src/director/paquete.ts';
 import { historialDeDecisiones, lineasDelHistorial } from '../../src/director/historial.ts';
@@ -137,6 +138,34 @@ async function sinLosDevueltos(p: Sello[0], e: Sello[1], cambiado: Sello[2], ubi
 const copia = bandejaDelPaquete(process.env[VARIABLE_REGISTRO], raiz, args);
 if (copia) copiarSalida(copia, separadorDeBandeja(process.argv.slice(2)));
 
+/**
+ * Un director a la vez en cada proyecto (pedido pd_un_director; la regla inviolable del titular, 22 de octubre de 2026):
+ * la bandeja toma el candado del proyecto al empezar una revisión, una urgencia o una aclaración. El director que lanzó el
+ * Studio lo reconoce por su registro (lo tomó el lanzador, que lo suelta cuando él termina, después de su commit); la
+ * sesión del director, que corre «revisa estudio» a mano, lo toma a su nombre y lo suelta al cerrar, y así el Studio no
+ * lanza otro a su lado. Si lo tiene otro director que sigue trabajando, no empieza: dos a la vez sobre el mismo plan se pisan.
+ */
+const yo = { estudio: raiz, registro: process.env[VARIABLE_REGISTRO] || null };
+async function candadoDe(proyecto: string): Promise<string | null> {
+  const repositorio = await leerRutaRepositorio(raiz, proyecto).catch(() => null);
+  return repositorio ? archivoDelCandado(repositorio) : null;
+}
+/** Hasta cuándo vale el candado que toma o renueva esta bandeja: la sesión, lo suyo; el director lanzado, su tope. */
+const horaDelCandado = () => new Date(Date.now() + (yo.registro ? TOPE_MIN_TRAMO + 10 : MIN_CANDADO_SESION) * 60_000).toISOString();
+function noEmpiezo(de: Candado, que: string): never {
+  const hasta = new Date(de.hasta).toLocaleString('es-CO', { hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'long' });
+  console.error(`${que}: ${quienLoTiene(de, yo)}, y trabaja un director a la vez en cada proyecto (dos sobre el mismo plan se pisan). Espera a que cierre; si ya no trabaja y no cerró, el candado se suelta solo ${de.quien === 'studio' ? 'cuando su proceso ya no existe, o ' : ''}el ${hasta}.`);
+  process.exit(1);
+}
+async function tomarElCandado(proyecto: string, tipo: Candado['tipo']): Promise<void> {
+  const r = tomarCandado(await candadoDe(proyecto), { quien: yo.registro ? 'studio' : 'sesion', estudio: raiz, proyecto, tipo, desde: new Date().toISOString(), hasta: horaDelCandado(), ...(yo.registro ? { registro: yo.registro } : {}) });
+  if (!r.tomado) noEmpiezo(r.de, 'No empiezo');
+}
+/** La sesión del director lo suelta al cerrar; el del director lanzado lo suelta el lanzador cuando él termina. */
+async function soltarElCandado(proyecto: string): Promise<void> {
+  if (!yo.registro) soltarCandado(await candadoDe(proyecto), yo);
+}
+
 if (args.includes('--pedida')) {
   // Que el Studio sepa que alguien está mirando (o que nadie mira, si esto deja de correr)
   await marcarVigilia(raiz);
@@ -155,6 +184,9 @@ if (args.includes('--pedida')) {
 // solo si no le suma errores; así no hace falta leer el plan entero para cambiarlo
 if (args.includes('--aplicar')) {
   const elegido = await proyectoElegido(pedido);
+  // Si otro director trabaja en el proyecto, no se escribe a su lado; si el candado es de quien aplica, se renueva
+  const renovado = renovarCandado(await candadoDe(elegido), yo, horaDelCandado());
+  if (!renovado.tomado) noEmpiezo(renovado.de, 'No se aplicó');
   const dada = args[args.indexOf('--aplicar') + 1];
   const rutaParche = dada && !dada.startsWith('--') ? resolve(dada) : join(memoria(elegido), 'director', 'cambios.json');
   const rutaPlan = enDiscoDe(raiz, rutasDe(elegido).plan);
@@ -201,9 +233,11 @@ if (args.includes('--aclarar')) {
       process.exit(1);
     }
     await marcarAclaracion(raiz, a.nota, 'hecha');
+    await soltarElCandado(elegido);
     console.log(`Aclaración hecha: ${a.nota}`);
     process.exit(0);
   }
+  await tomarElCandado(elegido, 'aclaracion');
   const m = plan.misiones.find((x) => x.id === a.mision);
   const nota = estado.notas.find((n) => n.id === a.nota);
   if (!m || !nota) {
@@ -263,9 +297,11 @@ if (args.includes('--urgente')) {
       process.exit(1);
     }
     await marcarUrgencia(raiz, u.pedida, 'hecha');
+    await soltarElCandado(elegido);
     console.log(`Urgencia atendida: ${u.notas.join(', ')}`);
     process.exit(0);
   }
+  await tomarElCandado(elegido, 'urgencia');
   // Un audio recién grabado: el Studio lo está transcribiendo; se espera un rato y, si no llega, se transcribe aquí
   const leido = await leerTodo(pedido, false);
   const urgentes = leido.estado.notas.filter((n) => u.notas.includes(n.id));
@@ -561,6 +597,7 @@ if (args.includes('--listo')) {
   // De una vez: el Studio lo lee mientras tanto (para saber si cerró) y no debe encontrarlo a medio escribir
   await escribirDeUnaVez(rutaPlan, JSON.stringify(final, null, 2) + '\n');
   await marcarRevision(raiz, elegido, 'hecha');
+  await soltarElCandado(elegido);
   console.log(`Revisión marcada: ${plan.revisado}`);
   process.exit(0);
 }
@@ -624,8 +661,11 @@ function sinCommit(ruta: string | undefined) {
   }
 }
 
-// Si la pidieron desde el Studio, allá se ve que el director ya está revisando
-await marcarRevision(raiz, await proyectoElegido(pedido), 'en_curso');
+// Un director a la vez en cada proyecto: si otro trabaja en él, esta revisión no empieza. Y si la pidieron desde el
+// Studio, allá se ve que el director ya está revisando
+const alEmpezar = await proyectoElegido(pedido);
+await tomarElCandado(alEmpezar, 'revision');
+await marcarRevision(raiz, alEmpezar, 'en_curso');
 
 const { id, rutas, plan, proyecto, estado, personas, repo, errorRepo } = await leerTodo(pedido);
 const enDisco = (ruta: string) => enDiscoDe(raiz, ruta);

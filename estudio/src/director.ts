@@ -212,7 +212,8 @@ interface Datos {
   /** La última vuelta de la sesión del director mirando si hay revisiones pedidas. */
   vigilia?: string | null;
   /** Si el Studio lanza solo al director al pedir la revisión (estudio/servidor/revisor.ts), o por qué no puede. */
-  revisor?: { agente: string | null; problema: string | null; revisando: string | null } | null;
+  /** `espera`: otro director tiene el candado del proyecto (la sesión del director, u otra copia del Studio), en una frase. */
+  revisor?: { agente: string | null; problema: string | null; revisando: string | null; espera?: { proyecto: string; texto: string } | null } | null;
   /** El modelo de Claude Code en este computador, el de /model, con el que el Studio lanza al director (null: el de la cuenta). */
   modelo?: string | null;
   /** Cuánto piensa (el esfuerzo de Claude Code, el de /effort; null: el de la cuenta). */
@@ -685,7 +686,7 @@ function pintarSegundoPlano() {
     ...(u ? [`<span class="sp-linea alerta">${u.lanzada ? 'El director atiende lo urgente' : 'Lo urgente va al director'}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     // La revisión en marcha no va aquí: tapaba lo que se lee, también dentro de un diálogo, y la cabecera ya la dice. Va
     // en su atajo (rotularProgreso), en la columna de la derecha (nota de voz del titular nmvoottaitit, 25 de octubre)
-    ...(r.estado === 'pedida' ? [`<span class="sp-linea" title="${esc(r.texto)}">Revisión pedida · ${hora(d.revision!.pedida)}${automatica() && ocupado ? ' · espera su turno' : ''}</span>`] : []),
+    ...(r.estado === 'pedida' ? [`<span class="sp-linea" title="${esc(r.texto)}">Revisión pedida · ${hora(d.revision!.pedida)}${automatica() && (ocupado || esperaCandado()) ? ' · espera su turno' : ''}</span>`] : []),
     // Un director vivo sin revisión de este proyecto en marcha: qué corre, y por qué no se puede pedir otra
     ...(r.estado === 'ninguna' && ocupado ? [`<span class="sp-linea" title="${esc(ocupado.porque)}">${esc(ocupado.corto)}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     ...(r.estado === 'sin_vigilia' ? [`<button type="button" class="sp-linea alerta" data-revision="explicar">⚠ ${d.revision?.error ? 'La revisión no terminó · ¿Por qué?' : 'Revisión pedida, sin tomar'}</button>`] : []),
@@ -2155,6 +2156,8 @@ const vigilando = () => !!d.vigilia && Date.now() - Date.parse(d.vigilia) < (VIG
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es', { hour: 'numeric', minute: '2-digit' });
 /** El Studio lanza solo al director: no hace falta ninguna sesión abierta mirando. */
 const automatica = () => !!d.revisor?.agente && !d.revisor.problema;
+/** La revisión pedida espera porque otro director tiene el candado de su proyecto (la sesión del director, u otro Studio). */
+const esperaCandado = () => !!d.revision && !!d.revisor?.espera && d.revisor.espera.proyecto === d.activo;
 /** En qué va la revisión pedida, en una frase (para la cabecera y lo que pasa en segundo plano). */
 function estadoRevision(): { estado: 'ninguna' | 'pedida' | 'en_curso' | 'sin_vigilia'; texto: string } {
   const r = d.revision;
@@ -2165,6 +2168,10 @@ function estadoRevision(): { estado: 'ninguna' | 'pedida' | 'en_curso' | 'sin_vi
   // proyecto): esta espera su turno y empieza sola, porque trabaja un director a la vez (nota de voz del 22 de octubre)
   if (r && !r.hecha && automatica() && d.revisor?.revisando)
     return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: espera su turno. ${d.revisor.revisando === d.activo ? 'El director de la revisión anterior ya la cerró, pero sigue terminando lo último' : 'Un director está trabajando en otro proyecto'}; esta empieza sola en cuanto él termine, porque trabaja un director a la vez.` };
+  // Otro director tiene el candado del proyecto: la sesión del director, que corre «revisa estudio» a mano, o uno que
+  // lanzó otra copia del Studio (pd_un_director). Esta espera su turno y empieza sola cuando él cierre
+  if (r && !r.hecha && automatica() && esperaCandado())
+    return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: espera su turno. ${d.revisor!.espera!.texto}; esta empieza sola en cuanto él cierre, porque trabaja un director a la vez en cada proyecto.` };
   if (r && !r.hecha && automatica()) return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: el Studio está llamando al director.` };
   if (r && !r.hecha && !vigilando())
     return { estado: 'sin_vigilia', texto: `Revisión pedida a las ${hora(r.pedida)}, pero nadie la está tomando. ${d.revisor?.problema ?? 'El Studio no encontró Claude Code en este computador para llamar al director.'} Mientras tanto, en la sesión del director, escribe /loop 5m /vigila, o «revisa estudio».` };
@@ -2237,7 +2244,7 @@ function botonRevision() {
   const ocupado = directorOcupado();
   if (e.estado === 'sin_vigilia') return `<span class="estado-revision sin-vigilia" role="alert" title="${esc(e.texto)}">⚠ ${r?.error ? 'La revisión no terminó' : 'Revisión pedida, sin tomar'}<button type="button" class="enlace" data-revision="explicar">¿Por qué?</button>${r?.error && !ocupado ? '<button type="button" class="enlace" data-revision="pedir">Pedirla de nuevo</button>' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
   // Con un director vivo, solo una pedida sola (al entregar un proyecto) puede estar esperando: empieza cuando él termine
-  if (e.estado === 'pedida') return `<span class="estado-revision pedida" role="status" title="${esc(e.texto)}">Revisión pedida · ${hora(r!.pedida)}${automatica() && ocupado ? ' · espera su turno' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>${cadena}`;
+  if (e.estado === 'pedida') return `<span class="estado-revision pedida" role="status" title="${esc(e.texto)}">Revisión pedida · ${hora(r!.pedida)}${automatica() && (ocupado || esperaCandado()) ? ' · espera su turno' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>${cadena}`;
   // Un director sigue vivo: en lugar del botón, qué corre y por qué no se puede pedir, sin clic
   if (ocupado) return `<span class="estado-revision ocupado" role="status" title="${esc(ocupado.porque)}">${esc(ocupado.corto)}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
   const pendientes = cifras().buzon + cifras().preguntas;
