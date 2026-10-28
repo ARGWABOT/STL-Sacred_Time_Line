@@ -3426,6 +3426,14 @@ export function negadosEnVivo(registro: string, usos = new Map<string, string>()
  */
 export const POR_REVISION = 3;
 
+/**
+ * La cola de diagnósticos es un encargo grande: se hace en vueltas, un proyecto a la vez, cada uno con su commit en su
+ * memoria antes del siguiente, para que un corte se lleve una vuelta y no todo (propuesta aceptada pr_retoma_automatica,
+ * punto 6; docs/metodo/director/diagnosis-queue.md › «In rounds»). La bandeja lo dice cuando la cola trae más de uno.
+ */
+export const EN_VUELTAS =
+  'Es un encargo grande: hazlo en vueltas, un proyecto a la vez. Diagnostica uno entero (si necesita varios lectores a la vez, espéralos a todos antes de escribir) y, apenas su diagnóstico esté en su memoria, haz su commit ahí («Director (<id>): diagnóstico») antes de empezar el siguiente: si la revisión se corta, se pierde solo el que estaba en curso, y la siguiente sigue con los demás.';
+
 /** Lo que hace falta saber de un proyecto del Studio para decidir si está en la cola de diagnósticos. */
 export interface CandidatoDeCola {
   id: string;

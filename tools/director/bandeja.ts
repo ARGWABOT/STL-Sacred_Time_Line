@@ -25,6 +25,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { dirname, join, resolve } from 'node:path';
 import {
   aclaracionesDe,
+  EN_VUELTAS,
   archivar,
   juntarArchivos,
   partirArchivoPorMes,
@@ -1202,6 +1203,8 @@ if (cola.length) {
   linea(`
 ## Cola de diagnósticos (${cola.length}): proyectos recién entregados, sin diagnóstico`);
   linea(`Después del proyecto activo, diagnostica los primeros ${Math.min(POR_REVISION, cola.length)} (lee ${PROCEDIMIENTOS.cola.archivo} y, para cada uno, ${PROCEDIMIENTOS.diagnostico.archivo}), cada uno con --proyecto <id>. No cambian el proyecto activo del titular.`);
+  // Un encargo grande, en vueltas (pr_retoma_automatica, punto 6): un corte se lleva una vuelta, no todo
+  if (cola.length > 1) linea(EN_VUELTAS);
   linea('Si el Studio te lanzó, solo tienes permiso sobre estos proyectos si tu encargo los nombra («La cola de diagnósticos de esta revisión»): entonces puedes leer su repositorio y su historial de IA donde se sabe dónde está, y escribir su memoria .stl. Si no los nombra, o algo se te niega, dilo. Un proyecto que no puedas diagnosticar sigue en la cola: dilo en la respuesta y en el mensaje, no lo des por hecho.');
   cola.forEach((c, i) => linea(`- ${i < POR_REVISION ? 'AHORA' : 'después'}: ${c.nombre} (${c.id})${c.historial ? ` · historial de IA: ${c.historial}` : ''}`));
 }

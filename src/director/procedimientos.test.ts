@@ -80,6 +80,13 @@ describe('los procedimientos del director, aparte de CLAUDE.md', () => {
     expect(procedimientosDeLaRevision({ encargo: 'aclaracion', etapa: 'en_marcha', esElStudio: true })).toEqual(['studio', 'formatos']);
   });
 
+  it('la cola de diagnósticos se hace en vueltas, un proyecto a la vez con su commit: en el procedimiento, en sus dos versiones, y en la bandeja (pr_retoma_automatica, punto 6)', () => {
+    expect(leer(PROCEDIMIENTOS.cola.archivo)).toContain('## In rounds, one project at a time');
+    expect(leer(enEspanol(PROCEDIMIENTOS.cola.archivo))).toContain('## En vueltas, un proyecto a la vez');
+    const bandeja = leer('tools/director/bandeja.ts');
+    expect(bandeja).toContain('if (cola.length > 1) linea(EN_VUELTAS);');
+  });
+
   it('las partes de un documento: sus títulos y sus puntos de lista, de cualquier nivel', () => {
     expect(partesDe('# T\n\n## Uno\n\n- a\n- b\n   - c\n\n## Dos\n\n1. x\n2. y\n')).toEqual({ titulos: 2, puntos: 5 });
   });
