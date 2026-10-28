@@ -1028,6 +1028,11 @@ html.enfoque-mision .mision-c.sigue.mia .franja-mision { position: sticky; top: 
 /* Al corregir una nota, lo que ya tiene adjunto, cada uno con su casilla para quitarlo (pd_corregir_adjuntos) */
 .adjuntos-actuales { display: grid; gap: 4px; margin: 10px 0 0; padding: 8px 12px; border: 1px solid var(--borde); border-radius: var(--radio); }
 .adjuntos-actuales legend { padding: 0 4px; font-size: 13px; color: var(--suave); }
+/* Un campo de varias casillas en un diálogo (Campo › casillas): por ejemplo, qué casos de la medición del núcleo medir */
+.campo-casillas { margin: 0; padding: 0; border: 0; min-width: 0; }
+.campo-casillas legend { padding: 0; margin-bottom: 6px; }
+.campo-casillas .casilla-d { display: flex; gap: 8px; align-items: flex-start; line-height: 1.4; }
+.campo-casillas .casilla-d input { margin-top: 3px; flex: none; }
 /* Lo negado en la última revisión, en una línea de «¿Dónde quedamos?», con su botón al panel (director.ts › informeNegadosDq) */
 .negados-dq { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; padding: 8px 12px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); font-size: 14px; line-height: 1.5; }
 .negados-dq .icono { flex: none; width: 16px; height: 16px; margin-top: 2px; stroke: var(--suave); }

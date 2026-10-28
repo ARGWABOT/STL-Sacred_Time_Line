@@ -186,6 +186,9 @@ describe('la corrida de la medición, con el director de verdad', () => {
       { alcance: 'fallaban', casos: 1, estimado: { total: 6, porVuelta: 3, de: 'corrida' }, minutos: 20 },
       { alcance: 'todos', casos: n, estimado: { total: 6 * n, porVuelta: 3, de: 'corrida' }, minutos: 20 * n },
     ]);
+    // Los que fallan, para elegirlos uno por uno, con lo que cuesta y tarda cada uno (nota de voz del titular nmvsgcn7otit)
+    expect(estadoDeMedicion(otro, []).fallan).toEqual([{ id: b.id, titulo: b.titulo }]);
+    expect(estadoDeMedicion(otro, []).unCaso).toEqual({ estimado: { total: 6, porVuelta: 3, de: 'corrida' }, minutos: 20 });
     // Una parcial de lo que pasaba, con a roto: su resumen cuenta solo sus casos, con cómo estaba cada uno
     const pasaban = todos.filter((c) => c.id !== b.id);
     const parcial: Corrida = { cuando: '2026-10-28T10:00:00.000Z', modelo: null, esfuerzo: null, terminada: 'y', alcance: 'pasaban', casos: pasaban.map((c) => c.id), vueltas: pasaban.flatMap((c) => dos(c.id, c.id === a.id)) };
@@ -196,6 +199,22 @@ describe('la corrida de la medición, con el director de verdad', () => {
     expect(e.ultima!.porCaso.find((c) => c.id === a.id)).toMatchObject({ veredicto: 'falla', antes: 'pasa' });
     // Ahora fallan dos: el roto y el que ya fallaba, que la parcial no midió
     expect(e.alcances.find((x) => x.alcance === 'fallaban')?.casos).toBe(2);
+    expect(e.fallan.map((c) => c.id).sort()).toEqual([a.id, b.id].sort());
+  });
+
+  it('sin ninguna medición no hay qué elegir; con ella, lo que ya pasa no se vuelve a correr: se eligen uno por uno los que fallan, o todos, y lo que avanza se ve sin salir (notas de voz del titular nmvsgcn7otit y nmvs9on6ktit)', () => {
+    expect(estadoDeMedicion(join(base, 'sin-ninguna'), []).fallan).toEqual([]);
+    const vista = readFileSync(join(RAIZ, 'estudio', 'src', 'director.ts'), 'utf8');
+    // El diálogo: una casilla por cada caso que falla y una para todos, sin «Lo que el último cambio pudo romper»
+    expect(vista).toContain("campos: elegir ? [{ id: 'casos', etiqueta: 'Qué casos medir', tipo: 'casillas', opciones, requerido: true }] : []");
+    expect(vista).toContain("...(m?.fallan ?? []).map((c): [string, string] => [c.id,");
+    expect(vista).not.toContain("NOMBRE = { pasaban: 'Lo que el último cambio pudo romper'");
+    // Lo que avanza la medición entra en lo que la sincronización compara: se repinta sin salir de la página
+    expect(vista).toMatch(/const huella = \(x: Datos\) => JSON\.stringify\(\[[^\]]*x\.medicion\]\)/);
+    // El servidor mide los elegidos, solo si son casos medibles, y ninguno no vale
+    const servidor = readFileSync(join(RAIZ, 'estudio', 'servidor', 'director.ts'), 'utf8');
+    expect(servidor).toContain('const elegidos = Array.isArray(cuerpo.casos) ? casosMedibles().filter((c) => (cuerpo.casos as unknown[]).includes(c.id)) : null;');
+    expect(servidor).toContain("if (elegidos && !elegidos.length) return responder(res, 400, { error: 'Elige al menos un caso que medir.' });");
   });
 
   it('el acuerdo de la persona con quien califica se guarda en su corrida, solo en un caso calificado; en dos corridas sin acuerdo, se dice', () => {

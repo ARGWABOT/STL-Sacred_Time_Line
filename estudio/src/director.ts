@@ -292,6 +292,9 @@ interface EstadoMedicion {
   estimado: { total: number; porVuelta: number; de: 'corrida' | 'revisiones'; desde?: number } | null;
   /** Lo que mediría, costaría y tardaría cada alcance (nota de voz del titular nmvrimph5tit: no repetir lo que no cambió). */
   alcances?: { alcance: AlcanceMedicion; casos: number; estimado: EstadoMedicion['estimado']; minutos: number | null }[];
+  /** Los que fallan, para elegir uno por uno cuáles medir, y lo que cuesta y tarda cada caso (nota de voz del titular nmvsgcn7otit). */
+  fallan?: { id: string; titulo: string }[];
+  unCaso?: { estimado: EstadoMedicion['estimado']; minutos: number | null };
   /** Los casos en que no estuviste de acuerdo con quien califica en dos corridas: su pauta se revisa. */
   discrepan: { id: string; titulo: string }[];
 }
@@ -468,7 +471,9 @@ async function cargar(fresco = false) {
     $('vista').querySelector<HTMLElement>('.lista-docs')?.scrollTo(0, 0);
   }
   // Si no llegó nada nuevo, no se repinta (no se pierde la lectura ni lo que suena): solo la hora de la sincronización
-  const huella = (x: Datos) => JSON.stringify([x.activo, x.proyectos, x.plan, x.estado, x.transcripciones, x.transcribiendo, x.sinTranscribir, x.identidad, x.errores, x.proyecto, x.repositorio, x.arranque, x.revision, x.aclaracion, x.urgencia]);
+  // La medición del núcleo también: lo que avanza cada vuelta se ve sin salir de la página (nota de voz del titular
+  // nmvs9on6ktit, 28 de octubre de 2026)
+  const huella = (x: Datos) => JSON.stringify([x.activo, x.proyectos, x.plan, x.estado, x.transcripciones, x.transcribiendo, x.sinTranscribir, x.identidad, x.errores, x.proyecto, x.repositorio, x.arranque, x.revision, x.aclaracion, x.urgencia, x.medicion]);
   const cambio = !d || huella(nuevo) !== huella(d);
   const antes = d?.activo === nuevo.activo ? d.transcribiendo ?? [] : [];
   // La revisión que se pidió desde aquí acaba de terminar: se dice, y lo nuevo ya está pintado
@@ -1223,7 +1228,8 @@ function seguirResalte(v: HTMLElement) {
 // ───────────────────────────────────────────── diálogo
 
 /** `explorar`: el campo es una carpeta, con su botón para buscarla en el computador. */
-interface Campo { id: string; etiqueta: string; tipo: 'area' | 'texto' | 'select'; opciones?: [string, string][]; requerido?: boolean; valor?: string; explorar?: boolean; clase?: string; ayuda?: string; pista?: string }
+/** `casillas`: varias opciones que se marcan, cada una con su casilla; llegan juntas, separadas por comas. */
+interface Campo { id: string; etiqueta: string; tipo: 'area' | 'texto' | 'select' | 'casillas'; opciones?: [string, string][]; requerido?: boolean; valor?: string; explorar?: boolean; clase?: string; ayuda?: string; pista?: string }
 
 /**
  * «Es urgente»: una casilla, sin explicación aparte (el porqué ya está en lo que se pide). Al marcarla, el Studio se la
@@ -1305,6 +1311,9 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
       .map((c) => {
         // Con audio, lo obligatorio de escribir también se puede decir: lo comprueba el envío, no el navegador
         const req = c.requerido && !(o.audio && c.tipo === 'area') ? ' required' : '';
+        // Las casillas van en su grupo, con su leyenda: una etiqueta no puede llevar otras dentro
+        if (c.tipo === 'casillas')
+          return `<fieldset class="campo campo-casillas${c.clase ? ` ${c.clase}` : ''}"><legend class="etiqueta-campo">${esc(c.etiqueta)}</legend>${c.ayuda ? `<span class="ayuda-campo">${esc(c.ayuda)}</span>` : ''}${(c.opciones ?? []).map(([v, n]) => `<label class="casilla-d"><input type="checkbox" name="${c.id}" value="${esc(v)}"${(c.valor ?? '').split(',').includes(v) ? ' checked' : ''}> ${esc(n)}</label>`).join('')}</fieldset>`;
         const control =
           c.tipo === 'area' ? `<textarea name="${c.id}" rows="4"${req}>${esc(c.valor ?? '')}</textarea>`
           : c.tipo === 'select' ? `<select name="${c.id}">${(c.opciones ?? []).map(([v, n]) => `<option value="${esc(v)}"${v === c.valor ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`
@@ -1374,6 +1383,8 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
       try {
         error.textContent = '';
         const valores = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+        // Las casillas marcadas, todas juntas (FormData deja solo la última de cada nombre)
+        for (const c of o.campos) if (c.tipo === 'casillas') valores[c.id] = new FormData(form).getAll(c.id).map(String).join(',');
         const audio = grabadora ? await grabadora.datos() : null;
         const archivos = adjuntos && !adjuntos.vacio ? await adjuntos.datos() : null;
         // La casilla de urgencia no es contenido: una nota marcada urgente y vacía sigue vacía
@@ -5009,10 +5020,10 @@ function seccionMedicion(nombreModelo: (id: string) => string) {
     ? '<p class="como">Todavía no se ha medido en este computador.</p>'
     : `<p class="como">${m.enMarcha ? 'Esta' : u.terminada ? 'La última' : 'La última, detenida antes de terminar'}: ${fecha(u.cuando)} ${hora(u.cuando)}, con ${conQue(u)}. ${midio}<b>${u.pasan} de ${u.porCaso.length} casos pasan</b>${u.fallan ? `, ${u.fallan} ${u.fallan === 1 ? 'falla' : 'fallan'}` : ''}${rotos ? ` (${rotos === 1 ? 'uno pasaba antes y se rompió' : `${rotos} pasaban antes y se rompieron`})` : ''}${u.costo != null ? ` · ${dolares(u.costo)}` : ''}.</p>${casos}`;
   const e = m.estimado;
-  // Con una medición anterior no hace falta medirlo todo: se elige al pedirla
-  const parte = (m.alcances ?? []).filter((a) => a.alcance !== 'todos' && a.casos > 0 && a.casos < m.casos);
-  const costo = parte.length
-    ? `No hace falta medirlo todo: al pedirla eliges ${parte.map((a) => (a.alcance === 'pasaban' ? `lo que el último cambio pudo romper (los ${a.casos} casos que pasaban)` : `lo que fallaba (${a.casos} ${a.casos === 1 ? 'caso' : 'casos'})`)).join(', ')} o los ${m.casos} casos, y cada opción dice lo que cuesta y tarda.`
+  // Con una medición anterior, lo que ya pasa no se vuelve a correr: se eligen al pedirla, uno por uno, los que fallan
+  const fallan = m.fallan?.length ?? 0;
+  const costo = u
+    ? `Lo que ya pasa no se vuelve a medir: al pedirla eliges cuáles de ${fallan === 1 ? 'el que falla' : `los ${fallan} que fallan`} medir${fallan ? '' : ' (ahora ninguno)'}, o todos los casos para una base nueva, al cambiar de modelo o de esfuerzo; cada opción dice lo que cuesta y tarda.`
     : e
       ? `Una corrida mide ${m.casos} casos, dos vueltas cada uno: ${cuantoCuesta(e)}. Si un caso sale distinto en sus dos vueltas, una tercera: unos ${dolares(e.porVuelta)} más, como mucho.`
       : `Una corrida mide ${m.casos} casos, dos vueltas cada uno: lo que cuesta se sabe después de la primera revisión del director en este computador.`;
@@ -5022,7 +5033,7 @@ function seccionMedicion(nombreModelo: (id: string) => string) {
     : `<div class="abrir-claude"><button type="button" class="boton-suave" data-medir="pedir"${hayDirectorPendiente() ? ' disabled title="Hay una revisión pedida o un director trabajando: la medición se pide cuando termine."' : ''}>Medir el núcleo</button><p class="como">${costo}</p></div>`;
   return `<section class="panel-d" data-ancla="m-medicion">
       <h3>La medición del núcleo</h3>
-      <p class="como">Mide al director con los errores que no deben repetirse: cada caso es una situación de prueba, y el director de verdad (con este modelo, este esfuerzo y sus reglas de ahora) hace su revisión sobre un proyecto de prueba, sin tocar los tuyos. Lo comprueba el código y, donde no alcanza, otro modelo con una pauta. Sirve antes de cambiar sus reglas, para saber que el cambio no rompe nada.</p>
+      <p class="como">Mide al director con los errores que no deben repetirse: cada caso es una situación de prueba, y el director de verdad (con este modelo, este esfuerzo y sus reglas de ahora) hace su revisión sobre un proyecto de prueba, sin tocar los tuyos. Lo comprueba el código y, donde no alcanza, otro modelo con una pauta. Sirve para ver si un cambio de sus reglas arregló lo que fallaba, y para tener una base nueva al cambiar de modelo. Lo que avanza se ve aquí, vuelta por vuelta, sin salir de la página.</p>
       ${discrepan}
       ${ultima}
       ${accion}
@@ -5964,30 +5975,36 @@ async function clicEnVista(b: HTMLButtonElement) {
   } else if (ds.medir) {
     // La medición del núcleo: se pide con su costo a la vista, en un diálogo, y se detiene al terminar la vuelta que corre
     const pedirla = ds.medir === 'pedir';
-    let alcance: AlcanceMedicion = 'todos';
+    let cuerpo: { pedir: true; alcance: AlcanceMedicion } | { pedir: true; casos: string[] } = { pedir: true, alcance: 'todos' };
     if (pedirla) {
-      const e = d.medicion?.estimado;
-      const total = d.medicion?.casos ?? 0;
-      // Con una medición anterior, qué medir: lo que el último cambio pudo romper (lo recomendado), lo que fallaba o todo
-      const opciones = (d.medicion?.alcances ?? []).filter((a) => a.casos > 0);
-      const elegir = opciones.some((a) => a.casos < total);
-      const NOMBRE = { pasaban: 'Lo que el último cambio pudo romper', fallaban: 'Lo que fallaba', todos: 'Todo' } as const;
-      const cuanto = (a: (typeof opciones)[number]) => [a.estimado ? `unos ${dolares(a.estimado.total)}` : '', a.minutos ? duracionAprox(a.minutos) : ''].filter(Boolean).join(' y ');
-      const etiqueta = (a: (typeof opciones)[number]) => `${NOMBRE[a.alcance]}: ${a.alcance === 'todos' ? `los ${a.casos} casos` : `los ${a.casos} ${a.casos === 1 ? 'caso' : 'casos'} que ${a.alcance}`}${cuanto(a) ? ` (${cuanto(a)})` : ''}`;
+      const m = d.medicion;
+      const e = m?.estimado;
+      const total = m?.casos ?? 0;
+      // Con una medición anterior, lo que ya pasa no se vuelve a correr: se eligen uno por uno los que fallan, o todos
+      // para una base nueva (nota de voz del titular nmvsgcn7otit, 28 de octubre de 2026)
+      const elegir = !!m?.ultima;
+      const cuanto = (x: { estimado: EstadoMedicion['estimado']; minutos: number | null } | undefined) => [x?.estimado ? `unos ${dolares(x.estimado.total)}` : '', x?.minutos ? duracionAprox(x.minutos) : ''].filter(Boolean).join(' y ');
+      const unCaso = cuanto(m?.unCaso);
+      const todos = cuanto(m?.alcances?.find((a) => a.alcance === 'todos'));
+      const opciones: [string, string][] = [
+        ...(m?.fallan ?? []).map((c): [string, string] => [c.id, `«${c.titulo}», que falla${unCaso ? ` (${unCaso})` : ''}`]),
+        ['todos', `Todos los ${total} casos, una base nueva: al cambiar de modelo o de esfuerzo${todos ? ` (${todos})` : ''}`],
+      ];
       const si = await pedir({
         titulo: 'Medir el núcleo del director',
         ayuda: elegir
-          ? `El director de verdad hace dos revisiones de prueba por caso, con el modelo y el esfuerzo que elegiste. Después de un cambio de sus reglas, lo que hay que repetir es lo que pasaba: es lo único que el cambio puede romper. Lo que ya fallaba sigue fallando hasta que un cambio lo arregle: para ver si lo arregló, elige «Lo que fallaba». Lo que cuesta va a precio de API; con un plan de suscripción no se cobra aparte: es parte de tus límites. Mientras mide, no se lanza ningún director; la puedes detener cuando quieras.`
+          ? `Lo que ya pasa no se vuelve a medir: es largo, y lo que el código puede comprobar lo comprueba sin gastar nada al cerrar cada revisión. Marca cuáles de los que fallan quieres medir, para ver si un cambio los arregló; cada uno son dos revisiones de prueba del director de verdad, con el modelo y el esfuerzo que elegiste. ${m?.fallan?.length ? '' : 'Ahora no falla ninguno. '}Lo que cuesta va a precio de API; con un plan de suscripción no se cobra aparte: es parte de tus límites. Mientras mide, no se lanza ningún director; la puedes detener cuando quieras.`
           : `El director de verdad hace ${total} revisiones de prueba, dos por caso, con el modelo y el esfuerzo que elegiste. ${e ? `A precio de API cuesta ${cuantoCuesta(e)}, y como mucho unos ${dolares(e.porVuelta)} más por cada caso que salga distinto en sus dos vueltas. Con un plan de suscripción no se cobra aparte: lo que gasta es parte de tus límites.` : 'Lo que cuesta se sabe al terminar: es como una revisión por cada vuelta.'} Mientras mide, no se lanza ningún director; la puedes detener cuando quieras.`,
-        campos: elegir ? [{ id: 'alcance', etiqueta: 'Qué casos medir', tipo: 'select', opciones: opciones.map((a) => [a.alcance, etiqueta(a)]), valor: opciones.some((a) => a.alcance === 'pasaban') ? 'pasaban' : opciones[0].alcance }] : [],
+        campos: elegir ? [{ id: 'casos', etiqueta: 'Qué casos medir', tipo: 'casillas', opciones, requerido: true }] : [],
         boton: 'Medir',
         vacioVale: true,
       });
       if (!si) return;
-      if (elegir && opciones.some((a) => a.alcance === si.alcance)) alcance = si.alcance as AlcanceMedicion;
+      const marcados = (si.casos ?? '').split(',').filter(Boolean);
+      if (elegir && !marcados.includes('todos')) cuerpo = { pedir: true, casos: marcados };
     }
     b.setAttribute('disabled', '');
-    const r = await fetch('/__estudio/director/medicion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedirla ? { pedir: true, alcance } : { detener: true }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    const r = await fetch('/__estudio/director/medicion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedirla ? cuerpo : { detener: true }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
     b.removeAttribute('disabled');
     if (r instanceof Error) return avisar('No se pudo hablar con el servidor del Studio.');
     const j = await r.json().catch(() => ({}));

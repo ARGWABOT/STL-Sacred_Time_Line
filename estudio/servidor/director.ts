@@ -86,7 +86,7 @@ import { conNuevas, opcionesDeTusAjustes, recomendadas } from './ajustesPropios'
 import { POR_QUE_SIN_AUTOMATICO } from './modoPermisos';
 import { actividadDeProyecto, agruparPasos, automaticoDisponible, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
 import { corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, midiendo } from './medidor';
-import { ALCANCES, casosDelAlcance, type Alcance } from '../../src/director/corrida';
+import { ALCANCES, casosDelAlcance, casosMedibles, type Alcance } from '../../src/director/corrida';
 import { esPlanDeClaude, PLANES_DE_CLAUDE, type PlanDeClaude } from '../../src/director/costoDelPlan';
 import { revisarPedido, sinAutorizar, valePara } from './permisosNegados';
 import { queAnotarDeLaLlamada, queAnotarDeLaRespuesta, respuestaValida } from './permisoAlMomento';
@@ -1482,9 +1482,15 @@ export function servidorDirector(): Plugin {
               return responder(res, 400, { error: 'Hay una revisión pedida o un director trabajando: la medición gasta del mismo límite de tu cuenta, así que se pide cuando termine.' });
             const programa = buscarClaude();
             if (!programa) return responder(res, 400, { error: 'No encontré Claude Code en este computador: sin él no se puede medir al director.' });
-            // Qué casos: lo que el último cambio pudo romper, lo que fallaba o todos (nota de voz del titular nmvrimph5tit)
-            const alcance: Alcance = ALCANCES.includes(cuerpo.alcance as Alcance) ? (cuerpo.alcance as Alcance) : 'todos';
-            const casos = casosDelAlcance(alcance, corridasGuardadas(raiz));
+            // Qué casos: los que la persona eligió uno por uno de los que fallan (nota de voz del titular nmvsgcn7otit: lo que
+            // ya pasa no se vuelve a correr) o, por alcance, lo que el último cambio pudo romper, lo que fallaba o todos
+            // (nmvrimph5tit)
+            const guardadas = corridasGuardadas(raiz);
+            const elegidos = Array.isArray(cuerpo.casos) ? casosMedibles().filter((c) => (cuerpo.casos as unknown[]).includes(c.id)) : null;
+            if (elegidos && !elegidos.length) return responder(res, 400, { error: 'Elige al menos un caso que medir.' });
+            const queFallan = new Set(casosDelAlcance('fallaban', guardadas).map((c) => c.id));
+            const alcance: Alcance | undefined = elegidos ? (elegidos.every((c) => queFallan.has(c.id)) ? 'fallaban' : undefined) : ALCANCES.includes(cuerpo.alcance as Alcance) ? (cuerpo.alcance as Alcance) : 'todos';
+            const casos = elegidos ?? casosDelAlcance(alcance!, guardadas);
             if (!casos.length) return responder(res, 400, { error: alcance === 'fallaban' ? 'Ningún caso fallaba en la última medición: no hay nada que medir con esa opción.' : 'No hay casos que medir con esa opción.' });
             const { modelo, esfuerzo } = conMaximo(await leerAjustesClaude(), l.esfuerzoMaximo === true);
             const empezo = empezarMedicion({
@@ -1492,7 +1498,7 @@ export function servidorDirector(): Plugin {
               alTerminar: (c, problema) => void anotar(raiz, { quien: EL_STUDIO, que: c ? `termina la medición del núcleo que pidió ${quien}: ${c.vueltas.length} vueltas${c.terminada ? '' : ', detenida antes de terminar'}` : `no pudo terminar la medición del núcleo que pidió ${quien}: ${problema ?? 'se cayó'}`, desde: 'la medición del núcleo' }).catch(() => {}),
             });
             if (!empezo) return responder(res, 400, { error: 'Ya se está midiendo.' });
-            await anotar(raiz, { quien, que: `pide la medición del núcleo del director, con ${modelo ?? 'el modelo de su cuenta'}${esfuerzo ? ` y esfuerzo ${esfuerzo}` : ''}: ${alcance === 'pasaban' ? `los ${casos.length} casos que pasaban` : alcance === 'fallaban' ? `los ${casos.length} casos que fallaban` : `los ${casos.length} casos`}`, desde });
+            await anotar(raiz, { quien, que: `pide la medición del núcleo del director, con ${modelo ?? 'el modelo de su cuenta'}${esfuerzo ? ` y esfuerzo ${esfuerzo}` : ''}: ${elegidos ? `${elegidos.length === 1 ? 'el caso' : `los ${elegidos.length} casos`} que eligió (${elegidos.map((c) => `«${c.titulo}»`).join(', ')})` : alcance === 'pasaban' ? `los ${casos.length} casos que pasaban` : alcance === 'fallaban' ? `los ${casos.length} casos que fallaban` : `los ${casos.length} casos`}`, desde });
             return responder(res, 200, { medicion: estadoDeMedicion(raiz, costosDeRevisiones(), costosCortos()) });
           }
           // Los sonidos (sonidos.ts): de su carpeta, estudio/sonidos, que viaja con el Studio

@@ -852,7 +852,8 @@ if (repo && comoClave(repo.ruta) === comoClave(raiz)) {
     .flatMap((f) => { try { return [JSON.parse(readFileSync(join(carpeta, f), 'utf8')) as Corrida]; } catch { return []; } })
     .filter((c) => typeof c.cuando === 'string' && Array.isArray(c.vueltas))
     .sort((a, b) => b.cuando.localeCompare(a.cuando));
-  linea('\n## La medición del núcleo: antes de cambiar tus reglas, el encargo o la bandeja, mídelo; después, otra vez');
+  // Lo que ya pasa no se vuelve a correr, y la medición no detiene la cola (nota de voz del titular nmvsgcn7otit)
+  linea('\n## La medición del núcleo: cómo está medido; lo que ya pasa no se vuelve a correr y la medición no detiene tu cola (la pide la persona, eligiendo cuáles de los que fallan)');
   for (const l of lineasDeMedicion(corridas)) linea(l);
 }
 

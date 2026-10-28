@@ -228,7 +228,8 @@ export const midiendo = () => enMarcha !== null;
 /**
  * Lo que muestra «Modelo y consumo» › «Lo que gasta»: la corrida en marcha, la última guardada con su resumen (la de
  * ahora, si se está midiendo; solo sus casos, con cómo estaba cada uno antes) y lo que costaría y tardaría otra, por la
- * última que terminó o por lo que costaron las revisiones, con cada alcance: lo que pudo romperse, lo que fallaba o todo.
+ * última que terminó o por lo que costaron las revisiones, con cada alcance: lo que pudo romperse, lo que fallaba o todo;
+ * y los casos que fallan, para elegirlos uno por uno, con lo que cuesta y tarda cada caso.
  */
 export function estadoDeMedicion(raiz: string, revisiones: number[], cortos: number[] = []) {
   const casos = casosMedibles();
@@ -246,6 +247,10 @@ export function estadoDeMedicion(raiz: string, revisiones: number[], cortos: num
       const n = casosDelAlcance(alcance, medidas, casos).length;
       return { alcance, casos: n, estimado: n ? costoEstimado(n, terminada, revisiones, cortos) : null, minutos: n ? minutosEstimados(n, terminada) : null };
     }),
+    // Los que fallan, para elegir uno por uno cuáles medir, y lo que cuesta y tarda cada uno (nota de voz del titular
+    // nmvsgcn7otit, 28 de octubre de 2026: lo que ya pasa no se vuelve a correr)
+    fallan: medidas.length ? casosDelAlcance('fallaban', medidas, casos).map((c) => ({ id: c.id, titulo: c.titulo })) : [],
+    unCaso: { estimado: costoEstimado(1, terminada, revisiones, cortos), minutos: minutosEstimados(1, terminada) },
     // Donde la persona no estuvo de acuerdo con quien califica en dos corridas: su pauta no mide lo que ella mide
     discrepan: discrepancias(guardadas).map((id) => ({ id, titulo: CASOS_FIJOS.find((c) => c.id === id)?.titulo ?? id })),
   };
