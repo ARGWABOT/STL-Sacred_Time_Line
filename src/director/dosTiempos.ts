@@ -6,7 +6,9 @@
 // cuya ventana no lo aguanta con margen. El segundo tiempo lo ejecuta, encargo por encargo. El primero se salta cuando la
 // revisión trae un solo trabajo pequeño. Y se mide con las revisiones de verdad, antes y después (cuánto duran, cuánto
 // gastan y si cierran), con lo que el Studio ya anota de cada una (lineasDeRevision.ts), sin gastar nada aparte. Aquí, lo
-// puro: el formato, su validación, cuándo se salta y la comparación. El lanzador lo usa en su pieza siguiente.
+// puro: el formato, su validación, cuándo se salta, el encargo del primer tiempo, cómo se lee su respuesta, lo que recibe
+// el segundo y la comparación. El lanzador (estudio/servidor/revisor.ts › primerTiempo) lo usa en cada revisión.
+import { colaDelDirector, pendientesDelDirector, type EstadoDirector, type Plan } from './director.ts';
 import { PROCEDIMIENTOS } from './procedimientos.ts';
 import type { LineaDeRevision } from './lineasDeRevision.ts';
 
@@ -88,6 +90,139 @@ export interface TrabajoDeLaRevision {
  * diagnósticos), y planearla cuesta más de lo que ahorra. Sin nada, también: no hay qué planear. Pura.
  */
 export const saltaPrimerTiempo = (t: TrabajoDeLaRevision): boolean => t.cola === 0 && t.diagnosticos === 0 && t.notas + t.entregas <= 1;
+
+/**
+ * Lo que trae la revisión de un proyecto, contado como lo cuenta la bandeja: las notas sin respuesta, las entregas sin
+ * veredicto, lo de la cola del director y los diagnósticos de la cola de diagnósticos que le abrió el Studio. Pura.
+ */
+export function trabajoDe(plan: Plan, estado: EstadoDirector, diagnosticos: number): TrabajoDeLaRevision {
+  const p = pendientesDelDirector(plan, estado);
+  return { notas: p.notas.length, entregas: p.entregas.length, cola: colaDelDirector(plan, estado).length, diagnosticos };
+}
+
+/** Lo más que dura el primer tiempo: pasado esto, se detiene y la revisión sigue en un solo tiempo, como antes. */
+export const MAX_MIN_PRIMER_TIEMPO = 10;
+
+/**
+ * El encargo del primer tiempo: lee la bandeja y lo que necesite para nombrar archivos y partes, no ejecuta nada y
+ * responde solo con la lista de encargos. Nace en inglés, como lo que lee el modelo (decisión del titular del 23 de
+ * octubre de 2026). `minutos`: los de la revisión entera, para que planee lo que cabe en ella. Pura.
+ */
+export const encargoDelPrimerTiempo = (proyecto: string, minutos: number): string =>
+  `First time of the review requested from the Studio for project «${proyecto}». You are the STL Studio director, launched ` +
+  `by the Studio without a screen, and this is only the plan of the review: a second session, also you, executes it ` +
+  `right after. Do not execute anything: do not write or change any file, do not answer notes, do not commit. Run ` +
+  `node tools/director/bandeja.ts --proyecto ${proyecto} once and read what it lists. Read with Read, Grep and Glob only ` +
+  `what you need to name the files and the part each task touches (the plan and its archive by id, the project map, the ` +
+  `code). Then decide what this review does, in the order it does it, within its ${minutos} minutes: each delivery and ` +
+  `each note it must answer, and the pieces of your queue it can finish, from the top, each piece with its tests and its ` +
+  `commit, never cut in half. Two tasks that touch the same file or the same decision go together, in one task. The ` +
+  `closing (the plan's patch, the summary, --listo and the memory commit) is not a task: the second time always does it. ` +
+  `End your turn with only a JSON array, without any text before or after it, where each task is ` +
+  `{ "id": "<short and unique>", "que": "<what to do, in one or two sentences>", "origen": ["<ids of the notes, ` +
+  `deliveries, proposals, requests or missions it comes from>"], "archivos": [{ "ruta": "<path>", "parte": "<function ` +
+  `or section, if not the whole file>" }], "espera": "<what is expected at the end and how it is checked>", ` +
+  `"procedimientos": [<keys among ${Object.keys(PROCEDIMIENTOS).map((k) => `"${k}"`).join(', ')}>], "skills": [], ` +
+  `"herramientas": [], "modelo": "director" | "sonnet" | "haiku", "contexto": <tokens it reads plus writes> }. Use ` +
+  `"sonnet" or "haiku" only for routine and checkable work (a long reading, a bounded change with its test); the core of ` +
+  `the Studio, permissions and what deletes or costs go with "director". The Studio validates the list: a task that a ` +
+  `model's window cannot hold with margin is rejected.`;
+
+/**
+ * La lista de encargos de la respuesta final del primer tiempo: el arreglo JSON, solo o dentro de un bloque de código, y
+ * validado (validarEncargos). Sin arreglo, o con uno que no pasa, los errores. Pura.
+ */
+export function encargosDeLaRespuesta(texto: string | null | undefined, ventanas: Record<ModeloDelEncargo, number> = VENTANAS): { encargos: EncargoDeRevision[] } | { errores: string[] } {
+  const t = (texto ?? '').trim();
+  const bloque = /```(?:json)?\s*([\s\S]*?)```/.exec(t)?.[1] ?? t;
+  const ini = bloque.indexOf('[');
+  const fin = bloque.lastIndexOf(']');
+  if (ini < 0 || fin < ini) return { errores: ['El primer tiempo no respondió con la lista de encargos.'] };
+  let lista: unknown;
+  try {
+    lista = JSON.parse(bloque.slice(ini, fin + 1));
+  } catch {
+    return { errores: ['La lista de encargos del primer tiempo no es JSON válido.'] };
+  }
+  const errores = validarEncargos(lista, ventanas);
+  return errores.length ? { errores } : { encargos: lista as EncargoDeRevision[] };
+}
+
+/** La orden con que el segundo tiempo marca un encargo hecho (tools/director/encargos.ts). */
+export const ordenDeHecho = (proyecto: string, id: string) => `node tools/director/encargos.ts --proyecto ${proyecto} --hecho ${id}`;
+
+/**
+ * Lo que el segundo tiempo recibe de su plan, al final de su encargo, en el idioma del encargo: la lista validada, en su
+ * orden, y cómo marcar cada encargo al terminarlo. El cierre sigue exigiendo todo, lo haya previsto el plan o no. Pura.
+ */
+export const conElPlanDeLaRevision = (proyecto: string, encargos: readonly EncargoDeRevision[]): string =>
+  ` El plan de esta revisión lo escribió tu primer tiempo y el Studio lo validó: trabájalo en su orden, encargo por ` +
+  `encargo, y apenas termines uno (con sus pruebas y su commit, si toca código), márcalo con ${ordenDeHecho(proyecto, '<id>')}: ` +
+  `la persona ve la lista en «Lo que va haciendo el director». Lo que la bandeja pide y el plan no previó sigue siendo ` +
+  `tuyo: el cierre exige todo, como siempre. Los encargos: ` +
+  encargos
+    .map((e, i) => `(${i + 1}) «${e.id}»: ${e.que} De: ${e.origen.join(', ')}. Archivos: ${e.archivos.length ? e.archivos.map((a) => (a.parte ? `${a.ruta} (${a.parte})` : a.ruta)).join(', ') : 'ninguno'}. Se espera: ${e.espera}${e.procedimientos.length ? ` Procedimientos: ${e.procedimientos.map((p) => (PROCEDIMIENTOS as Record<string, { archivo: string } | undefined>)[p]?.archivo ?? p).join(', ')}.` : ''}${e.modelo === 'director' ? '' : ` Con un ayudante (${e.modelo}), si lo vale.`}`)
+    .join(' ');
+
+/** Dónde queda la lista de encargos de una revisión: junto a su registro, como su paquete (paquete.ts). */
+export const archivoDeEncargos = (registro: string) => `${registro.replace(/\.log$/, '')}.encargos.json`;
+
+/** El registro del primer tiempo, junto al de la revisión y sin «.log»: así no se cuenta como otro lanzamiento. */
+export const registroDelPrimerTiempo = (registro: string) => `${registro.replace(/\.log$/, '')}.primer.jsonl`;
+
+/** Lo que quedó del primer tiempo, en una línea del registro de la revisión: para su costo y para saber cómo salió. */
+export interface PrimerTiempoEscrito {
+  /** Si dejó una lista de encargos válida. */
+  ok: boolean;
+  encargos?: number;
+  /** Por qué no, en una frase. */
+  porque?: string;
+  minutos: number | null;
+  costo: number | null;
+}
+
+/** La línea del registro de la revisión con lo que quedó del primer tiempo. Pura. */
+export const lineaDelPrimerTiempo = (p: PrimerTiempoEscrito) => `${JSON.stringify({ type: 'studio', primerTiempo: p })}\n`;
+
+/**
+ * Lo que dice el registro del primer tiempo al terminar: su respuesta final, su costo, cuánto duró y la ventana del modelo
+ * con que trabajó (para validar los encargos contra la del director de verdad). Puro: el texto del registro.
+ */
+export function finDelPrimerTiempo(registro: string): { respuesta: string | null; costo: number | null; minutos: number | null; ventana: number | null } {
+  let r: any = null;
+  for (const linea of registro.split('\n')) {
+    if (!linea.startsWith('{')) continue;
+    try {
+      const e = JSON.parse(linea);
+      if (e?.type === 'result') r = e;
+    } catch {
+      // una línea a medio escribir no dice nada
+    }
+  }
+  if (!r) return { respuesta: null, costo: null, minutos: null, ventana: null };
+  const ventanas = Object.values((r.modelUsage ?? {}) as Record<string, { contextWindow?: number }>).map((u) => Number(u?.contextWindow)).filter((n) => n > 0);
+  return {
+    respuesta: typeof r.result === 'string' ? r.result : null,
+    costo: typeof r.total_cost_usd === 'number' ? Math.round(r.total_cost_usd * 100) / 100 : null,
+    minutos: typeof r.duration_ms === 'number' ? Math.round(r.duration_ms / 6000) / 10 : null,
+    ventana: ventanas.length ? Math.max(...ventanas) : null,
+  };
+}
+
+/**
+ * De los nombres de una carpeta de registros, el de la lista de encargos más nueva de las revisiones de un proyecto (no
+ * las de una aclaración o una urgencia, que no tienen primer tiempo); null si no hay. Pura.
+ */
+export function ultimaListaDe(nombres: readonly string[], proyecto: string): string | null {
+  const suyo = new RegExp(`^${proyecto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-\\d{4}-\\d{2}-\\d{2}T[\\d-]+Z\\.encargos\\.json$`);
+  return nombres.filter((n) => suyo.test(n)).sort().at(-1) ?? null;
+}
+
+/** La lista con el encargo `id` marcado hecho a la hora `cuando` (si ya lo estaba, igual); null si no existe. Pura. */
+export function conEncargoHecho(lista: readonly EncargoDeRevision[], id: string, cuando: string): EncargoDeRevision[] | null {
+  if (!lista.some((e) => e.id === id)) return null;
+  return lista.map((e) => (e.id === id && !e.hecho ? { ...e, hecho: cuando } : e));
+}
 
 /** Cómo van unas revisiones: cuántas, cuánto duran y gastan (la mediana) y cuántas cerraron. */
 export interface ResumenDeRevisiones {

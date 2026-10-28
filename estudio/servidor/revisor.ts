@@ -20,7 +20,8 @@ import { lineasDeNegadosSinDecidir } from './permisoAlMomento';
 import { permisosEnEspera } from './permisosEnEspera';
 import { fuentesDeEscaneo } from './escaneo';
 import { colaDeDiagnosticos, limiteDelTramo, MAX_MIN_REVISION, negacionesDe, negadosEnVivo, POR_REVISION, type CandidatoDeCola, type Tramo } from '../../src/director/director';
-import { leerJsonFresco } from '../../src/director/memoria';
+import { leerEstadoDelEquipo, leerJsonFresco, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria';
+import { archivoDeEncargos, conElPlanDeLaRevision, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, registroDelPrimerTiempo, saltaPrimerTiempo, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos';
 import { PROCEDIMIENTOS } from '../../src/director/procedimientos';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, prorrogarRevision, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora';
@@ -64,7 +65,8 @@ export const DIAS_REGISTROS = 15;
 
 /**
  * Los archivos de .revisiones que se borran al lanzar al director: cada registro de más de DIAS_REGISTROS días (por la
- * fecha de su nombre), con su paquete (su encargo y su bandeja), salvo el último de cada proyecto y de cada tipo
+ * fecha de su nombre), con su paquete (su encargo y su bandeja) y, si tuvo primer tiempo, su registro y su lista de
+ * encargos (dosTiempos.ts), salvo el último de cada proyecto y de cada tipo
  * (revisión, aclaración o urgencia), que es el que lee «¿Por qué?» si no cerró. Lo que no se llama como un registro no se
  * toca. Pura: recibe los nombres de la carpeta y devuelve los que salen.
  */
@@ -79,7 +81,7 @@ export function registrosParaPodar(nombres: readonly string[], ahora: Date, dias
   const presentes = new Set(nombres);
   return registros
     .filter((r) => r.cuando < limite && r.cuando < ultimo.get(r.grupo)!)
-    .flatMap((r) => [r.n, ...Object.values(paqueteDeRegistro(r.n)).filter((p) => presentes.has(p))]);
+    .flatMap((r) => [r.n, ...[...Object.values(paqueteDeRegistro(r.n)), archivoDeEncargos(r.n), registroDelPrimerTiempo(r.n)].filter((p) => presentes.has(p))]);
 }
 
 /**
@@ -394,6 +396,8 @@ export function permitido(repositorio: string, flujos = false, raiz = repositori
     'Agent', 'Task',
     ...(flujos ? ['Workflow'] : []),
     'Bash(node tools/director/bandeja.ts:*)', 'Bash(node tools/director/diagnosticar.ts:*)', 'Bash(node tools/director/estado.ts:*)',
+    // marcar hecho cada encargo del plan de la revisión en dos tiempos, para que la persona lo vea (pd_dos_tiempos)
+    'Bash(node tools/director/encargos.ts:*)',
     // (2) las pruebas completas o solo una parte (un archivo, un nombre)
     'Bash(npm test)', 'Bash(npm test:*)', 'Bash(npx vitest run:*)', 'Bash(npm run typecheck)', 'Bash(npm run typecheck:*)',
     // mirar en un navegador sin pantalla lo que cambió de la interfaz (propuesta aceptada el 20 de octubre de 2026):
@@ -570,6 +574,20 @@ export function historialAbrible(donde: string[], raices: string[], real: (ruta:
     if (r && bases.some((b) => norma(r).startsWith(`${b}/`))) abribles.push(r);
   }
   return [...new Set(abribles)];
+}
+
+/**
+ * Lo que trae la revisión de un proyecto (dosTiempos.ts › trabajoDe), leído de su memoria como la lee la bandeja, para
+ * saber si vale la pena su primer tiempo; null si no se pudo leer (entonces va en un solo tiempo, como antes).
+ */
+export async function trabajoDeLaRevision(raiz: string, proyecto: string, diagnosticos: number): Promise<TrabajoDeLaRevision | null> {
+  try {
+    const plan = await leerPlanUnido(raiz, proyecto);
+    const { estado } = await leerEstadoDelEquipo(raiz, proyecto, await leerProyectoDe(raiz, proyecto));
+    return trabajoDe(plan, estado, diagnosticos);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -1908,6 +1926,101 @@ export class Revisor {
     await anotar(this.raiz, { quien: EL_STUDIO, que: `no pudo llevar lo urgente al director: ${problema} Las notas esperan la revisión.`, desde: 'el lanzador del director', proyecto: u.proyecto });
   }
 
+  /**
+   * El primer tiempo de la revisión (pd_dos_tiempos; decisión del titular del 24 de octubre de 2026, «El paquete de cada
+   * revisión», parte 12): antes del director, una sesión corta con su mismo modelo y esfuerzo bajo lee la bandeja y lo
+   * que necesite, no ejecuta nada y responde con la lista de encargos, que el código valida. `args` ya trae lo que solo le
+   * deja leer. Su registro va aparte (registroDelPrimerTiempo), para que no cuente como otro lanzamiento. Resuelve con la
+   * lista, con por qué no la hay (se pasó de MAX_MIN_PRIMER_TIEMPO, no arrancó o no pasó la validación) o, si la persona
+   * oprimió «Detener ahora» mientras planeaba, con quién lo detuvo.
+   */
+  private primerTiempo(programa: string, args: string[], registro: string, proyecto: string, minutos: number, modelo: string | null, todoConElModelo: boolean): Promise<{ encargos: EncargoDeRevision[]; escrito: PrimerTiempoEscrito } | { porque: string; escrito: PrimerTiempoEscrito } | { detenida: string }> {
+    const archivo = registroDelPrimerTiempo(registro);
+    const inicio = Date.now();
+    return new Promise((listo) => {
+      const salida = openSync(archivo, 'a');
+      let detenidaPor: string | null = null;
+      let vencido = false;
+      let terminado = false;
+      let tope: ReturnType<typeof setTimeout> | null = null;
+      const termina = (problema?: string) => {
+        if (terminado) return;
+        terminado = true;
+        if (tope) clearTimeout(tope);
+        if (this.enMarcha?.proyecto === proyecto) this.enMarcha = null;
+        try {
+          closeSync(salida);
+        } catch {
+          // ya estaba cerrado
+        }
+        if (detenidaPor) return listo({ detenida: detenidaPor });
+        let texto = '';
+        try {
+          texto = readFileSync(archivo, 'utf-8');
+        } catch {
+          // sin su registro no hay lista: la revisión sigue en un solo tiempo
+        }
+        const f = finDelPrimerTiempo(texto);
+        const cuenta = { minutos: f.minutos ?? Math.round((Date.now() - inicio) / 6000) / 10, costo: f.costo };
+        const leida = encargosDeLaRespuesta(f.respuesta, f.ventana ? { ...VENTANAS, director: f.ventana } : VENTANAS);
+        // Una lista válida vale aunque Claude Code saliera con un código; pasado su tope, no
+        if (vencido || 'errores' in leida) {
+          const porque = vencido ? `se pasó de sus ${MAX_MIN_PRIMER_TIEMPO} minutos` : problema ?? (leida as { errores: string[] }).errores.slice(0, 3).join(' ');
+          return listo({ porque, escrito: { ok: false, porque, ...cuenta } });
+        }
+        listo({ encargos: leida.encargos, escrito: { ok: true, encargos: leida.encargos.length, ...cuenta } });
+      };
+      let q: ReturnType<typeof lanzarClaude>;
+      try {
+        q = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', salida, salida] }, registro, modelo, undefined, todoConElModelo);
+      } catch (e) {
+        return termina(`no arrancó (${(e as Error).message})`);
+      }
+      q.stdin?.on('error', () => undefined);
+      q.stdin?.end(encargoDelPrimerTiempo(proyecto, minutos));
+      // «Detener ahora» mientras planea: no hay nada que cerrar, así que se detiene ya y el director no se lanza
+      this.enMarcha = { proyecto, pedirCierre: (quien: string) => {
+        detenidaPor = quien;
+        detener(q);
+      } };
+      tope = setTimeout(() => {
+        vencido = true;
+        detener(q);
+      }, MAX_MIN_PRIMER_TIEMPO * 60_000);
+      q.on('error', (e) => termina(`no arrancó (${e.message})`));
+      q.on('exit', (codigo) => termina(codigo ? `terminó con el código ${codigo}` : undefined));
+    });
+  }
+
+  /**
+   * La persona oprimió «Detener ahora» mientras el primer tiempo planeaba: el director no se lanza, y la revisión termina
+   * ahí, sin nada hecho, con su final escrito, su reporte y la bitácora, como cualquiera que se detiene (nunca en silencio).
+   */
+  private async detenidaAlPlanear(proyecto: string, quien: string, l: { archivo: string; registro: number; turno: string; candado: string | null; inicio: number }): Promise<void> {
+    const problema = `${quien} oprimió «Detener ahora» mientras el director planeaba la revisión: no se lanzó, y no cambió nada.`;
+    let texto = '';
+    try {
+      texto = readFileSync(l.archivo, 'utf-8');
+      writeSync(l.registro, lineaDeFin(finEscrito(texto, { cerro: false, detenida: quien, pidioCierre: quien, codigo: null, problema, inicio: l.inicio, fin: Date.now() })));
+    } catch {
+      // sin el registro, el reporte dice lo que se sabe
+    }
+    closeSync(l.registro);
+    try {
+      guardarLineasDeRevision(this.raiz, [l.archivo]);
+    } catch {
+      // se escribe en la poda siguiente
+    }
+    this.hijo = null;
+    if (this.deteniendo?.proyecto === proyecto) this.deteniendo = null;
+    soltarTurno(l.turno);
+    soltarCandado(l.candado, { estudio: this.raiz, registro: l.archivo });
+    const falla = diagnosticarFalla(texto, { problema, codigo: null, inicio: l.inicio, fin: Date.now(), registro: relative(this.raiz, l.archivo), detenida: quien });
+    await marcarLanzada(this.raiz, proyecto, problema, falla);
+    await anotar(this.raiz, { quien: EL_STUDIO, que: `no lanza al director: ${problema}`, desde: `el lanzador del director (registro ${relative(this.raiz, l.archivo)})`, proyecto }).catch(() => undefined);
+    await this.seguirLaCadena(proyecto, l.archivo);
+  }
+
   private async lanzar(proyecto: string, programa: string, repositorio: string, aparte?: Aparte): Promise<void> {
     const carpeta = join(this.raiz, '.revisiones');
     mkdirSync(carpeta, { recursive: true });
@@ -1953,7 +2066,8 @@ export class Revisor {
     // llevan todos (todosDeTusAjustes), sin tus hooks
     const conservados = propios && modoPermisos !== 'pregunta' ? {} : await (propios ? todosDeTusAjustes(this.ajustes) : conservadosDeTusAjustes(elegido.ajustesConservados ?? [], this.ajustes, elegido.ajustesVistos)).catch(() => ({}));
     const ajustes = join(carpeta, 'ajustes-del-director.json');
-    const permisos = permisosDelModo(modoPermisos, { ultracode, permitidoUltracode: elegido.permisos?.ultracode === true, home: homedir(), propios, conservados, archivo: ajustes, gancho: rutaDelGancho(this.raiz), modoQuePregunta: modoPermisos === 'pregunta' ? await nombreDelModoDe(programa) : 'default' });
+    const entradaDePermisos = { ultracode, permitidoUltracode: elegido.permisos?.ultracode === true, home: homedir(), propios, conservados, archivo: ajustes, gancho: rutaDelGancho(this.raiz), modoQuePregunta: modoPermisos === 'pregunta' ? await nombreDelModoDe(programa) : 'default' };
+    const permisos = permisosDelModo(modoPermisos, entradaDePermisos);
     // Las reglas del Studio, explícitas: el lanzador las pasa, en vez de esperar que Claude Code las cargue solo (nucleoExplicito)
     const archivoNucleo = join(carpeta, 'nucleo-del-director.md');
     writeFileSync(archivoNucleo, textoDelNucleo(readFileSync(join(this.raiz, 'CLAUDE.md'), 'utf-8')));
@@ -2006,6 +2120,39 @@ export class Revisor {
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
     else await marcarLanzada(this.raiz, proyecto, undefined, undefined, minutos === MAX_MIN ? undefined : minutos);
     const inicio = Date.now();
+    // La revisión en dos tiempos (pd_dos_tiempos): antes del director, su primer tiempo, que solo planea, salvo que la
+    // revisión traiga un solo trabajo pequeño (saltaPrimerTiempo). Lee donde lee el director y corre la bandeja, nada más,
+    // siempre en «Solo lo autorizado» (sin el gancho que pregunta: no hay nada que preguntar). Si no deja una lista válida,
+    // el director trabaja en un solo tiempo, como antes, y la bitácora dice por qué; si la persona oprime «Detener ahora»
+    // mientras planea, el director no se lanza
+    let planDeLaRevision: EncargoDeRevision[] | null = null;
+    const trabajo = aparte ? null : await trabajoDeLaRevision(this.raiz, proyecto, cola.length);
+    if (trabajo && !saltaPrimerTiempo(trabajo)) {
+      const ajustesPrimero = join(carpeta, 'ajustes-del-primer-tiempo.json');
+      const permisosPrimero = permisosDelModo('autorizado', { ...entradaDePermisos, archivo: ajustesPrimero });
+      writeFileSync(ajustesPrimero, conNucleoExplicito(permisosPrimero.ajustes, this.raiz));
+      const soloLeer = [...permitidas.filter((r) => r.startsWith('Read(')), `Bash(node tools/director/bandeja.ts --proyecto ${proyecto})`];
+      const argsPrimero = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), '--effort', 'low', ...permisosPrimero.argumentos, ...nucleo.argumentos, '--add-dir', repositorio, '--disallowedTools', ...prohibidas, '--allowedTools', ...soloLeer];
+      const primero = await this.primerTiempo(programa, argsPrimero, archivo, proyecto, minutos, modelo, elegido.todoConElModelo === true);
+      if ('detenida' in primero) return void (await this.detenidaAlPlanear(proyecto, primero.detenida, { archivo, registro, turno, candado, inicio }));
+      writeSync(registro, lineaDelPrimerTiempo(primero.escrito));
+      if ('encargos' in primero) {
+        planDeLaRevision = primero.encargos;
+        writeFileSync(archivoDeEncargos(archivo), `${JSON.stringify(planDeLaRevision, null, 2)}\n`, 'utf8');
+      }
+      await anotar(this.raiz, {
+        quien: EL_STUDIO,
+        que: 'encargos' in primero
+          ? `planea la revisión en su primer tiempo: ${primero.encargos.length} ${primero.encargos.length === 1 ? 'encargo' : 'encargos'}, en ${primero.escrito.minutos ?? '?'} minutos`
+          : `no planea la revisión en su primer tiempo (${primero.porque}): el director trabaja en un solo tiempo, como antes`,
+        desde: `el lanzador del director (registro ${relative(this.raiz, archivo)})`,
+        proyecto,
+      }).catch(() => undefined);
+      // Lo que tomó planear no se le quita al director: su límite empieza cuando él arranca, y el candado y la revisión lo saben
+      const planeo = Math.ceil((Date.now() - inicio) / 60_000);
+      renovarCandado(candado, { estudio: this.raiz, registro: archivo }, new Date(Date.now() + (minutos + GRACIA_CIERRE_MIN + 5) * 60_000).toISOString());
+      await prorrogarRevision(this.raiz, proyecto, minutos + planeo).catch(() => undefined);
+    }
     // «Me pregunta en el Studio»: la revisión pregunta desde ahora, con una clave que solo conoce su gancho (por la variable
     // con la dirección del servidor), y deja de preguntar al terminar el director, de la forma que sea (fin)
     const clavePermiso = permisos.pregunta ? randomUUID() : null;
@@ -2037,7 +2184,9 @@ export class Revisor {
       proyecto,
     });
     const delStudio = esElStudio(repositorio, this.raiz);
-    const elEncargo = aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u, delStudio) : encargo(proyecto, reintento, cola, delStudio, historial, minutos);
+    // Con su plan, si el primer tiempo dejó uno válido (pd_dos_tiempos)
+    const elEncargo = aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u, delStudio)
+      : encargo(proyecto, reintento, cola, delStudio, historial, minutos) + (planDeLaRevision ? conElPlanDeLaRevision(proyecto, planDeLaRevision) : '');
     // El paquete de la revisión: el encargo, tal como se envía, junto a su registro (se abre en «Lo que gastó el director»)
     try {
       writeFileSync(paqueteDeRegistro(archivo).encargo, elEncargo, 'utf8');

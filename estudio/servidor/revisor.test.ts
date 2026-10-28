@@ -14,6 +14,9 @@ describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», c
       'stl-studio-2026-10-17T23-21-27-801Z.encargo.txt',
       'stl-studio-2026-10-17T23-21-27-801Z.bandeja.txt',
       'stl-studio-2026-10-20T01-00-00-000Z.log',
+      // …con su primer tiempo y su lista de encargos (pd_dos_tiempos)
+      'stl-studio-2026-10-20T01-00-00-000Z.primer.jsonl',
+      'stl-studio-2026-10-20T01-00-00-000Z.encargos.json',
       // Dentro de los quince días: se queda
       'stl-studio-2026-10-30T10-00-00-000Z.log',
       // Golf: viejo, pero es su último registro, el que lee «¿Por qué?» si no cerró
@@ -28,7 +31,9 @@ describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», c
       'stl-studio-2026-10-17T23-21-27-801Z.bandeja.txt',
       'stl-studio-2026-10-17T23-21-27-801Z.encargo.txt',
       'stl-studio-2026-10-17T23-21-27-801Z.log',
+      'stl-studio-2026-10-20T01-00-00-000Z.encargos.json',
       'stl-studio-2026-10-20T01-00-00-000Z.log',
+      'stl-studio-2026-10-20T01-00-00-000Z.primer.jsonl',
     ]);
     // Hoy, 26 de octubre, todavía no borra nada: los más viejos son del 17
     expect(registrosParaPodar(nombres, new Date('2026-10-26T12:00:00.000Z'))).toEqual([]);
@@ -719,6 +724,35 @@ describe('el director que lanza el Studio', () => {
       expect(guarda).toBeGreaterThan(0);
       // Por la entrada en stream-json, que sigue abierta para el aviso del Studio (avisoAlDirector.ts)
       expect(lanzar.indexOf('p.stdin?.write(mensajeDeEntrada(elEncargo))')).toBeGreaterThan(guarda);
+    });
+
+    it('la revisión en dos tiempos: antes del director, su primer tiempo, que solo lee y planea (pd_dos_tiempos)', () => {
+      const revisor = readFileSync(new URL('./revisor.ts', import.meta.url), 'utf8');
+      const lanzar = revisor.slice(revisor.indexOf('private async lanzar('), revisor.indexOf('function anotarHijo('));
+      // Solo en una revisión (no en una aclaración ni en lo urgente), y no si trae un solo trabajo pequeño
+      expect(lanzar).toContain('const trabajo = aparte ? null : await trabajoDeLaRevision(');
+      expect(lanzar).toContain('if (trabajo && !saltaPrimerTiempo(trabajo))');
+      // Antes de lanzar al director, y su plan validado va al final del encargo
+      const primero = lanzar.indexOf('await this.primerTiempo(');
+      expect(primero).toBeGreaterThan(0);
+      expect(primero).toBeLessThan(lanzar.indexOf('p = lanzarClaude('));
+      expect(lanzar).toContain('conElPlanDeLaRevision(proyecto, planDeLaRevision)');
+      // Con su mismo modelo y esfuerzo bajo, siempre en «Solo lo autorizado», y solo leer y correr la bandeja
+      expect(lanzar).toContain("permisosDelModo('autorizado', { ...entradaDePermisos, archivo: ajustesPrimero })");
+      expect(lanzar).toContain("...(modelo ? ['--model', modelo] : []), '--effort', 'low'");
+      expect(lanzar).toContain("const soloLeer = [...permitidas.filter((r) => r.startsWith('Read(')), `Bash(node tools/director/bandeja.ts --proyecto ${proyecto})`]");
+      expect(lanzar).toContain("'--allowedTools', ...soloLeer]");
+      // Detenida mientras planea, el director no se lanza; lo que tomó planear no se le quita al director
+      expect(lanzar).toContain("if ('detenida' in primero) return void (await this.detenidaAlPlanear(");
+      expect(lanzar).toContain('await prorrogarRevision(this.raiz, proyecto, minutos + planeo)');
+      // Y su tope, para no quedarse planeando
+      const metodo = revisor.slice(revisor.indexOf('private primerTiempo('), revisor.indexOf('private async detenidaAlPlanear('));
+      expect(metodo).toContain('MAX_MIN_PRIMER_TIEMPO * 60_000');
+      expect(metodo).toContain('q.stdin?.end(encargoDelPrimerTiempo(proyecto, minutos))');
+    });
+
+    it('el director puede marcar hecho cada encargo de su plan, y nada más con esa herramienta', () => {
+      expect(permitido('/r')).toContain('Bash(node tools/director/encargos.ts:*)');
     });
   });
 

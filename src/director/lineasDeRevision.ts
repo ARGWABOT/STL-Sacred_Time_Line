@@ -62,6 +62,7 @@ export function lineaDeRegistro(nombre: string, texto: string, ultimo?: number, 
   };
   let modelo: string | null = null;
   let resultado: { costo: number; minutos: number } | null = null;
+  let primero: { costo: number; minutos: number } | null = null;
   let termino: QuienTermino | undefined;
   let cerro = false;
   const notas = new Set<string>();
@@ -73,6 +74,8 @@ export function lineaDeRegistro(nombre: string, texto: string, ultimo?: number, 
     try { ev = JSON.parse(linea); } catch { continue; }
     if (!modelo && ev.type === 'system' && ev.subtype === 'init' && typeof ev.model === 'string') modelo = ev.model;
     if (ev.type === 'result') resultado = { costo: Number(ev.total_cost_usd) || 0, minutos: Math.round((Number(ev.duration_ms) || 0) / 6000) / 10 };
+    // El primer tiempo de la revisión en dos tiempos (pd_dos_tiempos) corre aparte, y su costo y sus minutos se suman aquí
+    if (ev.type === 'studio' && ev.primerTiempo && typeof ev.primerTiempo === 'object') primero = { costo: Number(ev.primerTiempo.costo) || 0, minutos: Number(ev.primerTiempo.minutos) || 0 };
     if (ev.type === 'studio' && esFinEscrito(ev.fin)) termino = ev.fin.quien;
     for (const c of Array.isArray(ev.message?.content) ? ev.message.content : []) {
       if (c?.type === 'tool_use' && ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'].includes(c.name) && typeof c.input?.file_path === 'string') {
@@ -91,6 +94,8 @@ export function lineaDeRegistro(nombre: string, texto: string, ultimo?: number, 
       }
     }
   }
+  // Con el primer tiempo, lo de los dos: lo que dura y gasta la revisión entera, como se compara antes y después
+  if (resultado && primero) resultado = { costo: resultado.costo + primero.costo, minutos: Math.round((resultado.minutos + primero.minutos) * 10) / 10 };
   const minutos = resultado?.minutos ?? (ultimo ? Math.max(0, Math.round((ultimo - Date.parse(cuando)) / 6000) / 10) : null);
   return {
     registro: nombre,

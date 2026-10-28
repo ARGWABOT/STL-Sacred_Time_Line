@@ -74,7 +74,9 @@ describe('sin elegir nada, el director se lanza como siempre (solo lo autorizado
     const revisor = readFileSync(new URL('./revisor.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     expect(revisor).toContain("const modoElegido = elegido.modoPermisos ?? 'autorizado';");
     expect(revisor).toContain("const modoPermisos = sinAutomatico ? 'autorizado' : modoElegido;");
-    expect(revisor).toContain('permisosDelModo(modoPermisos, {');
+    expect(revisor).toContain('const permisos = permisosDelModo(modoPermisos, entradaDePermisos);');
+    // El primer tiempo de la revisión en dos tiempos, con lo mismo, pero siempre en «Solo lo autorizado» (pd_dos_tiempos)
+    expect(revisor).toContain("permisosDelModo('autorizado', { ...entradaDePermisos, archivo: ajustesPrimero })");
   });
 });
 
