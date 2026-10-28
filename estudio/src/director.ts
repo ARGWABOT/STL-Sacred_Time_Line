@@ -2256,7 +2256,7 @@ function botonRevision() {
   if (e.estado === 'en_curso') return `<span class="estado-revision en-curso" role="status">El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
   // Lanzada y fallida no es «sin tomar»: se dice lo que pasó, y «¿Por qué?» abre su reporte
   const ocupado = directorOcupado();
-  if (e.estado === 'sin_vigilia') return `<span class="estado-revision sin-vigilia" role="alert" title="${esc(e.texto)}">⚠ ${r?.error ? 'La revisión no terminó' : 'Revisión pedida, sin tomar'}<button type="button" class="enlace" data-revision="explicar">¿Por qué?</button>${r?.error && !ocupado ? '<button type="button" class="enlace" data-revision="pedir">Pedirla de nuevo</button>' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
+  if (e.estado === 'sin_vigilia') return `<span class="estado-revision sin-vigilia" role="alert" title="${esc(e.texto)}">⚠ ${r?.error ? 'La revisión no terminó' : 'Revisión pedida, sin tomar'}<button type="button" class="enlace" data-revision="explicar">¿Por qué?</button>${r?.error && !ocupado ? '<button type="button" class="enlace" title="La pide otra vez: retoma lo que esta dejó hecho, sin rehacerlo, y termina lo que falta" data-revision="pedir">Retomarla</button>' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
   // Con un director vivo, solo una pedida sola (al entregar un proyecto) puede estar esperando: empieza cuando él termine
   if (e.estado === 'pedida') return `<span class="estado-revision pedida" role="status" title="${esc(e.texto)}">Revisión pedida · ${hora(r!.pedida)}${automatica() && (ocupado || esperaCandado()) ? ' · espera su turno' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>${cadena}`;
   // Un director sigue vivo: en lugar del botón, qué corre y por qué no se puede pedir, sin clic
@@ -2289,6 +2289,8 @@ async function mostrarFalla() {
   const ultimos = f?.ultimos ?? [];
   // Con un director vivo no se ofrece pedirla de nuevo: se dice qué corre y vuelve cuando termine
   const ocupado = directorOcupado();
+  // Con tu plan en su límite, retomarla la deja esperando a que se renueve (el lanzador no la lanza a fallar)
+  const limitada = !!f?.renueva && Date.parse(f.renueva) > Date.now();
   const dlg = document.createElement('dialog');
   dlg.className = 'dialogo-director falla-revision';
   dlg.innerHTML = `<form method="dialog">
@@ -2303,10 +2305,10 @@ async function mostrarFalla() {
     ${ocupado ? `<p class="como"><b>${esc(ocupado.corto)}.</b> ${esc(ocupado.porque)}</p>` : ''}
     <div class="botones">
       <button type="button"${ocupado ? ' class="primario"' : ''} data-cerrar>Cerrar</button>
-      <button type="button" data-cancelar title="Quita la revisión pedida: lo que dejaste en el Buzón sigue ahí para la próxima">Cancelar la revisión</button>
+      <button type="button" data-cancelar title="Quita la revisión pedida: lo que dejaste en el Buzón sigue ahí, y lo que esta dejó hecho lo retoma la próxima que pidas">Cancelar la revisión</button>
       ${ocupado ? '' : `<button type="button" data-nota title="Le dejas una nota en el Buzón (qué atender primero, qué no hacer) y la revisión se pide de nuevo: el director la lee al empezar">Decirle algo y pedirla</button>
       ${sinUltracode ? `<button type="button"${f?.accion === 'sin_ultracode' ? ' class="primario"' : ''} data-sin-ultracode title="Le quita al director el permiso de ultracode (se lo puedes volver a dar en «Modelo y consumo») y pide la revisión: trabaja sin flujos de varios agentes">Pedirla sin ultracode</button>` : ''}
-      <button type="button"${sinUltracode && f?.accion === 'sin_ultracode' ? '' : ' class="primario"'} data-pedir>Pedirla de nuevo</button>`}
+      <button type="button"${sinUltracode && f?.accion === 'sin_ultracode' ? '' : ' class="primario"'} data-pedir title="${esc(`La pide otra vez: retoma lo que esta dejó hecho, sin rehacerlo, y termina lo que falta${limitada ? '. Con tu plan en su límite, se lanza sola cuando se renueve' : ''}`)}">${limitada ? 'Retomarla cuando se renueve' : 'Retomarla'}</button>`}
     </div>
   </form>`;
   document.body.append(dlg);

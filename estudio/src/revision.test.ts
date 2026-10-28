@@ -13,8 +13,8 @@ describe('«Pedir revisión» nunca mientras un director vive (nota de voz del t
     // El estado va antes del botón, y no lleva nada que pida
     expect(ocupado).toBeLessThan(boton.indexOf('data-revision="pedir" title='));
     expect(boton.slice(ocupado, boton.indexOf('\n', ocupado))).not.toContain('data-revision');
-    // «Pedirla de nuevo» de una revisión fallida, tampoco
-    expect(boton).toContain("r?.error && !ocupado ? '<button type=\"button\" class=\"enlace\" data-revision=\"pedir\">Pedirla de nuevo");
+    // «Retomarla», de una revisión fallida, tampoco (pr_retoma_automatica, punto 2: retoma lo que esa dejó hecho)
+    expect(boton).toContain("r?.error && !ocupado ? '<button type=\"button\" class=\"enlace\" title=\"La pide otra vez: retoma lo que esta dejó hecho, sin rehacerlo, y termina lo que falta\" data-revision=\"pedir\">Retomarla");
   });
 
   it('dice si es el de este proyecto, que termina lo último, o uno de otro proyecto, con su porqué', () => {

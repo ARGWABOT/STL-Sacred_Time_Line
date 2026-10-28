@@ -313,7 +313,7 @@ export async function encadenarRevision(raiz: string, proyecto: string, limite: 
  */
 export const ORIGENES_REVISION = {
   cabecera: '«Pedir revisión», en la cabecera',
-  falla: '«Pedirla de nuevo», en «Qué pasó con la revisión»',
+  falla: '«Retomarla», en «Qué pasó con la revisión»',
   falla_nota: '«Con una nota al director», en «Qué pasó con la revisión»',
   falla_sin_ultracode: '«Sin ultracode», en «Qué pasó con la revisión»',
   meta: '«Guardar y pedir la revisión», al replantear la meta',
