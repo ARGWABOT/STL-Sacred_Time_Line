@@ -661,6 +661,28 @@ function sinCommit(ruta: string | undefined) {
   }
 }
 
+/**
+ * El plan del último commit de la memoria de un proyecto, solo su plan.json (sin lo archivado): el punto de control de la
+ * retoma (pr_retoma_automatica, punto 1). El plan lo escribe solo el director, así que es el de su último cierre. null si
+ * no se puede leer (una memoria sin commits, o sin git).
+ */
+function planDelUltimoCommit(proyecto: string): Partial<Plan> | null {
+  try {
+    return JSON.parse(execFileSync('git', ['show', 'HEAD:director/plan.json'], { cwd: memoria(proyecto), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }));
+  } catch {
+    return null;
+  }
+}
+
+/** El plan.json del disco, tal cual (sin lo archivado), para compararlo con el del último commit; null si no se lee. */
+function planEnDisco(proyecto: string): Plan | null {
+  try {
+    return JSON.parse(readFileSync(join(memoria(proyecto), 'director', 'plan.json'), 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
 // Un director a la vez en cada proyecto: si otro trabaja en él, esta revisión no empieza. Y si la pidieron desde el
 // Studio, allá se ve que el director ya está revisando
 const alEmpezar = await proyectoElegido(pedido);
@@ -746,7 +768,9 @@ linea(`Fase en curso: ${plan.fases.indexOf(fase)}. ${fase.nombre}. Última revis
 // (pr_retoma_automatica, punto 3)
 const reintento = local.revision?.proyecto === id && !local.revision.hecha ? (local.revision.reintento ?? reintentoDe(local.revision, id) ?? undefined) : undefined;
 if (reintento) {
-  const dejo = loQueDejo(plan, reintento.lanzada);
+  // El punto de control: el plan del último commit de la memoria (el del cierre anterior), contra el del disco, los dos
+  // sin lo archivado (pr_retoma_automatica, punto 1)
+  const dejo = loQueDejo(planEnDisco(id) ?? plan, reintento.lanzada, planDelUltimoCommit(id));
   const commitsDeEntonces = commitsDesde(repo?.ruta, reintento.lanzada);
   linea('\n## La revisión anterior no se cerró: retómala');
   linea(`La que lanzó el Studio el ${new Date(reintento.lanzada).toLocaleString('es-CO')} no se cerró (${reintento.que})${reintento.registro ? `; su registro: ${reintento.registro}` : ''}. Lo que esa revisión ya dejó está hecho y no se rehace: esta revisión solo termina lo que falta y cierra con --listo. Lo que está abajo como pendiente es lo que falta.`);
@@ -755,8 +779,13 @@ if (reintento) {
   };
   lista('Respuestas que ya escribió en el plan', dejo.respuestas);
   lista('Veredictos de misiones que ya dio', dejo.revisiones);
-  lista('Misiones que ya comprobó (vigente)', dejo.misiones);
+  lista('Misiones que ya escribió, cambió o comprobó', dejo.misiones);
   lista('Propuestas que ya ejecutó', dejo.ejecutadas);
+  lista('Propuestas que ya escribió o cambió', dejo.propuestas);
+  lista('Pedidos que ya escribió o cambió', dejo.pedidos);
+  lista('Documentos que ya sumó al plan', dejo.documentos);
+  lista('Criterios que ya evaluó', dejo.evaluacion);
+  lista('Otras partes del plan que ya cambió (revísalas antes de reescribirlas)', dejo.partes);
   if (commitsDeEntonces.length) {
     linea(`- Commits del repositorio desde entonces (ese trabajo ya está hecho: compruébalo, no lo repitas):`);
     for (const c of commitsDeEntonces.slice(0, 20)) linea(`  - ${c.hash} ${c.cuando.slice(0, 16)} ${c.asunto}`);
@@ -768,7 +797,8 @@ if (reintento) {
     for (const c of aMedias.slice(0, 30)) linea(`  - ${c.estado} · ${c.ruta}`);
     if (aMedias.length > 30) linea(`  - … y ${aMedias.length - 30} más (git status)`);
   }
-  if (!dejo.respuestas.length && !dejo.revisiones.length && !dejo.misiones.length && !dejo.ejecutadas.length && !commitsDeEntonces.length && !aMedias.length)
+  const enElPlan = [dejo.respuestas, dejo.revisiones, dejo.misiones, dejo.ejecutadas, dejo.propuestas, dejo.pedidos, dejo.documentos, dejo.evaluacion, dejo.partes].some((x) => x.length);
+  if (!enElPlan && !commitsDeEntonces.length && !aMedias.length)
     linea('- No alcanzó a dejar nada en el plan ni en el repositorio: haz la revisión completa.');
 }
 

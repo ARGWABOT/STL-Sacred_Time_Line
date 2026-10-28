@@ -1148,12 +1148,35 @@ describe('el plan no pesa: lo cerrado sale a su archivo', () => {
   it('lo que dejó una revisión que no se cerró: la siguiente lo retoma sin rehacerlo', () => {
     const p = planEjemplo();
     const desde = '2026-10-21T21:11:53.437Z';
-    expect(loQueDejo(p, desde)).toEqual({ respuestas: [], revisiones: [], misiones: [], ejecutadas: [] });
+    const nada = { propuestas: [], pedidos: [], documentos: [], evaluacion: [], partes: [] };
+    expect(loQueDejo(p, desde)).toEqual({ respuestas: [], revisiones: [], misiones: [], ejecutadas: [], ...nada });
     p.respuestas = { ...p.respuestas, n_antes: { cuando: '2026-10-21T20:00:00Z', texto: 'De antes.' }, n_nueva: { cuando: '2026-10-21T21:15:00Z', texto: 'Ya respondida.' } };
     p.revisiones = { ...p.revisiones, t_diag: { cuando: '2026-10-21T21:16:00Z', veredicto: 'aprobada', comentario: 'Bien.' } };
     p.misiones = p.misiones.map((m, i) => (i === 0 ? { ...m, vigente: '2026-10-21T21:17:00Z' } : m));
     p.ejecutadas = { pr_x: { cuando: '2026-10-21T21:18:00Z', nota: 'Hecha.' } };
-    expect(loQueDejo(p, desde)).toEqual({ respuestas: ['n_nueva'], revisiones: ['t_diag'], misiones: [p.misiones[0].id], ejecutadas: ['pr_x'] });
+    expect(loQueDejo(p, desde)).toEqual({ respuestas: ['n_nueva'], revisiones: ['t_diag'], misiones: [p.misiones[0].id], ejecutadas: ['pr_x'], ...nada });
+  });
+
+  it('con el punto de control (el plan del último commit de la memoria), también lo que no tiene fecha (pr_retoma_automatica, punto 1)', () => {
+    const antes = planEjemplo();
+    const desde = '2026-10-21T21:11:53.437Z';
+    const p = structuredClone(antes);
+    // Igual que el del último commit: nada
+    expect(loQueDejo(p, desde, antes)).toMatchObject({ misiones: [], propuestas: [], pedidos: [], documentos: [], evaluacion: [], partes: [] });
+    // Una misión nueva sin `vigente`, una cambiada, una propuesta y un pedido nuevos, un documento, un criterio y el resumen
+    const nueva = { ...p.misiones[0], id: 't_nueva', vigente: undefined };
+    p.misiones = [{ ...p.misiones[0], titulo: 'Otro título' }, ...p.misiones.slice(1), nueva];
+    p.propuestas = [...(p.propuestas ?? []), { id: 'pr_n', area: 'Núcleo', titulo: 'N', problema: 'p', propuesta: 'q', conecta: 'r', fase: p.fases[0].id }];
+    p.pedidos = [...(p.pedidos ?? []), { id: 'pd_n', fase: p.fases[0].id, texto: 'Lo pedido' }];
+    p.documentos = [...(p.documentos ?? []), { ruta: 'docs/director/nuevo.md', titulo: 'Nuevo', porQue: 'Porque sí' }];
+    p.evaluacion = { ...p.evaluacion, c_nuevo: { fecha: '2026-10-21', estado: 'cumplido', nota: 'Visto.' } };
+    p.resumen = { fecha: '2026-10-21T21:20:00Z', avanzamos: ['Algo'], quedamos: 'Aquí.' };
+    p.revisado = '2026-10-21T21:30:00Z';
+    const d = loQueDejo(p, desde, antes);
+    expect(d.misiones).toEqual([p.misiones[0].id, 't_nueva']);
+    expect(d).toMatchObject({ propuestas: ['pr_n'], pedidos: ['pd_n'], documentos: ['docs/director/nuevo.md'], evaluacion: ['c_nuevo'], partes: ['resumen'] });
+    // Sin punto de control (una memoria sin commits), solo lo que tiene fecha, como antes
+    expect(loQueDejo(p, desde, null)).toMatchObject({ misiones: [], propuestas: [], partes: [] });
   });
 
   it('lo aceptado y sin ejecutar se le da al director, de cualquier día', () => {

@@ -905,19 +905,54 @@ export interface LoQueDejo {
   revisiones: string[];
   misiones: string[];
   ejecutadas: string[];
+  /** Con el punto de control (el plan del último commit de la memoria), también lo que no tiene fecha: */
+  propuestas: string[];
+  pedidos: string[];
+  /** Los documentos nuevos en el plan, por su ruta. */
+  documentos: string[];
+  /** Los criterios que evaluó. */
+  evaluacion: string[];
+  /** Las demás partes del plan que cambió (el resumen, el mensaje, su cola, las fases…), por su nombre. */
+  partes: string[];
+}
+
+/** Las partes del plan que se cuentan por unidad en LoQueDejo; las demás, por su nombre (`partes`). */
+const POR_UNIDAD = new Set(['respuestas', 'revisiones', 'misiones', 'ejecutadas', 'propuestas', 'pedidos', 'documentos', 'evaluacion', 'actualizado', 'revisado']);
+
+/** Los ids de una lista u objeto del plan que son nuevos o cambiaron de `antes` a `ahora`. Pura. */
+function cambiados(antes: unknown, ahora: unknown, clave = 'id'): string[] {
+  const porId = (x: unknown): Map<string, string> =>
+    new Map(Array.isArray(x)
+      ? x.filter((e) => e && typeof e === 'object' && typeof e[clave] === 'string').map((e) => [e[clave] as string, JSON.stringify(e)])
+      : x && typeof x === 'object' ? Object.entries(x).map(([k, v]) => [k, JSON.stringify(v)]) : []);
+  const a = porId(antes);
+  return [...porId(ahora)].filter(([id, v]) => a.get(id) !== v).map(([id]) => id);
 }
 
 /**
  * Lo que dejó en el plan una revisión que no se cerró, para que la siguiente lo retome sin rehacerlo: las respuestas y
- * los veredictos escritos desde que se lanzó, las misiones que comprobó (`vigente`) y las propuestas que ejecutó.
+ * los veredictos escritos desde que se lanzó, las misiones que comprobó (`vigente`) y las propuestas que ejecutó. Con
+ * `antes`, el punto de control (propuesta aceptada pr_retoma_automatica, punto 1): el plan del último commit de la
+ * memoria, que es el del cierre anterior; entonces, unidad por unidad, todo lo que cambió desde él, también lo que no
+ * tiene fecha (las misiones nuevas, las propuestas, los pedidos, los documentos, los criterios y las demás partes), que
+ * con solo las fechas se volvía a escribir. Pura.
  */
-export function loQueDejo(plan: Plan, desde: string): LoQueDejo {
+export function loQueDejo(plan: Plan, desde: string, antes?: Partial<Plan> | null): LoQueDejo {
   const desdeAhi = (x: { cuando?: string } | undefined) => !!x?.cuando && x.cuando >= desde;
+  const juntos = (a: string[], b: string[]) => [...new Set([...a, ...b])];
+  const con = (k: keyof Plan, clave?: string) => (antes ? cambiados(antes[k], plan[k], clave) : []);
+  const a = (antes ?? {}) as Record<string, unknown>;
+  const p = plan as unknown as Record<string, unknown>;
   return {
-    respuestas: Object.entries(plan.respuestas ?? {}).filter(([, r]) => desdeAhi(r)).map(([id]) => id),
-    revisiones: Object.entries(plan.revisiones ?? {}).filter(([, r]) => desdeAhi(r)).map(([id]) => id),
-    misiones: (plan.misiones ?? []).filter((m) => !!m.vigente && m.vigente >= desde).map((m) => m.id),
-    ejecutadas: Object.entries(plan.ejecutadas ?? {}).filter(([, e]) => desdeAhi(e)).map(([id]) => id),
+    respuestas: juntos(Object.entries(plan.respuestas ?? {}).filter(([, r]) => desdeAhi(r)).map(([id]) => id), con('respuestas')),
+    revisiones: juntos(Object.entries(plan.revisiones ?? {}).filter(([, r]) => desdeAhi(r)).map(([id]) => id), con('revisiones')),
+    misiones: juntos((plan.misiones ?? []).filter((m) => !!m.vigente && m.vigente >= desde).map((m) => m.id), con('misiones')),
+    ejecutadas: juntos(Object.entries(plan.ejecutadas ?? {}).filter(([, e]) => desdeAhi(e)).map(([id]) => id), con('ejecutadas')),
+    propuestas: con('propuestas'),
+    pedidos: con('pedidos'),
+    documentos: con('documentos', 'ruta'),
+    evaluacion: con('evaluacion'),
+    partes: antes ? [...new Set([...Object.keys(p), ...Object.keys(a)])].filter((k) => !POR_UNIDAD.has(k) && JSON.stringify(p[k]) !== JSON.stringify(a[k])) : [],
   };
 }
 
