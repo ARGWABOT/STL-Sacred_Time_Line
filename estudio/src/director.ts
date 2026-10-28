@@ -230,6 +230,8 @@ interface Datos {
   ultracode?: boolean;
   /** Si el titular le dio al director que lanza el Studio el permiso de seguir a ultracode (sin él, trabaja sin ultracode). */
   ultracodeDirector?: boolean;
+  /** «Todo con el modelo que elegí»: los ayudantes del director, con su mismo modelo (pr_modelos_por_tarea, punto 4). */
+  todoConElModelo?: boolean;
   /**
    * Si el director lanzado carga tus ajustes de usuario de Claude Code, los nombres de sus claves (null: no es JSON válido)
    * y cada clave con su explicación y su consejo (estudio/servidor/ajustesPropios.ts), con las que conserva sin ellos.
@@ -5069,6 +5071,8 @@ function vistaModelo() {
         <label class="interruptor-s"><input type="checkbox" data-ultracode${d.ultracode ? ' checked' : ''} /> Ultracode</label>
         <p class="como">Con ultracode, Claude planea un flujo de varios agentes para cada tarea de peso, en vez de esperar a que se lo pidas, y gasta bastante más. Es la clave <code>ultracode</code> de la configuración de Claude Code: vale para tus sesiones nuevas de este computador (<code>/effort ultracode</code> lo enciende solo en una).</p>
         ${permisoUltracode()}
+        <label class="interruptor-s"><input type="checkbox" data-todo-modelo${d.todoConElModelo ? ' checked' : ''} /> Todo con el modelo que elegí</label>
+        <p class="como">Sin esta casilla, los ayudantes del director y los agentes de sus flujos trabajan con un modelo más barato (Sonnet, o Haiku si él trabaja con Haiku), y él decide y comprueba con el suyo: así gasta menos. Con ella, todos trabajan con el modelo de arriba, para quien prefiera no delegar aunque gaste más. Si arriba dice «el de tu cuenta», el Studio no sabe cuál es, y los ayudantes siguen con el más barato.</p>
         <div class="abrir-claude"><button type="button" class="boton-suave" data-abrir-claude>Abrir Claude Code en una terminal</button>
           <p class="como">Abre una ventana nueva con Claude Code como lo lanza el Studio: en la carpeta del Studio, con la del proyecto activo a la vista, y con este modelo y este esfuerzo. Sirve para lo que solo se hace allí, como <code>/usage</code> o iniciar sesión. Es una sesión tuya, aparte: te pide permiso para cada cosa, y lo del proyecto sigue yendo por el Buzón.</p></div>
       </section>`,
@@ -5878,6 +5882,17 @@ $('vista').addEventListener('change', async (e) => {
     pintar();
     if (d.esfuerzo === 'max') return avisar('El director y la terminal que abres aquí trabajan con esfuerzo máximo. Claude Code no lo guarda en su configuración, así que tus otras sesiones siguen con el que tenían (en ellas, /effort max). El director lo usa desde lo próximo que le pidas, sin reiniciar nada.', true);
     return avisar(`${d.esfuerzo ? `Claude Code trabaja con esfuerzo ${ESFUERZOS.find((x) => x.id === d.esfuerzo)?.nombre.toLowerCase() ?? d.esfuerzo}, como con /effort.` : 'Claude Code vuelve al esfuerzo de tu cuenta.'} ${CUANDO_RIGE}`, true);
+  }
+  // «Todo con el modelo que elegí» (pr_modelos_por_tarea, punto 4): los ayudantes del director, con su mismo modelo
+  const tm = (e.target as HTMLElement).closest<HTMLInputElement>('[data-todo-modelo]');
+  if (tm) {
+    const r = await fetch('/__estudio/director/todo-con-el-modelo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ si: tm.checked }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    if (r instanceof Error) return avisar('No se pudo guardar: el Studio no respondió.');
+    const x = await r.json().catch(() => ({}));
+    if (!r.ok) return avisar(x.error ?? 'No se pudo guardar.');
+    d.todoConElModelo = x.todoConElModelo === true;
+    pintar();
+    return avisar(d.todoConElModelo ? 'Desde su próximo lanzamiento, los ayudantes del director trabajan con el mismo modelo que él: gasta más.' : 'Desde su próximo lanzamiento, los ayudantes del director vuelven a trabajar con un modelo más barato.', true);
   }
   const su = (e.target as HTMLElement).closest<HTMLInputElement>('[data-ultracode]');
   if (su) {

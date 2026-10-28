@@ -75,7 +75,7 @@ import {
 } from '../../src/director/director';
 import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
 import { leerEstadoDelEquipo, leerPlanParaVer, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria';
-import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, seguidasActivas, retomarAparte, planCambiadoTrasCierre, type AclaracionPedida, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
+import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, seguidasActivas, retomarAparte, planCambiadoTrasCierre, guardarTodoConElModelo, type AclaracionPedida, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO, eventoDeAccion, leerBitacora } from '../../src/director/bitacora';
 import { archivoDelPaquete } from '../../src/director/paquete';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
@@ -1132,6 +1132,8 @@ export function servidorDirector(): Plugin {
               ...conMaximo(await leerAjustesClaude(), (await leerLocal(raiz)).esfuerzoMaximo === true),
               // Si el titular le dio al director el permiso de seguir a ultracode (con sus flujos de varios agentes)
               ultracodeDirector: (await leerLocal(raiz)).permisos?.ultracode === true,
+              // «Todo con el modelo que elegí»: sus ayudantes, con su mismo modelo (pr_modelos_por_tarea, punto 4)
+              todoConElModelo: (await leerLocal(raiz)).todoConElModelo === true,
               // Si el director lanzado carga tus ajustes de usuario de Claude Code, y los nombres de sus claves, sin valores
               ajustesPropios: await estadoAjustesPropios(raiz),
               // Cómo pide permisos el director: solo lo autorizado (sin la clave) o preguntándote en el Studio
@@ -1439,6 +1441,14 @@ export function servidorDirector(): Plugin {
             await guardarModoPermisos(raiz, cuerpo.modo);
             await anotar(raiz, { quien: await quienAqui(), que: cuerpo.modo === 'pregunta' ? 'elige que el director le pregunte en el Studio lo que le falte de permisos, en vez de negárselo' : cuerpo.modo === 'automatico' ? 'elige «Automático, vigilado»: lo que le falte al director lo decide solo Claude Code, y lo que apruebe queda en el panel de permisos' : 'vuelve a dejar al director solo con lo autorizado: lo que le falta se le niega y queda en el panel de permisos', desde: '«Cómo pide permisos el director», en «Modelo y consumo»' });
             return responder(res, 200, { modoPermisos: cuerpo.modo });
+          }
+          // «Todo con el modelo que elegí» (pr_modelos_por_tarea, punto 4): los ayudantes del director, con su mismo modelo
+          if (ruta === '/todo-con-el-modelo' && req.method === 'POST') {
+            const cuerpo = await leerCuerpo(req);
+            if (typeof cuerpo.si !== 'boolean') return responder(res, 400, { error: 'Falta si los ayudantes van con el modelo que elegiste (si).' });
+            await guardarTodoConElModelo(raiz, cuerpo.si);
+            await anotar(raiz, { quien: await quienAqui(), que: cuerpo.si ? 'pide que los ayudantes del director trabajen con el mismo modelo que él, aunque gaste más' : 'vuelve a dejar que los ayudantes del director trabajen con un modelo más barato', desde: '«Todo con el modelo que elegí», en «Modelo y consumo»' });
+            return responder(res, 200, { todoConElModelo: cuerpo.si });
           }
           // Tu plan de Claude, para decir lo que gasta cada revisión en lo que cuesta de tu plan y no a precio de API (pedido
           // pd_costo_plan): se elige en «Modelo y consumo» › «Lo que gasta»

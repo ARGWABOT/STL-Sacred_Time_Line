@@ -143,6 +143,8 @@ export interface Local {
    * consumo», el Studio lo recuerda aquí y lo pasa con --effort max al director y a la terminal que abre.
    */
   esfuerzoMaximo?: true;
+  /** «Todo con el modelo que elegí»: los ayudantes, con el modelo del director (guardarTodoConElModelo). */
+  todoConElModelo?: true;
   /**
    * `false`: el director que lanza el Studio arranca sin tus ajustes de usuario de Claude Code (~/.claude/settings.json) y,
    * con ellos, sin tus skills ni tus comandos; se elige en «Modelo y consumo», viendo los nombres de sus claves (nota de
@@ -458,6 +460,7 @@ const normal = (x: any): Local => ({
   ...(x?.agente === false ? { agente: false as const } : {}),
   ...((p) => (p ? { permisos: p } : {}))(permisosNormales(x?.permisos)),
   ...(x?.esfuerzoMaximo === true ? { esfuerzoMaximo: true as const } : {}),
+  ...(x?.todoConElModelo === true ? { todoConElModelo: true as const } : {}),
   ...(x?.ajustesPropios === false ? { ajustesPropios: false as const } : {}),
   ...(x?.ajustesPropios === false && Array.isArray(x?.ajustesConservados) ? { ajustesConservados: x.ajustesConservados.filter((c: unknown): c is string => typeof c === 'string') } : {}),
   ...(x?.ajustesPropios === false && Array.isArray(x?.ajustesVistos) ? { ajustesVistos: x.ajustesVistos.filter((c: unknown): c is string => typeof c === 'string') } : {}),
@@ -690,6 +693,15 @@ export async function guardarEsfuerzoMaximo(raiz: string, activo: boolean): Prom
  */
 export async function guardarModoPermisos(raiz: string, modo: ModoPermisos): Promise<void> {
   await cambiarLocal(raiz, ({ modoPermisos, ...l }) => ({ ...l, ...(modo !== 'autorizado' ? { modoPermisos: modo } : {}) }));
+}
+
+/**
+ * «Todo con el modelo que elegí» (propuesta aceptada «Cada modelo para lo suyo», pr_modelos_por_tarea, punto 4; tu
+ * elección del 26 de octubre de 2026): los ayudantes y los agentes de los flujos del director trabajan con su mismo modelo,
+ * en vez del más barato, para quien prefiera no delegar aunque gaste más. Apagada de entrada; con false, sale.
+ */
+export async function guardarTodoConElModelo(raiz: string, si: boolean): Promise<void> {
+  await cambiarLocal(raiz, ({ todoConElModelo, ...l }) => ({ ...l, ...(si ? { todoConElModelo: true as const } : {}) }));
 }
 
 /** Tu plan de Claude en este computador (Local › planDeClaude); con null, sale, y lo gastado vuelve a decirse a precio de API. */

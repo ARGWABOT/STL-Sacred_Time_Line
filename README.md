@@ -28,7 +28,7 @@ Dirigir un proyecto de semanas por chat tiene seis problemas: lo que envías se 
 - **Documentos comentables** por partes, con decisiones que se responden una a una, escritas o grabadas.
 - **Buzón y preguntas**: los comentarios y los pedidos en el Buzón; las preguntas aparte, como conversaciones que puedes seguir.
 - **Pedir revisión**: un botón, y el Studio llama al director al instante. Mientras no pidas nada, ningún modelo corre.
-- **Lo que gasta, en tu plan**: en «Modelo y consumo», cada revisión dice qué parte de tu semana de Claude gastó y su equivalente aproximado con el precio de tu plan, en vez del precio de API; si tu límite de cada cinco horas va casi lleno, te lo dice antes de pedirla.
+- **Lo que gasta, en tu plan**: en «Modelo y consumo», cada revisión dice qué parte de tu semana de Claude gastó y su equivalente aproximado con el precio de tu plan, en vez del precio de API; si tu límite de cada cinco horas va casi lleno, te lo dice antes de pedirla. Los ayudantes del director trabajan con un modelo más barato; con «Todo con el modelo que elegí», con el mismo que él.
 - **El director, medido**: en «Modelo y consumo», «Medir el núcleo» pone al director de verdad ante los errores que no deben repetirse, en proyectos de prueba. Lo que ya pasa no se vuelve a correr: eliges uno por uno cuáles de los que fallan medir, o todos para una base nueva al cambiar de modelo, y lo que avanza se ve sin salir de la página.
 - **Varios proyectos**, uno activo a la vez: al cambiar, el director te dice dónde quedaron.
 - **Voz**: graba tus notas; se transcriben en tu computador, sin servicios externos.

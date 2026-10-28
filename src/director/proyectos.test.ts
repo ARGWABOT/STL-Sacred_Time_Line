@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { proyectoVacio, validarPlan, validarProyecto, type Integrante } from './director';
-import { abrirMemoria, prorrogarRevision, retomarAparte, pedirAclaracion, marcarAclaracion, huellaDelPlan, guardarHuella, planCambiadoTrasCierre, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, guardarTodoConElModelo, prorrogarRevision, retomarAparte, pedirAclaracion, marcarAclaracion, huellaDelPlan, guardarHuella, planCambiadoTrasCierre, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -177,6 +177,14 @@ describe('la revisión pedida desde el Studio', () => {
     expect(r.lanzada ?? r.enCurso).toBeUndefined();
     await pedirRevision(raiz, 'rev', 'Laura', 'cabecera');
     expect((await leerLocal(raiz)).revision?.error).toBeUndefined();
+  });
+
+  it('«Todo con el modelo que elegí» se guarda en este computador, apagada de entrada, y sobrevive a la lectura (pr_modelos_por_tarea, punto 4)', async () => {
+    expect((await leerLocal(raiz)).todoConElModelo).toBeUndefined();
+    await guardarTodoConElModelo(raiz, true);
+    expect((await leerLocal(raiz)).todoConElModelo).toBe(true);
+    await guardarTodoConElModelo(raiz, false);
+    expect((await leerLocal(raiz))).not.toHaveProperty('todoConElModelo');
   });
 
   it('el cierre guarda la huella del plan, y lo que cambie después sin un director se avisa (pr_cierre_vigilado, punto 4)', async () => {

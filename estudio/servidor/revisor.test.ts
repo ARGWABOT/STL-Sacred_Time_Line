@@ -692,9 +692,13 @@ describe('el director que lanza el Studio', () => {
       expect(entornoDelDirector(base, undefined, 'haiku').CLAUDE_CODE_SUBAGENT_MODEL).toBe('haiku');
       expect(modeloDeLosAyudantes('claude-haiku-5-5')).toBe('haiku');
       expect(modeloDeLosAyudantes(null)).toBe('sonnet');
+      // «Todo con el modelo que elegí»: el mismo del director, si se sabe cuál es (pr_modelos_por_tarea, punto 4)
+      expect(modeloDeLosAyudantes('claude-opus-5-5[1m]', true)).toBe('claude-opus-5-5[1m]');
+      expect(modeloDeLosAyudantes(null, true)).toBe('sonnet');
+      expect(entornoDelDirector(base, undefined, 'claude-opus-5-5', true).CLAUDE_CODE_SUBAGENT_MODEL).toBe('claude-opus-5-5');
       // …y el lanzador le pasa el modelo del director
       const revisor = readFileSync(new URL('./revisor.ts', import.meta.url), 'utf8');
-      expect(revisor).toContain("lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] }, archivo, modelo, entornoDelPermiso)");
+      expect(revisor).toContain("lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] }, archivo, modelo, entornoDelPermiso, elegido.todoConElModelo === true)");
       expect(env).not.toHaveProperty('CLAUDECODE');
       expect(env).not.toHaveProperty('CLAUDE_CODE_ENTRYPOINT');
       // Sin registro (preguntar si hay sesión), sin la variable, aunque el servidor la tuviera
@@ -706,7 +710,7 @@ describe('el director que lanza el Studio', () => {
     it('el lanzador guarda el encargo junto al registro antes de enviarlo, y le pasa la ruta del registro', () => {
       const revisor = readFileSync(new URL('./revisor.ts', import.meta.url), 'utf8');
       const lanzar = revisor.slice(revisor.indexOf('private async lanzar('), revisor.indexOf('function anotarHijo('));
-      expect(lanzar).toContain("{ cwd: this.raiz, stdio: ['pipe', registro, registro] }, archivo, modelo, entornoDelPermiso)");
+      expect(lanzar).toContain("{ cwd: this.raiz, stdio: ['pipe', registro, registro] }, archivo, modelo, entornoDelPermiso, elegido.todoConElModelo === true)");
       const guarda = lanzar.indexOf('writeFileSync(paqueteDeRegistro(archivo).encargo, elEncargo');
       expect(guarda).toBeGreaterThan(0);
       // Por la entrada en stream-json, que sigue abierta para el aviso del Studio (avisoAlDirector.ts)

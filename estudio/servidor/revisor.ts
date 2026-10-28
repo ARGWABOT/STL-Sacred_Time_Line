@@ -1490,7 +1490,9 @@ export function ordenAbrirClaude(programa: string, raiz: string, repositorio: st
  * 2026, «El paquete de cada revisión», parte 12; pd_topes_ayudantes): uno más barato que el suyo, Sonnet, con la misma
  * ventana de un millón de tokens; si el director ya trabaja con Haiku, Haiku, para que nunca salga más caro. Pura.
  */
-export const modeloDeLosAyudantes = (modelo: string | null | undefined) => (/haiku/i.test(modelo ?? '') ? 'haiku' : 'sonnet');
+export const modeloDeLosAyudantes = (modelo: string | null | undefined, todoConElModelo = false) =>
+  // «Todo con el modelo que elegí» (pr_modelos_por_tarea, punto 4): el mismo del director, si se sabe cuál es
+  todoConElModelo && modelo ? modelo : /haiku/i.test(modelo ?? '') ? 'haiku' : 'sonnet';
 
 /**
  * Las variables con que corre Claude Code lanzado por el Studio, a partir de las del servidor. Con `registro` (la ruta
@@ -1498,7 +1500,7 @@ export const modeloDeLosAyudantes = (modelo: string | null | undefined) => (/hai
  * (paquete.ts › bandejaDelPaquete); sin él, nunca va una heredada. `modelo`: el del director, para el de sus ayudantes.
  * Pura.
  */
-export function entornoDelDirector(base: NodeJS.ProcessEnv, registro?: string, modelo?: string | null): NodeJS.ProcessEnv {
+export function entornoDelDirector(base: NodeJS.ProcessEnv, registro?: string, modelo?: string | null, todoConElModelo = false): NodeJS.ProcessEnv {
   // Lanzado desde otra sesión de Claude Code, heredaría sus variables y creería estar dentro de ella
   const env = { ...base };
   delete env.CLAUDECODE;
@@ -1518,7 +1520,7 @@ export function entornoDelDirector(base: NodeJS.ProcessEnv, registro?: string, m
   // los flujos, con un modelo más barato (FORCE: ni el modelo ni la definición del ayudante lo cambian), y ninguno abre
   // otros (profundidad 1). Las variables están en la referencia de Claude Code (desde la 2.1.257); el tope de gasto por
   // revisión, que se elige en «Modelo y consumo», va aparte
-  env.CLAUDE_CODE_SUBAGENT_MODEL = modeloDeLosAyudantes(modelo);
+  env.CLAUDE_CODE_SUBAGENT_MODEL = modeloDeLosAyudantes(modelo, todoConElModelo);
   env.CLAUDE_CODE_SUBAGENT_MODEL_FORCE = '1';
   env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH = '1';
   if (registro) env[VARIABLE_REGISTRO] = resolve(registro);
@@ -1529,9 +1531,9 @@ export function entornoDelDirector(base: NodeJS.ProcessEnv, registro?: string, m
  * Lanza Claude Code. El .cmd de npm, en Windows, solo corre dentro de una consola. `registro` y `modelo`:
  * entornoDelDirector. `extra`: variables que se suman a esas, encima.
  */
-export function lanzarClaude(programa: string, args: string[], opciones: Parameters<typeof spawn>[2], registro?: string, modelo?: string | null, extra?: NodeJS.ProcessEnv) {
+export function lanzarClaude(programa: string, args: string[], opciones: Parameters<typeof spawn>[2], registro?: string, modelo?: string | null, extra?: NodeJS.ProcessEnv, todoConElModelo = false) {
   // `extra`: lo que se suma a las variables del director (la dirección a que pregunta el gancho de permisos, si pregunta)
-  const env = { ...entornoDelDirector(process.env, registro, modelo), ...extra };
+  const env = { ...entornoDelDirector(process.env, registro, modelo, todoConElModelo), ...extra };
   return process.platform === 'win32' && /\.cmd$/i.test(programa)
     ? spawn(conComillas(programa), args.map(conComillas), { ...opciones, env, shell: true, windowsHide: true })
     : spawn(programa, args, { ...opciones, env, windowsHide: true });
@@ -1996,7 +1998,7 @@ export class Revisor {
     // Con la ruta de su registro: la bandeja que corra guarda junto a él lo que le imprime (el paquete de la revisión)
     let p: ReturnType<typeof lanzarClaude>;
     try {
-      p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] }, archivo, modelo, entornoDelPermiso);
+      p = lanzarClaude(programa, args, { cwd: this.raiz, stdio: ['pipe', registro, registro] }, archivo, modelo, entornoDelPermiso, elegido.todoConElModelo === true);
     } catch (e) {
       if (clavePermiso) permisosEnEspera.cerrar(clavePermiso);
       soltarCandado(candado, { estudio: this.raiz, registro: archivo });
