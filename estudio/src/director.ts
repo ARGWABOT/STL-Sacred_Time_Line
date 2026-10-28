@@ -2554,7 +2554,7 @@ function audioYTexto(audio: string | undefined) {
   const texto = t === '' ? '<p class="transcripcion pendiente">El audio no tiene voz que se pueda transcribir.</p>'
     : t
     ? `<p class="transcripcion">${icono('microfono', 'icono icono-t')}<span>«${esc(t)}»</span></p>`
-    : d.sinTranscribir?.includes(audio) ? '<p class="transcripcion pendiente">No se pudo transcribir en este computador: el director la transcribe al revisar.</p>'
+    : d.sinTranscribir?.includes(audio) ? '<p class="transcripcion pendiente">No se pudo transcribir en este computador: el director lo intenta otra vez al revisar, y quien la grabó la puede escribir con «Escribir lo que dijiste».</p>'
     : '<p class="transcripcion procesando" role="status">Transcribiendo<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></p>';
   return `<div class="nota-voz">${texto}${reproductor}</div>`;
 }
@@ -3017,6 +3017,16 @@ function sobreDe(n: Nota) {
 /** Si una nota tiene algo que corregir: su texto o lo que se entendió de su audio (ya transcrito). */
 const corregible = (n: Nota) => !!n.texto || (!!n.audio && !!d.transcripciones[n.audio]);
 
+/**
+ * Si su audio no se pudo transcribir en este computador, quien lo grabó lo escribe (propuesta aceptada «La voz sin WSL»,
+ * pr_voz_sin_wsl: el audio se queda hasta que salga bien, con un botón para escribir lo que se dijo). Al guardarlo, su
+ * texto es la transcripción y el audio se borra, como si se hubiera transcrito.
+ */
+const botonEscribirLoDicho = (n: Nota) =>
+  n.audio && !n.texto && d.transcripciones[n.audio] === undefined && d.sinTranscribir?.includes(n.audio)
+    ? `<button type="button" data-corregir-transcripcion="${esc(n.audio)}" title="No se pudo transcribir tu audio en este computador: escribe lo que dijiste, que es lo que leerá el director">Escribir lo que dijiste</button>`
+    : '';
+
 /** Lo que dice una nota en una línea, para verla plegada: su texto, o lo que se entendió de su audio, o sus adjuntos. */
 function asuntoDe(n: Nota) {
   const t = n.texto?.trim() || (n.audio && d.transcripciones[n.audio]?.trim()) || (n.audio ? 'Audio' : n.adjuntos?.length ? 'Adjuntos' : '');
@@ -3091,7 +3101,7 @@ function tarjetaNota(n: Nota, conSobre = true, plegada = false, enRespuesta = fa
   const mia = n.de === d.identidad.rol;
   const puedeBorrar = !r && (titular() || mia);
   const urgente = n.urgente ? `<p class="urgente-n">${icono('urgente')}<span><b>Urgente</b>${typeof n.urgente === 'string' ? `: ${esc(n.urgente)}` : ''}</span></p>` : '';
-  const botones = `${!r && mia && corregible(n) ? `<button type="button" data-editar-nota="${esc(n.id)}">Corregir</button>` : ''}${puedeBorrar ? `<button type="button" data-borrar-nota="${esc(n.id)}">Borrar</button>` : ''}`;
+  const botones = `${!r && mia && corregible(n) ? `<button type="button" data-editar-nota="${esc(n.id)}">Corregir</button>` : ''}${!r && mia ? botonEscribirLoDicho(n) : ''}${puedeBorrar ? `<button type="button" data-borrar-nota="${esc(n.id)}">Borrar</button>` : ''}`;
   // Lo que dijo la persona no lleva la niebla de lectura (`gl-sin`: es suyo, no hay nada que desvelarle) y lo que respondió
   // el director sí (`texto-resp`). En un documento, lo dicho se pliega a su primer renglón y se abre con un clic, para que
   // la lectura siga en lo del director (nota de voz del titular nmvmytjd0tit, 24 de octubre de 2026). Lo que respondió se
@@ -3206,7 +3216,7 @@ function vistaPreguntas() {
   const quien = (n: Nota) => (n.de && n.de !== yo ? `${esc(n.quien)} · ` : '');
   const acciones = (n: Nota) => {
     const mia = n.de === yo;
-    return `${mia && corregible(n) ? `<button type="button" data-editar-nota="${esc(n.id)}">Corregir</button>` : ''}${mia || titular() ? `<button type="button" data-borrar-nota="${esc(n.id)}">Quitar</button>` : ''}`;
+    return `${mia && corregible(n) ? `<button type="button" data-editar-nota="${esc(n.id)}">Corregir</button>` : ''}${mia ? botonEscribirLoDicho(n) : ''}${mia || titular() ? `<button type="button" data-borrar-nota="${esc(n.id)}">Quitar</button>` : ''}`;
   };
   const resumir = (n: Nota) => {
     const t = n.texto?.trim() || (n.audio && d.transcripciones[n.audio]) || 'Pregunta grabada';
@@ -5808,7 +5818,16 @@ async function clicEnVista(b: HTMLButtonElement) {
     if (await confirmar({ titulo: '¿Le quitas este permiso al director?', texto: `Desde su próximo lanzamiento, el director ya no podrá: ${q.regla}. Si lo vuelve a necesitar, se le negará y aparecerá otra vez aquí, para que decidas.`, boton: 'Quitárselo', cancelar: 'Dejárselo' })) await cambiarPermisos({ quitar: [q] });
   } else if (ds.corregirTranscripcion) {
     const audio = ds.corregirTranscripcion;
-    const r = await pedir({ titulo: 'Corregir lo que se entendió', ayuda: 'Es lo que leerá el director de tu nota de voz. Corrígelo solo si la transcripción entendió mal: el audio queda igual.', campos: [{ id: 'texto', etiqueta: 'Lo que dijiste', tipo: 'area', valor: d.transcripciones[audio] ?? '', requerido: true }], boton: 'Guardar' });
+    // Sin transcripción (no se pudo en este computador), se escribe lo que se dijo, y el audio se borra al guardarlo
+    const sinTexto = d.transcripciones[audio] === undefined;
+    const r = await pedir({
+      titulo: sinTexto ? 'Escribir lo que dijiste' : 'Corregir lo que se entendió',
+      ayuda: sinTexto
+        ? 'Tu audio no se pudo transcribir en este computador. Escribe lo que dijiste: es lo que leerá el director, y al guardarlo el audio se borra, como cuando se transcribe.'
+        : 'Es lo que leerá el director de tu nota de voz. Corrígelo solo si la transcripción entendió mal: el audio queda igual.',
+      campos: [{ id: 'texto', etiqueta: 'Lo que dijiste', tipo: 'area', valor: d.transcripciones[audio] ?? '', requerido: true }],
+      boton: 'Guardar',
+    });
     if (r && (await accion({ tipo: 'corregir_transcripcion', audio, texto: r.texto }, 'Transcripción corregida.'))) {
       d.transcripciones[audio] = r.texto.trim(); // el .txt ya cambió: se muestra sin esperar a la próxima lectura
       pintar();

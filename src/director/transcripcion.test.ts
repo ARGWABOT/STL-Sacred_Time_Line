@@ -70,6 +70,21 @@ describe('la voz sin WSL (pr_voz_sin_wsl): en Windows, la forma nueva apenas est
     expect(py).toContain('os.add_dll_directory(c)');
     expect(py).toContain("_flujo.reconfigure(encoding='utf-8')");
   });
+
+  it('si un audio no se pudo transcribir, quien lo grabó lo escribe, y al guardarlo el audio se borra como si se hubiera transcrito', () => {
+    const vista = readFileSync(join(import.meta.dirname, '..', '..', 'estudio', 'src', 'director.ts'), 'utf8').replace(/\r\n/g, '\n');
+    expect(vista).toContain("n.audio && !n.texto && d.transcripciones[n.audio] === undefined && d.sinTranscribir?.includes(n.audio)");
+    expect(vista).toContain('>Escribir lo que dijiste</button>');
+    // En el Buzón y en Preguntas, solo en las notas propias que el director aún no respondió
+    expect(vista).toContain("${!r && mia ? botonEscribirLoDicho(n) : ''}");
+    expect(vista).toContain("${mia ? botonEscribirLoDicho(n) : ''}");
+    expect(vista).toContain("titulo: sinTexto ? 'Escribir lo que dijiste' : 'Corregir lo que se entendió',");
+    // El servidor escribe su .txt y borra el audio que seguía aquí
+    const servidor = readFileSync(join(import.meta.dirname, '..', '..', 'estudio', 'servidor', 'director.ts'), 'utf8').replace(/\r\n/g, '\n');
+    const corregir = servidor.slice(servidor.indexOf("case 'corregir_transcripcion': {"), servidor.indexOf("case 'marcar': {"));
+    expect(corregir).toContain("await writeFile(enDisco(raiz, txt), texto + '\\n', 'utf-8');");
+    expect(corregir).toContain('borrarSiTranscrito(enDisco(raiz, audio));');
+  });
 });
 /** Un audio de mentira y, si se da, su .txt. */
 const nota = (nombre: string, texto?: string) => {
