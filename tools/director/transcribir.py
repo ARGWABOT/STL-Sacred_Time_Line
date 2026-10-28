@@ -1,16 +1,36 @@
 # Transcribe en local las notas de voz del Director asistente (faster-whisper, modelo large-v3-turbo, en español) y
-# deja cada texto junto a su audio, con el mismo nombre y extensión .txt. Lo llama tools/director/bandeja.ts (en
-# Windows, dentro de WSL; ver tools/entorno/instalar_transcripcion.sh). Nada sale del equipo.
+# deja cada texto junto a su audio, con el mismo nombre y extensión .txt. Lo llaman el Studio y tools/director/bandeja.ts
+# (src/director/transcripcion.ts: sin WSL, o dentro de WSL de respaldo; ver tools/entorno/instalar_transcripcion.sh).
+# Nada sale del equipo.
 # Uso: python transcribir.py [--pista "Notas para el director del proyecto X."] audio1.webm audio2.webm …
 #      python transcribir.py --probar
 import os
 import sys
 import glob
 
+# En Windows, sin WSL, lo que se imprime a una tubería sale en la página de códigos del sistema, y el Studio lo lee en UTF-8
+for _flujo in (sys.stdout, sys.stderr):
+    if hasattr(_flujo, 'reconfigure'):
+        _flujo.reconfigure(encoding='utf-8')
+
 
 def preparar_cuda():
-    """Las librerías de CUDA que instala pip (nvidia-cublas, nvidia-cudnn) no están en la ruta de búsqueda: se suman."""
+    """Las librerías de CUDA que instala pip (nvidia-cublas, nvidia-cudnn) no están en la ruta de búsqueda: se suman.
+    En Windows sus DLL están en nvidia/*/bin y se buscan en el PATH; en Linux, en nvidia/*/lib, y se precargan."""
     import site
+    if os.name == 'nt':
+        carpetas = []
+        for base in site.getsitepackages():
+            carpetas += glob.glob(os.path.join(base, 'nvidia', '*', 'bin'))
+            carpetas += glob.glob(os.path.join(base, 'Lib', 'site-packages', 'nvidia', '*', 'bin'))
+        for c in carpetas:
+            try:
+                os.add_dll_directory(c)
+            except OSError:
+                pass
+        if carpetas:
+            os.environ['PATH'] = os.pathsep.join(carpetas + [os.environ.get('PATH', '')])
+        return
     rutas = []
     for base in site.getsitepackages():
         rutas += glob.glob(os.path.join(base, 'nvidia', '*', 'lib'))

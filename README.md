@@ -47,7 +47,7 @@ El Studio no guarda datos de tus proyectos: la memoria de cada uno (su plan, su 
 - **Node.js 24** o más nuevo y **git**, con tu identidad configurada (`git config user.name` y `git config user.email`).
 - Tu correo de git es tu lugar en el equipo de cada proyecto: para cambiarlo después no basta `git config`, corre `node tools/cambiar-correo.ts <correo nuevo>` en la carpeta del Studio, que lo cambia en git y en el equipo de cada proyecto a la vez.
 - **Claude Code**, para la sesión del director.
-- Opcional, para las notas de voz: Python con faster-whisper (hoy, en Windows, dentro de WSL2). Ver «Notas de voz».
+- Opcional, para las notas de voz: faster-whisper, que instala su script con uv, sin WSL. Ver «Notas de voz».
 
 ## Empezar
 
@@ -82,11 +82,13 @@ Mientras grabas, el diálogo se hace a un lado: puedes leer y moverte por el Stu
 
 ## Notas de voz
 
-Se graban en el Studio y se transcriben **en cuanto terminas de grabar**, en tu computador, con faster-whisper: nada sale de tu equipo. Mientras tanto ves «Transcribiendo…»; cuando está lista, lo que se entendió aparece donde grabaste y en el Buzón, para leerlo sin escuchar el audio, y lo puedes corregir si entendió mal. Con el texto escrito, el audio se borra: nunca entra a git ni sale de tu computador (si la transcripción falla, se queda hasta que salga bien). En Windows, dentro de WSL2 con Ubuntu:
+Se graban en el Studio y se transcriben **en cuanto terminas de grabar**, en tu computador, con faster-whisper: nada sale de tu equipo. Mientras tanto ves «Transcribiendo…»; cuando está lista, lo que se entendió aparece donde grabaste y en el Buzón, para leerlo sin escuchar el audio, y lo puedes corregir si entendió mal. Con el texto escrito, el audio se borra: nunca entra a git ni sale de tu computador (si la transcripción falla, se queda hasta que salga bien). Se instala una vez, desde la carpeta del Studio, en cualquier sistema y sin WSL (en Windows, en Git Bash):
 
 ```bash
-wsl -d Ubuntu -- bash tools/entorno/instalar_transcripcion.sh
+bash tools/entorno/instalar_transcripcion.sh
 ```
+
+Si falta uv (el gestor de Python de Astral, gratuito), lo instala. Con una tarjeta gráfica NVIDIA transcribe en ella; si no, en el procesador, con el mismo modelo, y una nota tarda más o menos lo que dura. Las voces que leen en voz alta se instalan igual, con `bash tools/entorno/instalar_voces.sh`. Si ya transcribías dentro de WSL, sigue de respaldo: el Studio pasa a la forma nueva apenas termina de instalarse.
 
 ## Equipos en varios computadores
 

@@ -63,9 +63,9 @@ export function leerAvisosVoces(salida: string): string[] {
   return Array.isArray(avisos) ? avisos.filter((a): a is string => typeof a === 'string' && !!a.trim()).map((a) => a.trim()) : [];
 }
 
-/** La orden que instala Kokoro, desde la carpeta del Studio: la misma para cualquiera que lo instale (en Windows, dentro de WSL). Pura. */
+/** La orden que instala Kokoro, desde la carpeta del Studio: la misma para cualquiera que lo instale, sin WSL (en Windows, en Git Bash). Pura. */
 export const comoInstalarKokoro = (windows: boolean) =>
-  `Se instalan, desde la carpeta del Studio, con: ${windows ? 'wsl -d Ubuntu -- ' : ''}bash tools/entorno/instalar_voces.sh`;
+  `Se instalan, desde la carpeta del Studio${windows ? ', en Git Bash' : ''}, con: bash tools/entorno/instalar_voces.sh`;
 
 /** Lo que se le dice a la persona cuando la lista de voces sale vacía: que Kokoro no está instalado, el detalle que dio Python y cómo instalarlo. Pura. */
 export function motivoSinVoces(avisos: readonly string[], comoInstalar: string): string {

@@ -793,7 +793,7 @@ describe('leer en voz alta, como opción de la niebla (notas de voz del titular 
     const servidor = (cuerpo: unknown) => vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => cuerpo }));
     try {
       // El servidor dice que Kokoro no está instalado: ese es el aviso, con su orden y con que el director sigue a su ritmo
-      const motivo = 'Las voces de Kokoro no están instaladas en este computador (faltan los archivos del modelo en la carpeta de voces). Se instalan, desde la carpeta del Studio, con: wsl -d Ubuntu -- bash tools/entorno/instalar_voces.sh';
+      const motivo = 'Las voces de Kokoro no están instaladas en este computador (faltan los archivos del modelo en la carpeta de voces). Se instalan, desde la carpeta del Studio, en Git Bash, con: bash tools/entorno/instalar_voces.sh';
       servidor({ voces: [], motivo });
       expect(await vocesNaturales(true)).toEqual([]);
       expect(await vocesNaturalesDeLectura()).toEqual([]);
@@ -805,13 +805,14 @@ describe('leer en voz alta, como opción de la niebla (notas de voz del titular 
       expect(eventos.at(-1)?.texto).toContain('bash tools/entorno/instalar_voces.sh');
       expect(eventos.at(-1)?.bien).toBeFalsy();
 
-      // Un servidor que no dice por qué: la orden de siempre, la de Windows (dentro de WSL) o la de los demás sistemas
+      // Un servidor que no dice por qué: la orden de siempre, sin WSL (pr_voz_sin_wsl): en Windows, en Git Bash
       servidor({ voces: [] });
       await vocesNaturales(true);
-      expect(sinVozAhora()).toContain('Las voces de Kokoro no están instaladas en este computador. Se instalan, desde la carpeta del Studio, con: wsl -d Ubuntu -- bash tools/entorno/instalar_voces.sh');
-      vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (X11; Linux x86_64)' });
-      expect(sinVozAhora()).toContain('con: bash tools/entorno/instalar_voces.sh');
+      expect(sinVozAhora()).toContain('Las voces de Kokoro no están instaladas en este computador. Se instalan, desde la carpeta del Studio, en Git Bash, con: bash tools/entorno/instalar_voces.sh');
       expect(sinVozAhora()).not.toContain('wsl');
+      vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (X11; Linux x86_64)' });
+      expect(sinVozAhora()).toContain('Studio, con: bash tools/entorno/instalar_voces.sh');
+      expect(sinVozAhora()).not.toContain('Git Bash');
 
       // El Studio no respondió: lo dice, sin inventar que Kokoro falta
       vi.stubGlobal('fetch', async () => {

@@ -20,6 +20,12 @@ import os
 import sys
 import wave
 
+# En Windows, sin WSL, lo que se imprime a una tubería sale en la página de códigos del sistema, y el Studio lo lee en
+# UTF-8. Solo la capa de texto: el WAV va por sys.stdout.buffer, tal cual
+for _flujo in (sys.stdout, sys.stderr):
+    if hasattr(_flujo, "reconfigure"):
+        _flujo.reconfigure(encoding="utf-8")
+
 KOKORO_MODELO = "kokoro-v1.0.onnx"
 KOKORO_VOCES = "voices-v1.0.bin"
 # Las voces de Kokoro que el Studio ofrece: id -> (nombre, idioma, lang de Kokoro). El español de Kokoro es de menor grado.

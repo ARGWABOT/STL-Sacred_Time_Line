@@ -1,5 +1,5 @@
 // Las voces de Kokoro del Studio, las únicas, locales y sin internet: corre tools/director/voz.py con el mismo Python
-// que la transcripción (en Windows, dentro de WSL; ver comandoPython). Dos rutas: GET /__estudio/voz/lista (las voces
+// que la transcripción (sin WSL, o dentro de WSL de respaldo; ver pythonDelDirector). Dos rutas: GET /__estudio/voz/lista (las voces
 // instaladas, con 60 s de memoria) y POST /__estudio/voz/hablar {voz, texto} (un WAV). Sin Python o sin el paquete, la
 // lista sale vacía, con su motivo (qué falta y cómo instalarlo), y hablar lo repite: nunca se cae el Studio por una voz
 // que falta.

@@ -234,7 +234,19 @@ describe('instalar_voces.sh', () => {
     // El 26 de octubre de 2026 la orden de la misión corrió `python -m pip` y falló: «No module named pip»
     const ordenes = sh.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n');
     expect(ordenes).not.toMatch(/python[^\n]*-m pip\b/);
-    expect(sh).toContain('uv pip install --python .venv/bin/python -c "$AQUI/transcripcion_requisitos.txt" kokoro-onnx');
+    expect(sh).toContain('uv pip install --python "$PY" -c "$AQUI/transcripcion_requisitos.txt" kokoro-onnx');
+  });
+
+  it('sin WSL, en cualquier sistema: en Windows, en Git Bash, con el python.exe del venv, y uv se instala solo si falta (pr_voz_sin_wsl)', () => {
+    for (const script of ['tools/entorno/instalar_voces.sh', 'tools/entorno/instalar_transcripcion.sh']) {
+      const s = leer(script);
+      expect(s, script).toContain('MINGW* | MSYS* | CYGWIN*) WINDOWS=1 ;;');
+      expect(s, script).toContain('if [ -n "$WINDOWS" ]; then PY=.venv/Scripts/python.exe; else PY=.venv/bin/python; fi');
+      expect(s, script).toContain('powershell -NoProfile -ExecutionPolicy ByPass -Command "irm https://astral.sh/uv/install.ps1 | iex"');
+      expect(s, script).toContain('curl -LsSf https://astral.sh/uv/install.sh | sh');
+      // Nada se corre con el Python de Linux a mano: siempre el del venv de este sistema
+      expect(s.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n'), script).not.toContain('.venv/bin/python "');
+    }
   });
 
   it('baja solo Kokoro, con su modelo y sus voces: ya no tiene opción para otro motor (nota de voz del titular nmvpdu9zqtit)', () => {
@@ -244,10 +256,12 @@ describe('instalar_voces.sh', () => {
     expect(sh).toContain('voz.py" --lista --dir .');
   });
 
-  it('el instalador del Studio la ofrece como opcional, con lo que pesa', () => {
+  it('el instalador del Studio la ofrece como opcional, con lo que pesa, sin WSL, y dice si ya está', () => {
     const iniciar = leer('tools/iniciar.ts');
-    expect(iniciar).toContain("opcional('Voces de Kokoro para leer en voz alta (unos 350 MB; sin ellas, la niebla no lee en voz alta)', 'wsl -d Ubuntu -- bash tools/entorno/instalar_voces.sh')");
-    expect(iniciar).toContain("opcional('Voces de Kokoro para leer en voz alta (unos 350 MB; sin ellas, la niebla no lee en voz alta)', 'bash tools/entorno/instalar_voces.sh')");
+    expect(iniciar).toContain("opcional('Voces de Kokoro para leer en voz alta (unos 350 MB; sin ellas, la niebla no lee en voz alta)', `bash tools/entorno/instalar_voces.sh${enGitBash}`)");
+    expect(iniciar).toContain("if (existsSync(join(director, 'voces', ARCHIVO_DE_VOCES))) ok('Voces de Kokoro para leer en voz alta');");
     expect(iniciar).not.toMatch(/piper/i);
+    // Ninguna orden pasa por WSL, ni pregunta si está
+    expect(iniciar).not.toMatch(/wsl -d|'wsl'/);
   });
 });

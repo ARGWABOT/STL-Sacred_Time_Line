@@ -384,6 +384,11 @@ export function servidorDirector(): Plugin {
       while (colaAudios.length) {
         const lote = colaAudios.splice(0);
         const r = await transcribirEnLocal(raiz, lote.map((x) => enDisco(raiz, x.audio)), lote[0].pista);
+        // Con qué se transcribió, en la bitácora, mientras la forma nueva, sin WSL, se prueba con tus notas (pr_voz_sin_wsl):
+        // así se sabe si transcribió ella o si la cubrió WSL, y por qué
+        const cuantas = lote.length === 1 ? 'una nota de voz' : `${lote.length} notas de voz`;
+        if (r.respaldo) void anotar(raiz, { quien: EL_STUDIO, que: `transcribió ${cuantas} con WSL de respaldo: la forma nueva, sin WSL, falló (${r.respaldo})`, desde: 'la transcripción local', proyecto: lote[0].id });
+        else if (r.nativo && process.platform === 'win32') void anotar(raiz, { quien: EL_STUDIO, que: r.ok ? `transcribió ${cuantas} sin WSL` : `no pudo transcribir ${cuantas} sin WSL ni con WSL (${r.error ?? 'sin detalle'})`, desde: 'la transcripción local', proyecto: lote[0].id });
         for (const x of lote) {
           transcribiendo.delete(x.audio);
           // Con su texto escrito, el audio se borra (nunca entra a git) y el commit lleva solo el .txt. Si falló o salió

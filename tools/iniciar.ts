@@ -5,8 +5,9 @@
 //      node tools/iniciar.ts --diagnostico
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { arch, platform } from 'node:os';
+import { arch, homedir, platform } from 'node:os';
 import { join } from 'node:path';
+import { ARCHIVO_DE_VOCES, MARCA_TRANSCRIPCION } from '../src/director/transcripcion.ts';
 
 const raiz = join(import.meta.dirname, '..');
 const soloMirar = process.argv.includes('--diagnostico');
@@ -54,16 +55,13 @@ else {
 // Lo opcional
 if (correr('claude', ['--version']).ok) ok('Claude Code (la sesión del director)');
 else opcional('Claude Code no está en la consola', 'También sirve la app de escritorio. Lo importante es abrirla en esta carpeta: https://claude.com/claude-code');
-if (process.platform === 'win32') {
-  const wsl = correr('wsl', ['-l', '-q']);
-  if (wsl.ok) {
-    opcional('Notas de voz con transcripción local', 'wsl -d Ubuntu -- bash tools/entorno/instalar_transcripcion.sh');
-    opcional('Voces de Kokoro para leer en voz alta (unos 350 MB; sin ellas, la niebla no lee en voz alta)', 'wsl -d Ubuntu -- bash tools/entorno/instalar_voces.sh');
-  } else opcional('Notas de voz con transcripción local', 'Hoy requiere WSL2 con Ubuntu; sin eso, las notas escritas y los audios funcionan igual (sin su texto)');
-} else {
-  opcional('Notas de voz con transcripción local', 'bash tools/entorno/instalar_transcripcion.sh');
-  opcional('Voces de Kokoro para leer en voz alta (unos 350 MB; sin ellas, la niebla no lee en voz alta)', 'bash tools/entorno/instalar_voces.sh');
-}
+// Sin WSL, en cualquier sistema (pr_voz_sin_wsl); en Windows, en Git Bash. Lo que ya está instalado, se dice
+const enGitBash = process.platform === 'win32' ? ' (en Windows, en Git Bash)' : '';
+const director = join(homedir(), 'director');
+if (existsSync(join(director, '.venv', MARCA_TRANSCRIPCION))) ok('Notas de voz con transcripción local');
+else opcional('Notas de voz con transcripción local (unos 2 GB con su modelo; sin ella, las notas escritas y los audios funcionan igual, sin su texto)', `bash tools/entorno/instalar_transcripcion.sh${enGitBash}`);
+if (existsSync(join(director, 'voces', ARCHIVO_DE_VOCES))) ok('Voces de Kokoro para leer en voz alta');
+else opcional('Voces de Kokoro para leer en voz alta (unos 350 MB; sin ellas, la niebla no lee en voz alta)', `bash tools/entorno/instalar_voces.sh${enGitBash}`);
 
 console.log(problemas
   ? `\nFaltan ${problemas === 1 ? '1 cosa' : `${problemas} cosas`}: arréglalas y vuelve a correr ${soloMirar ? 'el diagnóstico' : 'npm run iniciar'}.\n`

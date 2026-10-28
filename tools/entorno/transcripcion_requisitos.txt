@@ -1,7 +1,6 @@
-# La transcripción local del Director asistente (~/director/.venv). Ver instalar_transcripcion.sh. Probada con
-# Python 3.12. PyAV va por debajo de 15: faster-whisper 1.2 usa un parámetro de av.open que las versiones nuevas quitaron.
+# La transcripción local del Director asistente (~/director/.venv), en cualquier sistema. Ver instalar_transcripcion.sh.
+# Probada con Python 3.12. PyAV va por debajo de 15: faster-whisper 1.2 usa un parámetro de av.open que las versiones
+# nuevas quitaron. Las librerías de la tarjeta gráfica NVIDIA van aparte (transcripcion_gpu.txt): en un Mac no existen.
 faster-whisper==1.2.1
 ctranslate2==4.8.3
 av==14.2.0
-nvidia-cublas-cu12==12.9.2.10
-nvidia-cudnn-cu12==9.27.0.42

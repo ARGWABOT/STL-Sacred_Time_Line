@@ -153,8 +153,8 @@ describe('las voces de Kokoro, las únicas del Studio (nota de voz del titular n
     expect(vozPorDefecto('es', [])).toBeNull();
   });
 
-  it('dice cómo instalar Kokoro: en Windows dentro de WSL, en lo demás directo', () => {
-    expect(comoInstalarKokoro(true)).toBe('Se instalan, desde la carpeta del Studio, con: wsl -d Ubuntu -- bash tools/entorno/instalar_voces.sh');
+  it('dice cómo instalar Kokoro: sin WSL, la misma orden en todo sistema; en Windows, en Git Bash (pr_voz_sin_wsl)', () => {
+    expect(comoInstalarKokoro(true)).toBe('Se instalan, desde la carpeta del Studio, en Git Bash, con: bash tools/entorno/instalar_voces.sh');
     expect(comoInstalarKokoro(false)).toBe('Se instalan, desde la carpeta del Studio, con: bash tools/entorno/instalar_voces.sh');
   });
 
@@ -171,7 +171,7 @@ describe('las voces de Kokoro, las únicas del Studio (nota de voz del titular n
     // Sin ninguna voz de Kokoro instalada: que no están instaladas y cómo instalarlas, con el mismo comando del servidor
     const sinKokoro = sinVozPorque('es', [], motivo);
     expect(sinKokoro).toContain('Las voces de Kokoro no están instaladas en este computador');
-    expect(sinKokoro).toContain('wsl -d Ubuntu -- bash tools/entorno/instalar_voces.sh');
+    expect(sinKokoro).toContain('en Git Bash, con: bash tools/entorno/instalar_voces.sh');
     expect(sinKokoro).toContain('el director sigue sin voz, a su ritmo');
     expect(sinKokoro).not.toContain('Comprobar de nuevo');
     // Con su botón, el aviso dice cuándo oprimirlo
@@ -214,17 +214,23 @@ describe('las voces de Kokoro, las únicas del Studio (nota de voz del titular n
     expect(errorDeVozNatural('x')).toContain('La voz de Kokoro no pudo leer');
   });
 
-  it('corre voz.py con el mismo Python que la transcripción (en Windows, dentro de WSL)', () => {
-    const c = comandoVoz('C:\\xampp2024\\htdocs\\www\\STL', ['--voz', 'kokoro:em_santa']);
-    if (process.platform === 'win32') {
-      expect(c.cmd).toBe('wsl');
-      expect(c.args.slice(0, 3)).toEqual(['-d', process.env.DIRECTOR_WSL ?? 'Ubuntu', '--']);
-      expect(c.args).toContain('/mnt/c/xampp2024/htdocs/www/STL/tools/director/voz.py');
-    } else {
-      expect(c.args[0]).toMatch(/tools[\\/]director[\\/]voz\.py$/);
-    }
+  it('corre voz.py con el mismo Python que la transcripción: sin WSL con sus voces instaladas así, y si no, dentro de WSL', () => {
+    const raiz = 'C:\\xampp2024\\htdocs\\www\\STL';
+    // De respaldo, dentro de WSL, con la ruta como la ve WSL
+    const c = comandoVoz(raiz, ['--voz', 'kokoro:em_santa'], { nativo: false, python: '$HOME/director/.venv/bin/python' });
+    expect(c.cmd).toBe('wsl');
+    expect(c.args.slice(0, 3)).toEqual(['-d', process.env.DIRECTOR_WSL ?? 'Ubuntu', '--']);
+    expect(c.args).toContain('/mnt/c/xampp2024/htdocs/www/STL/tools/director/voz.py');
     expect(c.args.slice(-2)).toEqual(['--voz', 'kokoro:em_santa']);
-    expect(comandoVoz('/x', ['--lista']).args.at(-1)).toBe('--lista');
+    // Sin WSL, el python.exe del venv, con la ruta de este computador
+    const nativo = comandoVoz(raiz, ['--lista'], { nativo: true, python: 'C:\\Users\\ana\\director\\.venv\\Scripts\\python.exe' });
+    expect(nativo.cmd).toBe('C:\\Users\\ana\\director\\.venv\\Scripts\\python.exe');
+    expect(nativo.args[0]).toMatch(/^C:\\xampp2024\\htdocs\\www\\STL[\\/]tools[\\/]director[\\/]voz\.py$/);
+    expect(nativo.args.at(-1)).toBe('--lista');
+    // Lo que elige hoy este computador: una de las dos
+    const hoy = comandoVoz(raiz, ['--lista']);
+    expect(hoy.args.at(-1)).toBe('--lista');
+    if (process.platform !== 'win32') expect(hoy.args[0]).toMatch(/tools[\\/]director[\\/]voz\.py$/);
   });
 });
 

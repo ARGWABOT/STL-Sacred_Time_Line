@@ -1,0 +1,4 @@
+# Las librerías de CUDA 12 para transcribir en una tarjeta gráfica NVIDIA (cuBLAS y cuDNN 9), con Windows y con Linux:
+# instalar_transcripcion.sh las suma solo si encuentra nvidia-smi. Sin ellas, se transcribe en el procesador.
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cudnn-cu12==9.27.0.42
