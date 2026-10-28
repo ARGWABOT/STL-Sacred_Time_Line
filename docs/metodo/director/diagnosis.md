@@ -13,11 +13,11 @@
    - `frentes`: the new ones, and in the `arranque` phase each one on hold (`"nivel": "espera"`) except `direccion`.
    - `detectado`: what you already know about the project, so the owner does not have to write it: `contexto` (what it is, for whom and where it stands, in one paragraph) and `meta` (the goal you suggest, in one sentence). The Studio shows it in Project, marked as detected, until the owner writes their own.
    - `evaluacion`: `a_contexto` if the owner already told the context.
-   - A document `docs/director/diagnostico.md` in its memory (format: CLAUDE.md › «Los documentos del director») and its entry in `documentos`.
+   - A document `docs/director/diagnostico.md` in its memory (its format: `documents.md`) and its entry in `documentos`.
    - **If the owner has no goal yet** (they only want the diagnosis and to run it with STL), what would improve the project goes as `propuestas` (suggested missions), never as missions: they decide which ones. With the goal set, the route is drawn.
-   - The owner's mission: read the diagnosis and comment on it part by part, with its button to the document, and set their goal (button to `{ "vista": "proyecto", "ancla": "p-objetivo" }`). Criteria: `a_leido`.
+   - The owner's mission: read the diagnosis and comment on it part by part, with its button to the document, and set their goal (button to `{ "vista": "proyecto", "ancla": "p-objetivo" }`). Criteria: `a_leido`. Each step says what to look at there, what to do and how to come back (CLAUDE.md › «Llevar de la mano»): in the diagnosis, what to look for (what is solid, what is missing, the candidates for the goal), «Entendido» on each idea, each decision answered at the end of its part, and «← Volver a tu misión» to come back; in «La meta», how it is set («Usar este» on a candidate, or in their own words).
    - `mensaje` and, if you want, a first team `boletin`.
-5. Validate and close (CLAUDE.md › «Validar y cerrar»).
+5. Validate and close (`review-cycle.md` › «Validate and close»).
 
 ## The AI history
 

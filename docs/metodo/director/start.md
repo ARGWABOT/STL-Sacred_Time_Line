@@ -15,4 +15,4 @@ Each project arrives in one of two ways (`proyecto.json` › `tipo`), and the di
 2. **diagnostico**: if it is existing, do **the diagnosis** (`diagnosis.md`); if it is new, **the approach** (`approach.md`).
 3. **objetivo**: the diagnosis is there; the owner still has to set their goal in Project. Answer their notes on the diagnosis and the candidates. If what they said changes the candidates, adjust them in `plan.objetivos`. Whatever changes in the already reviewed document goes in a new, short document (always forward).
 4. **ruta**: the goal is set: **draw the route** (`route.md`).
-5. **en marcha**: the normal review cycle (CLAUDE.md › «El ciclo de revisión»).
+5. **en marcha**: the normal review cycle (`review-cycle.md`).

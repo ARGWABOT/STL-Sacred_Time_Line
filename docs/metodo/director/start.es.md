@@ -15,4 +15,4 @@ Cada proyecto llega de una de dos formas (`proyecto.json` › `tipo`), y el dire
 2. **diagnostico**: si es existente, haz **el diagnóstico** (`diagnosis.md`); si es nuevo, **el planteamiento** (`approach.md`).
 3. **objetivo**: el diagnóstico está; falta que el titular fije su meta en Proyecto. Responde sus notas sobre el diagnóstico y los candidatos. Si lo que dijo cambia los candidatos, ajústalos en `plan.objetivos`. Lo que cambie del documento ya revisado va en un documento nuevo, corto (siempre hacia adelante).
 4. **ruta**: la meta está fijada: **traza la ruta** (`route.md`).
-5. **en marcha**: el ciclo normal de revisión (CLAUDE.md › «El ciclo de revisión»).
+5. **en marcha**: el ciclo normal de revisión (`review-cycle.es.md`).

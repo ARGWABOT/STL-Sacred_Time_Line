@@ -13,11 +13,11 @@
    - `frentes`: los nuevos, y en la fase `arranque` cada uno en espera (`"nivel": "espera"`) salvo `direccion`.
    - `detectado`: lo que ya sabes del proyecto, para que el titular no tenga que escribirlo: `contexto` (qué es, para quién y en qué punto está, en un párrafo) y `meta` (la meta que sugieres, en una frase). El Studio lo muestra en Proyecto, marcado como detectado, hasta que el titular escriba lo suyo.
    - `evaluacion`: `a_contexto` si el titular ya contó el contexto.
-   - Un documento `docs/director/diagnostico.md` en su memoria (formato: CLAUDE.md › «Los documentos del director») y su entrada en `documentos`.
+   - Un documento `docs/director/diagnostico.md` en su memoria (su formato: `documents.es.md`) y su entrada en `documentos`.
    - **Si el titular todavía no tiene meta** (solo quiere el diagnóstico y llevarlo con STL), lo que mejoraría el proyecto va como `propuestas` (misiones sugeridas), nunca como misiones: él decide cuáles. Con la meta fijada, se traza la ruta.
-   - La misión del titular: leer el diagnóstico y comentarlo parte por parte, con su botón al documento, y fijar su meta (botón a `{ "vista": "proyecto", "ancla": "p-objetivo" }`). Criterios: `a_leido`.
+   - La misión del titular: leer el diagnóstico y comentarlo parte por parte, con su botón al documento, y fijar su meta (botón a `{ "vista": "proyecto", "ancla": "p-objetivo" }`). Criterios: `a_leido`. Cada paso dice qué mirar ahí, qué hacer y cómo volver (CLAUDE.md › «Llevar de la mano»): en el diagnóstico, qué buscar (lo sólido, lo que falta, los candidatos a meta), «Entendido» en cada idea, cada decisión respondida al final de su parte y «← Volver a tu misión» para volver; en «La meta», cómo se fija («Usar este» en un candidato, o con sus palabras).
    - `mensaje` y, si quieres, un primer `boletin` del equipo.
-5. Valida y cierra (CLAUDE.md › «Validar y cerrar»).
+5. Valida y cierra (`review-cycle.es.md` › «Validar y cerrar»).
 
 ## El historial de IA
 

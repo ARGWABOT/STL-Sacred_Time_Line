@@ -38,6 +38,21 @@ describe('los procedimientos del director, aparte de CLAUDE.md', () => {
     expect(Buffer.byteLength(claude) / 1024).toBeLessThanOrEqual(TOPE_CLAUDE_MD_KB);
   });
 
+  it('ningún procedimiento manda a una parte de CLAUDE.md que ya no está (salieron a su procedimiento)', () => {
+    const claude = leer('CLAUDE.md');
+    for (const { archivo } of Object.values(PROCEDIMIENTOS))
+      for (const ruta of [archivo, enEspanol(archivo)])
+        for (const [, parte] of leer(ruta).matchAll(/CLAUDE\.md\s*›\s*«([^»]+)»/g)) expect(claude, `${ruta} manda a CLAUDE.md › «${parte}»`).toContain(parte);
+  });
+
+  it('un paso que lleva a otro lugar dice qué mirar ahí y cómo volver, con el botón que de verdad tiene el Studio (caso fijo c_paso_sin_que_mirar)', () => {
+    const regla = leer('CLAUDE.md').match(/\*\*Llevar de la mano\.\*\*.*/)?.[0] ?? '';
+    expect(regla).toContain('dice qué mirar ahí, qué hacer o responder y cómo volver');
+    expect(regla).toContain('«← Volver a tu misión»');
+    expect(leer('estudio/src/director.ts')).toContain('← Volver a tu misión');
+    for (const ruta of ['docs/metodo/director/diagnosis.md', 'docs/metodo/director/diagnosis.es.md']) expect(leer(ruta), ruta).toContain('«← Volver a tu misión»');
+  });
+
   it('la bandeja y el lanzador mandan al procedimiento, no a una parte de CLAUDE.md que ya no está', () => {
     for (const fuente of ['tools/director/bandeja.ts', 'estudio/servidor/revisor.ts']) {
       const texto = leer(fuente);

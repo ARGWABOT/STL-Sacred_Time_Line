@@ -10,5 +10,5 @@
    - `objetivos`: 2 or 3, derived from its definition of done; one the shortest that already validates the idea with real people.
    - `frentes` with their planned `rutas` (empty if there is no repository yet) and on hold during the start, except `direccion`.
    - `docs/director/planteamiento.md`, in its memory, with «Lo que entendí» first (it is the most important part: it corrects the misunderstanding before building) and its «Para decidir», and its entry in `documentos`.
-   - The owner's mission: read the approach, comment on it and set their goal. Criteria: `a_leido`.
+   - The owner's mission: read the approach, comment on it and set their goal. Criteria: `a_leido`. Each step says what to look at there, what to do and how to come back, as in the diagnosis (CLAUDE.md › «Llevar de la mano»).
    - `evaluacion`: `a_contexto` if they already told everything.

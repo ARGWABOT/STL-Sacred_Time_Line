@@ -10,5 +10,5 @@
    - `objetivos`: 2 o 3, derivados de su definición de terminado; uno el más corto que ya valida la idea con gente real.
    - `frentes` con `rutas` previstas (si aún no hay repositorio, vacías) y en espera en el arranque, salvo `direccion`.
    - `docs/director/planteamiento.md`, en su memoria, con «Lo que entendí» primero (es lo más importante: corrige el malentendido antes de construir) y sus «Para decidir», y su entrada en `documentos`.
-   - La misión del titular: leer el planteamiento, comentarlo y fijar su meta. Criterios: `a_leido`.
+   - La misión del titular: leer el planteamiento, comentarlo y fijar su meta. Criterios: `a_leido`. Cada paso dice qué mirar ahí, qué hacer y cómo volver, como en el diagnóstico (CLAUDE.md › «Llevar de la mano»).
    - `evaluacion`: `a_contexto` si ya lo contó todo.
