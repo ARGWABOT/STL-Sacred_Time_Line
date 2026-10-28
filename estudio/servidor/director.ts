@@ -74,7 +74,7 @@ import {
   type Validacion,
 } from '../../src/director/director';
 import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { leerEstadoDelEquipo, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria';
+import { leerEstadoDelEquipo, leerPlanParaVer, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria';
 import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO, eventoDeAccion, leerBitacora } from '../../src/director/bitacora';
 import { archivoDelPaquete } from '../../src/director/paquete';
@@ -1080,7 +1080,8 @@ export function servidorDirector(): Plugin {
             marcar('GitHub, identidad y proyectos', t0);
             if (!id) return responder(res, 200, { sinProyectos: true, proyectos, identidad, sincronizacion, hoy: hoy() });
             const tPlan = Date.now();
-            const [plan, proyecto, r] = await Promise.all([leerPlan(id), leerProyecto(id), repositorio(id, fresco)]);
+            // Lo que se muestra, aunque el plan de la carpeta no se entienda: el de su último commit, con su aviso (leerPlanParaVer)
+            const [{ plan, aviso: avisoDelPlan }, proyecto, r] = await Promise.all([leerPlanParaVer(raiz, id), leerProyecto(id), repositorio(id, fresco)]);
             const { estado } = await leerEstado(id, identidad.rol, proyecto);
             marcar('plan, proyecto y equipo', tPlan);
             // La transcripción de cada audio (la deja tools/director/transcribir.py junto al audio, como .txt)
@@ -1168,7 +1169,7 @@ export function servidorDirector(): Plugin {
                 return r?.proyecto === id && r.lanzada && !r.hecha && !r.error ? actividadDeProyecto(raiz, id) : null;
               })(),
               hoy: hoy(),
-              errores: [...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)],
+              errores: [...(avisoDelPlan ? [avisoDelPlan] : []), ...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)],
             });
           }
           if (ruta === '/proyecto-nuevo' && req.method === 'POST') {

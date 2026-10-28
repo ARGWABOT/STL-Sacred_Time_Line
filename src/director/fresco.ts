@@ -131,6 +131,19 @@ export async function leerFrescoTexto(raiz: string, ruta: string): Promise<strin
 }
 
 /**
+ * Un archivo (ruta del Estudio) como quedó en el último commit de su carpeta de git, con la fecha de ese commit; null si
+ * nunca tuvo uno. Para lo que se rompió en la carpeta después de guardarlo.
+ */
+export async function leerDelUltimoCommit(raizEstudio: string, rutaEstudio: string): Promise<{ texto: string; fecha: string } | null> {
+  const { cwd: raiz, ruta } = donde(raizEstudio, rutaEstudio);
+  if (!existsSync(raiz)) return null;
+  const contenido = await contenidoEn(raiz, 'HEAD', ruta);
+  if (!contenido) return null;
+  const fecha = (await git(raiz, ['log', '-1', '--format=%cI', 'HEAD', '--', ruta])).out?.toString().trim() ?? '';
+  return { texto: contenido.toString('utf-8'), fecha };
+}
+
+/**
  * Muchos textos de una vez (las transcripciones de todas las notas de voz), con el mismo resultado que leerFrescoTexto
  * uno por uno, pero sin dos o tres procesos de git por archivo: con cientos de notas, eso eran más de 20 segundos en
  * cada carga del Studio. Un solo `git diff` dice qué archivos difieren de GitHub; los demás se leen de la carpeta (o

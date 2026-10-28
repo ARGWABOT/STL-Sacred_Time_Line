@@ -4,11 +4,11 @@
 // (tools/director/comun.ts, que corre de punta a punta en tools/director/bandeja-listo.test.ts) y el servidor del Studio
 // (estudio/servidor/director.ts): si cambia una lectura, cambia aquí y se prueba aquí.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { leerEstadoDelEquipo, leerEstadoDePersona, leerJsonFresco, leerPlanUnido, leerProyectoDe, personasConArchivo } from './memoria';
+import { leerEstadoDelEquipo, leerEstadoDePersona, leerJsonFresco, leerPlanParaVer, leerPlanUnido, leerProyectoDe, personasConArchivo } from './memoria';
 import { abrirMemoria, guardarRutaRepositorio } from './proyectos';
 
 const ID = 'prueba-memoria';
@@ -90,6 +90,33 @@ describe('el plan, con lo archivado', () => {
     const e = await armar();
     e.enMemoria('director/plan.json', '{ esto no es json');
     await expect(leerPlanUnido(e.estudio, ID)).rejects.toThrow();
+  });
+
+  it('para mostrarlo, un plan que no se entiende se lee de su último commit, con el aviso de por qué (pr_retoma_automatica, punto 4)', async () => {
+    const e = await armar();
+    e.enMemoria('director/plan.json', { misiones: [], revisado: '2026-10-02T00:00:00Z' });
+    e.enMemoria('director/archivo.json', { respuestas: { vieja: { cuando: '2026-09-01', texto: 'archivada' } }, revisiones: {} });
+    e.guardar('Director (prueba): la revisión');
+    // Bien, tal cual y sin aviso
+    expect(await leerPlanParaVer(e.estudio, ID)).toEqual({ plan: await leerPlanUnido(e.estudio, ID) });
+    // Cortado a media escritura: el del último commit, con lo archivado, y el aviso que lo dice
+    e.enMemoria('director/plan.json', '{ "misiones": [], "revisado": "2026-10-03');
+    const { plan, aviso } = await leerPlanParaVer(e.estudio, ID);
+    expect(plan.revisado).toBe('2026-10-02T00:00:00Z');
+    expect(plan.respuestas.vieja.texto).toBe('archivada');
+    expect(aviso).toMatch(/^El plan del director no se entiende en su carpeta \(.+\): se muestra el de su último commit \(\d{4}-\d{2}-\d{2} \d{2}:\d{2}\), sin lo que cambió después\. Lo arregla el director en su próxima revisión\.$/);
+    // Las herramientas del director siguen fallando: la bandeja no sigue sobre un plan que no se entiende
+    await expect(leerPlanUnido(e.estudio, ID)).rejects.toThrow();
+    // Sin un commit del que leerlo, falla como antes
+    const nuevo = await armar();
+    nuevo.enMemoria('director/plan.json', '{ roto');
+    await expect(leerPlanParaVer(nuevo.estudio, ID)).rejects.toThrow();
+  }, 30_000);
+
+  it('el Studio lo muestra así, con su aviso entre lo que el director tiene por corregir', () => {
+    const servidor = readFileSync(join(import.meta.dirname, '..', '..', 'estudio', 'servidor', 'director.ts'), 'utf8');
+    expect(servidor).toContain('const [{ plan, aviso: avisoDelPlan }, proyecto, r] = await Promise.all([leerPlanParaVer(raiz, id), leerProyecto(id), repositorio(id, fresco)]);');
+    expect(servidor).toContain('errores: [...(avisoDelPlan ? [avisoDelPlan] : []), ...validarPlan(plan, personas)');
   });
 });
 

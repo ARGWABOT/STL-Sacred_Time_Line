@@ -8,7 +8,7 @@
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { estadoPersonaVacio, juntarArchivos, proyectoVacio, TITULAR, unirArchivo, unirEstados, type ArchivoPlan, type EstadoDirector, type EstadoPersona, type Persona, type Plan, type Proyecto } from './director.ts';
-import { leerFrescoTexto, listarRemoto } from './fresco.ts';
+import { leerDelUltimoCommit, leerFrescoTexto, listarRemoto } from './fresco.ts';
 import { enDisco, rutasDe } from './proyectos.ts';
 
 /**
@@ -34,6 +34,30 @@ async function leerArchivoUnido(raiz: string, id: string): Promise<ArchivoPlan |
 /** El plan de un proyecto con lo archivado: lo cerrado salió al archivo para que el plan no pese, pero cuenta igual. */
 export async function leerPlanUnido(raiz: string, id: string): Promise<Plan> {
   return unirArchivo(JSON.parse((await leerFrescoTexto(raiz, rutasDe(id).plan)) ?? '{}'), await leerArchivoUnido(raiz, id));
+}
+
+/**
+ * El plan para mostrarlo en el Studio, aunque el de la carpeta no se entienda (propuesta aceptada «Una revisión que no
+ * termina se retoma con un botón», pr_retoma_automatica, punto 4: una revisión cortada a media escritura lo dejaba así, y
+ * el Studio no abría el proyecto): entonces el de su último commit, con el aviso de por qué, que el Studio muestra entre
+ * lo que el director tiene por corregir. Las herramientas del director siguen con leerPlanUnido, que falla: la bandeja
+ * no sigue sobre un plan que no se entiende, para que el director lo arregle.
+ */
+export async function leerPlanParaVer(raiz: string, id: string): Promise<{ plan: Plan; aviso?: string }> {
+  const archivo = rutasDe(id).plan;
+  const texto = (await leerFrescoTexto(raiz, archivo)) ?? '{}';
+  try {
+    JSON.parse(texto);
+  } catch (e) {
+    const ultimo = await leerDelUltimoCommit(raiz, archivo);
+    if (!ultimo) throw e;
+    const cuando = ultimo.fecha ? ` (${ultimo.fecha.slice(0, 16).replace('T', ' ')})` : '';
+    return {
+      plan: unirArchivo(JSON.parse(ultimo.texto), await leerArchivoUnido(raiz, id)),
+      aviso: `El plan del director no se entiende en su carpeta (${(e as Error).message}): se muestra el de su último commit${cuando}, sin lo que cambió después. Lo arregla el director en su próxima revisión.`,
+    };
+  }
+  return { plan: await leerPlanUnido(raiz, id) };
 }
 
 /** El proyecto.json (el contexto, la meta y el equipo) sobre el proyecto vacío, para que ningún campo falte. */
