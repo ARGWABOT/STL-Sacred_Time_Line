@@ -2553,7 +2553,7 @@ function listaPasos(m: Mision) {
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
   // El botón de un paso que lleva a su propia misión no se dibuja (`destinoDelPaso` con la misión): ya estás en ella
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}${conCasillas ? ' con-marca' : ''}"><span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && destinoDelPaso(p, m) ? irDelPaso(m, i, destinoDelPaso(p, m)!, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, destinoDelPaso(p, m), p.varias === true) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas ? `<div class="pie-paso">${hechos.has(i) ? '' : aclararPaso(m, i)}${marcaPaso(m, i, p, hechos.has(i))}</div>` : ''}</li>`).join('')}</ol>`;
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}${conCasillas ? ' con-marca' : ''}"><span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && destinoDelPaso(p, m) ? irDelPaso(m, i, destinoDelPaso(p, m)!, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.copiar ? textoParaCopiar(p.copiar) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, destinoDelPaso(p, m), p.varias === true) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas ? `<div class="pie-paso">${hechos.has(i) ? '' : aclararPaso(m, i)}${marcaPaso(m, i, p, hechos.has(i))}</div>` : ''}</li>`).join('')}</ol>`;
 }
 
 /**
@@ -2710,6 +2710,14 @@ function ordenPaso(m: Mision, i: number, p: Exclude<Paso, string>, pendiente: bo
       + (aclarando(m.id, i) ? '' : `<button type="button" class="boton-suave" data-no-salio="${esc(m.id)}|${i}" title="Si la orden falla, la misión pasa al director tal como está y tú sigues con otra">No me salió</button>`)
     : '';
   return `<div class="orden-paso"><code>${esc(orden)}</code><div class="acciones-orden">${mia ? `<button type="button" class="abrir-terminal" data-terminal="${esc(m.id)}|${i}" title="Abre una ventana de terminal nueva y corre esta orden ahí">Abrir la terminal con esta orden</button>` : ''}<button type="button" class="boton-suave" data-copiar-orden="${esc(orden)}" title="Copia la orden para pegarla en tu terminal">Copiar</button>${yaHice}</div></div>`;
+}
+
+/**
+ * El texto que la persona pega en otra parte (`copiar`): entero, a la vista y con «Copiar», en el paso mismo, para que
+ * no dependa de lo que imprimió una orden en una ventana ya cerrada (nota de voz del titular nmvrikd6ptit).
+ */
+function textoParaCopiar(texto: string): string {
+  return `<div class="orden-paso texto-copiar"><blockquote>${esc(texto)}</blockquote><div class="acciones-orden"><button type="button" class="boton-suave" data-copiar-texto="${esc(texto)}" title="Copia el texto para pegarlo donde dice el paso">Copiar el texto</button></div></div>`;
 }
 
 /**
@@ -5657,11 +5665,11 @@ $('vista').addEventListener('change', async (e) => {
  * todo). Comentar, el enfoque, los controles de la niebla y los de la franja del enfoque (el tema y el sonido, que no
  * hacen avanzar nada) siguen libres. Lo que va y vuelve también (nota de voz del
  * titular nmvolmqojtit, 25 de octubre de 2026): el botón de un paso que lleva a un documento, a una sección o a una página
- * (data-destino), y abrir o copiar su orden de terminal, porque al volver la tarjeta sigue igual y la lectura sigue donde
- * iba; se frena solo lo que cambia la tarjeta o la misión. Sin niebla, nada cambia.
+ * (data-destino), y abrir o copiar su orden de terminal o el texto que se pega afuera, porque al volver la tarjeta sigue
+ * igual y la lectura sigue donde iba; se frena solo lo que cambia la tarjeta o la misión. Sin niebla, nada cambia.
  */
 const CAJA_NIEBLA = '.mision-c, .trozo';
-const LIBRE_DE_NIEBLA = '[data-comentar], [data-enfoque], [data-niebla], [data-niebla-auto], [data-volver-mision], [data-destino], [data-terminal], [data-copiar-orden], .gl-control, [data-tema], [data-sonido]';
+const LIBRE_DE_NIEBLA = '[data-comentar], [data-enfoque], [data-niebla], [data-niebla-auto], [data-volver-mision], [data-destino], [data-terminal], [data-copiar-orden], [data-copiar-texto], .gl-control, [data-tema], [data-sonido]';
 document.addEventListener('click', (e) => {
   const accion = (e.target as HTMLElement).closest<HTMLElement>('button, input[type="checkbox"]');
   if (!accion || accion.closest(LIBRE_DE_NIEBLA)) return;
@@ -5826,6 +5834,8 @@ async function clicEnVista(b: HTMLButtonElement) {
     await accion({ tipo: 'deshacer_entrega', mision: ds.deshacerEntrega });
   } else if (ds.copiarOrden !== undefined) {
     await navigator.clipboard.writeText(ds.copiarOrden).then(() => avisar('Orden copiada: pégala en tu terminal y oprime Enter.', true), () => avisar('No se pudo copiar.'));
+  } else if (ds.copiarTexto !== undefined) {
+    await navigator.clipboard.writeText(ds.copiarTexto).then(() => avisar('Texto copiado: pégalo donde dice el paso (Ctrl + V).', true), () => avisar('No se pudo copiar: selecciona el texto con el ratón y cópialo con Ctrl + C.'));
   } else if (ds.terminal) {
     // La ventana se abre en este computador, con la orden corriendo; el paso se marca a mano cuando termine
     const [mision, i] = ds.terminal.split('|');

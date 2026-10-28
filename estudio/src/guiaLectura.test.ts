@@ -261,8 +261,8 @@ describe('la niebla de lectura (notas de voz del titular, 24 de octubre de 2026)
     // Comentar, el enfoque y los controles de la niebla siguen libres
     for (const libre of ['[data-comentar]', '[data-enfoque]', '[data-niebla]', '[data-niebla-auto]', '.gl-control']) expect(freno).toContain(libre);
     // Lo que va y vuelve sin cambiar la tarjeta, también (nota de voz del titular nmvolmqojtit): el botón de un paso a un
-    // documento, una sección o una página, y abrir o copiar su orden de terminal
-    for (const libre of ['[data-destino]', '[data-terminal]', '[data-copiar-orden]']) expect(freno).toContain(libre);
+    // documento, una sección o una página, abrir o copiar su orden de terminal y copiar el texto que se pega afuera
+    for (const libre of ['[data-destino]', '[data-terminal]', '[data-copiar-orden]', '[data-copiar-texto]']) expect(freno).toContain(libre);
     // Lo que cambia la tarjeta sigue frenado: elegir, marcar, «Ya lo hice», «Hazlo tú», entregar
     for (const frenado of ['[data-opcion', '[data-ya-hice', '[data-hazlo', '[data-entregar', '[data-paso']) expect(freno.match(/const LIBRE_DE_NIEBLA = '([^']*)'/)?.[1]).not.toContain(frenado);
     // Sin niebla, nada cambia; y lo que no se ve (un plegable cerrado) no detiene

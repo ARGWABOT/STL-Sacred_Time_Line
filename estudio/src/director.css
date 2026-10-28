@@ -230,6 +230,8 @@ body.director-trabajando .aclarar-paso { opacity: 0.45; cursor: not-allowed; }
 .solo-tu .icono { flex: none; width: 16px; height: 16px; margin-top: 1px; }
 /* La orden de terminal de un paso: a la vista, con «Abrir la terminal» y «Copiar» */
 .orden-paso { margin-top: 10px; }
+/* El texto que la persona pega en otra parte: entero y legible, con su «Copiar» */
+.texto-copiar blockquote { margin: 0; padding: 8px 12px; border-left: 3px solid var(--tinta); border-radius: 0 8px 8px 0; background: rgba(0, 0, 0, 0.04); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; }
 .orden-paso code { display: block; padding: 8px 10px; border-radius: 8px; background: var(--tinta); color: #f6e7b4; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
 .acciones-orden { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .abrir-terminal { min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-weight: 600; }

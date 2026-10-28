@@ -284,8 +284,12 @@ export interface Hecho {
  * `varias`: en un paso con opciones que no se excluyen (qué sumarle a algo, por ejemplo), la persona marca una o varias y
  * las entrega juntas con «Listo», en una sola nota (nota de voz del titular nmvoi1e0etit, 25 de octubre de 2026: «los
  * botones de opciones me hacen escoger solo una a la vez, descartando las otras dos, a pesar de que me gustarían»).
+ * `copiar`: el texto que la persona pega en otra parte (un formulario de afuera, un mensaje a alguien): el Studio lo
+ * muestra entero en el paso, con «Copiar», y sigue ahí mientras haga falta. Nunca solo en lo que imprime una orden, que
+ * se pierde al cerrar su ventana (nota de voz del titular nmvrikd6ptit, 28 de octubre de 2026: «pega el texto en inglés
+ * que te dejó la orden al final. No lo leí y no lo tengo ya disponible»).
  */
-export type Paso = string | { texto: string; ir?: Destino; hecho?: Hecho; detalle?: string[]; opciones?: string[]; varias?: boolean; hazlo?: string; soloTu?: string; terminal?: string; comprobar?: Comprobacion; esperar?: number };
+export type Paso = string | { texto: string; ir?: Destino; hecho?: Hecho; detalle?: string[]; opciones?: string[]; varias?: boolean; hazlo?: string; soloTu?: string; terminal?: string; comprobar?: Comprobacion; esperar?: number; copiar?: string };
 
 /** Lo más que un paso puede pedir esperar antes de responder: una cuenta más larga ya no es esperar, es otra misión. */
 export const MAX_ESPERAR = 900;
@@ -3180,6 +3184,7 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
         if (typeof p.terminal !== 'string' || !p.terminal.trim() || /[\r\n]/.test(p.terminal)) errores.push(`${donde} tiene \`terminal\` sin una orden de una sola línea.`);
         if (p.hazlo !== undefined) errores.push(`${donde} tiene \`hazlo\` y \`terminal\`: si la orden la corre la persona, no es «Hazlo tú».`);
       }
+      if (p.copiar !== undefined && (typeof p.copiar !== 'string' || !p.copiar.trim())) errores.push(`${donde} tiene \`copiar\` vacío: pon el texto que la persona pega, o quítalo.`);
       if (p.comprobar !== undefined) {
         const c = p.comprobar;
         if (!c || typeof c !== 'object' || typeof c.orden !== 'string') errores.push(`${donde} tiene \`comprobar\` sin su orden.`);

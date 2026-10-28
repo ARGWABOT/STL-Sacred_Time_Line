@@ -2046,6 +2046,14 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     expect(con({ texto: 'Corre', terminal: 'bash x.sh', hazlo: 'Lo corro yo.' })).toHaveLength(1);
   });
 
+  // Nota de voz del titular nmvrikd6ptit: el texto que se pega afuera va en el paso, no solo en lo que imprimió una orden
+  it('Un paso con el texto que la persona pega en otra parte: el texto, entero y no vacío', () => {
+    const p = planEjemplo();
+    const con = (paso: Paso) => validarPlan({ ...p, misiones: [...p.misiones, mision([paso])] }, ['titular', 'ana']);
+    expect(con({ texto: 'Pégalo en el formulario de soporte', copiar: 'Hello.\nPlease remove the cached views.', ir: { url: 'https://support.github.com', etiqueta: 'Abrir el soporte' }, soloTu: 'Es tu cuenta.' })).toEqual([]);
+    expect(con({ texto: 'Pégalo', copiar: '  ' })).toHaveLength(1);
+  });
+
   it('«No lo entiendo»: las veces que se pidió aclarar cada paso', () => {
     const nota = (id: string, seccion: string, aclarar = true): Nota => ({ id, cuando: '2026-10-19T10:00:00Z', quien: 'Laura', sobre: { tipo: 'mision', id: 't_meta', seccion, ...(aclarar ? { aclarar } : {}) }, texto: 'No lo entiendo' });
     const notas = [nota('a', seccionPaso(1)), nota('b', 'Paso 2'), nota('c', 'Paso 2', false), nota('d', 'Paso 1')];
