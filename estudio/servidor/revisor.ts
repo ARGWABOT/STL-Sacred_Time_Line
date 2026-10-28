@@ -292,7 +292,11 @@ export const encargoAclaracion = (a: AclaracionPedida) =>
   `plan, responde solo esa nota y cierra con node tools/director/bandeja.ts --proyecto ${a.proyecto} --aclarar --listo y ` +
   `el commit en la memoria del proyecto. No toques el código. Tus permisos no aceptan órdenes encadenadas con &&: da cd ` +
   `a la carpeta, luego git add y luego git commit, cada una por separado.` +
+  (a.reintento ? RETOMA_APARTE : '') +
   esperar(MAX_MIN_ACLARAR);
+
+/** Una aclaración o una urgencia pedida otra vez con «Retomarla» (pr_retoma_automatica, punto 5). */
+const RETOMA_APARTE = ' Es un reintento: la anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).';
 
 /** Una urgencia puede llevar un arreglo con sus pruebas: tiene más tiempo que una aclaración, menos que una revisión. */
 export const MAX_MIN_URGENCIA = 30;
@@ -312,6 +316,7 @@ export const encargoUrgencia = (u: UrgenciaPedida, esElStudio = false) =>
   `órdenes encadenadas con &&: para cada commit ` +
   `da cd a la carpeta, luego git add y luego git commit, cada una por separado. Cierra con ` +
   `node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo y el commit en la memoria del proyecto.` +
+  (u.reintento ? RETOMA_APARTE : '') +
   COMO_ORDENES +
   QUIEN_MANDA +
   conLaPagina(esElStudio) +
@@ -1874,14 +1879,14 @@ export class Revisor {
    * La aclaración no se pudo: lo dice, y el pedido (que ya está en el Buzón) espera la revisión que pida la persona. El
    * Studio nunca la pide solo (regla dura del titular, 23 de octubre de 2026).
    */
-  private async fallo(a: AclaracionPedida, problema: string): Promise<void> {
-    await marcarAclaracion(this.raiz, a.nota, { error: problema });
+  private async fallo(a: AclaracionPedida, problema: string, falla?: FallaRevision): Promise<void> {
+    await marcarAclaracion(this.raiz, a.nota, { error: problema, ...(falla ? { falla } : {}) });
     await anotar(this.raiz, { quien: EL_STUDIO, que: `no pudo aclarar el paso ${a.paso + 1} de ${a.mision}: ${problema} La nota espera la revisión.`, desde: 'el lanzador del director', proyecto: a.proyecto });
   }
 
   /** La urgencia no se pudo: lo dice, y las notas (que ya están en el Buzón) esperan la revisión que pida la persona. */
-  private async falloUrgencia(u: UrgenciaPedida, problema: string): Promise<void> {
-    await marcarUrgencia(this.raiz, u.pedida, { error: problema });
+  private async falloUrgencia(u: UrgenciaPedida, problema: string, falla?: FallaRevision): Promise<void> {
+    await marcarUrgencia(this.raiz, u.pedida, { error: problema, ...(falla ? { falla } : {}) });
     await anotar(this.raiz, { quien: EL_STUDIO, que: `no pudo llevar lo urgente al director: ${problema} Las notas esperan la revisión.`, desde: 'el lanzador del director', proyecto: u.proyecto });
   }
 
@@ -2197,12 +2202,21 @@ export class Revisor {
         await (maximo ? guardarEsfuerzoMaximo(this.raiz, false) : guardarEsfuerzoClaude(null, this.ajustes)).catch(() => {});
         problema = `Claude Code no aceptó el esfuerzo «${esfuerzo}» (puede que su versión no lo traiga, o que el modelo no lo use), así que el Studio lo quitó de la configuración de Claude Code y volvió al de tu cuenta: pide la revisión otra vez.`;
       }
+      // Una aclaración o una urgencia que no se cerró, con el mismo reporte que una revisión, leído de su registro, para
+      // «¿Por qué?» y «Retomarla» (pr_retoma_automatica, punto 5)
+      const reporteAparte = (): FallaRevision | undefined => {
+        try {
+          return diagnosticarFalla(readFileSync(archivo, 'utf-8'), { problema, codigo, inicio, fin: Date.now(), ultimaActividad: statSync(archivo).mtimeMs, registro: relative(this.raiz, archivo), ...(cortada ? { limite: limiteMin } : {}), ...(cortadaPorPersona && detenidaPor ? { detenida: detenidaPor } : {}) });
+        } catch {
+          return undefined;
+        }
+      };
       if (aparte?.tipo === 'aclaracion') {
         const a = (await leerLocal(this.raiz)).aclaracion;
-        if (a?.nota === aparte.a.nota && !a.hecha) await this.fallo(a, problema.replace('La revisión', 'La aclaración'));
+        if (a?.nota === aparte.a.nota && !a.hecha) await this.fallo(a, problema.replace('La revisión', 'La aclaración'), reporteAparte());
       } else if (aparte?.tipo === 'urgencia') {
         const u = (await leerLocal(this.raiz)).urgencia;
-        if (u?.pedida === aparte.u.pedida && !u.hecha) await this.falloUrgencia(u, problema.replace('La revisión', 'La urgencia'));
+        if (u?.pedida === aparte.u.pedida && !u.hecha) await this.falloUrgencia(u, problema.replace('La revisión', 'La urgencia'), reporteAparte());
       }
       // Lo que esperaba (otra urgencia, una aclaración o una revisión pedida mientras tanto) se lanza ya
       if (aparte) return void this.mirar().catch(() => {});

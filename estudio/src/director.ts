@@ -275,9 +275,10 @@ interface Datos {
   /** Lo que se le lleva negado al director en esa revisión, mientras trabaja (revisor.ts › negadosDeProyecto). */
   negadosVivos?: string[] | null;
   /** «No lo entiendo, explícamelo mejor» de un paso: el director lo aclara al instante, sin el resto de la revisión. */
-  aclaracion?: { mision: string; paso: number; nota: string; pedida: string; lanzada?: string; hecha?: string; error?: string } | null;
+  /** `falla`: si no se cerró, el reporte de qué pasó, como el de una revisión (pr_retoma_automatica, punto 5). */
+  aclaracion?: { mision: string; paso: number; nota: string; pedida: string; lanzada?: string; hecha?: string; error?: string; falla?: FallaRevision } | null;
   /** Las notas urgentes: el director las atiende solas, al instante, y el resultado vuelve en «¿Dónde quedamos?». */
-  urgencia?: { notas: string[]; luego?: string[]; pedida: string; lanzada?: string; hecha?: string; error?: string } | null;
+  urgencia?: { notas: string[]; luego?: string[]; pedida: string; lanzada?: string; hecha?: string; error?: string; falla?: FallaRevision } | null;
 }
 /** La medición del núcleo, como la da el servidor (medidor.ts › estadoDeMedicion). */
 interface EstadoMedicion {
@@ -508,8 +509,8 @@ async function cargar(fresco = false) {
   }
   if (fallo) avisar(((q) => (q?.startsWith('La revisión') ? `${q}.` : `La revisión no terminó.${q ? ` ${q}.` : ''}`))(d.revision!.falla?.que), false, undefined, { etiqueta: 'Qué pasó', hacer: () => void mostrarFalla() });
   if (aclarado?.hecha) avisar('El director reescribió el paso con más detalle: está en tu misión.', true, undefined, { etiqueta: 'Ver el paso', hacer: () => void ir({ vista: 'misiones', ancla: `mision-${aclarado.mision}`, etiqueta: '' }) });
-  else if (aclarado?.error) avisar(`${aclarado.error} Tu pedido quedó en el Buzón: el director lo responde en la próxima revisión.`);
-  if (urgenciaFallo) avisar(`${urgenciaFallo} Lo urgente quedó en el Buzón: cuando pidas la revisión, con «Pedir revisión», arriba, el director lo atiende primero.`);
+  else if (aclarado?.error) avisar(`${aclarado.error} Tu pedido quedó en el Buzón: lo puedes retomar, o el director lo responde en la próxima revisión.`, false, undefined, { etiqueta: 'Qué pasó', hacer: () => void mostrarFallaAparte('aclaracion') });
+  if (urgenciaFallo) avisar(`${urgenciaFallo} Lo urgente quedó en el Buzón: lo puedes retomar, o cuando pidas la revisión, con «Pedir revisión», arriba, el director lo atiende primero.`, false, undefined, { etiqueta: 'Qué pasó', hacer: () => void mostrarFallaAparte('urgencia') });
   else if (urgenciaLista) avisar('El director atendió lo urgente: el resultado está en «¿Dónde quedamos?».', true, undefined, { etiqueta: 'Ver el resultado', hacer: () => void mostrarDondeQuedamos() });
   // Al terminar, la página se recarga entera: si el director cambió el código del Studio, se ve sin refrescar a mano.
   // Con algo a medio escribir o grabando, espera a que quede libre (el aviso se da después de recargar)
@@ -709,6 +710,8 @@ function pintarSegundoPlano() {
     // Un director vivo sin revisión de este proyecto en marcha: qué corre, y por qué no se puede pedir otra
     ...(r.estado === 'ninguna' && ocupado ? [`<span class="sp-linea" title="${esc(ocupado.porque)}">${esc(ocupado.corto)}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     ...(r.estado === 'sin_vigilia' ? [`<button type="button" class="sp-linea alerta" data-revision="explicar">⚠ ${d.revision?.error ? 'La revisión no terminó · ¿Por qué?' : 'Revisión pedida, sin tomar'}</button>`] : []),
+    // Lo urgente que no se cerró, mientras ninguna revisión respondió sus notas: su reporte y «Retomarla» (pr_retoma_automatica, punto 5)
+    ...(urgenciaFallida() ? ['<button type="button" class="sp-linea alerta" data-aparte="urgencia">⚠ Lo urgente no terminó · ¿Por qué?</button>'] : []),
   ];
   caja.innerHTML = lineas.join('');
   caja.hidden = !lineas.length;
@@ -2432,6 +2435,76 @@ async function mostrarFalla() {
   }
 }
 
+/** Lo urgente que no se cerró, mientras ninguna revisión respondió sus notas (después, ya no hay nada que retomar). */
+function urgenciaFallida(): boolean {
+  const u = d?.urgencia;
+  return !!u && !!u.error && !u.hecha && u.notas.some((n) => !d.plan.respuestas?.[n]);
+}
+
+/**
+ * «¿Por qué?» de una aclaración o de lo urgente que no se cerró (propuesta aceptada pr_retoma_automatica, punto 5): el
+ * mismo reporte que el de una revisión, leído de su registro, y «Retomarla», que la pide otra vez y el director termina
+ * solo lo que faltó. Con «Dejarla para la revisión» no se hace nada: la nota ya está en el Buzón.
+ */
+async function mostrarFallaAparte(tipo: 'aclaracion' | 'urgencia') {
+  const x = tipo === 'aclaracion' ? d.aclaracion : d.urgencia;
+  if (!x?.error) return;
+  const f = x.falla;
+  const nombre = tipo === 'aclaracion' ? 'la aclaración' : 'lo urgente';
+  const duro = f?.duracion == null ? '' : f.duracion < 1 ? 'Duró menos de un minuto' : `Duró ${Math.round(f.duracion)} min`;
+  const gasto = f?.gasto ? `gastó ${dolares(f.gasto)} a precio de API` : '';
+  const cifras = duro && gasto ? `${duro} y ${gasto}.` : duro ? `${duro}.` : gasto ? `${gasto[0].toUpperCase()}${gasto.slice(1)}.` : '';
+  const ocupado = directorOcupado() ?? (revisando() ? { corto: 'El director está revisando', porque: 'Trabaja un director a la vez: «Retomarla» vuelve en cuanto termine.' } : null);
+  const dlg = document.createElement('dialog');
+  dlg.className = 'dialogo-director falla-revision';
+  dlg.innerHTML = `<form method="dialog">
+    <header class="cabeza-dialogo"><span class="etiqueta">Qué pasó con ${nombre}</span><h2>${esc(f?.que ?? (tipo === 'aclaracion' ? 'La aclaración no terminó' : 'Lo urgente no terminó'))}</h2></header>
+    <p class="alerta-p"><b>Por qué:</b> ${esc(f?.porque ?? x.error)}</p>
+    ${cifras ? `<p class="como">${esc(cifras)}</p>` : ''}
+    ${f?.ultimos.length ? `<p class="etiqueta">Lo último que alcanzó a hacer</p>
+    <ol class="pasos-progreso">${f.ultimos.map((p) => `<li class="${p.tipo}">${p.tipo === 'dice' ? esc(recortar(p.texto, 240)) : `<span class="como">${esc(p.texto)}</span>`}</li>`).join('')}</ol>` : ''}
+    ${f?.negados.length ? `<p class="como"><b>Permisos que se le negaron:</b> ${f.negados.map(esc).join('; ')}.</p>` : ''}
+    <p><b>Qué conviene:</b> Retómala: lo que el director alcanzó a guardar queda, y termina solo lo que faltó. O déjala para la revisión, que la atiende con lo demás: ${tipo === 'aclaracion' ? 'tu pedido' : 'lo urgente'} ya está en el Buzón.${f?.renueva ? ` Tu límite se renueva el ${esc(momento(f.renueva))}.` : ''}</p>
+    ${f?.registro ? `<p class="como">El detalle completo quedó en ${esc(f.registro)}, en la carpeta del Studio.</p>` : ''}
+    ${ocupado ? `<p class="como"><b>${esc(ocupado.corto)}.</b> ${esc(ocupado.porque)}</p>` : ''}
+    <div class="botones">
+      <button type="button"${ocupado ? ' class="primario"' : ''} data-cerrar>Dejarla para la revisión</button>
+      ${ocupado ? '' : '<button type="button" class="primario" data-retomar title="La pide otra vez, solo a ella: el director retoma lo que esta dejó, sin rehacerlo, y termina lo que falta">Retomarla</button>'}
+    </div>
+  </form>`;
+  document.body.append(dlg);
+  const retomar = await new Promise<boolean>((ok) => {
+    let listo = false;
+    const terminar = (si: boolean) => {
+      if (listo) return;
+      listo = true;
+      if (dlg.open) dlg.close();
+      dlg.remove();
+      ok(si);
+    };
+    dlg.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+      if (b?.dataset.retomar !== undefined) terminar(true);
+      else if (b?.dataset.cerrar !== undefined) terminar(false);
+    });
+    dlg.addEventListener('cancel', () => terminar(false));
+    dlg.addEventListener('close', () => terminar(false));
+    dlg.showModal();
+    dlg.querySelector<HTMLButtonElement>('button.primario')?.focus();
+  });
+  if (!retomar) return;
+  const q = await fetch('/__estudio/director/retomar-aparte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+  if (q instanceof Error || !q.ok) return avisar(q instanceof Error ? 'No se pudo hablar con el servidor del Studio.' : (await q.json().catch(() => ({}))).error ?? `No se pudo: el servidor respondió ${q.status}.`);
+  avisar(tipo === 'aclaracion' ? 'El director retoma la aclaración: termina solo lo que faltó, y el paso se reescribe aquí mismo.' : 'El director retoma lo urgente: termina solo lo que faltó, y el resultado llega a «¿Dónde quedamos?».', true);
+  await cargar();
+}
+
+document.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-aparte]');
+  if (!b || !d) return;
+  void mostrarFallaAparte(b.dataset.aparte === 'aclaracion' ? 'aclaracion' : 'urgencia');
+});
+
 /**
  * Un paso de afuera que no sale no atrapa a nadie (nota del titular, 22 de octubre de 2026: la orden falló, la
  * comprobación no dejaba marcar el paso y no podía seguir con otras misiones). «No me salió» entrega la misión tal como
@@ -2877,7 +2950,9 @@ function aclararPaso(m: Mision, i: number): string {
   const respuesta = ultima ? d.plan.respuestas?.[ultima.id] : undefined;
   const dijo = respuesta ? `<p class="aclaracion-paso"><b>El director:</b> ${esc(respuesta.texto)}</p>` : '';
   if (aclarando(m.id, i)) return `${dijo}<p class="aclarando-paso" role="status">El director lo está reescribiendo con más detalle${seguimientoAparte(d.aclaracion?.mision === m.id && d.aclaracion.paso === i ? d.aclaracion.lanzada : undefined, MIN_ACLARAR)}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></p>`;
-  if (ultima && !respuesta) return '<p class="aclarando-paso" role="status">Le pediste que te lo explique mejor: lo responde aquí mismo en su próxima revisión.</p>';
+  // La aclaración de este paso no se cerró: su reporte y «Retomarla» (pr_retoma_automatica, punto 5)
+  const fallida = !!ultima && !respuesta && d.aclaracion?.nota === ultima.id && !!d.aclaracion.error;
+  if (ultima && !respuesta) return `<p class="aclarando-paso" role="status">${fallida ? 'La aclaración no terminó: la puedes retomar, o la responde aquí mismo la próxima revisión.<button type="button" class="enlace" data-aparte="aclaracion">¿Por qué?</button>' : 'Le pediste que te lo explique mejor: lo responde aquí mismo en su próxima revisión.'}</p>`;
   return `${dijo}<button type="button" class="aclarar-paso" data-aclarar="${esc(m.id)}|${i}" title="El director reescribe este paso con más detalle, al instante">${previas.length ? 'Aún no lo entiendo, detállalo más' : 'No lo entiendo, explícamelo mejor'}</button>`;
 }
 

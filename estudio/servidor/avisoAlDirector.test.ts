@@ -97,6 +97,21 @@ describe('el aviso al director que trabaja', () => {
     expect(finEscrito(registro, { ...f, cerro: true }).causa).toBe('Cerró con su cierre y terminó solo.');
   });
 
+  it('una aclaración o una urgencia que no se cerró trae su reporte, y la pedida otra vez con «Retomarla» lo dice en su encargo (pr_retoma_automatica, punto 5)', () => {
+    const reintento = { lanzada: '2026-10-28T09:00:00.000Z' };
+    expect(encargoUrgencia({ proyecto: 'golf', quien: 'Laura', notas: ['n1'], pedida: '2026-10-28T10:00:00.000Z', reintento })).toContain('Es un reintento');
+    expect(encargoAclaracion({ proyecto: 'golf', mision: 'm1', paso: 0, nota: 'n1', quien: 'Laura', pedida: '2026-10-28T10:00:00.000Z', reintento })).toContain('Es un reintento');
+    expect(encargoUrgencia({ proyecto: 'golf', quien: 'Laura', notas: ['n1'], pedida: '2026-10-28T10:00:00.000Z' })).not.toContain('Es un reintento');
+    const revisor = readFileSync(new URL('./revisor.ts', import.meta.url), 'utf8');
+    const fin = revisor.slice(revisor.indexOf('const fin = async'), revisor.lastIndexOf("p.on('error'"));
+    expect(fin).toContain("problema.replace('La revisión', 'La aclaración'), reporteAparte())");
+    expect(fin).toContain("problema.replace('La revisión', 'La urgencia'), reporteAparte())");
+    // La bandeja de la aclaración y la de lo urgente listan lo que dejó la que no se cerró
+    const bandeja = readFileSync(new URL('../../tools/director/bandeja.ts', import.meta.url), 'utf8');
+    expect(bandeja).toContain('lineasDeRetoma(elegido, plan, a.reintento.lanzada');
+    expect(bandeja).toContain('lineasDeRetoma(elegido, plan, u.reintento.lanzada');
+  });
+
   it('la página dice los mismos minutos que el servidor: los de cerrar tras «Detener ahora», los de lo urgente y los de una aclaración', () => {
     const pagina = readFileSync(new URL('../src/director.ts', import.meta.url), 'utf8');
     expect(pagina).toContain(`const DETENER_TRAS_MIN = ${DETENER_TRAS_MIN};`);

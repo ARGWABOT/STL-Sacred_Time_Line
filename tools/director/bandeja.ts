@@ -251,6 +251,12 @@ if (args.includes('--aclarar')) {
   l(`# Aclaración de un paso · ${proyecto.nombre} (${elegido})`);
   l(`${nota.quien} no entendió este paso y oprimió «${previas.length ? 'Aún no lo entiendo, detállalo más' : 'No lo entiendo, explícamelo mejor'}». Es una ida y vuelta corta: atiende SOLO esto.`);
   l(`Las demás notas, entregas y documentos esperan la revisión siguiente: no las respondas ni cambies nada más del plan.`);
+  // «Retomarla» de una aclaración que no se cerró: lo que esa dejó no se rehace (pr_retoma_automatica, punto 5)
+  if (a.reintento) {
+    l('\n## La aclaración anterior no se cerró: retómala');
+    l(`La que lanzó el Studio el ${new Date(a.reintento.lanzada).toLocaleString('es-CO')} no se cerró${a.reintento.registro ? ` (su registro: ${a.reintento.registro})` : ''}. Lo que dejó está hecho: termina solo lo que falta.`);
+    for (const x of lineasDeRetoma(elegido, plan, a.reintento.lanzada, (await leerRutaRepositorio(raiz, elegido)) ?? undefined, 'haz la aclaración completa')) l(x);
+  }
   l(`\n## La misión «${m.titulo}» (${m.id}), para ${nombreDe(proyecto, m.para)}`);
   l(`- Por qué: ${m.porQue}`);
   l(`- Entrega: ${m.entrega}`);
@@ -326,6 +332,12 @@ if (args.includes('--urgente')) {
   const l = (s = '') => console.log(s);
   l(`# Urgencia · ${proyecto.nombre} (${elegido})`);
   l(`${u.quien} marcó ${urgentes.length === 1 ? 'esta nota' : 'estas notas'} como urgente${urgentes.length === 1 ? '' : 's'}, y el Studio te lanzó solo para ${urgentes.length === 1 ? 'ella' : 'ellas'}, al instante. Atiende SOLO esto: las demás notas, entregas y documentos esperan la revisión completa; no los respondas ni cambies nada más del plan.`);
+  // «Retomarla» de una urgencia que no se cerró: lo que esa dejó no se rehace (pr_retoma_automatica, punto 5)
+  if (u.reintento) {
+    l('\n## La urgencia anterior no se cerró: retómala');
+    l(`La que lanzó el Studio el ${new Date(u.reintento.lanzada).toLocaleString('es-CO')} no se cerró${u.reintento.registro ? ` (su registro: ${u.reintento.registro})` : ''}. Lo que dejó está hecho: termina solo lo que falta.`);
+    for (const x of lineasDeRetoma(elegido, plan, u.reintento.lanzada, leido.repo?.ruta, 'atiende lo urgente completo')) l(x);
+  }
   for (const n of urgentes) {
     const s = n.sobre;
     l(`\n## [${n.id}] ${n.quien}, ${n.cuando}, sobre ${s.tipo}${s.id ? ` ${s.id}` : ''}${s.seccion ? ` › ${s.seccion}` : ''}`);
@@ -674,6 +686,43 @@ function planDelUltimoCommit(proyecto: string): Partial<Plan> | null {
   }
 }
 
+/**
+ * Lo que dejó un lanzamiento que no se cerró (una revisión, una aclaración o una urgencia), lanzado en `desde`, para que
+ * el que lo retoma no lo rehaga: unidad por unidad contra el punto de control (pr_retoma_automatica, puntos 1 y 5), los
+ * commits del repositorio desde entonces y lo que quedó sin commit. `sinNada`: qué hacer si no dejó nada.
+ */
+function lineasDeRetoma(proyecto: string, plan: Plan, desde: string, repositorio: string | undefined, sinNada: string): string[] {
+  const l: string[] = [];
+  const dejo = loQueDejo(planEnDisco(proyecto) ?? plan, desde, planDelUltimoCommit(proyecto));
+  const lista = (titulo: string, ids: string[]) => {
+    if (ids.length) l.push(`- ${titulo} (no las reescribas): ${ids.join(', ')}`);
+  };
+  lista('Respuestas que ya escribió en el plan', dejo.respuestas);
+  lista('Veredictos de misiones que ya dio', dejo.revisiones);
+  lista('Misiones que ya escribió, cambió o comprobó', dejo.misiones);
+  lista('Propuestas que ya ejecutó', dejo.ejecutadas);
+  lista('Propuestas que ya escribió o cambió', dejo.propuestas);
+  lista('Pedidos que ya escribió o cambió', dejo.pedidos);
+  lista('Documentos que ya sumó al plan', dejo.documentos);
+  lista('Criterios que ya evaluó', dejo.evaluacion);
+  lista('Otras partes del plan que ya cambió (revísalas antes de reescribirlas)', dejo.partes);
+  const commits = commitsDesde(repositorio, desde);
+  if (commits.length) {
+    l.push(`- Commits del repositorio desde entonces (ese trabajo ya está hecho: compruébalo, no lo repitas):`);
+    for (const c of commits.slice(0, 20)) l.push(`  - ${c.hash} ${c.cuando.slice(0, 16)} ${c.asunto}`);
+    if (commits.length > 20) l.push(`  - … y ${commits.length - 20} más (git log --since=${desde})`);
+  }
+  const aMedias = sinCommit(repositorio);
+  if (aMedias.length) {
+    l.push(`- Cambios del repositorio sin commit (pueden ser trabajo suyo, hecho y sin guardar: compruébalos con sus pruebas y sus tipos y guárdalos en su commit, o di en la respuesta y en el mensaje por qué no; no los rehagas):`);
+    for (const c of aMedias.slice(0, 30)) l.push(`  - ${c.estado} · ${c.ruta}`);
+    if (aMedias.length > 30) l.push(`  - … y ${aMedias.length - 30} más (git status)`);
+  }
+  const enElPlan = [dejo.respuestas, dejo.revisiones, dejo.misiones, dejo.ejecutadas, dejo.propuestas, dejo.pedidos, dejo.documentos, dejo.evaluacion, dejo.partes].some((x) => x.length);
+  if (!enElPlan && !commits.length && !aMedias.length) l.push(`- No alcanzó a dejar nada en el plan ni en el repositorio: ${sinNada}.`);
+  return l;
+}
+
 /** El plan.json del disco, tal cual (sin lo archivado), para compararlo con el del último commit; null si no se lee. */
 function planEnDisco(proyecto: string): Plan | null {
   try {
@@ -768,38 +817,9 @@ linea(`Fase en curso: ${plan.fases.indexOf(fase)}. ${fase.nombre}. Última revis
 // (pr_retoma_automatica, punto 3)
 const reintento = local.revision?.proyecto === id && !local.revision.hecha ? (local.revision.reintento ?? reintentoDe(local.revision, id) ?? undefined) : undefined;
 if (reintento) {
-  // El punto de control: el plan del último commit de la memoria (el del cierre anterior), contra el del disco, los dos
-  // sin lo archivado (pr_retoma_automatica, punto 1)
-  const dejo = loQueDejo(planEnDisco(id) ?? plan, reintento.lanzada, planDelUltimoCommit(id));
-  const commitsDeEntonces = commitsDesde(repo?.ruta, reintento.lanzada);
   linea('\n## La revisión anterior no se cerró: retómala');
   linea(`La que lanzó el Studio el ${new Date(reintento.lanzada).toLocaleString('es-CO')} no se cerró (${reintento.que})${reintento.registro ? `; su registro: ${reintento.registro}` : ''}. Lo que esa revisión ya dejó está hecho y no se rehace: esta revisión solo termina lo que falta y cierra con --listo. Lo que está abajo como pendiente es lo que falta.`);
-  const lista = (titulo: string, ids: string[]) => {
-    if (ids.length) linea(`- ${titulo} (no las reescribas): ${ids.join(', ')}`);
-  };
-  lista('Respuestas que ya escribió en el plan', dejo.respuestas);
-  lista('Veredictos de misiones que ya dio', dejo.revisiones);
-  lista('Misiones que ya escribió, cambió o comprobó', dejo.misiones);
-  lista('Propuestas que ya ejecutó', dejo.ejecutadas);
-  lista('Propuestas que ya escribió o cambió', dejo.propuestas);
-  lista('Pedidos que ya escribió o cambió', dejo.pedidos);
-  lista('Documentos que ya sumó al plan', dejo.documentos);
-  lista('Criterios que ya evaluó', dejo.evaluacion);
-  lista('Otras partes del plan que ya cambió (revísalas antes de reescribirlas)', dejo.partes);
-  if (commitsDeEntonces.length) {
-    linea(`- Commits del repositorio desde entonces (ese trabajo ya está hecho: compruébalo, no lo repitas):`);
-    for (const c of commitsDeEntonces.slice(0, 20)) linea(`  - ${c.hash} ${c.cuando.slice(0, 16)} ${c.asunto}`);
-    if (commitsDeEntonces.length > 20) linea(`  - … y ${commitsDeEntonces.length - 20} más (git log --since=${reintento.lanzada})`);
-  }
-  const aMedias = sinCommit(repo?.ruta);
-  if (aMedias.length) {
-    linea(`- Cambios del repositorio sin commit (pueden ser trabajo suyo, hecho y sin guardar: compruébalos con sus pruebas y sus tipos y guárdalos en su commit, o di en la respuesta y en el mensaje por qué no; no los rehagas):`);
-    for (const c of aMedias.slice(0, 30)) linea(`  - ${c.estado} · ${c.ruta}`);
-    if (aMedias.length > 30) linea(`  - … y ${aMedias.length - 30} más (git status)`);
-  }
-  const enElPlan = [dejo.respuestas, dejo.revisiones, dejo.misiones, dejo.ejecutadas, dejo.propuestas, dejo.pedidos, dejo.documentos, dejo.evaluacion, dejo.partes].some((x) => x.length);
-  if (!enElPlan && !commitsDeEntonces.length && !aMedias.length)
-    linea('- No alcanzó a dejar nada en el plan ni en el repositorio: haz la revisión completa.');
+  for (const l of lineasDeRetoma(id, plan, reintento.lanzada, repo?.ruta, 'haz la revisión completa')) linea(l);
 }
 
 const errores = [...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)];

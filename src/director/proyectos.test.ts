@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { proyectoVacio, validarPlan, validarProyecto, type Integrante } from './director';
-import { abrirMemoria, prorrogarRevision, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, prorrogarRevision, retomarAparte, pedirAclaracion, marcarAclaracion, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -177,6 +177,32 @@ describe('la revisión pedida desde el Studio', () => {
     expect(r.lanzada ?? r.enCurso).toBeUndefined();
     await pedirRevision(raiz, 'rev', 'Laura', 'cabecera');
     expect((await leerLocal(raiz)).revision?.error).toBeUndefined();
+  });
+
+  it('una aclaración o una urgencia que no se cerró se retoma con su reporte y lo que dejó (pr_retoma_automatica, punto 5)', async () => {
+    const falla = { que: 'Se detuvo a mitad de camino', porque: 'x', duracion: 3, gasto: null, ultimos: [], usoFlujos: null, negados: [], sugerencia: 's', accion: 'pedir' as const, cuando: '2026-10-28T10:00:00.000Z', registro: '.revisiones/rev-aclaracion-x.log' };
+    // Sin una fallida, nada que retomar
+    expect(await retomarAparte(raiz, 'rev', 'aclaracion', 'Laura')).toBeNull();
+    const a = await pedirAclaracion(raiz, { proyecto: 'rev', mision: 't_a', paso: 1, nota: 'n1', quien: 'Ana' });
+    await marcarAclaracion(raiz, a.nota, 'lanzada');
+    const lanzada = (await leerLocal(raiz)).aclaracion!.lanzada!;
+    await marcarAclaracion(raiz, a.nota, { error: 'La aclaración no terminó.', falla });
+    expect((await leerLocal(raiz)).aclaracion).toMatchObject({ error: 'La aclaración no terminó.', falla });
+    // De otro proyecto, no
+    expect(await retomarAparte(raiz, 'otro', 'aclaracion', 'Laura')).toBeNull();
+    const otra = await retomarAparte(raiz, 'rev', 'aclaracion', 'Laura');
+    expect(otra).toMatchObject({ proyecto: 'rev', mision: 't_a', paso: 1, nota: 'n1', quien: 'Laura', reintento: { lanzada, registro: falla.registro } });
+    expect((await leerLocal(raiz)).aclaracion).not.toHaveProperty('error');
+    // Lo urgente, con las que esperaban en `luego`
+    const u = (await pedirUrgencia(raiz, { proyecto: 'rev', notas: ['u1'], quien: 'Ana' }))!;
+    await marcarUrgencia(raiz, u.pedida, 'lanzada');
+    await pedirUrgencia(raiz, { proyecto: 'rev', notas: ['u2'], quien: 'Ana' });
+    await marcarUrgencia(raiz, u.pedida, { error: 'La urgencia no terminó.' });
+    const retomada = await retomarAparte(raiz, 'rev', 'urgencia', 'Laura');
+    expect(retomada).toMatchObject({ notas: ['u1', 'u2'], quien: 'Laura', reintento: { lanzada: expect.any(String) } });
+    expect(urgenciaActiva((await leerLocal(raiz)).urgencia)).toBe(true);
+    // Atendida, para que no quede pedida en las pruebas que siguen
+    await marcarUrgencia(raiz, retomada!.pedida, 'hecha');
   });
 
   it('los minutos de más que recibe al llegar a su límite avanzando quedan en su límite, solo mientras está en marcha (pr_procesos_vista, punto 4)', async () => {

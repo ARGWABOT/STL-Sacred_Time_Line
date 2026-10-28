@@ -385,6 +385,16 @@ export interface AclaracionPedida {
   lanzada?: string;
   hecha?: string;
   error?: string;
+  /** Si no se pudo: el reporte de qué pasó, como el de una revisión (pr_retoma_automatica, punto 5). */
+  falla?: FallaRevision;
+  /** Pedida otra vez con «Retomarla» después de una que no se cerró: cuándo se lanzó esa y su registro. */
+  reintento?: RetomaAparte;
+}
+
+/** De dónde retoma una aclaración o una urgencia pedida otra vez con «Retomarla» (pr_retoma_automatica, punto 5). */
+export interface RetomaAparte {
+  lanzada: string;
+  registro?: string;
 }
 
 /**
@@ -404,6 +414,8 @@ export interface UrgenciaPedida {
   lanzada?: string;
   hecha?: string;
   error?: string;
+  falla?: FallaRevision;
+  reintento?: RetomaAparte;
 }
 
 const vacio = (): Local => ({ activo: null, repositorios: {} });
@@ -795,13 +807,37 @@ export async function pedirAclaracion(raiz: string, a: Pick<AclaracionPedida, 'p
 }
 
 /** La aclaración se lanzó, terminó (`hecha`) o falló (`error`): solo si es la de esa nota. */
-export async function marcarAclaracion(raiz: string, nota: string, paso: 'lanzada' | 'hecha' | { error: string }): Promise<void> {
+export async function marcarAclaracion(raiz: string, nota: string, paso: 'lanzada' | 'hecha' | { error: string; falla?: FallaRevision }): Promise<void> {
   await cambiarLocal(raiz, (l) => {
     const a = l.aclaracion;
     if (!a || a.nota !== nota || a.hecha || a.error) return undefined;
     const ahora = new Date().toISOString();
-    return { ...l, aclaracion: paso === 'lanzada' ? { ...a, lanzada: ahora } : paso === 'hecha' ? { ...a, hecha: ahora } : { ...a, error: paso.error } };
+    return { ...l, aclaracion: paso === 'lanzada' ? { ...a, lanzada: ahora } : paso === 'hecha' ? { ...a, hecha: ahora } : { ...a, error: paso.error, ...(paso.falla ? { falla: paso.falla } : {}) } };
   });
+}
+
+/**
+ * «Retomarla» de una aclaración o una urgencia que no se cerró (pr_retoma_automatica, punto 5): la misma, pedida otra vez a
+ * nombre de quien oprime el botón, con lo que esa dejó (`reintento`) para que la bandeja lo liste y no se rehaga. Una
+ * urgencia lleva también las que esperaban en `luego`. Devuelve la pedida, o null si no había una fallida de ese proyecto.
+ */
+export async function retomarAparte(raiz: string, proyecto: string, tipo: 'aclaracion' | 'urgencia', quien: string): Promise<AclaracionPedida | UrgenciaPedida | null> {
+  let nueva: AclaracionPedida | UrgenciaPedida | null = null;
+  await cambiarLocal(raiz, (l) => {
+    const x = tipo === 'aclaracion' ? l.aclaracion : l.urgencia;
+    if (!x || x.proyecto !== proyecto || !x.error || x.hecha) return undefined;
+    const reintento: RetomaAparte = x.reintento ?? { lanzada: x.lanzada ?? x.pedida, ...(x.falla?.registro ? { registro: x.falla.registro } : {}) };
+    const pedida = new Date().toISOString();
+    if (tipo === 'aclaracion') {
+      const a = x as AclaracionPedida;
+      nueva = { proyecto, mision: a.mision, paso: a.paso, nota: a.nota, quien, pedida, reintento };
+      return { ...l, aclaracion: nueva };
+    }
+    const u = x as UrgenciaPedida;
+    nueva = { proyecto, notas: [...new Set([...u.notas, ...(u.luego ?? [])])], quien, pedida, reintento };
+    return { ...l, urgencia: nueva };
+  });
+  return nueva;
 }
 
 /** Una urgencia en curso: pedida o lanzada, sin cerrar ni fallar. */
@@ -831,7 +867,7 @@ export async function pedirUrgencia(raiz: string, u: { proyecto: string; notas: 
  * La urgencia se lanzó, terminó (`hecha`) o falló (`error`). Al terminar, las que esperaban en `luego` quedan pedidas
  * para el lanzamiento siguiente.
  */
-export async function marcarUrgencia(raiz: string, pedida: string, paso: 'lanzada' | 'hecha' | { error: string }): Promise<void> {
+export async function marcarUrgencia(raiz: string, pedida: string, paso: 'lanzada' | 'hecha' | { error: string; falla?: FallaRevision }): Promise<void> {
   await cambiarLocal(raiz, (l) => {
     const u = l.urgencia;
     if (!u || u.pedida !== pedida || u.hecha || u.error) return undefined;
@@ -841,7 +877,7 @@ export async function marcarUrgencia(raiz: string, pedida: string, paso: 'lanzad
     const urgencia: UrgenciaPedida = paso === 'lanzada' ? { ...u, lanzada: ahora }
       : paso === 'hecha' && u.luego?.length ? { proyecto: u.proyecto, notas: u.luego, quien: u.quien, pedida: siguiente }
       : paso === 'hecha' ? { ...u, hecha: ahora }
-      : { ...u, error: paso.error };
+      : { ...u, error: paso.error, ...(paso.falla ? { falla: paso.falla } : {}) };
     return { ...l, urgencia };
   });
 }
