@@ -1,29 +1,17 @@
-# Contribuir a STL Studio
+# Contributing · Contribuir
 
-Gracias por el interés. STL Studio se desarrolla con su propia metodología: cada cambio responde a un objetivo y a una fase, y el núcleo se mantiene simple a propósito.
+## English
 
-## Antes de proponer un cambio
+STL Studio is changed only by its author: this project does not accept code changes from others (pull requests), and its official versions are published only by its author.
 
-- **Abre un issue primero** para cambios grandes o funciones nuevas: el Studio está enfocado en las funciones del director y cada sección nueva se evalúa antes de entrar.
-- **Los arreglos pequeños** (un error, un texto, un desborde de la interfaz) pueden ir directo en un pull request.
+**Bug reports are welcome.** If something fails, open an issue on GitHub with the bug report form: it asks for your system (Windows, Mac or Linux), the Studio version, what you did and what happened and, if a review failed, what «Qué pasó con la revisión» says.
 
-## Al hacer el cambio
+You can change your own copy as much as you like (the director can help you customize it): that copy is yours, under the [MIT](LICENSE) license.
 
-- La interfaz, los mensajes y la documentación van en **español**, claros y sin jerga innecesaria.
-- Escribe como el código de alrededor: los mismos nombres, la misma densidad de comentarios.
-- La lógica del método vive en `src/director/` y es pura (sin acceso a archivos): pruébala ahí.
-- Si cambias la interfaz, revísala en varios anchos (teléfono, panel angosto y pantalla ancha): nada debe salirse de su caja.
-- **Nunca subas datos de proyectos**: el repositorio del Studio solo tiene el núcleo.
+## Español
 
-## Antes de enviar
+STL Studio lo cambia solo su autor: este proyecto no acepta cambios de código de otros (pull requests), y sus versiones oficiales las publica solo él.
 
-```bash
-npm run typecheck
-npm test
-```
+**Los avisos de fallas, sí.** Si algo falla, abre un issue en GitHub con el formulario de fallas: pregunta tu sistema (Windows, Mac o Linux), la versión del Studio, qué hiciste y qué pasó y, si falló una revisión, lo que dice «Qué pasó con la revisión».
 
-Ambos deben pasar sin errores; la integración continua los corre en cada pull request.
-
-## Commits
-
-Un cambio por commit, con un mensaje en español que diga qué cambia y por qué.
+Tu propia copia la puedes cambiar cuanto quieras (el director te ayuda a personalizarla): esa copia es tuya, con la licencia [MIT](LICENSE).

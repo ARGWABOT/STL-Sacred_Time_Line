@@ -121,7 +121,7 @@ Cada persona clona el Studio, configura su identidad de git y entrega su propio 
 
 ## Contribuir
 
-Ver [CONTRIBUTING.md](CONTRIBUTING.md).
+STL Studio lo cambia solo su autor: no acepta cambios de código de otros (pull requests). Los avisos de fallas, sí: abre un issue con el formulario «Algo falla», que pregunta tu sistema, la versión del Studio, qué hiciste y qué pasó. Tu propia copia la puedes cambiar cuanto quieras. Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Créditos
 
