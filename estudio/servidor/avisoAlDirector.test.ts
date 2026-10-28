@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { avanzaba, avisoDetener, avisoLimite, avisoProrroga, cerrarLaEntrada, DETENER_TRAS_MIN, leerTurno, mensajeDeEntrada, minutosDelAviso, SOBRE_EL_AVISO } from './avisoAlDirector';
-import { diagnosticarFalla, encargo, encargoAclaracion, encargoUrgencia, finEscrito, leerDesde } from './revisor';
+import { diagnosticarFalla, encargo, encargoAclaracion, encargoUrgencia, finEscrito, leerDesde, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA } from './revisor';
 import { NOMBRE_FIN } from '../../src/director/finDeLanzamiento';
 
 const linea = (e: Record<string, unknown>) => JSON.stringify(e);
@@ -95,6 +95,16 @@ describe('el aviso al director que trabaja', () => {
     expect(diagnosticarFalla(registro, { ...f, detenida: 'Laura' })).toMatchObject({ que: 'La detuviste', accion: 'pedir' });
     expect(finEscrito(registro, { ...f, cerro: true, pidioCierre: 'Laura' })).toMatchObject({ quien: 'cierre', causa: 'Cerró con lo hecho cuando Laura se lo pidió con «Detener ahora».' });
     expect(finEscrito(registro, { ...f, cerro: true }).causa).toBe('Cerró con su cierre y terminó solo.');
+  });
+
+  it('la página dice los mismos minutos que el servidor: los de cerrar tras «Detener ahora», los de lo urgente y los de una aclaración', () => {
+    const pagina = readFileSync(new URL('../src/director.ts', import.meta.url), 'utf8');
+    expect(pagina).toContain(`const DETENER_TRAS_MIN = ${DETENER_TRAS_MIN};`);
+    expect(pagina).toContain(`const MIN_URGENCIA = ${MAX_MIN_URGENCIA};`);
+    expect(pagina).toContain(`const MIN_ACLARAR = ${MAX_MIN_ACLARAR};`);
+    // «Detener ahora» también en lo urgente y en el paso que se aclara, con lo que lleva de su límite
+    expect(pagina).toContain('seguimientoAparte(u.lanzada, MIN_URGENCIA)');
+    expect(pagina).toContain('MIN_ACLARAR)}<span class="puntos"');
   });
 
   it('el lanzador manda el encargo por la entrada en stream-json, deja la entrada abierta para el aviso y la cierra al terminar el turno', () => {

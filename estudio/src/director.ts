@@ -702,7 +702,7 @@ function pintarSegundoPlano() {
   const lineas = [
     ...(procesando ? [`<span class="sp-linea">Transcribiendo ${procesando === 1 ? 'tu audio' : `${procesando} audios`}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     // Lo urgente va solo y se distingue: el director lo atiende aparte, mientras sigues con lo tuyo
-    ...(u ? [`<span class="sp-linea alerta">${u.lanzada ? 'El director atiende lo urgente' : 'Lo urgente va al director'}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
+    ...(u ? [`<span class="sp-linea alerta">${u.lanzada ? `El director atiende lo urgente${seguimientoAparte(u.lanzada, MIN_URGENCIA)}` : 'Lo urgente va al director'}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
     // La revisión en marcha no va aquí: tapaba lo que se lee, también dentro de un diálogo, y la cabecera ya la dice. Va
     // en su atajo (rotularProgreso), en la columna de la derecha (nota de voz del titular nmvoottaitit, 25 de octubre)
     ...(r.estado === 'pedida' ? [`<span class="sp-linea" title="${esc(r.texto)}">Revisión pedida · ${hora(d.revision!.pedida)}${automatica() && (ocupado || esperaCandado()) ? ' · espera su turno' : ''}</span>`] : []),
@@ -2283,12 +2283,27 @@ function detenerAhora(): { boton: string; cerrando: string | null } {
   return { boton: `<button type="button" class="enlace" data-revision="detener" title="Le pide al director que cierre con lo hecho; si en ${DETENER_TRAS_MIN} minutos no cerró, el Studio lo corta">Detener ahora</button>`, cerrando: null };
 }
 
+/** Los límites de lo que el director hace aparte de la revisión (revisor.ts › MAX_MIN_URGENCIA y MAX_MIN_ACLARAR). */
+const MIN_URGENCIA = 30;
+const MIN_ACLARAR = 15;
+
+/**
+ * Lo urgente y una aclaración, también a la vista mientras corren (pr_procesos_vista, punto 3): cuánto lleva de su límite
+ * y «Detener ahora», o que cierra con lo hecho. Vacío si aún no se lanzó.
+ */
+function seguimientoAparte(lanzada: string | undefined, limite: number): string {
+  const t = tiempoDeRevision(lanzada ? { lanzada, limite } : null);
+  if (!t) return '';
+  const parar = detenerAhora();
+  return parar.cerrando ? ' · cierra con lo hecho' : ` · lleva ${t.lleva} min de ${t.limite}${parar.boton}`;
+}
+
 /** «Detener ahora», con su confirmación: lo que hace, lo que queda y lo que no. */
 async function detenerLaRevision(): Promise<void> {
   const seguidas = !!d.seguidas && !d.seguidas.paro;
   const si = await pedir({
     titulo: '¿Detener al director ahora?',
-    ayuda: `Le pido al director que cierre con lo hecho: que no empiece nada nuevo, guarde en sus commits lo que ya pasa sus pruebas, escriba lo que alcanzó y lo que no, y cierre la revisión. Lo verás en «¿Dónde quedamos?», como siempre. Si en ${DETENER_TRAS_MIN} minutos no cerró, el Studio lo corta: lo que alcanzó a guardar queda, y la revisión que pidas después termina solo lo que falte.${seguidas ? ' Las revisiones seguidas también paran.' : ''}`,
+    ayuda: `Le pido al director que cierre con lo hecho: que no empiece nada nuevo, guarde en sus commits lo que ya pasa sus pruebas, escriba lo que alcanzó y lo que no, y cierre. Lo verás en «¿Dónde quedamos?», como siempre. Si en ${DETENER_TRAS_MIN} minutos no cerró, el Studio lo corta: lo que alcanzó a guardar queda, y la revisión que pidas después termina solo lo que falte.${seguidas ? ' Las revisiones seguidas también paran.' : ''}`,
     campos: [],
     boton: 'Detenerlo',
     cancelar: 'Que siga trabajando',
@@ -2861,7 +2876,7 @@ function aclararPaso(m: Mision, i: number): string {
   const ultima = previas.at(-1);
   const respuesta = ultima ? d.plan.respuestas?.[ultima.id] : undefined;
   const dijo = respuesta ? `<p class="aclaracion-paso"><b>El director:</b> ${esc(respuesta.texto)}</p>` : '';
-  if (aclarando(m.id, i)) return `${dijo}<p class="aclarando-paso" role="status">El director lo está reescribiendo con más detalle<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></p>`;
+  if (aclarando(m.id, i)) return `${dijo}<p class="aclarando-paso" role="status">El director lo está reescribiendo con más detalle${seguimientoAparte(d.aclaracion?.mision === m.id && d.aclaracion.paso === i ? d.aclaracion.lanzada : undefined, MIN_ACLARAR)}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></p>`;
   if (ultima && !respuesta) return '<p class="aclarando-paso" role="status">Le pediste que te lo explique mejor: lo responde aquí mismo en su próxima revisión.</p>';
   return `${dijo}<button type="button" class="aclarar-paso" data-aclarar="${esc(m.id)}|${i}" title="El director reescribe este paso con más detalle, al instante">${previas.length ? 'Aún no lo entiendo, detállalo más' : 'No lo entiendo, explícamelo mejor'}</button>`;
 }
