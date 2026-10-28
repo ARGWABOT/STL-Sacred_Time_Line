@@ -50,6 +50,9 @@ function correr(programa: string, raiz: string, args: string[], op: Opciones = {
     const reloj = setTimeout(() => { err += '\n(tiempo agotado)'; hijo.kill(); }, op.ms ?? 60_000);
     hijo.on('error', (e) => { clearTimeout(reloj); resolve({ codigo: -1, out, err: String(e) }); });
     hijo.on('close', (codigo) => { clearTimeout(reloj); resolve({ codigo: codigo ?? -1, out, err }); });
+    // Si git ya terminó cuando le llega la entrada (en Linux, con la integración continua), escribirle da EPIPE: no es una
+    // falla de la orden, que ya dijo cómo salió en «close», y sin esto el error queda suelto y tumba al servidor o a las pruebas
+    hijo.stdin.on('error', () => undefined);
     hijo.stdin.end(op.entrada ?? '');
   });
 }

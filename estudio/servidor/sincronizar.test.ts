@@ -528,3 +528,12 @@ juntas('protección de origen: a GitHub solo sube lo que guardó el Studio', () 
 
   it.todo('un commit local sin el pie que cambió el mismo archivo no se presenta como un cambio de GitHub, y el aviso dice cómo salir (subir la rama o rehacer la decisión)');
 });
+
+describe('las órdenes de git del Studio', () => {
+  it('si git ya terminó cuando le llega la entrada, el EPIPE no queda suelto (tumbaba la integración continua el 28 de octubre de 2026)', () => {
+    const fuente = readFileSync(new URL('./sincronizar.ts', import.meta.url), 'utf8');
+    const escucha = fuente.indexOf("hijo.stdin.on('error', () => undefined);");
+    expect(escucha).toBeGreaterThan(0);
+    expect(escucha).toBeLessThan(fuente.indexOf("hijo.stdin.end(op.entrada ?? '');"));
+  });
+});
