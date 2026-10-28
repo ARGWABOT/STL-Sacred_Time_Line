@@ -21,7 +21,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { appendFile, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import type { Integrante, Proyecto, TipoProyecto, Tramo } from './director';
-import type { PlanDeClaude } from './costoDelPlan';
+import { esPlanDeClaude, type PlanDeClaude } from './costoDelPlan.ts';
 
 /** El prefijo de las rutas virtuales de los proyectos dentro del Estudio. */
 export const CARPETA = 'proyectos';
@@ -109,6 +109,11 @@ export interface Local {
   repositorios: Record<string, string>;
   /** La revisión pedida desde el Studio (botón «Pedir revisión»): la lanza el Studio o la toma la sesión del director. */
   revision?: RevisionPedida;
+  /**
+   * Lo que dejó una revisión que no se cerró y alguien canceló: la próxima que se pida de ese proyecto lo retoma igual
+   * (pedirRevision; propuesta aceptada pr_retoma_automatica, punto 3). Una revisión que cierra lo borra.
+   */
+  retoma?: Reintento & { proyecto: string };
   /** «No lo entiendo, explícamelo mejor» de un paso: la lanza el Studio aparte, sin el resto de la revisión. */
   aclaracion?: AclaracionPedida;
   /** Una nota urgente: la lanza el Studio sola y al instante, sin el resto de la revisión. */
@@ -439,6 +444,10 @@ const normal = (x: any): Local => ({
   ...(x?.ajustesPropios === false && Array.isArray(x?.ajustesConservados) ? { ajustesConservados: x.ajustesConservados.filter((c: unknown): c is string => typeof c === 'string') } : {}),
   ...(x?.ajustesPropios === false && Array.isArray(x?.ajustesVistos) ? { ajustesVistos: x.ajustesVistos.filter((c: unknown): c is string => typeof c === 'string') } : {}),
   ...(esModoPermisos(x?.modoPermisos) ? { modoPermisos: x.modoPermisos } : {}),
+  ...(esPlanDeClaude(x?.planDeClaude) ? { planDeClaude: x.planDeClaude } : {}),
+  ...(x?.retoma && typeof x.retoma.proyecto === 'string' && typeof x.retoma.lanzada === 'string' && typeof x.retoma.que === 'string'
+    ? { retoma: { proyecto: x.retoma.proyecto, lanzada: x.retoma.lanzada, que: x.retoma.que, ...(typeof x.retoma.registro === 'string' ? { registro: x.retoma.registro } : {}) } }
+    : {}),
 });
 
 /** Cada cuánto mira la sesión del director (/loop 5m /vigila), y desde cuándo se considera que nadie está mirando. */
@@ -716,15 +725,21 @@ export function reintentoDe(antes: RevisionPedida | undefined, proyecto: string)
 
 /**
  * Pide (o cancela, con `quien` null) la revisión del director para un proyecto. Si la anterior no se cerró, la nueva
- * lleva su `reintento`: retoma lo que esa dejó, sin rehacerlo.
+ * lleva su `reintento`: retoma lo que esa dejó, sin rehacerlo. Y la pista sobrevive a «Cancelar» (propuesta aceptada
+ * pr_retoma_automatica, punto 3): cancelar una que no se cerró la guarda aparte (`retoma`), y la próxima que se pida de
+ * ese proyecto la lleva igual; una revisión que cierra la borra, porque ya no hay nada que retomar.
  */
 export async function pedirRevision(raiz: string, proyecto: string, quien: string | null, origen?: OrigenRevision): Promise<RevisionPedida | null> {
   // Sin el botón que la nombra, no hay revisión: cancelarla (quien null) sí se puede siempre
   if (quien && !esOrigenRevision(origen)) throw new Error('Una revisión la pide solo una persona, con un botón que dice que la pide.');
-  const l = await cambiarLocal(raiz, (l) => {
-    const reintento = reintentoDe(l.revision, proyecto);
-    const revision: RevisionPedida | undefined = quien ? { proyecto, quien, pedida: new Date().toISOString(), ...(reintento ? { reintento } : {}), origen } : undefined;
-    return { ...l, revision };
+  const l = await cambiarLocal(raiz, ({ retoma, ...l }) => {
+    const guardada = retoma?.proyecto === proyecto && typeof retoma.lanzada === 'string' && typeof retoma.que === 'string' ? { lanzada: retoma.lanzada, que: retoma.que, ...(typeof retoma.registro === 'string' ? { registro: retoma.registro } : {}) } : null;
+    // Lo que retoma: la que no se cerró, la que se había pedido para retomarla (y se cancela antes de empezar) o la guardada
+    const deLaPedida = l.revision?.proyecto === proyecto && !l.revision.hecha ? (l.revision.reintento ?? null) : null;
+    const reintento = reintentoDe(l.revision, proyecto) ?? deLaPedida ?? guardada;
+    if (!quien) return { ...l, revision: undefined, ...(reintento ? { retoma: { proyecto, ...reintento } } : retoma && retoma.proyecto !== proyecto ? { retoma } : {}) };
+    const revision: RevisionPedida = { proyecto, quien, pedida: new Date().toISOString(), ...(reintento ? { reintento } : {}), origen };
+    return { ...l, revision, ...(retoma && retoma.proyecto !== proyecto ? { retoma } : {}) };
   });
   return l.revision ?? null;
 }
@@ -750,11 +765,13 @@ export async function marcarLanzada(raiz: string, proyecto: string, error?: stri
 
 /** La revisión pedida empieza (`en_curso`) o termina (`hecha`). Sin una pedida, `hecha` igual deja la fecha. */
 export async function marcarRevision(raiz: string, proyecto: string, paso: 'en_curso' | 'hecha'): Promise<void> {
-  await cambiarLocal(raiz, (l) => {
+  await cambiarLocal(raiz, ({ retoma, ...l }) => {
     const r = l.revision?.proyecto === proyecto ? l.revision : null;
     if (paso === 'en_curso' && (!r || r.hecha || r.enCurso)) return undefined;
     const ahora = new Date().toISOString();
-    return { ...l, revision: paso === 'en_curso' ? { ...r!, enCurso: ahora } : { ...(r ?? { proyecto, quien: '', pedida: ahora }), hecha: ahora } };
+    // Cerrada, no queda nada que retomar de ese proyecto (pedirRevision › retoma)
+    const sigue = retoma && !(paso === 'hecha' && retoma.proyecto === proyecto) ? { retoma } : {};
+    return { ...l, ...sigue, revision: paso === 'en_curso' ? { ...r!, enCurso: ahora } : { ...(r ?? { proyecto, quien: '', pedida: ahora }), hecha: ahora } };
   });
 }
 

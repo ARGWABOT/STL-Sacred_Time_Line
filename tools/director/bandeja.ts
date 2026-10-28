@@ -97,7 +97,7 @@ import { piezasPendientes, pistasSinAtender, puedeQueYaEsteHecho } from '../../s
 import { fechaDeCambio, igualQueEntonces, leerFresco, leerFrescosTexto } from '../../src/director/fresco.ts';
 import { lineasDelMapa, sinCommitDeGit } from '../../src/director/mapa.ts';
 import { aplicarParche } from '../../src/director/parche.ts';
-import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, reintentoDe, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { archivoDelCandado, MIN_CANDADO_SESION, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado.ts';
 import { audioBorrable, borrarSiTranscrito, comandoTranscripcion, limpiarTranscrito, quitarSiVacia, txtDeAudio } from '../../src/director/transcripcion.ts';
 import { bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, idsPorFase, separadorDeBandeja, VARIABLE_REGISTRO } from '../../src/director/paquete.ts';
@@ -742,7 +742,9 @@ linea(`Solo este proyecto. Su memoria está en su repositorio: ${memoria(id)} (r
 linea(`Fase en curso: ${plan.fases.indexOf(fase)}. ${fase.nombre}. Última revisión: ${desde || 'nunca'}.`);
 
 // ── Pedida de nuevo después de una que no se cerró: lo que esa dejó está hecho; esta solo termina lo que falta ──
-const reintento = local.revision?.proyecto === id && !local.revision.hecha ? local.revision.reintento : undefined;
+// También si la toma la sesión del director tal como quedó, sin pedirla de nuevo (/vigila): entonces se retoma a sí misma
+// (pr_retoma_automatica, punto 3)
+const reintento = local.revision?.proyecto === id && !local.revision.hecha ? (local.revision.reintento ?? reintentoDe(local.revision, id) ?? undefined) : undefined;
 if (reintento) {
   const dejo = loQueDejo(plan, reintento.lanzada);
   const commitsDeEntonces = commitsDesde(repo?.ruta, reintento.lanzada);

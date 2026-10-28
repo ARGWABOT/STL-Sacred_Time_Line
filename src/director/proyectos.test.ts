@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { proyectoVacio, validarPlan, validarProyecto, type Integrante } from './director';
-import { abrirMemoria, cambiarCorreoDelEquipo, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -191,6 +191,8 @@ describe('la revisión pedida desde el Studio', () => {
 
   it('pedida de nuevo después de una que no se cerró, retoma lo que esa dejó (reintento)', async () => {
     const falla = { que: 'Claude Code terminó sin cerrar la revisión', porque: '…', duracion: 9, gasto: null, ultimos: [], usoFlujos: null, negados: [], sugerencia: 'Pídela de nuevo.', accion: 'pedir' as const, cuando: '2026-10-21T21:21:07.000Z', registro: '.revisiones/rev-x.log' };
+    // Desde una que cerró: la de la prueba anterior quedó pedida para retomar su falla, y una pedida de nuevo la retomaría
+    await marcarRevision(raiz, 'rev', 'hecha');
     await pedirRevision(raiz, 'rev', 'Laura', 'cabecera');
     await marcarLanzada(raiz, 'rev');
     const lanzada = (await leerLocal(raiz)).revision!.lanzada!;
@@ -212,6 +214,43 @@ describe('la revisión pedida desde el Studio', () => {
     await pedirRevision(raiz, 'rev', 'Laura', 'cabecera');
     expect((await leerLocal(raiz)).revision?.reintento).toBeUndefined();
     expect(reintentoDe({ proyecto: 'otro', quien: 'x', pedida: lanzada, error: 'no' }, 'rev')).toBeNull();
+  });
+
+  it('tu plan de Claude se guarda en este computador y se lee igual; uno que no existe, no (pd_costo_plan)', async () => {
+    await guardarPlanDeClaude(raiz, 'max20');
+    expect((await leerLocal(raiz)).planDeClaude).toBe('max20');
+    await guardarPlanDeClaude(raiz, null);
+    expect((await leerLocal(raiz)).planDeClaude).toBeUndefined();
+    const archivo = join(raiz, 'estudio.local.json');
+    writeFileSync(archivo, JSON.stringify({ ...JSON.parse(readFileSync(archivo, 'utf8')), planDeClaude: 'gratis' }));
+    expect((await leerLocal(raiz)).planDeClaude).toBeUndefined();
+  });
+
+  it('la pista de la retoma sobrevive a «Cancelar»: la próxima que se pida la lleva, y una que cierra la borra (pr_retoma_automatica, punto 3)', async () => {
+    await pedirRevision(raiz, 'ret', 'Laura', 'cabecera');
+    await marcarLanzada(raiz, 'ret');
+    const lanzada = (await leerLocal(raiz)).revision!.lanzada!;
+    await marcarLanzada(raiz, 'ret', 'Se cortó.', { que: 'La revisión se cortó a los 60 minutos', porque: '…', duracion: 60, gasto: null, ultimos: [], usoFlujos: null, negados: [], sugerencia: 'Pídela de nuevo.', accion: 'pedir', cuando: lanzada, registro: '.revisiones/ret-x.log' });
+    // Cancelada la que no se cerró, su pista queda aparte
+    await pedirRevision(raiz, 'ret', null);
+    expect((await leerLocal(raiz)).revision).toBeUndefined();
+    expect((await leerLocal(raiz)).retoma).toEqual({ proyecto: 'ret', lanzada, que: 'La revisión se cortó a los 60 minutos', registro: '.revisiones/ret-x.log' });
+    // La de otro proyecto no la toma
+    await pedirRevision(raiz, 'otro', 'Laura', 'cabecera');
+    expect((await leerLocal(raiz)).revision?.reintento).toBeUndefined();
+    expect((await leerLocal(raiz)).retoma?.proyecto).toBe('ret');
+    await pedirRevision(raiz, 'otro', null);
+    // La próxima de ese proyecto la lleva, y la pista se usa una vez
+    await pedirRevision(raiz, 'ret', 'Laura', 'cabecera');
+    expect((await leerLocal(raiz)).revision?.reintento).toEqual({ lanzada, que: 'La revisión se cortó a los 60 minutos', registro: '.revisiones/ret-x.log' });
+    expect((await leerLocal(raiz)).retoma).toBeUndefined();
+    // Cancelada otra vez, vuelve a quedar; cerrada una revisión del proyecto, ya no hay nada que retomar
+    await pedirRevision(raiz, 'ret', null);
+    expect((await leerLocal(raiz)).retoma?.lanzada).toBe(lanzada);
+    await pedirRevision(raiz, 'ret', 'Laura', 'cabecera');
+    await marcarRevision(raiz, 'ret', 'hecha');
+    await pedirRevision(raiz, 'ret', null);
+    expect((await leerLocal(raiz)).retoma).toBeUndefined();
   });
 
   it('estudio.local.json se escribe de una vez y no se lee vacío por un instante', async () => {
