@@ -1,0 +1,456 @@
+/* La niebla de lectura (guiaLectura.ts): en la ventana del modo enfoque y en «¿Dónde quedamos?», con su atajo
+   encendido. Nubes de algodón sobre lo que falta por leer, y una miniatura del director que se arrastra por el texto (o
+   camina solo) y las va desvelando. */
+
+/* Debajo de las nubes, el texto por leer es transparente (si una nube no alcanza a dibujarse, igual no se lee) */
+::highlight(niebla-lectura) {
+  color: transparent;
+  text-shadow: 0 0 7px rgba(150, 140, 205, 0.55);
+}
+
+/* Cada bloque es su propia capa: sus nubes, el director y sus efectos quedan dentro de él y nunca encima de lo fijo de la
+   ventana (la franja de arriba y el título de la parte, que siguen a la vista al desplazar; nota de voz del titular, 24
+   de octubre: las nubes quedaban subidas sobre el título) */
+.gl-ancla {
+  position: relative;
+}
+
+.gl-ancla,
+.gl-bloque {
+  isolation: isolate;
+}
+
+/* Una línea de «¿Dónde quedamos?» que se toca se tacha y se rompe a la vista: sin niebla */
+.dq-item:is(.tachando, .leida) :is(.gl-guia, .gl-nube, .gl-efecto) {
+  display: none;
+}
+
+.dq-item:is(.tachando, .leida) ::highlight(niebla-lectura) {
+  color: inherit;
+  text-shadow: none;
+}
+
+/* Con el avance solo y el ratón quieto dos segundos, el puntero se esconde para no tapar lo que se lee, en todo el Studio
+   (guiaLectura.ts › esconderRaton; nota de voz del titular nmvn13enetit) */
+body.gl-sin-raton,
+body.gl-sin-raton * {
+  cursor: none !important;
+}
+
+/* Los controles de la niebla, arriba de la ventana de lectura (nota de voz del titular nmvmyoo09tit): la nube, que la
+   enciende o la apaga, solo en la ventana de lectura (la franja del enfoque y «¿Dónde quedamos?»), y a su lado el avance
+   solo, que solo se ve con la niebla puesta */
+.gl-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gl-niebla {
+  display: none;
+  min-height: 34px;
+  width: 34px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+html.enfoque-mision .mision-c.sigue.mia .gl-niebla,
+html.enfoque .lector .gl-niebla,
+dialog.donde-quedamos .gl-niebla {
+  display: inline-flex;
+}
+
+.gl-niebla.activo {
+  color: var(--acento-texto);
+  background: var(--acento-fondo);
+}
+
+.gl-niebla .icono {
+  width: 18px;
+  height: 18px;
+}
+
+/* El avance solo (▶ o ⏸ y su velocidad): junto a la nube, solo con la niebla puesta */
+.gl-auto {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+
+html.niebla-lectura .gl-auto {
+  display: inline-flex;
+}
+
+.gl-auto-play {
+  min-height: 34px;
+  width: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gl-auto-play[aria-pressed='true'] {
+  color: var(--acento-texto);
+  background: var(--acento-fondo);
+}
+
+.gl-auto-play .icono {
+  width: 16px;
+  height: 16px;
+}
+
+.gl-auto select {
+  min-height: 34px;
+  width: auto;
+  padding: 2px 24px 2px 8px;
+  font: inherit;
+  font-size: 13.5px;
+}
+
+/* Cada bloque deja al principio el lugar donde espera el director: en su primer miembro (un bloque puede juntar varios
+   párrafos o puntos cortos, guiaLectura.ts › GRUPO) */
+.gl-inicio {
+  padding-inline-start: 30px;
+}
+
+/* Los colores de las nubes: blanco y lavanda en el tema claro; nubes de noche en el oscuro */
+html {
+  --gl-nube-alta: #ffffff;
+  --gl-nube-baja: #ebe7fb;
+  --gl-nube-sombra: rgba(132, 118, 206, 0.28);
+  --gl-nube-panza: rgba(196, 186, 240, 0.6);
+}
+
+html.oscuro,
+.respuesta-dir {
+  --gl-nube-alta: #6d6893;
+  --gl-nube-baja: #514c74;
+  --gl-nube-sombra: rgba(0, 0, 0, 0.4);
+  --gl-nube-panza: rgba(36, 32, 60, 0.55);
+}
+
+/* Una nube por renglón: un cuerpo redondo con su borde de algodón arriba y abajo, que deriva despacio en dos capas a
+   distinto ritmo, como las nubes que cubren el mapa en los juegos de estrategia */
+.gl-nube {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--gl-nube-alta) 20%, var(--gl-nube-baja));
+  box-shadow: 0 3px 8px var(--gl-nube-sombra), inset 0 -3px 5px var(--gl-nube-panza), inset 0 2px 0 rgba(255, 255, 255, 0.7);
+  /* Su borde se corre con el director cuadro a cuadro (guiaLectura.ts › fijar): sin transición, que lo haría ir detrás */
+  transition: opacity 0.4s ease, transform 0.45s ease, filter 0.45s ease;
+  animation: gl-nace 0.35s ease-out;
+}
+
+.gl-nube::before,
+.gl-nube::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  pointer-events: none;
+}
+
+.gl-nube::before {
+  top: -7px;
+  height: 14px;
+  background: radial-gradient(circle at 50% 100%, var(--gl-nube-alta) 0 6.5px, transparent 7px) 0 0 / 16px 14px repeat-x;
+  animation: gl-deriva-a 9s linear infinite;
+  animation-delay: calc(var(--gl-desfase, 0) * -0.09s);
+}
+
+.gl-nube::after {
+  bottom: -5px;
+  height: 10px;
+  background: radial-gradient(circle at 50% 0%, var(--gl-nube-baja) 0 5px, transparent 5.5px) 0 0 / 13px 10px repeat-x;
+  animation: gl-deriva-b 14s linear infinite;
+  animation-delay: calc(var(--gl-desfase, 0) * -0.14s);
+}
+
+/* El renglón despejado entero: su nube se infla y se deshace */
+.gl-nube.gl-disipa {
+  opacity: 0;
+  transform: scale(1.12, 1.5) translateY(-4px);
+  filter: blur(4px);
+}
+
+/* El director en miniatura: espera antes del texto y camina sobre el borde de la niebla */
+.gl-guia {
+  position: absolute;
+  z-index: 3;
+  width: 22px;
+  height: 23px;
+  padding: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25));
+  /* Camina suave porque se mueve cuadro a cuadro (guiaLectura.ts › avanzar), no con una transición entre palabras */
+  transition: opacity 0.25s ease, visibility 0.25s;
+}
+
+/* Un solo director a la vista, donde está la mirada (guiaLectura.ts › mostrarActual): los demás esperan sin verse */
+.gl-guia.gl-otro {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gl-guia svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: gl-flotar 2.6s ease-in-out infinite;
+}
+
+.gl-guia .carcasa { fill: #f4f1ea; stroke: #d9d3c6; stroke-width: 3; }
+.gl-guia .visor { fill: #2b2826; }
+.gl-guia .brillo { fill: #fff; opacity: 0.9; }
+.gl-guia .luz { fill: none; stroke: #a8f4fb; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.gl-guia .rubor, .gl-guia .lengua { fill: #ff8aa3; stroke: none; }
+
+.gl-guia:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Caminando, se balancea; al cambiar de renglón da un saltito que se ve */
+.gl-guia.gl-arrastrando {
+  cursor: grabbing;
+}
+
+.gl-guia.gl-anda svg {
+  animation: gl-andar 0.32s ease-in-out infinite;
+}
+
+/* El cambio de renglón dura lo que su arco (guiaLectura.ts › MS_CAMBIO): se agacha al despegar del final del renglón y
+   se inclina en el aire; la altura del arco la pone su camino, no esta animación */
+.gl-guia.gl-salta svg {
+  animation: gl-salto 1s ease-in-out;
+}
+
+/* Despejado el bloque entero, celebra: un brinco con vuelta */
+.gl-guia.gl-celebra svg {
+  animation: gl-celebra 0.9s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+/* Se tocó una línea de «¿Dónde quedamos?» aún nublada: el director brinca para decir que se destapa con él */
+.gl-guia.gl-llama svg {
+  animation: gl-llama 0.8s ease-out;
+}
+
+@keyframes gl-llama {
+  0%, 100% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-7px) scale(1.25); }
+  50% { transform: translateY(0) scale(1); }
+  70% { transform: translateY(-3px) scale(1.12); }
+}
+
+.gl-guia.gl-fin .carcasa {
+  stroke: #f2c14e;
+}
+
+/* Lo que dice el director de la niebla, en un globito encima de él (guiaLectura.ts › globo): por qué no se avanza aún, o
+   que la voz se está preparando. Va en la capa de arriba (popover) y fijo a la ventana, para que ningún contenedor lo
+   corte cerca del borde; guiaLectura.ts › ubicarGlobo lo pone y lo mantiene dentro de la ventana */
+.gl-globo {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  border: 0;
+  overflow: visible;
+  z-index: 2147483000;
+  max-width: min(260px, calc(100 * var(--vw) - 16px));
+  width: max-content;
+  height: auto;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #2b2826;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: gl-globo 0.25s ease-out;
+}
+
+.gl-globo[hidden] {
+  display: none;
+}
+
+.gl-globo::after {
+  content: '';
+  position: absolute;
+  left: var(--flecha, 50%);
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.gl-globo.gl-globo-abajo::after {
+  bottom: auto;
+  top: -5px;
+}
+
+@keyframes gl-globo {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+/* La voz se está preparando: el altavoz late hasta que suena */
+.gl-voz.gl-preparando {
+  animation: gl-preparando 1s ease-in-out infinite;
+}
+
+@keyframes gl-preparando {
+  50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-globo, .gl-voz.gl-preparando { animation: none; }
+}
+
+/* Los efectos: el soplo de nube de cada palabra, los brillitos, y la celebración */
+.gl-efecto {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.gl-soplo {
+  width: 22px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--gl-nube-alta), var(--gl-nube-baja) 60%, transparent);
+  box-shadow: 9px -3px 0 -2px var(--gl-nube-alta), -8px -2px 0 -3px var(--gl-nube-baja);
+  animation: gl-soplo 0.75s ease-out forwards;
+}
+
+.gl-chispa {
+  font-size: 11px;
+  line-height: 1;
+  color: #f2c14e;
+  text-shadow: 0 0 4px rgba(242, 193, 78, 0.8);
+  animation: gl-chispa 0.8s ease-out forwards;
+}
+
+.gl-estrella {
+  font-size: 13px;
+  line-height: 1;
+  animation: gl-estrella 1s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+.gl-color-0 { color: #f2c14e; text-shadow: 0 0 5px rgba(242, 193, 78, 0.8); }
+.gl-color-1 { color: #ff8aa3; text-shadow: 0 0 5px rgba(255, 138, 163, 0.8); }
+.gl-color-2 { color: #7fd8e8; text-shadow: 0 0 5px rgba(127, 216, 232, 0.8); }
+.gl-color-3 { color: #b9a4f5; text-shadow: 0 0 5px rgba(185, 164, 245, 0.8); }
+
+.gl-anillo {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #f2c14e;
+  animation: gl-anillo 0.7s ease-out forwards;
+}
+
+/* Un brillo recorre el párrafo despejado, de izquierda a derecha */
+.gl-barrido {
+  z-index: 1;
+  border-radius: 8px;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 240, 190, 0.55) 50%, transparent 70%) -100% 0 / 200% 100% no-repeat;
+  animation: gl-barrido 0.9s ease-out forwards;
+}
+
+@keyframes gl-nace {
+  from { opacity: 0; transform: scale(0.9); }
+}
+
+@keyframes gl-deriva-a {
+  from { background-position-x: 0; }
+  to { background-position-x: 160px; }
+}
+
+@keyframes gl-deriva-b {
+  from { background-position-x: 0; }
+  to { background-position-x: -130px; }
+}
+
+@keyframes gl-flotar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+
+@keyframes gl-andar {
+  0%, 100% { transform: rotate(-8deg) scale(1.1); }
+  50% { transform: rotate(8deg) translateY(-2px) scale(1.1); }
+}
+
+@keyframes gl-salto {
+  0% { transform: scale(1.1); }
+  18% { transform: scale(1.14, 0.94); }
+  55% { transform: scale(1.12) rotate(-10deg); }
+  100% { transform: scale(1.1); }
+}
+
+@keyframes gl-celebra {
+  0% { transform: translateY(0) rotate(0) scale(1); }
+  40% { transform: translateY(-12px) rotate(200deg) scale(1.35); }
+  100% { transform: translateY(0) rotate(360deg) scale(1); }
+}
+
+@keyframes gl-soplo {
+  from { opacity: 0.95; transform: translate(-50%, -50%) scale(0.5); }
+  to { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), -150%) scale(1.6); filter: blur(2px); }
+}
+
+@keyframes gl-chispa {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(0); }
+  40% { opacity: 1; transform: translate(-50%, -90%) scale(1.2) rotate(45deg); }
+  100% { opacity: 0; transform: translate(-50%, -140%) scale(0.6) rotate(90deg); }
+}
+
+@keyframes gl-estrella {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.4); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1) rotate(30deg); }
+}
+
+@keyframes gl-anillo {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(4.5); }
+}
+
+@keyframes gl-barrido {
+  from { background-position-x: -100%; }
+  to { background-position-x: 200%; }
+}
+
+/* Con «menos movimiento» en el sistema, el director sigue caminando a su ritmo, sin balanceo ni efectos */
+@media (prefers-reduced-motion: reduce) {
+  .gl-nube,
+  .gl-nube::before,
+  .gl-nube::after,
+  .gl-guia svg,
+  .gl-guia.gl-anda svg,
+  .gl-guia.gl-salta svg,
+  .gl-guia.gl-celebra svg {
+    animation: none;
+  }
+}
+
+@media print {
+  .gl-guia,
+  .gl-nube,
+  .gl-efecto {
+    display: none;
+  }
+}

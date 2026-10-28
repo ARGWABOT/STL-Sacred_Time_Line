@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>STL Studio · Director asistente</title>
+    <link rel="stylesheet" href="./estudio/src/estilos.css" />
+    <link rel="stylesheet" href="./estudio/src/director.css" />
+    <!-- El tema y la barra plegada, antes de pintar: sin un destello claro al abrir en oscuro -->
+    <script>
+      try {
+        const h = document.documentElement;
+        if ((localStorage.getItem('estudio.tema') ?? localStorage.getItem('estudio.lector.tema')) === 'oscuro') h.classList.add('oscuro');
+        if (localStorage.getItem('estudio.lateral') === 'plegada') h.classList.add('lateral-plegada');
+      } catch {}
+    </script>
+    <!-- La cubierta de carga, aquí y no en los estilos: se ve desde el primer instante, nunca el Studio a medio cargar -->
+    <style>
+      .cubierta-carga { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; background: #f7f3ea; color: #3b3a36; transition: opacity .35s ease; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      html.oscuro .cubierta-carga { background: #16161a; color: #e9e4d6; }
+      .cubierta-carga[hidden] { display: none; }
+      .cubierta-carga.saliendo { opacity: 0; pointer-events: none; }
+      .cubierta-centro { display: grid; justify-items: center; gap: 18px; padding: 24px; text-align: center; }
+      .cubierta-logo { font-weight: 800; letter-spacing: .12em; font-size: 22px; padding: 10px 16px; border-radius: 14px; background: #2a2926; color: #f5d27a; }
+      html.oscuro .cubierta-logo { background: #f5d27a; color: #16161a; }
+      .cubierta-linea { position: relative; width: min(260px, 60vw); height: 14px; }
+      .cubierta-linea::before { content: ''; position: absolute; left: 0; right: 0; top: 6px; height: 2px; border-radius: 2px; background: currentColor; opacity: .18; }
+      .cubierta-linea i { position: absolute; top: 2px; left: 0; width: 10px; height: 10px; border-radius: 50%; background: #d9a92e; box-shadow: 0 0 10px #f5d27a; animation: cubierta-paso 2.4s cubic-bezier(.45, 0, .25, 1) infinite; }
+      .cubierta-linea i:nth-child(2) { animation-delay: .8s; }
+      .cubierta-linea i:nth-child(3) { animation-delay: 1.6s; }
+      @keyframes cubierta-paso { 0% { left: 0; opacity: 0; transform: scale(.6); } 15% { opacity: 1; transform: scale(1); } 85% { opacity: 1; transform: scale(1); } 100% { left: calc(100% - 10px); opacity: 0; transform: scale(.6); } }
+      .cubierta-texto { margin: 0; font-size: 15px; opacity: .8; min-height: 1.4em; }
+      .cubierta-ya { font: inherit; font-size: 14px; font-weight: 600; padding: 6px 18px; border-radius: 999px; border: 1px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+      .cubierta-ya[hidden] { display: none; }
+      @media (prefers-reduced-motion: reduce) { .cubierta-linea i { animation: none; } .cubierta-linea i:nth-child(1) { left: 0; } .cubierta-linea i:nth-child(2) { left: calc(50% - 5px); } .cubierta-linea i:nth-child(3) { left: calc(100% - 10px); } .cubierta-carga { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="cubierta-carga" id="cubierta-carga" role="status" aria-live="polite">
+      <div class="cubierta-centro">
+        <span class="cubierta-logo" aria-hidden="true">STL</span>
+        <div class="cubierta-linea" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="cubierta-texto" id="cubierta-texto">Abriendo el Studio…</p>
+        <button type="button" class="cubierta-ya" hidden>Actualizar ya</button>
+      </div>
+    </div>
+    <div class="app">
+      <!-- La barra lateral: el proyecto activo, sus secciones (las pinta director.ts) y quién usa el Studio -->
+      <aside class="lateral" id="lateral" aria-label="El Studio">
+        <div class="marca">
+          <span class="logo" aria-hidden="true">STL</span>
+          <span class="nombre-marca"><b>STL Studio</b><small>Director asistente</small></span>
+          <button type="button" class="cerrar-menu" id="cerrar-menu" aria-label="Cerrar el menú">✕</button>
+          <button type="button" class="plegar-lateral" id="plegar-lateral" title="Plegar el menú: más espacio para lo que haces" aria-label="Plegar el menú" aria-controls="lateral"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15M15.5 10l-2 2 2 2"/></svg></button>
+        </div>
+        <div class="selector-proyecto" id="selector-proyecto" hidden>
+          <button type="button" id="proyecto-activo" class="boton-proyecto" aria-haspopup="true" aria-expanded="false" aria-controls="menu-proyectos"></button>
+          <div class="menu-proyectos" id="menu-proyectos" hidden></div>
+        </div>
+        <nav class="navegacion" id="navegacion" aria-label="Las secciones del proyecto"></nav>
+        <div class="pie-lateral">
+          <!-- Modelo y consumo es de este computador, no de un proyecto: por eso va aquí y no entre sus secciones -->
+          <button type="button" class="item-nav item-pie" id="ir-modelo" data-vista="modelo"><span>Modelo y consumo</span></button>
+          <div class="identidad" id="identidad"><span id="quien" class="insignia quien">…</span></div>
+          <div class="fila-pie">
+            <button type="button" id="sincronizacion" class="insignia sync">↻ …</button>
+          </div>
+          <!-- La versión pública de «Qué es STL», en GitHub Pages: la que se comparte (tools/publicar-stl.ts la publica) -->
+          <a class="enlace-stl" href="https://argwabot.github.io/STL-Sacred_Time_Line/" target="_blank" rel="noopener" title="Abre en una pestaña nueva la página pública, la que puedes compartir">Qué es STL Studio <span aria-hidden="true">↗</span></a>
+        </div>
+      </aside>
+      <div class="velo-menu" id="velo-menu" hidden></div>
+      <div class="principal">
+        <button type="button" class="desplegar-lateral" id="desplegar-lateral" title="Ver el menú" aria-label="Ver el menú" aria-controls="lateral"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15M13.5 10l2 2-2 2"/></svg></button>
+        <header class="barra-movil">
+          <button type="button" id="abrir-menu" aria-controls="lateral" aria-expanded="false">☰ Menú</button>
+          <b id="titulo-movil">STL Studio</b>
+        </header>
+        <header class="cabeza-proyecto" id="mando" aria-live="polite"></header>
+        <main class="tablero" id="vista"></main>
+      </div>
+    </div>
+    <!-- Junto a la cara del director: una pregunta (se acumula en tu lote) o un comentario (va al Buzón), sin salir de lo que haces -->
+    <div class="segundo-plano" id="segundo-plano" role="status" aria-live="polite" hidden></div>
+    <!-- Mientras el director revisa: lo que va haciendo, en vivo (se abre con el atajo de información) -->
+    <section class="progreso-director" id="progreso-director" aria-live="polite" aria-label="Lo que va haciendo el director" hidden></section>
+    <div class="atajos-director" id="atajos-director">
+      <button type="button" class="atajo" data-progreso data-etiqueta="Qué está haciendo" title="Ver en vivo lo que va haciendo el director" aria-label="Ver lo que va haciendo el director" hidden><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6h.01"/></svg></button>
+      <!-- El modo enfoque, como el botón de arriba y solo donde aplica (director.ts › aplicarEnfoque). La revisión se pide arriba, en la cabecera: aquí, junto a «Comentario» y «Preguntas», un clic de más la lanzaba -->
+      <button type="button" class="atajo" data-enfoque data-etiqueta="Modo enfoque" title="Solo lo de ahora a la vista, sin nada alrededor" aria-label="Modo enfoque" aria-pressed="false" hidden><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+      <!-- La niebla de lectura, un adicional del modo enfoque: solo se ve con el enfoque puesto (director.ts › aplicarEnfoque; guiaLectura.ts) -->
+      <button type="button" class="atajo" data-niebla data-etiqueta="Niebla de lectura" title="Niebla de lectura: el texto queda bajo niebla y lo vas desvelando con el director" aria-label="Niebla de lectura" aria-pressed="false" hidden><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17.5h10.5a3.5 3.5 0 0 0 .4-7A5 5 0 0 0 8.3 9 4.3 4.3 0 0 0 7 17.5z"/><path d="M4 20.5h9M16 20.5h4"/></svg></button>
+      <button type="button" class="atajo" data-preguntas data-etiqueta="Preguntas" title="Preguntas: acumúlalas y envíalas juntas" aria-label="Preguntas para el director"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.6c0 1.7-2.5 2.2-2.5 3.9"/><path d="M12 17.2h.01"/></svg></button>
+      <button type="button" class="atajo" data-escribir data-etiqueta="Comentario" title="Un comentario o una idea para el director" aria-label="Un comentario para el director"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg></button>
+    </div>
+    <div class="aviso-flotante" id="error" role="status" aria-live="polite" hidden></div>
+    <dialog id="dialogo" class="dialogo-director"></dialog>
+    <script type="module" src="./estudio/src/director.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipo · El mundo de STL en 3D</title>
+<meta name="description" content="Prototipo: la animación de la línea del proyecto como portada y, al bajar, un recorrido en 3D por la misma línea, parada por parada, por lo que es STL.">
+<!-- Prototipo del director (STL Studio, 22 de octubre de 2026), pedido por el titular tras analizar el video de midudev
+     sobre landings «scroll world» (docs/difusion/aprendido-video-scroll-world.md, camino B). Arriba, la animación de
+     siempre, intacta, en su marco; al bajar, la misma línea se vuelve un mundo en 3D (Three.js, mundo-3d.js) y la cámara
+     la recorre con el scroll, parada por parada. El texto de cada parada es HTML: se lee sin JavaScript, sin WebGL y con
+     movimiento reducido, y es lo que leen los buscadores y los modelos. Aún no se publica: es para revisarlo. -->
+<style>
+  :root {
+    color-scheme: dark;
+    --oro: #f5d27a; --luz: #fff6d8; --morado: #b9a3ff; --verde: #6fe3a1; --cian: #5ad1ff; --tenue: #9aa3b8;
+  }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: #07090f; color: #e9e6dc; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  a { color: var(--oro); }
+  .saltar { position: absolute; left: 12px; top: -60px; z-index: 10; padding: 8px 14px; border-radius: 999px; background: var(--oro); color: #1a1f33; font-weight: 600; }
+  .saltar:focus { top: 12px; }
+
+  /* La portada: la animación de siempre, en su marco, y debajo la invitación a bajar */
+  .portada { height: 100vh; height: 100svh; display: flex; flex-direction: column; background: radial-gradient(ellipse at 50% 42%, #141a2e 0%, #07090f 72%); }
+  .portada iframe { flex: 1; width: 100%; border: 0; display: block; }
+  .bajar {
+    flex: none; display: flex; align-items: center; justify-content: center; gap: 10px; height: 56px;
+    color: var(--luz); text-decoration: none; font-size: 15px; letter-spacing: .02em;
+  }
+  .bajar span { display: inline-block; animation: latido 2.4s ease-in-out infinite; color: var(--oro); }
+  @keyframes latido { 50% { transform: translateY(4px); } }
+  @media (prefers-reduced-motion: reduce) { .bajar span { animation: none; } }
+
+  /* El recorrido: el mundo queda fijo atrás mientras las paradas pasan por delante */
+  .viaje { position: relative; }
+  .escenario { display: none; }
+  .js-3d .escenario { display: block; position: sticky; top: 0; height: 100vh; height: 100lvh; overflow: hidden; }
+  .escenario canvas { width: 100%; height: 100%; display: block; }
+  .js-3d .paradas { position: relative; z-index: 1; margin-top: -100vh; margin-top: -100lvh; }
+  .intro-viaje { display: none; }
+  .js-3d .intro-viaje { display: flex; height: 100vh; align-items: flex-end; justify-content: center; padding-bottom: 14vh; box-sizing: border-box; }
+  .intro-viaje p { margin: 0; padding: 10px 20px; border-radius: 999px; background: rgba(8, 11, 20, .7); color: var(--luz); font-size: 15px; }
+
+  .parada { padding: 6vh clamp(16px, 5vw, 64px); display: flex; }
+  .js-3d .parada { min-height: 190vh; align-items: flex-end; padding-top: 0; padding-bottom: 0; }
+  .js-3d .parada:nth-of-type(even) { justify-content: flex-end; }
+  .tarjeta {
+    max-width: 540px; box-sizing: border-box; padding: 22px 26px; border-radius: 18px;
+    background: rgba(8, 11, 20, .8); border: 1px solid rgba(245, 210, 122, .22);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .js-3d .tarjeta { position: sticky; bottom: 7vh; margin-bottom: 7vh; opacity: .18; transform: translateY(14px); transition: opacity .5s, transform .5s cubic-bezier(.2, .7, .2, 1); }
+  .js-3d .parada.actual .tarjeta { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .js-3d .tarjeta { transition: opacity .2s; transform: none; } }
+  .num { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-right: 10px; border-radius: 50%; background: var(--oro); color: #1a1f33; font-size: 13px; font-weight: 700; vertical-align: 3px; }
+  .eyebrow { margin: 0 0 4px; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--oro); }
+  .tarjeta h2 { margin: 0 0 10px; font-size: clamp(22px, 2.6vw, 30px); line-height: 1.2; color: #fffaf0; text-wrap: balance; }
+  .tarjeta p { margin: 0 0 10px; color: #d9d5ca; }
+  .tarjeta ul, .tarjeta ol { margin: 4px 0 12px; padding-left: 20px; color: #d9d5ca; }
+  .tarjeta li { margin: 3px 0; }
+  .tarjeta li b { color: #fffaf0; }
+  .mas { font-size: 14.5px; font-weight: 600; text-decoration: none; }
+  .mas:hover { text-decoration: underline; }
+  .botones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .boton { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; font-weight: 600; text-decoration: none; }
+  .boton.primero { background: var(--verde); color: #08281a; }
+  .boton.segundo { border: 1px solid rgba(245, 210, 122, .5); color: var(--luz); }
+
+  /* Los hitos: dónde va el recorrido, y un clic para saltar a una parada */
+  .hitos { display: none; }
+  .js-3d .hitos { display: flex; position: fixed; right: 16px; top: 50%; transform: translateY(-50%); z-index: 5; flex-direction: column; gap: 10px; opacity: 0; pointer-events: none; transition: opacity .4s; }
+  .js-3d .hitos.visibles { opacity: 1; pointer-events: auto; }
+  .hitos a { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(245, 210, 122, .6); background: transparent; }
+  .hitos a.actual { background: var(--oro); border-color: var(--oro); }
+  .hitos a:focus-visible { outline: 2px solid var(--luz); outline-offset: 3px; }
+
+  .fin { padding: 10vh clamp(16px, 5vw, 64px) 8vh; text-align: center; border-top: 1px solid rgba(245, 210, 122, .15); background: #07090f; position: relative; z-index: 2; }
+  .fin p { color: var(--tenue); font-size: 14px; }
+
+  /* ?ver=N: una sola parada, fija y sin desplazarse (para revisarla o mostrarla) */
+  .ver-parada .portada, .ver-parada .intro-viaje, .ver-parada .fin, .ver-parada .saltar { display: none !important; }
+  .ver-parada .escenario { position: fixed; inset: 0; height: 100vh; }
+  .ver-parada .paradas { position: fixed; inset: 0; margin: 0; pointer-events: none; }
+  .ver-parada .parada { display: none; }
+  .ver-parada .parada.actual { display: flex; min-height: 100vh; box-sizing: border-box; padding-bottom: 7vh; }
+  .ver-parada .parada.actual .tarjeta { position: static; margin: 0; opacity: 1; transform: none; pointer-events: auto; }
+
+  @media (max-width: 700px) {
+    .js-3d .parada, .js-3d .parada:nth-of-type(even) { justify-content: center; }
+    .tarjeta { padding: 18px 18px; }
+    .js-3d .tarjeta { opacity: 0; }
+    .hitos { right: 8px; }
+  }
+</style>
+</head>
+<body>
+<a class="saltar" href="#fin">Saltar el recorrido</a>
+
+<header class="portada">
+  <iframe src="linea-del-proyecto.html" loading="lazy" title="¿Qué es STL?: la animación de la línea del proyecto, sin STL y con STL"></iframe>
+  <a class="bajar" href="#viaje">Recorre el mundo de STL <span aria-hidden="true">↓</span></a>
+</header>
+
+<main id="viaje" class="viaje">
+  <div class="escenario" aria-hidden="true"><canvas id="mundo"></canvas></div>
+  <div class="paradas">
+    <div class="intro-viaje"><p>La misma línea, ahora por dentro. Sigue bajando.</p></div>
+
+    <article class="parada" id="p-problema">
+      <div class="tarjeta">
+        <p class="eyebrow">El problema</p>
+        <h2><span class="num">1</span>Con IA, todo se ejecuta al instante, también lo que no debía</h2>
+        <p>Cada idea se vuelve código en minutos, y el modelo te sigue sin cuestionar: cada prompt abre una rama, y el proyecto se bifurca más rápido que nunca.</p>
+        <p><b>El límite ya no es cuánto produce el modelo: es cuánta atención le queda a quien lo dirige.</b></p>
+        <a class="mas" href="https://argwabot.github.io/STL-Sacred_Time_Line/">Leer la parada completa →</a>
+      </div>
+    </article>
+
+    <article class="parada" id="p-funciona">
+      <div class="tarjeta">
+        <p class="eyebrow">Cómo funciona</p>
+        <h2><span class="num">2</span>Cada idea, en su lugar de la línea</h2>
+        <p>Lo que se te ocurre no va directo al modelo: el <b>Studio</b> lo detiene, y el <b>director</b> lo pone en su lugar de la línea, contra tu meta. La línea nunca vuelve atrás.</p>
+        <ol>
+          <li><b>Entregas tu proyecto</b>: su carpeta, o qué es y qué quieres lograr.</li>
+          <li><b>El director lo diagnostica</b>: qué está listo, qué falta, qué riesgos ve.</li>
+          <li><b>Fijas tu meta</b>, y cómo se sabe que llegaste.</li>
+          <li><b>El director traza la ruta</b>: fases con puertas y tu primera misión.</li>
+        </ol>
+        <a class="mas" href="https://argwabot.github.io/STL-Sacred_Time_Line/">Leer la parada completa →</a>
+      </div>
+    </article>
+
+    <article class="parada" id="p-novedad">
+      <div class="tarjeta">
+        <p class="eyebrow">Lo nuevo</p>
+        <h2><span class="num">3</span>Tú, solo en el paso que sigue; lo demás, en su lugar</h2>
+        <p>Sigues alimentando el proyecto con todo lo que se te ocurra, y te quedas solo en el paso que sigue: una misión a la vez. Lo demás espera guardado en el Studio, sin perderse.</p>
+        <p><b>STL no orquesta solo al modelo: orquesta tu uso del modelo.</b></p>
+        <a class="mas" href="https://argwabot.github.io/STL-Sacred_Time_Line/">Leer la parada completa →</a>
+      </div>
+    </article>
+
+    <article class="parada" id="p-principios">
+      <div class="tarjeta">
+        <p class="eyebrow">Los principios</p>
+        <h2><span class="num">4</span>Los ocho principios, en el flujo</h2>
+        <ol>
+          <li>Un solo director, una sola memoria</li>
+          <li>Piensa, corrige y luego envía</li>
+          <li>Se comenta el párrafo exacto</li>
+          <li>Siempre hacia adelante</li>
+          <li>Una ruta con puertas</li>
+          <li>Una misión a la vez</li>
+          <li>El director propone, tú decides</li>
+          <li>Avanzar se siente bien</li>
+        </ol>
+        <a class="mas" href="https://argwabot.github.io/STL-Sacred_Time_Line/">Leer la parada completa →</a>
+      </div>
+    </article>
+
+    <article class="parada" id="p-cuando-no">
+      <div class="tarjeta">
+        <p class="eyebrow">Cuándo no aplica</p>
+        <h2><span class="num">5</span>La línea se apoya en tres bases</h2>
+        <p>STL sirve para cualquier proyecto que dure más de una sesión. Solo no aplica cuando falta una de sus bases:</p>
+        <ul>
+          <li><b>Un proyecto</b>: una tarea suelta no tiene línea que cuidar.</li>
+          <li><b>Alguien que decide</b>: fija la meta y tiene la última palabra.</li>
+          <li><b>Un repositorio</b>: donde vive la memoria del proyecto.</li>
+        </ul>
+        <a class="mas" href="https://argwabot.github.io/STL-Sacred_Time_Line/">Leer la parada completa →</a>
+      </div>
+    </article>
+
+    <article class="parada" id="p-empieza">
+      <div class="tarjeta">
+        <p class="eyebrow">Empieza</p>
+        <h2><span class="num">6</span>De cero a tu primera misión</h2>
+        <p>Bajas STL Studio, lo abres con tu agente de código y le dices «Inicializa STL Studio». Entregas tu proyecto, recibes su diagnóstico, fijas tu meta y el director te da tu primera misión.</p>
+        <div class="botones">
+          <a class="boton primero" href="https://github.com/ARGWABOT/STL-Sacred_Time_Line">▶ Bájalo en GitHub</a>
+          <a class="boton segundo" href="https://argwabot.github.io/STL-Sacred_Time_Line/">La metodología completa</a>
+        </div>
+      </div>
+    </article>
+  </div>
+</main>
+
+<nav class="hitos" aria-label="Las paradas del recorrido">
+  <a href="#p-problema" aria-label="1. El problema"></a>
+  <a href="#p-funciona" aria-label="2. Cómo funciona"></a>
+  <a href="#p-novedad" aria-label="3. Lo nuevo"></a>
+  <a href="#p-principios" aria-label="4. Los principios"></a>
+  <a href="#p-cuando-no" aria-label="5. Cuándo no aplica"></a>
+  <a href="#p-empieza" aria-label="6. Empieza"></a>
+</nav>
+
+<footer class="fin" id="fin">
+  <p>Prototipo del recorrido en 3D de «¿Qué es STL?». Metodología creada por ARGWABOT (A Regular Guy With A Bunch Of Tokens).</p>
+  <p><a href="https://argwabot.github.io/STL-Sacred_Time_Line/">La metodología completa</a></p>
+</footer>
+
+<script type="module" src="./mundo-3d.js"></script>
+</body>
+</html>

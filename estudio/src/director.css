@@ -1,0 +1,1538 @@
+/* Las secciones del Director asistente: Hoy, el Buzón, los documentos, la ruta con sus puertas, las propuestas, el
+   diagnóstico, el proyecto, el seguimiento y los diálogos de entregar proyectos.
+   Las variables, los controles y el armazón están en estilos.css. */
+:root {
+  --foco: #1d5a3a;
+  --foco-fondo: #e3f0e9;
+  --apoyo: #0c447c;
+  --apoyo-fondo: #e6f1fb;
+  --espera: #7a4a06;
+  --espera-fondo: #faeeda;
+  /* el dorado de los logros, también como texto: 4,5:1 sobre el blanco y sobre el verde claro (antes #b7860b: 3:1) */
+  --oro: #8a6a00;
+  /* El resalte de lo que se señala (.resaltado): un fondo del tema, nunca claro bajo un texto claro */
+  --resalte-fondo: #fff6d8;
+  --latido-fondo: #f8d4d4;
+  /* el reparto del esfuerzo (Seguimiento): iguales en los dos temas, con su cifra en blanco */
+  --barra-foco: #2f7d50;
+  --barra-apoyo: #3f6db0;
+  --barra-espera: #9c5e0a;
+  --barra-otros: #736f66;
+}
+/* Las mismas, en el tema oscuro: los textos claros sobre fondos oscuros tintados (cada pareja llega a 4,5:1; se
+   comprueba en estilos.test.ts). Antes no había: el foco, el apoyo y la espera quedaban en tinta oscura sobre el
+   panel oscuro, y el resalte, claro bajo el texto claro */
+html.oscuro {
+  --foco: #8fd3a8;
+  --foco-fondo: #1c3326;
+  --apoyo: #a9c4f2;
+  --apoyo-fondo: #1e2a40;
+  --espera: #f0cf98;
+  --espera-fondo: #33281a;
+  --oro: #e0b445;
+  --resalte-fondo: #332c16;
+  --latido-fondo: #4a2623;
+}
+
+/* ── Piezas comunes ── */
+.tablero .intro { margin: 0 0 18px; max-width: var(--lectura); font-size: 15px; color: var(--suave); line-height: 1.6; }
+/* una palabra, una ruta o un código largo se corta: nunca empuja su caja */
+.tablero, .dialogo-director, .lateral { overflow-wrap: break-word; }
+.tablero code, .dialogo-director code { overflow-wrap: anywhere; }
+.tablero h2 { font-size: 20px; margin: 0 0 6px; }
+.tablero h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); margin: 28px 0 10px; }
+.tablero h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.tablero h4 { margin: 12px 0 2px; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); }
+.tablero h4 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.panel-d { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); padding: 18px 20px; box-shadow: var(--sombra); }
+.panel-d + .panel-d { margin-top: 16px; }
+.panel-d > h3:first-child { margin-top: 0; }
+.dos-columnas { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 20px; align-items: start; }
+.chip.foco { background: var(--foco-fondo); color: var(--foco); }
+.chip.apoyo { background: var(--apoyo-fondo); color: var(--apoyo); }
+.chip.espera { background: var(--espera-fondo); color: var(--espera); }
+.texto-fase { font-size: 15px; line-height: 1.6; margin: 8px 0 0; max-width: var(--lectura); }
+.por-que { font-size: 14px; color: var(--suave); line-height: 1.6; margin: 10px 0 0; border-left: 3px solid var(--borde); padding-left: 12px; max-width: var(--lectura); }
+.monograma { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-weight: 700; font-size: 18px; background: var(--acento-fondo); color: var(--acento-texto); }
+.monograma.director { background: var(--tinta); color: #f6e7b4; }
+.vacio-m { font-size: 15px; color: var(--suave); margin: 4px 0; padding: 18px 20px; border: 1px dashed var(--borde-fuerte); border-radius: var(--radio-g); background: var(--panel-suave); }
+/* La cola, plegada debajo de la misión de ahora: se lee para comprobar la reserva, no compite con la misión */
+.cola-m { margin: 12px 0; }
+.cola-m > summary { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; cursor: pointer; }
+.cola-m > summary h4 { margin: 0; font-size: 14px; color: var(--suave); }
+.reserva-m { font-size: 12px; color: var(--suave); }
+.cola-lista { margin: 10px 0 4px; padding-left: 22px; display: grid; gap: 8px; }
+.cola-lista li b { display: block; font-size: 14px; font-weight: 600; }
+.cola-lista li small { display: block; font-size: 13px; color: var(--suave); line-height: 1.5; max-width: var(--lectura); }
+.cola-lista.espera li b { color: var(--suave); }
+/* La cola del director, aparte de las misiones de la persona (colaDirector.ts): otra cola, que se mueve en equipo con la suya */
+.cola-director { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--borde-fuerte); }
+.cola-dir-resto > summary { cursor: pointer; font-size: 13px; color: var(--suave); margin-left: 22px; }
+
+/* Las tarjetas en cuadrícula no se ensanchan por un contenido largo (una ruta, una tabla, un audio) */
+.mision-c, .columna-persona, .tarjeta-proyecto, .nota-d, .lista-validaciones li, .candidato, .objetivo-firmado, .redactar { grid-template-columns: minmax(0, 1fr); }
+
+/* Llevar de la mano: cada paso con su botón; lo que se abre, se resalta */
+.ir-paso {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 3px 12px; margin: 2px 0; vertical-align: baseline;
+  font-size: 13px; font-weight: 600; border-radius: 999px; border: 1px solid var(--acento-borde); background: var(--acento-fondo); color: var(--acento-texto); white-space: nowrap;
+  max-width: 100%;
+}
+/* donde no cabe en una línea, se parte en dos en vez de salirse */
+.ir-paso { white-space: normal; text-align: left; }
+.ir-paso:hover { background: #d8e7f8; border-color: #9cc0ea; }
+/* El botón del paso de ahora, mientras no se abre: lo principal del paso, lleno y latiendo (sus opciones esperan) */
+.ir-paso.principal { min-height: 36px; padding: 6px 18px; font-size: 14.5px; background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); animation: latido 2.4s ease-in-out infinite; }
+.ir-paso.principal:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
+@media (prefers-reduced-motion: reduce) { .ir-paso.principal { animation: none; } }
+.desmarcar-paso { margin-left: 8px; font-size: 13px; }
+/* 4,6 s: unos tres segundos encendido y después se apaga (antes 2,6 s; el titular pidió dos más, 21 de octubre) */
+/* El fondo sale del tema (--resalte-fondo): en oscuro, un dorado oscuro bajo el texto claro, que se lee en todo momento
+   del efecto (antes era #fff6d8 en los dos temas y, en oscuro, el texto no se leía hasta que se apagaba). El anillo
+   dorado va por fuera de la caja y no tapa nada */
+.resaltado { animation: resalte 4.6s ease-out; border-radius: 10px; }
+@keyframes resalte { 0%, 60% { box-shadow: 0 0 0 4px rgba(242, 184, 40, 0.85); background-color: var(--resalte-fondo); } 100% { box-shadow: 0 0 0 0 rgba(242, 184, 40, 0); } }
+@media (prefers-reduced-motion: reduce) { .resaltado { animation: none; outline: 3px solid #f2b828; } }
+
+/* Todo lo que va al Buzón del director lleva el mismo sobre dorado */
+button.al-director { background: var(--sobre); border-color: var(--sobre-borde); color: var(--sobre-texto); }
+button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
+.al-director-chip { display: inline-block; font-size: 13px; padding: 0 9px; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); white-space: nowrap; }
+
+/* ── Hoy: el director, lo último, lo que sigue y la misión de ahora ── */
+.cabeza-director { display: flex; gap: 14px; align-items: flex-start; }
+.cabeza-director .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
+.hoy-columnas { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+.hoy-columnas .trabajo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+.hoy-columnas .ficha { position: sticky; top: 16px; }
+.equipo-misiones { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 18px; align-items: start; }
+.filtro-equipo { margin: 0 0 12px; padding: 8px 14px; font-size: 14px; background: var(--aviso-fondo); color: var(--aviso-texto); border-radius: var(--radio); list-style: none; }
+
+/* La ficha de cada persona */
+.columna-persona { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; box-shadow: var(--sombra); }
+.columna-persona.yo { border-color: var(--acento-borde); }
+.cabeza-persona { display: flex; gap: 12px; align-items: center; }
+.cabeza-persona .quien-p { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; min-width: 0; }
+.cabeza-persona .quien-p b { font-size: 17px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cabeza-persona .quien-p span { font-size: 13px; color: var(--suave); line-height: 1.4; }
+.nivel-p { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; font-size: 14px; }
+.fila-nivel { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.fila-nivel small { font-size: 12.5px; color: var(--suave); }
+.barra-xp { height: 8px; border-radius: 4px; background: #e6e2d8; overflow: hidden; }
+.barra-xp > div { height: 100%; background: linear-gradient(90deg, var(--ok), #6aa84f); }
+.notas-p { display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--suave); line-height: 1.4; }
+.nota-letra { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; font-weight: 800; font-size: 15px; background: #e9e6dd; color: var(--suave); }
+.nota-letra.A { background: #d9eecf; color: #27500a; }
+.nota-letra.B { background: #e3f0e9; color: #1d5a3a; }
+.nota-letra.C { background: #faeeda; color: #7a4a06; }
+.nota-letra.D { background: #f6dcc2; color: #7a3a06; }
+.nota-letra.F { background: #fcdcdc; color: #791f1f; }
+.boletin-p { margin: 0; font-size: 13.5px; color: var(--suave); background: var(--fondo); border-radius: var(--radio); padding: 8px 10px; line-height: 1.5; }
+.registro-m { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; font-size: 14px; }
+.registro-m li { display: flex; align-items: center; gap: 8px; color: var(--suave); }
+.registro-m li.bloqueada { padding: 4px 6px; font-size: 13px; }
+.registro-m .enlace-m { width: 100%; justify-content: flex-start; gap: 8px; min-height: 34px; padding: 4px 6px; border: 0; background: none; text-align: left; font-size: 14px; border-radius: 6px; }
+.registro-m .enlace-m:hover { background: var(--fondo); }
+/* en una fila flexible, el texto largo se recorta con puntos suspensivos: nunca empuja la fila fuera de su tarjeta */
+.registro-m li, .registro-m .enlace-m { min-width: 0; }
+.registro-m .titulo-m { flex: 1; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; }
+.registro-m .enlace-m { align-items: flex-start; padding-block: 6px; }
+.registro-m .enlace-m small { padding-top: 2px; }
+.registro-m .enlace-m small { flex: none; font-size: 12px; color: var(--tenue); white-space: nowrap; }
+.registro-m li.aprobada .titulo-m { color: var(--suave); text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, 0.25); }
+.icono-m { flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 700; background: #e9e6dd; color: var(--suave); }
+.icono-m.aprobada { background: var(--ok); color: var(--texto-en-color); }
+.icono-m.entregada { background: #faeeda; color: #7a4a06; }
+.icono-m.rehacer { background: #fcdcdc; color: #791f1f; }
+.icono-m.en_curso { background: #5b86c5; color: #fff; }
+.icono-m.pendiente { background: var(--acento-fondo); color: var(--acento-texto); }
+
+/* Las misiones: la de ahora completa, las demás en cola */
+.mision-c { border: 1px solid var(--borde); border-left: 4px solid #b9b5aa; border-radius: var(--radio-g); padding: 16px 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; background: var(--panel); font-size: 15px; box-shadow: var(--sombra); }
+.mision-c header { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.mision-c header b { flex: 1; min-width: 12em; font-size: 18px; line-height: 1.3; }
+.mision-c .xp { flex: none; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #f6e7b4; color: #6b4f00; }
+.mision-c .porque { margin: 0; color: var(--suave); line-height: 1.6; max-width: var(--lectura); }
+.mision-c .pasos { margin: 0; padding-left: 4px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; list-style: none; counter-reset: paso; }
+.mision-c .pasos li { counter-increment: paso; display: block; position: relative; padding: 8px 10px 8px 40px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid #efece5; line-height: 1.55; }
+.mision-c .pasos li::before { content: counter(paso); position: absolute; left: 10px; top: 9px; width: 22px; height: 22px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-size: 12px; font-weight: 700; background: var(--acento-fondo); color: var(--acento-texto); }
+.mision-c .pasos li.con-marca::before { display: none; }
+.mision-c .pasos li > span { margin-right: 6px; }
+.mision-c .pasos li.hecho { background: var(--ok-fondo); border-color: #d6e8c8; }
+.mision-c .pasos li.hecho > span { color: var(--suave); text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, 0.3); }
+/* Arriba de un documento que una misión pide leer: cómo se termina (cada parte con su estrella), o que ya quedó leído */
+.leido-doc { flex: 1 1 420px; display: flex; gap: 8px; align-items: center; margin: 0; padding: 10px 14px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 14px; line-height: 1.5; }
+.leido-doc .icono { flex: none; width: 18px; height: 18px; }
+.leido-doc.hecho { background: var(--ok-fondo); color: var(--ok); font-weight: 600; }
+/* Lo ya marcado baja a «Completado», plegado: la tarjeta muestra solo lo que falta */
+.pasos-completados > summary { cursor: pointer; width: fit-content; margin: 2px 0 6px; font-size: 14px; font-weight: 600; color: var(--ok); }
+.pasos-completados > summary .cifra { margin-left: 4px; }
+/* Cada paso se marca con «Listo, ya lo hice», abajo a la derecha de su caja (pedido del titular: la estrella no se entendía) */
+.mision-c .pasos li.con-marca { padding: 10px 14px; }
+.pie-paso { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.pie-paso:empty { display: none; }
+.listo-paso { margin: 10px 0 0 auto; display: inline-flex; gap: 6px; align-items: center; min-height: 36px; padding: 4px 18px; border-radius: 999px; background: var(--ok-fondo); border: 1px solid var(--ok); color: var(--ok-texto); font-size: 14px; font-weight: 600; cursor: pointer; }
+.listo-paso .icono { width: 16px; height: 16px; }
+.listo-paso:hover { background: var(--ok); color: var(--texto-en-color); }
+.listo-paso:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
+.comentar-paso { min-height: 24px; margin-left: 4px; padding: 0 8px; font-size: 12px; line-height: 20px; border-radius: 999px; background: var(--sobre); border-color: var(--sobre-borde); color: var(--sobre-texto); opacity: 0.6; vertical-align: baseline; }
+.mision-c .pasos li:hover .comentar-paso, .comentar-paso:focus-visible { opacity: 1; }
+/* El paso explicado en acciones más pequeñas, y «No lo entiendo, explícamelo mejor» debajo, discreto */
+.mision-c .pasos .detalle-paso { margin: 8px 0 0; padding-left: 22px; list-style: decimal; font-size: 14px; line-height: 1.55; }
+.mision-c .pasos .detalle-paso li { counter-increment: none; margin: 2px 0; padding: 0; background: none; border: 0; border-radius: 0; }
+.mision-c .pasos .detalle-paso li::before { display: none; }
+.aclarar-paso { display: block; margin-top: 8px; min-height: 28px; padding: 2px 10px; font-size: 13px; border-radius: 999px; background: transparent; border: 1px dashed var(--borde); color: var(--suave); }
+.aclarar-paso:hover, .aclarar-paso:focus-visible { border-style: solid; color: inherit; }
+.aclaracion-paso { margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 14px; line-height: 1.5; white-space: pre-line; }
+.aclarando-paso { margin: 8px 0 0; font-size: 13px; color: var(--suave); }
+/* Mientras el director revisa, lo único de un paso que espera es «No lo entiendo»: marcar, elegir, «Hazlo tú» y «Ya lo
+   hice» se ven y se usan como siempre, y quedan para la revisión siguiente (nota del titular, 21 de octubre de 2026) */
+body.director-trabajando .aclarar-paso { opacity: 0.45; cursor: not-allowed; }
+/* Un paso que pide elegir: las opciones como botones, en el paso mismo (un clic responde y marca el paso) */
+.opciones-paso { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.opciones-paso .boton-opcion { min-height: 36px; padding: 6px 18px; border-radius: 999px; background: var(--panel); border: 1px solid var(--tinta); color: var(--texto); font-weight: 600; }
+.opciones-paso .boton-opcion:hover, .opciones-paso .boton-opcion:focus-visible { background: var(--tinta); color: #f6e7b4; }
+/* «Ya te lo dije en mi comentario»: otra salida, más discreta que las opciones del director (pedido del titular) */
+.opciones-paso .boton-opcion.ya-lo-dije { border-style: dashed; color: var(--suave); font-weight: 500; }
+.opciones-paso .boton-opcion.ya-lo-dije:hover, .opciones-paso .boton-opcion.ya-lo-dije:focus-visible { color: #f6e7b4; }
+.opciones-paso.en-espera .boton-opcion.ya-lo-dije:hover { color: var(--suave); }
+/* Un paso con `varias`: cada opción se marca (con su ✓) y «Listo» las entrega juntas (nota de voz del titular nmvoi1e0etit) */
+.opciones-paso .pista-varias { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--suave); }
+.opciones-paso.varias .boton-opcion[data-marcar-opcion] { display: inline-flex; gap: 6px; align-items: center; }
+.opciones-paso.varias .boton-opcion[data-marcar-opcion] .icono { width: 15px; height: 15px; display: none; }
+.opciones-paso.varias .boton-opcion[aria-pressed="true"] { background: var(--tinta); color: #f6e7b4; }
+.opciones-paso.varias .boton-opcion[aria-pressed="true"] .icono { display: inline-block; }
+.opciones-paso .boton-opcion.listo-varias { border-color: var(--acento); border-style: dashed; }
+.opciones-paso .boton-opcion.listo-varias:not(:disabled) { border-style: solid; background: var(--acento); color: var(--texto-en-color); }
+.opciones-paso .boton-opcion.listo-varias:not(:disabled):hover, .opciones-paso .boton-opcion.listo-varias:not(:disabled):focus-visible { background: var(--acento-oscuro); border-color: var(--acento-oscuro); color: var(--texto-en-color); }
+.opciones-paso .boton-opcion.listo-varias:disabled { opacity: .55; cursor: not-allowed; }
+.opciones-paso .boton-opcion.listo-varias:disabled:hover { background: var(--panel); color: var(--texto); }
+.eleccion-paso { display: flex; gap: 5px; align-items: center; margin: 8px 0 0; font-size: 14px; color: var(--ok); }
+.eleccion-paso .icono { width: 16px; height: 16px; }
+/* Un paso que pide esperar antes de responder: la cuenta regresiva, y las opciones bloqueadas hasta que llegue a cero */
+.espera-paso { display: flex; gap: 6px; align-items: center; margin: 10px 0 0; font-size: 14px; color: var(--suave); }
+.espera-paso .icono { width: 16px; height: 16px; flex: none; }
+.espera-paso .cifra { font-variant-numeric: tabular-nums; color: var(--texto); }
+.espera-paso.lista { color: var(--ok); font-weight: 600; }
+/* La cuenta, grande: lo que espera no se ve hasta que llega a cero (pedido del titular) */
+.espera-paso.grande { gap: 12px; padding: 10px 14px; border-radius: var(--radio); background: var(--acento-fondo); color: var(--texto); line-height: 1.45; }
+.espera-paso.grande .icono { width: 26px; height: 26px; }
+.espera-paso.grande .cifra { flex: none; font-size: 30px; font-weight: 700; line-height: 1; }
+/* Lo que la espera retenía aparece resaltado: es lo que sigue */
+.recien-libre { outline: 3px solid var(--ok); outline-offset: 3px; border-radius: 999px; }
+.opciones-paso.recien-libre { border-radius: var(--radio); }
+.opciones-paso.en-espera .boton-opcion { opacity: .5; cursor: not-allowed; }
+.opciones-paso.en-espera .boton-opcion:hover { background: var(--panel); color: var(--texto); }
+/* «Hazlo tú»: el director puede hacer el paso con tu permiso; si solo puedes tú, el paso lo dice */
+.hazlo-paso { display: inline-block; margin-top: 10px; min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-weight: 600; }
+.hazlo-paso:hover, .hazlo-paso:focus-visible { background: #45443f; border-color: #45443f; color: #f6e7b4; }
+.solo-tu { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--suave); }
+.solo-tu .icono { flex: none; width: 16px; height: 16px; margin-top: 1px; }
+/* La orden de terminal de un paso: a la vista, con «Abrir la terminal» y «Copiar» */
+.orden-paso { margin-top: 10px; }
+.orden-paso code { display: block; padding: 8px 10px; border-radius: 8px; background: var(--tinta); color: #f6e7b4; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+.acciones-orden { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.abrir-terminal { min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--tinta); border: 1px solid var(--tinta); color: #f6e7b4; font-weight: 600; }
+.abrir-terminal:hover, .abrir-terminal:focus-visible { background: #45443f; border-color: #45443f; color: #f6e7b4; }
+/* «Ya lo hice»: marca el paso (y, si tiene cómo, el Studio comprueba antes que la orden salió bien) */
+.boton-ya-hice { min-height: 34px; padding: 4px 16px; border-radius: 999px; background: var(--ok-fondo); border: 1px solid var(--ok); color: var(--ok-texto); font-weight: 600; }
+.boton-ya-hice .icono { width: 16px; height: 16px; }
+.boton-ya-hice:hover, .boton-ya-hice:focus-visible { background: var(--ok); border-color: var(--ok); color: var(--texto-en-color); }
+/* Un botón que hace esperar lo dice en él mismo, hasta que termina */
+button.esperando { cursor: progress; opacity: 0.75; }
+button.esperando::after { content: ''; display: inline-block; width: 0.8em; height: 0.8em; margin-left: 6px; vertical-align: -0.1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: girar 0.8s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { button.esperando::after { animation: none; border-right-color: currentColor; opacity: 0.5; } }
+.pasos-listos { margin: 0; font-size: 14px; color: var(--ok); }
+.mision-c .entrega { margin: 0; padding: 10px 12px; border-radius: var(--radio); background: var(--fondo); line-height: 1.55; }
+.mision-c .acciones-m, .mision-c .docs-m { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.mision-c .acciones-m button.primario { min-height: 40px; padding: 8px 22px; }
+/* «Continuar misión» y «Continuar en modo enfoque», a la derecha: cuando lo que sigue es leer o decidir en un documento */
+.mision-c .continuar-m { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.mision-c .continuar-m button { min-height: 40px; display: inline-flex; gap: 6px; align-items: center; }
+.mision-c .continuar-m .icono { width: 17px; height: 17px; }
+.mision-c.pendiente { border-left-color: var(--acento); }
+.mision-c.en_curso { border-left-color: #5b86c5; }
+.mision-c.entregada { border-left-color: var(--aviso); }
+.mision-c.aprobada { border-left-color: var(--ok); }
+.mision-c.rehacer { border-left-color: var(--peligro); }
+.mision-c.bloqueada { opacity: 0.6; filter: grayscale(0.6); }
+.mision-c.compacta { padding: 10px 14px; gap: 6px; box-shadow: none; }
+.mision-c.compacta header b { font-size: 15px; }
+.mision-c.plegada { gap: 8px; }
+.mision-c.sigue { border-color: var(--acento-borde); border-left-color: var(--acento); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.1), var(--sombra); }
+.mision-c .num-m { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; font-weight: 700; background: var(--acento); color: var(--texto-en-color); }
+.sigue-esta { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--texto-en-color); background: var(--acento); padding: 3px 12px; border-radius: 999px; }
+.mision-c .estado-texto { margin: 0; font-size: 14px; color: var(--espera); line-height: 1.5; }
+.mision-c .nota-entrega { margin: 0; font-size: 14px; font-style: italic; }
+.mision-c.cola { padding: 10px 14px; background: var(--panel-suave); border-left-color: #cfccc3; box-shadow: none; }
+.mision-c.cola summary { display: flex; gap: 10px; align-items: center; cursor: pointer; list-style: none; min-height: 28px; }
+.mision-c.cola summary::-webkit-details-marker { display: none; }
+.mision-c.cola summary b { flex: 1; font-size: 15px; font-weight: 600; color: var(--suave); }
+.mision-c.cola[open] { background: #fff; }
+.mision-c.cola[open] summary b { color: var(--texto); }
+.chip.estado-m.entregada { background: #faeeda; color: #7a4a06; }
+.chip.estado-m.aprobada { background: #d9eecf; color: #27500a; }
+.chip.estado-m.rehacer { background: #fcdcdc; color: #791f1f; }
+.chip.estado-m.en_curso, .chip.estado-m.pendiente { background: var(--acento-fondo); color: var(--acento-texto); }
+.veredicto { margin: 0; padding: 8px 12px; border-radius: var(--radio); font-size: 14px; line-height: 1.5; }
+.veredicto.aprobada { background: #eef7e8; color: #27500a; }
+.veredicto.rehacer { background: #fcebeb; color: #791f1f; }
+.entregada-m { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; background: var(--fondo); border-radius: var(--radio); padding: 8px 12px; }
+.entregada-m p { margin: 0; }
+details.hechas { margin-top: 4px; }
+details.hechas > summary { cursor: pointer; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); padding: 6px 0; }
+details.hechas[open] > summary { margin-bottom: 8px; }
+details.hechas .mision-c + .mision-c { margin-top: 8px; }
+audio { display: block; width: 100%; max-width: 420px; height: 36px; }
+/* Una nota de voz: primero lo que se dijo, después el audio */
+.nota-voz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.transcripcion { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 0; font-size: 15px; line-height: 1.55; color: var(--texto); }
+.transcripcion > span { flex: 1 1 14em; min-width: 0; }
+.transcripcion .icono-t { width: 16px; height: 16px; color: var(--suave); align-self: center; }
+.transcripcion button.enlace { font-size: 13px; }
+.transcripcion.pendiente { font-size: 13.5px; color: var(--suave); }
+/* Mientras se transcribe: una palabra y tres puntos que respiran, en voz baja, sin empujar lo de al lado */
+.transcripcion.procesando { display: inline-flex; align-items: baseline; gap: 0; font-size: 12.5px; color: var(--tenue); }
+.puntos { display: inline-flex; gap: 2px; margin-left: 3px; }
+.puntos i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; animation: respirar 1.2s ease-in-out infinite; }
+.puntos i:nth-child(2) { animation-delay: 0.2s; }
+.puntos i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes respirar { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .puntos i { animation: none; opacity: 0.6; } }
+.respuesta-dir .transcripcion { color: inherit; }
+
+/* ¿Puedo trabajar en otra cosa? */
+.puedo { margin-top: 24px; }
+details.puedo > summary { cursor: pointer; list-style: none; }
+details.puedo > summary::-webkit-details-marker { display: none; }
+details.puedo > summary h3 { display: inline; margin: 0; font-size: 15px; color: var(--acento-texto); }
+details.puedo > summary h3::after { content: ' +'; }
+details.puedo[open] > summary h3::after { content: ' −'; }
+details.puedo[open] > summary { margin-bottom: 10px; }
+.campo-puedo { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 15px; }
+.campo-puedo select { width: auto; min-width: 220px; }
+.respuesta-d { margin: 12px 0 0; padding: 10px 14px; border-radius: var(--radio); font-size: 15px; line-height: 1.55; }
+.respuesta-d p { margin: 6px 0 0; }
+.respuesta-d.foco { background: var(--foco-fondo); color: var(--foco); }
+.respuesta-d.apoyo { background: var(--apoyo-fondo); color: var(--apoyo); }
+.respuesta-d.espera { background: var(--espera-fondo); color: var(--espera); }
+
+/* El arranque: del repositorio a la ruta */
+.arranque { margin: 0 0 20px; padding: 16px 18px; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); }
+.arranque h3 { margin: 0 0 12px !important; }
+.pasos-arranque { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.pasos-arranque li { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); color: var(--suave); }
+.pasos-arranque li > div { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; font-size: 14px; }
+.pasos-arranque li b { color: var(--texto); }
+.pasos-arranque li small { font-size: 13px; line-height: 1.45; }
+.pasos-arranque li .ir-paso { justify-self: start; margin-top: 4px; }
+.pasos-arranque .num-a { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 26px; height: 26px; border-radius: 50%; font-weight: 700; font-size: 13px; background: #e6e2d8; color: var(--suave); }
+.pasos-arranque li.hecho { background: var(--ok-fondo); border-color: #cfe3bd; }
+.pasos-arranque li.hecho .num-a { background: var(--ok); color: var(--texto-en-color); }
+.pasos-arranque li.actual { background: #fff; border-color: var(--acento); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.12); color: var(--texto); }
+.pasos-arranque li.actual .num-a { background: var(--acento); color: var(--texto-en-color); }
+/* compacto: solo el paso de ahora se explica; los demás, su nombre */
+.pasos-arranque li:not(.actual) small { display: none; }
+.pasos-arranque li:not(.actual) { align-items: center; padding: 10px 12px; }
+
+/* ── La ruta: las fases como un mapa con niebla, el tablero y la fase abierta ── */
+.ruta { list-style: none; display: grid; grid-template-columns: repeat(var(--fases, 7), minmax(0, 1fr)); gap: 0; margin: 0 0 20px; padding: 6px 8px 10px; position: relative; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); }
+/* El botón deja 14px arriba: el anillo que late en la fase actual (hasta 9px) cabe dentro del recuadro de la fase vista */
+.ruta::before { content: ''; position: absolute; left: 8%; right: 8%; top: 46px; height: 4px; border-radius: 2px; background: repeating-linear-gradient(90deg, #cfccc3 0 10px, transparent 10px 16px); }
+.ruta li { position: relative; display: flex; justify-content: center; }
+.ruta button { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; min-height: 0; border: 0; background: none; padding: 14px 6px 8px; border-radius: 10px; text-align: center; }
+.ruta button:hover { background: rgba(0, 0, 0, 0.03); }
+.ruta .hito { position: relative; width: 56px; height: 56px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-weight: 700; font-size: 18px; color: var(--suave); background: conic-gradient(var(--ok) calc(var(--av, 0) * 1turn), #e2ded4 0); }
+.ruta .hito::after { content: attr(data-n); position: absolute; inset: 5px; border-radius: 50%; background: var(--panel); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; }
+.ruta .nombre { font-size: 14px; font-weight: 600; color: var(--texto); line-height: 1.25; }
+.ruta .etapa { font-size: 12.5px; color: var(--suave); line-height: 1.25; }
+.ruta .estado-fase { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: #ece9e1; color: var(--suave); }
+.ruta li.superada .hito::after { content: '✓'; color: var(--ok); font-size: 22px; }
+.ruta li.superada .estado-fase { background: #eaf3de; color: #27500a; }
+.ruta li.actual .hito { box-shadow: 0 0 0 4px rgba(47, 95, 179, 0.18); animation: latido 2.4s ease-in-out infinite; }
+.ruta li.actual .hito::after { color: var(--acento); }
+.ruta li.actual .estado-fase { background: var(--acento); color: var(--texto-en-color); }
+.ruta li.futura .hito, .ruta li.futura .nombre, .ruta li.futura .etapa { filter: blur(0.4px) grayscale(1); opacity: 0.55; }
+.ruta li.futura .hito::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; z-index: 1; background: radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.25) 60%, transparent 70%); }
+.ruta li.vista button { background: rgba(47, 95, 179, 0.07); outline: 1px solid rgba(47, 95, 179, 0.25); }
+.ruta li.por-trazar button { cursor: default; opacity: 1; }
+.ruta li.por-trazar .hito::after { content: '…'; }
+@keyframes latido { 0%, 100% { box-shadow: 0 0 0 4px rgba(47, 95, 179, 0.18); } 50% { box-shadow: 0 0 0 9px rgba(47, 95, 179, 0.06); } }
+@media (prefers-reduced-motion: reduce) { .ruta li.actual .hito { animation: none; } }
+
+/* auto-fit: las cifras que haya se reparten todo el ancho (con auto-fill quedaban columnas vacías a la derecha) */
+.marcador { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.marcador .kpi { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; text-align: left; font: inherit; box-shadow: var(--sombra); }
+.marcador .kpi:hover { border-color: var(--acento); background: var(--panel); }
+.marcador .kpi b { font-size: 24px; line-height: 1.2; }
+.marcador .kpi span { font-size: 14px; color: var(--texto); }
+.marcador .kpi small { font-size: 12.5px; color: var(--suave); }
+.marcador .kpi.bien b { color: var(--ok); }
+.marcador .kpi.mal b { color: var(--peligro); }
+.marcador .kpi.medio b { color: var(--aviso); }
+
+/* Los criterios: lo que debe estar al 100 % */
+.criterios { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.criterio { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 12px 12px 12px 10px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel-suave); }
+.criterio .marca { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #cfccc3; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-size: 13px; color: #fff; margin-top: 1px; }
+.criterio.cumplido { background: #f4f9ef; border-color: #cfe3bd; }
+.criterio.cumplido .marca { background: var(--ok); border-color: var(--ok); }
+/* «No aplica»: el tenue del tema, para que su marca llegue a 3:1 (antes #9a978e con la marca blanca: 2,9:1) */
+.criterio.no_aplica .marca { background: var(--tenue); border-color: var(--tenue); }
+.criterio .que { font-size: 15px; line-height: 1.45; }
+.criterio .como { margin-top: 3px; }
+.criterio .firma { font-size: 12.5px; color: var(--suave); margin-top: 4px; }
+.criterio .medida-c { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; font-size: 13px; color: var(--suave); }
+.criterio .medida-c .barra-medida { flex: 1; max-width: 260px; }
+.criterio .medida-c .auto { font-size: 12px; padding: 0 6px; border-radius: 6px; background: var(--acento-fondo); color: var(--acento-texto); }
+/* sus botones van debajo del texto: así el texto tiene todo el ancho */
+.criterio .botones-c { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-start; margin-top: 4px; }
+.criterio .botones-c button { min-height: 32px; font-size: 13px; padding: 4px 10px; }
+
+/* La puerta */
+.puerta { margin-top: 18px; border: 2px dashed var(--borde-fuerte); border-radius: var(--radio-g); padding: 16px 18px; background: #fffdf7; }
+.puerta.abierta { border-style: solid; border-color: var(--ok); background: #f4f9ef; }
+.puerta .cabeza-p { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.puerta .cabeza-p b { font-size: 17px; flex: 1; }
+.puerta p { font-size: 14.5px; margin: 8px 0 0; line-height: 1.55; }
+.puerta ul.bloqueos { margin: 8px 0 0; padding-left: 20px; font-size: 14px; color: var(--espera); line-height: 1.5; }
+.puerta .acciones-p { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.misiones { margin: 0; padding-left: 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-size: 15px; line-height: 1.5; }
+.misiones li::marker { color: var(--acento); font-weight: 700; }
+.frentes-fase { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.frentes-fase li { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 2px 10px; font-size: 14.5px; align-items: start; }
+.frentes-fase li .chip { justify-self: start; }
+.frentes-fase li b { font-weight: 600; }
+.frentes-fase li span.t { grid-column: 1 / -1; color: var(--suave); font-size: 13.5px; line-height: 1.45; }
+.adelantado { margin: 0; padding-left: 20px; font-size: 14.5px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; line-height: 1.5; }
+/* Una misión aprobada se abre en «La ruta» para releerla: sus pasos, lo comentado y el veredicto */
+.mision-pasada > summary { cursor: pointer; }
+.mision-pasada .cuerpo-pasada { margin: 8px 0 12px; padding: 4px 0 4px 12px; border-left: 3px solid var(--borde); }
+.mision-pasada .cuerpo-pasada h4 { margin: 12px 0 6px; }
+/* Lo por hacer y lo hecho, aparte en «La ruta»: un subtítulo pequeño entre los dos, y la fecha y hora de lo hecho */
+.sub-hechas { margin: 12px 0 6px; font-size: 12.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); }
+.sub-hechas:first-child { margin-top: 4px; }
+.cuando-hecha { margin-left: 4px; white-space: nowrap; font-size: 12.5px; }
+
+/* ── El diagnóstico, dentro de Proyecto: abierto mientras no hay meta, plegado después ── */
+.resumen-d { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 15.5px; line-height: 1.65; max-width: var(--lectura); }
+.plegable-d > summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; cursor: pointer; list-style: none; }
+.plegable-d > summary::-webkit-details-marker { display: none; }
+.plegable-d > summary h3 { margin: 0; }
+.plegable-d > summary small { color: var(--suave); font-size: 13px; }
+.plegable-d > summary::after { content: ''; width: 7px; height: 7px; margin-left: auto; align-self: center; border: solid var(--suave); border-width: 0 1.8px 1.8px 0; transform: rotate(45deg); transition: transform 0.15s; }
+.plegable-d[open] > summary::after { transform: rotate(-135deg); }
+.plegable-d > summary:focus-visible { outline: 2px solid var(--acento); outline-offset: 4px; border-radius: 4px; }
+.plegable-d[open] > summary { margin-bottom: 14px; }
+.plegable-d h4 { margin: 18px 0 6px; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); }
+.compilado-frentes, .plegable-d .texto-d { margin: 14px 0 0; font-size: 15px; line-height: 1.6; max-width: var(--lectura); }
+.plegable-d h4 + .texto-d { margin-top: 0; }
+.plegable-d .acciones-p { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+.metas-anteriores .cifra { margin-left: 4px; }
+.boletin-equipo { margin-bottom: 16px; }
+.boletin-equipo .etiqueta-boletin { margin: 0 0 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--suave); }
+.notas-boletin { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; }
+.notas-boletin > span { display: flex; align-items: center; gap: 6px; }
+.boletin-equipo p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; }
+.candidatos { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 12px 0; }
+.candidato { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; align-content: start; background: #fff; border: 1px solid var(--borde); border-left: 4px solid var(--acento); border-radius: var(--radio); padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+.candidato b { font-size: 15.5px; line-height: 1.4; }
+.candidato p { margin: 0; }
+.candidato .tit { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--suave); margin-right: 4px; }
+.candidato.sel { background: var(--acento-fondo); border-color: #9cc0ea; }
+.candidato .acciones-p, .objetivo-firmado .acciones-p { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.candidato button, .objetivo-firmado button { min-height: 32px; font-size: 13px; padding: 4px 12px; }
+.sin-diagnostico { max-width: none; }
+.sin-diagnostico p { font-size: 15px; line-height: 1.6; }
+
+/* ── Frentes por fase y excepciones ── */
+.matriz { border-collapse: separate; border-spacing: 3px; font-size: 13px; width: 100%; table-layout: fixed; overflow-wrap: anywhere; }
+.matriz th { font-weight: 600; text-align: left; padding: 4px 6px; color: var(--suave); }
+.matriz th.actual { color: var(--acento); }
+.matriz th small.rutas-f { display: block; font-weight: 400; font-size: 11px; color: var(--tenue); }
+.matriz td { padding: 0; }
+.matriz td button { width: 100%; min-height: 36px; justify-content: flex-start; border: 0; border-radius: 6px; font-size: 13px; padding: 4px 8px; text-align: left; }
+.matriz td button.foco { background: var(--foco-fondo); color: var(--foco); }
+.matriz td button.apoyo { background: var(--apoyo-fondo); color: var(--apoyo); }
+.matriz td button.espera { background: var(--espera-fondo); color: var(--espera); }
+.matriz td.actual button { outline: 2px solid rgba(47, 95, 179, 0.35); }
+.matriz td button.sel { outline: 2px solid var(--texto); }
+.detalle-celda { margin-top: 12px; font-size: 15px; }
+.excepciones { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.excepciones li { display: flex; gap: 10px; align-items: center; font-size: 14px; background: var(--espera-fondo); color: var(--espera); padding: 8px 12px; border-radius: var(--radio); }
+.excepciones li span { flex: 1; }
+.excepciones li.cerrada { background: #f1efe8; color: var(--suave); }
+
+/* ── Las propuestas ── */
+.propuestas { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.propuesta { background: var(--panel); border: 1px solid var(--borde); border-left: 4px solid #b9b5aa; border-radius: var(--radio-g); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; box-shadow: var(--sombra); }
+.propuesta header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.propuesta header b { flex: 1; min-width: 10em; font-size: 16px; line-height: 1.35; }
+.propuesta dl { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.propuesta dt { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--suave); }
+.propuesta dd { margin: 0 0 6px; line-height: 1.55; }
+.propuesta.aceptada { border-left-color: var(--ok); }
+.propuesta.descartada { border-left-color: #9a978e; opacity: 0.75; }
+.propuesta.en_estudio { border-left-color: var(--aviso); }
+.propuesta .respuesta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: auto; }
+.propuesta .respuesta button { min-height: 34px; font-size: 13.5px; padding: 4px 12px; }
+.propuesta .respuesta button.sel { border-color: var(--acento); background: var(--acento-fondo); color: var(--acento-texto); font-weight: 600; }
+.propuesta .firma { font-size: 12.5px; color: var(--suave); }
+
+/* ── Las validaciones ── */
+.form-validacion { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; font-size: 14px; }
+.form-validacion label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-weight: 600; }
+.form-validacion label.ancho { grid-column: 1 / -1; }
+.form-validacion select { width: 100%; }
+.form-validacion .botones { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+.lista-validaciones { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.lista-validaciones li { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: 12px 14px; font-size: 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.lista-validaciones li header { display: flex; gap: 8px; align-items: center; }
+.lista-validaciones li header b { flex: 1; }
+.lista-validaciones li p { margin: 0; color: var(--suave); line-height: 1.5; }
+.lista-validaciones li button { min-height: 30px; font-size: 13px; padding: 3px 10px; }
+
+/* ── El esfuerzo ── */
+.barras { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.fila-barra { display: grid; grid-template-columns: 210px minmax(0, 1fr) 56px; gap: 10px; align-items: center; font-size: 14px; }
+.fila-barra .pista-b { height: 14px; border-radius: 4px; background: #efece4; overflow: hidden; }
+.fila-barra .pista-b > div { height: 100%; border-radius: 4px; }
+/* Los colores del reparto, iguales en los dos temas y lo bastante oscuros para su cifra blanca: 4,5:1 (antes #3b8a5a,
+   #5b86c5, #d39a3a y #b9b5aa, de 2,1 a 4,2:1). La leyenda (director.ts) usa las mismas variables */
+.fila-barra .pista-b > div.foco, .reparto .foco { background: var(--barra-foco); }
+.fila-barra .pista-b > div.apoyo, .reparto .apoyo { background: var(--barra-apoyo); }
+.fila-barra .pista-b > div.espera, .reparto .espera { background: var(--barra-espera); }
+.fila-barra .pista-b > div.otros, .reparto .otros { background: var(--barra-otros); }
+.fila-barra .valor { text-align: right; font-variant-numeric: tabular-nums; color: var(--suave); }
+.reparto { display: flex; height: 28px; border-radius: 6px; overflow: hidden; font-size: 13px; color: #fff; }
+.reparto > div { display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; }
+.leyenda-d { display: flex; gap: 14px; font-size: 13px; color: var(--suave); margin: 8px 0 0; flex-wrap: wrap; }
+.leyenda-d i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.dias { border-collapse: collapse; font-size: 13.5px; margin-top: 6px; }
+.dias th, .dias td { padding: 5px 10px; border-bottom: 1px solid var(--borde); text-align: right; font-variant-numeric: tabular-nums; }
+.dias th:first-child, .dias td:first-child { text-align: left; }
+
+/* ── El método y la bitácora ── */
+.ritmo { margin: 0; padding-left: 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; font-size: 15px; line-height: 1.55; max-width: var(--lectura); }
+.lecciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+.leccion { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: 12px 14px; font-size: 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; line-height: 1.5; }
+.leccion b { font-size: 15px; }
+.leccion .quien { font-size: 13px; color: var(--suave); }
+.leccion .para { background: var(--acento-fondo); color: var(--acento-texto); border-radius: 6px; padding: 6px 10px; font-size: 13.5px; }
+.leccion a { font-size: 12px; word-break: break-all; }
+.bitacora { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; font-size: 14px; }
+.bitacora li { display: grid; grid-template-columns: 90px 110px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--borde); line-height: 1.5; }
+.bitacora li .f, .bitacora li .q { color: var(--suave); font-size: 13px; }
+.form-nota { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 14px; }
+
+/* ── El Buzón y las notas ── */
+.explica-buzon { margin-bottom: 14px; background: var(--sobre); border-color: var(--sobre-borde); }
+.explica-buzon p { margin: 8px 0 0; font-size: 15px; line-height: 1.6; max-width: var(--lectura); }
+/* «Buscar en el Buzón»: el campo arriba de las notas, del ancho de lectura */
+.buscar-buzon { display: grid; gap: 6px; max-width: var(--lectura); margin: 0 0 16px; }
+.buscar-buzon label { font-weight: 650; }
+.buscar-buzon .como { margin: 0; font-size: 13.5px; }
+.hallado-en { color: var(--acento-texto); font-weight: 600; }
+.redactar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.redactar .botones { display: flex; justify-content: flex-end; }
+.grabadora { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.grabadora button { font-size: 14px; }
+.grabadora button.grabando { background: #fcebeb; border-color: #e7a9a6; color: #791f1f; }
+.grabadora button.grabar { border-color: #e7a9a6; color: #791f1f; font-weight: 600; }
+.grabadora .ayuda-g { font-size: 13px; color: var(--suave); }
+.grabadora .esperando-mic, .grabadora .aviso-g { color: var(--aviso-texto); font-weight: 600; }
+.grabadora .audio-listo { flex-basis: 100%; margin: 0; font-size: 13.5px; color: var(--ok-texto); font-weight: 600; }
+@keyframes latido-g { 50% { background: var(--latido-fondo); } }
+/* Grabando: imposible no verlo. Un punto rojo que late, el tiempo y un medidor que se mueve con la voz */
+.grabadora.en-grabacion { padding: 8px 12px; border: 2px solid var(--peligro); border-radius: 14px; background: #fff7f6; }
+.punto-grabando { flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--peligro); animation: punto-g 1s ease-in-out infinite; }
+@keyframes punto-g { 0%, 100% { box-shadow: 0 0 0 0 rgba(179, 54, 47, 0.55); } 50% { box-shadow: 0 0 0 7px rgba(179, 54, 47, 0); opacity: 0.75; } }
+.grabando-texto { font-size: 15px; color: var(--peligro-texto); font-variant-numeric: tabular-nums; }
+/* Los controles de la grabación, en una sola fila: los botones nunca se parten ni bajan; si falta ancho, se acomoda el
+   texto (con el aviso del tope), y solo en una pantalla de verdad angosta la fila se parte */
+.fila-g { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; }
+.fila-g > :not(.grabando-texto) { flex: none; }
+.fila-g button { white-space: nowrap; }
+.fila-g .grabando-texto { flex: 0 1 auto; min-width: 0; }
+@media (max-width: 479px) { .fila-g { flex-wrap: wrap; justify-content: center; } }
+.nivel-voz { display: inline-flex; align-items: center; gap: 3px; height: 26px; }
+.nivel-voz i { width: 4px; border-radius: 2px; background: var(--peligro); height: calc(4px + var(--nivel, 0) * 18px); transition: height 0.08s linear; }
+.nivel-voz i:nth-child(2), .nivel-voz i:nth-child(4) { height: calc(4px + var(--nivel, 0) * 13px); }
+.nivel-voz i:nth-child(1), .nivel-voz i:nth-child(5) { height: calc(4px + var(--nivel, 0) * 8px); }
+@media (prefers-reduced-motion: reduce) { .punto-grabando { animation: none; } }
+/* Mientras graba, el diálogo se hace a un lado: solo queda la pastilla de la grabación, abajo y al centro, grande, y la
+   página se puede leer y recorrer (estudio/src/grabadora.ts) */
+dialog.a-un-lado { position: fixed; inset: auto; z-index: 90; width: 0; height: 0; margin: 0; padding: 0; border: 0; overflow: visible; background: none; box-shadow: none; visibility: hidden; }
+dialog.a-un-lado .grabadora { visibility: visible; position: fixed; left: calc(var(--lateral) + (100 * var(--vw) - var(--lateral)) / 2); bottom: 24px; transform: translateX(-50%); width: max-content; max-width: calc(100 * var(--vw) - var(--lateral) - 48px); padding: 10px 14px; gap: 6px; flex-direction: column; flex-wrap: nowrap; align-items: center; justify-content: center; background: #fff7f6; border: 2px solid var(--peligro); border-radius: 18px; box-shadow: 0 0 0 4px rgba(179, 54, 47, 0.12), var(--sombra-alta); animation: pastilla-g 2s ease-in-out infinite; }
+@keyframes pastilla-g { 50% { box-shadow: 0 0 0 9px rgba(179, 54, 47, 0.08), var(--sombra-alta); } }
+dialog.a-un-lado .grabadora .fila-g { gap: 12px; max-width: 100%; }
+dialog.a-un-lado .grabadora .ayuda-g { text-align: center; font-size: 12.5px; line-height: 1.35; }
+dialog.a-un-lado .grabadora button { min-height: 38px; }
+@media (max-width: 759px) { dialog.a-un-lado .grabadora { left: 50%; max-width: calc(100 * var(--vw) - 24px); bottom: 16px; } }
+.notas-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.nota-d { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; font-size: 14.5px; }
+.nota-d header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nota-d header .como { flex: 1; min-width: 12em; }
+.nota-d header button { min-height: 30px; font-size: 13px; padding: 2px 10px; }
+/* Una urgencia se ve, pero sin alarma: la decide el director */
+.urgente-n { display: flex; gap: 6px; align-items: flex-start; margin: 0; padding: 6px 10px; border-radius: var(--radio); background: var(--espera-fondo); color: var(--espera); font-size: 14px; }
+.urgente-n .icono { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--espera); }
+/* Es urgente: un interruptor, sin explicación aparte; encendido, se tiñe de rojo */
+.urgente-campo { display: flex; gap: 10px; align-items: flex-start; width: fit-content; max-width: 100%; padding: 6px 10px; border: 1px solid var(--borde); border-radius: var(--radio); cursor: pointer; font-size: 14px; }
+.urgente-campo input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.urgente-campo .interruptor { flex: none; position: relative; width: 34px; height: 20px; margin-top: 1px; border-radius: 999px; background: #cfcac0; transition: background 0.15s; }
+.urgente-campo .interruptor::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s; }
+.urgente-campo input:checked + .interruptor { background: var(--peligro); }
+.urgente-campo input:checked + .interruptor::after { transform: translateX(14px); }
+.urgente-campo input:focus-visible + .interruptor { outline: 2px solid var(--peligro); outline-offset: 2px; }
+.urgente-campo:has(input:checked) { border-color: var(--peligro); background: #fff7f6; }
+.urgente-campo:has(input:disabled) { opacity: 0.6; cursor: default; }
+.urgente-campo b { color: var(--peligro); }
+.urgente-campo .icono { display: inline-block; width: 16px; height: 16px; vertical-align: -3px; margin: 0 4px 0 0; color: var(--peligro); }
+.urgente-campo .ayuda-campo { display: block; margin: 1px 0 0; font-size: 13px; line-height: 1.45; color: var(--suave); }
+@media (prefers-reduced-motion: reduce) { .urgente-campo .interruptor, .urgente-campo .interruptor::after { transition: none; } }
+/* La urgencia en dos pasos: un símbolo discreto junto al título abre el panel con el interruptor */
+.titulo-con-urgente { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.abrir-urgente { flex: none; display: grid; place-items: center; width: 32px; height: 32px; min-height: 0; padding: 0; border: 1px solid transparent; border-radius: 50%; background: none; color: var(--suave); opacity: 0.6; cursor: pointer; }
+.abrir-urgente .icono { width: 16px; height: 16px; }
+.abrir-urgente:hover, .abrir-urgente[aria-expanded="true"] { opacity: 1; border-color: var(--borde); }
+form:has([name="urgente"]:checked) .abrir-urgente { color: var(--peligro); opacity: 1; }
+/* En el Buzón, cada nota plegada en una línea; se despliega la que se quiera revisar */
+.nota-d.plegable { padding: 0; }
+.nota-d.plegable > details > summary { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 10px 14px; cursor: pointer; }
+.nota-d.plegable .asunto { flex: 1 1 18em; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.nota-d.plegable summary .como { font-size: 13px; color: var(--suave); }
+.nota-d.plegable .urgente-s .icono { width: 15px; height: 15px; color: var(--espera); vertical-align: -2px; }
+.nota-d.plegable .cuerpo-nota { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0 14px 12px; }
+.nota-d.plegable .botones-nota { display: flex; gap: 8px; justify-content: flex-end; }
+.nota-d.plegable .botones-nota button { min-height: 30px; font-size: 13px; padding: 2px 10px; }
+/* Las propuestas: una barra con lo que espera respuesta y el filtro «Por decidir» / «Todas», como pestañas pequeñas */
+.barra-propuestas { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin: 4px 0 16px; padding: 10px 14px; border: 1px solid var(--borde); border-radius: var(--radio-g); background: var(--panel); box-shadow: var(--sombra); }
+.cuenta-propuestas { margin: 0; font-size: 14.5px; color: var(--suave); }
+.cuenta-propuestas b { color: var(--texto); font-size: 16px; }
+.filtro-propuestas { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--panel-suave); border: 1px solid var(--borde); }
+.filtro-propuestas button { min-height: 30px; padding: 3px 14px; border: 0; border-radius: 999px; background: none; color: var(--suave); font-size: 13.5px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
+.filtro-propuestas button:hover { color: var(--texto); background: none; }
+.filtro-propuestas button[aria-pressed='true'] { background: var(--panel); color: var(--acento-texto); box-shadow: var(--sombra); }
+.filtro-propuestas .cifra { min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--acento-fondo); color: var(--acento-texto); font-size: 12px; line-height: 19px; text-align: center; }
+/* Sin nada que decidir: el estado vacío, con su icono, su porqué y, si hay decididas, cómo volver a verlas */
+.vacio-propuestas { display: flex; gap: 16px; align-items: flex-start; margin: 4px 0 18px; padding: 22px 24px; border: 1px dashed var(--borde-fuerte); border-radius: var(--radio-g); background: var(--panel-suave); max-width: var(--lectura); }
+.vacio-propuestas .icono-vacio { flex: none; width: 40px; height: 40px; padding: 8px; border-radius: 50%; background: var(--acento-fondo); color: var(--acento); }
+.vacio-propuestas b { font-size: 16px; color: var(--texto); }
+.vacio-propuestas p { margin: 4px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--suave); }
+.vacio-propuestas button { margin-top: 12px; }
+/* Los adjuntos de una nota: miniaturas de las imágenes y el nombre de lo demás (estudio/src/adjuntos.ts) */
+.adjuntos { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.adjuntos .lista-adjuntos { flex-basis: 100%; }
+.lista-adjuntos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.adjunto { position: relative; display: flex; align-items: center; max-width: 100%; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel); }
+.adjunto.imagen img { display: block; width: 96px; height: 72px; object-fit: cover; border-radius: calc(var(--radio) - 1px); }
+.nota-d .adjunto.imagen img { width: 140px; height: 100px; }
+/* Al comentar, la miniatura se abre en grande (adjuntos.ts › verEnGrande), para confirmar que es la imagen correcta */
+.ver-adjunto { display: block; min-height: 0; padding: 0; border: 0; background: none; cursor: zoom-in; border-radius: calc(var(--radio) - 1px); }
+.ver-adjunto:hover img { opacity: 0.88; }
+dialog.imagen-grande { max-width: calc(96 * var(--vw)); max-height: calc(96 * var(--vh)); padding: 0; border: 0; background: transparent; box-shadow: none; overflow: visible; cursor: zoom-out; }
+dialog.imagen-grande::backdrop { background: rgba(20, 19, 17, 0.82); }
+dialog.imagen-grande figure { margin: 0; display: grid; gap: 8px; justify-items: center; }
+dialog.imagen-grande img { display: block; max-width: calc(94 * var(--vw)); max-height: calc(86 * var(--vh)); object-fit: contain; border-radius: 8px; background: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45); }
+dialog.imagen-grande figcaption { color: #f6f1e0; font-size: 13.5px; }
+/* Un dibujo del director se abre en grande con un clic (dibujos.ts): al ancho de la pantalla y, en una angosta, a su
+   tamaño, para recorrerlo de lado en vez de achicarlo hasta no leerse */
+.lector svg[role="img"], .respuesta-dir svg[role="img"], .respuesta-qa svg[role="img"] { cursor: zoom-in; }
+dialog.dibujo-grande .lienzo-grande { max-width: calc(94 * var(--vw)); max-height: calc(86 * var(--vh)); overflow: auto; padding: 14px; border-radius: 8px; background: var(--panel); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45); }
+dialog.dibujo-grande .lienzo-grande > svg { display: block; width: min(calc(90 * var(--vw)), 1400px); min-width: 760px; max-width: none !important; height: auto; }
+dialog.dibujo-grande figcaption { max-width: calc(90 * var(--vw)); text-align: center; }
+.cerrar-grande { position: fixed; top: 14px; right: 14px; display: inline-flex; gap: 6px; align-items: center; background: #fff; }
+.cerrar-grande .icono { width: 14px; height: 14px; }
+.nombre-adjunto { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; font-size: 13.5px; overflow-wrap: anywhere; color: inherit; }
+.nombre-adjunto .icono, .boton-adjuntar .icono { width: 16px; height: 16px; flex: none; }
+.quitar-adjunto { position: absolute; top: -8px; right: -8px; display: grid; place-items: center; width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 50%; background: var(--tinta); color: #fff; border: 2px solid #fff; }
+.quitar-adjunto .icono { width: 12px; height: 12px; }
+.boton-adjuntar { display: inline-flex; gap: 6px; align-items: center; min-height: 34px; padding: 4px 12px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel); cursor: pointer; font-size: 14px; }
+.boton-adjuntar:hover { border-color: var(--tinta); }
+.boton-adjuntar:focus-within { outline: 2px solid var(--acento, #2f5fa8); outline-offset: 2px; }
+form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px; }
+.nota-d p { margin: 0; line-height: 1.55; }
+/* Lo que dijo la persona (sin niebla de lectura); en un documento, plegado a su primer renglón hasta que lo toca */
+.dicho-nota { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.dicho-nota.plegable-dicho { cursor: pointer; border-radius: 6px; }
+.dicho-nota.plegable-dicho:hover { background: var(--fondo); }
+.dicho-nota.plegado { gap: 0; color: var(--suave); }
+.dicho-nota.plegado > :not(:first-child), .dicho-nota.plegado audio, .dicho-nota.plegado .lista-adjuntos { display: none; }
+.dicho-nota.plegado > p:first-child, .dicho-nota.plegado .transcripcion > span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; }
+.nota-d .esperando { color: var(--espera); font-size: 13.5px; }
+.respuesta-dir { background: var(--tinta); color: #f6f1e0; border-radius: var(--radio); padding: 10px 12px; line-height: 1.55; }
+.respuesta-dir b { color: #f6e7b4; }
+/* Lo que respondió, con formato y sus dibujos, como las respuestas a las preguntas (pedido pd_graficos_svg): cada párrafo
+   aparte, los enlaces y el código legibles sobre el recuadro oscuro, y el dibujo sobre su papel claro, con sus colores */
+.respuesta-dir .texto-resp { margin-top: 4px; }
+.respuesta-dir .texto-resp > * + * { margin-top: 8px; }
+.respuesta-dir .texto-resp ul, .respuesta-dir .texto-resp ol { margin-bottom: 0; padding-left: 20px; }
+.respuesta-dir .texto-resp strong { color: #f6e7b4; }
+.respuesta-dir .texto-resp a { color: #f6e7b4; }
+.respuesta-dir .texto-resp code { padding: 0 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); color: inherit; }
+.respuesta-dir .texto-resp svg[role="img"] { display: block; max-width: 100%; height: auto; padding: 8px; border-radius: 8px; background: var(--panel); }
+/* «Quedó en: …»: el lugar del plan que recoge la nota, con su botón (el doble check del director) */
+.quedo-en { margin: 8px 0 0; font-size: 14px; }
+.respuesta-dir .quedo-en .enlace, .respuesta-dir .quedo-en .enlace:hover { color: #f6e7b4; }
+.tratamiento { display: inline-block; margin: 0 4px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #45443f; color: #f6f1e0; }
+.tratamiento.integrada { background: #2f6b2a; color: #fff; }
+.tratamiento.rechazada { background: #8a2c27; color: #fff; }
+.tratamiento.aplazada { background: #8a5a12; color: #fff; }
+.tratamiento.decision { background: #f6e7b4; color: #2c2c2a; }
+
+/* ── Los documentos para leer y comentar ── */
+.docs { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 20px; align-items: start; }
+/* La columna de los documentos se pliega: el documento a todo el ancho (con la barra lateral plegada, toda la pantalla) */
+.docs.sin-lista { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; }
+.docs.sin-lista .lista-docs { display: none; }
+.desplegar-lista { display: none; position: sticky; top: calc(var(--alto-cabeza, 0px) + 12px); width: 36px; min-height: 36px; padding: 0; color: var(--suave); }
+.docs.sin-lista .desplegar-lista { display: inline-flex; }
+/* Su título arriba, al nivel del documento, con el botón para plegarla */
+.cabeza-lista { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lista-docs .cabeza-lista h3 { margin: 0 !important; }
+.plegar-lista { flex: none; width: 32px; min-height: 32px; padding: 0; border: 0; background: none; color: var(--suave); }
+.plegar-lista:hover { background: rgba(127, 120, 105, 0.14); border: 0; color: var(--texto); }
+/* Angosto, la columna ya va encima del documento: plegarla no aplica */
+@media (max-width: 1100px) { .plegar-lista, .desplegar-lista { display: none !important; } .docs.sin-lista { grid-template-columns: minmax(0, 1fr); } .docs.sin-lista .lista-docs { display: grid; } }
+/* La columna de los documentos queda fija a la izquierda, debajo de la cabecera, con su propio desplazamiento */
+.lista-docs { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 6px; position: sticky; top: calc(var(--alto-cabeza, 0px) + 12px); max-height: calc(100 * var(--vh) - var(--alto-cabeza, 0px) - 24px); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding-right: 2px; }
+/* Mientras lees, lo de después y lo ya leído van plegados en una línea cada uno: la atención, en lo que sigue */
+.docs-plegados, .instrucciones-agentes { display: grid; gap: 6px; }
+.docs-plegados > summary, .instrucciones-agentes > summary { cursor: pointer; width: fit-content; margin-top: 6px; font-size: 13.5px; font-weight: 600; color: var(--suave); }
+.docs-plegados > summary .cifra, .instrucciones-agentes > summary .cifra { margin-left: 4px; }
+.docs-plegados[open] > summary, .instrucciones-agentes[open] > summary { margin-bottom: 2px; }
+.docs-plegados .doc-l, .instrucciones-agentes .doc-l { display: block; }
+.instrucciones-agentes { margin-top: 10px; }
+.lista-docs h3 { margin: 12px 0 2px !important; }
+.doc-l { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 4px; text-align: left; font-size: 14px; padding: 10px 12px; min-height: 0; }
+.doc-l small { font-size: 12.5px; color: var(--suave); line-height: 1.4; }
+.doc-l.chico { font-size: 13.5px; padding: 8px 10px; }
+.doc-l.sel { border-color: var(--acento); background: var(--acento-fondo); }
+.doc-l .fila-doc { display: flex; align-items: center; gap: 8px; }
+.num-doc { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; font-weight: 700; background: var(--acento-fondo); color: var(--acento-texto); }
+.doc-l.revisado { opacity: 0.75; }
+.doc-l.revisado .num-doc { background: var(--ok); color: var(--texto-en-color); }
+.doc-l.revisado b { text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, 0.3); }
+.doc-l.siguiente { border-color: var(--acento); box-shadow: 0 0 0 2px rgba(47, 95, 179, 0.15); }
+.doc-l.siguiente .num-doc { background: var(--acento); color: var(--texto-en-color); }
+.chip.estado-doc.siguiente { background: var(--acento); color: var(--texto-en-color); }
+.chip.estado-doc.revisado { background: #d9eecf; color: #27500a; }
+/* El lector usa todo el ancho que tiene (pedido del titular); quien prefiera líneas más cortas agranda la letra */
+.lector { background: var(--panel); color: var(--texto); border: 1px solid var(--borde); border-radius: var(--radio-g); padding: 16px clamp(18px, calc(3 * var(--vw)), 36px) 28px; font-size: 16px; line-height: 1.7; box-shadow: var(--sombra); }
+.lector.letra-0 { font-size: 14.5px; }
+.lector.letra-2 { font-size: 19px; }
+.lector h1 { font-size: 1.6em; line-height: 1.25; margin-top: 0; }
+.lector h2 { font-size: 1.25em; margin-top: 8px; }
+/* Los ajustes de lectura, en la franja de arriba, junto a cómo se termina de leer */
+.ajustes-lector { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0 0 18px; }
+.opciones-lector { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.tamanos-letra { display: inline-flex; border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; }
+.tamano-letra { min-height: 34px; min-width: 36px; padding: 0 8px; border: 0; border-radius: 0; background: var(--panel); color: var(--suave); font-weight: 700; line-height: 1; }
+.tamano-letra + .tamano-letra { border-left: 1px solid var(--borde); }
+.tamano-letra.t0 { font-size: 12px; }
+.tamano-letra.t1 { font-size: 15px; }
+.tamano-letra.t2 { font-size: 19px; }
+.tamano-letra.sel { background: var(--acento-fondo); color: var(--acento-texto); }
+/* una tabla ancha se desplaza dentro de su caja; una imagen se ajusta al ancho */
+.lector table { max-width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0; line-height: 1.5; }
+.lector img, .lector video { max-width: 100%; height: auto; }
+.lector th, .lector td { overflow-wrap: anywhere; border: 1px solid var(--borde); padding: 6px 10px; vertical-align: top; text-align: left; }
+.lector th { background: var(--fondo); }
+.lector blockquote { margin: 10px 0; padding: 4px 14px; border-left: 3px solid var(--borde); color: var(--suave); }
+.lector pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f6f4ef; padding: 12px 14px; border-radius: var(--radio); font-size: 13.5px; line-height: 1.5; }
+.parte-doc { border-bottom: 1px dashed var(--borde); padding-bottom: 16px; margin-bottom: 16px; }
+.comentar-parte { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.botones-parte { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.botones-parte > button { min-height: 32px; font-size: 13px; padding: 4px 12px; background: var(--sobre); border-color: var(--sobre-borde); color: var(--sobre-texto); }
+/* Cada parte se marca como leída con su estrella, a la derecha y más grande: gris mientras falta, dorada al marcarla */
+.botones-parte > .leido-parte { margin-left: auto; min-height: 40px; padding: 4px 16px; font-size: 14px; background: var(--panel); border-color: var(--borde); color: var(--suave); display: inline-flex; gap: 8px; align-items: center; }
+.leido-parte .icono { width: 24px; height: 24px; fill: none; stroke: #b9b5ab; transition: fill 0.15s, stroke 0.15s; }
+.leido-parte:hover .icono { stroke: #c9a227; }
+.botones-parte > .leido-parte.hecho { background: #fbf3d6; border-color: #e9d48a; color: #6b4f00; font-weight: 600; }
+.leido-parte.hecho .icono { fill: #e8b923; stroke: #c9a227; }
+/* Lo ya leído baja al final del documento, plegado: arriba queda lo que falta */
+.ya-leido-doc { margin-top: 8px; }
+.ya-leido-doc > summary { cursor: pointer; width: fit-content; display: inline-flex; gap: 6px; align-items: center; font-size: 14.5px; font-weight: 650; color: var(--suave); }
+.ya-leido-doc > summary .icono { width: 18px; height: 18px; fill: #e8b923; stroke: #c9a227; }
+.ya-leido-doc[open] > summary { margin-bottom: 12px; }
+/* Plegado, dice que lo leído está ahí y cómo releerlo; abierto, ya se ve */
+.ya-leido-doc > summary .ayuda-leido { font-weight: 400; }
+.ya-leido-doc[open] > summary .ayuda-leido { display: none; }
+.ya-leido-doc .parte-doc { opacity: 0.82; }
+/* El efecto al marcarla (director.ts › romperParte): se tacha, sus palabras se sueltan y caen, y la parte se cierra */
+.parte-doc.tachando-parte :is(p, li, h2, h3, td, th, blockquote) { text-decoration: line-through; text-decoration-color: var(--ok); text-decoration-thickness: 2px; color: var(--suave); transition: color 0.3s; }
+.pieza-parte { display: inline-block; }
+.parte-doc.rompiendo-parte .pieza-parte { animation: dq-caer 0.8s cubic-bezier(0.55, 0, 0.8, 0.2) var(--retraso) forwards; }
+.parte-doc.rompiendo-parte .comentar-parte, .parte-doc.rompiendo-parte :is(table, pre, img) { opacity: 0; transition: opacity 0.5s; }
+.parte-doc.cerrando-parte { overflow: hidden; opacity: 0; padding-bottom: 0; margin-bottom: 0; transition: height 0.35s ease-in, opacity 0.3s, margin 0.35s, padding 0.35s; }
+@media (prefers-reduced-motion: reduce) { .leido-parte .icono { transition: none; } }
+.doc-l.leido .num-doc { background: var(--ok); color: var(--texto-en-color); }
+.chip.estado-doc.leido { background: #d9eecf; color: #27500a; }
+/* Lo que viene después en el orden de lectura se ve, pero no se abre hasta terminar el que sigue */
+.doc-l.despues:disabled { opacity: 0.55; cursor: not-allowed; }
+.otros-docs > summary { cursor: pointer; margin-top: 12px; font-size: 13.5px; font-weight: 600; color: var(--suave); }
+.decisiones-d { padding-left: 0; list-style: none; counter-reset: decision; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.decisiones-d > li { counter-increment: decision; position: relative; padding: 12px 14px 12px 48px; background: var(--sobre); border: 1px solid var(--sobre-borde); border-radius: var(--radio); }
+.decisiones-d > li::before { content: counter(decision); position: absolute; left: 14px; top: 13px; width: 24px; height: 24px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-size: 12px; font-weight: 700; background: var(--tinta); color: #f6e7b4; }
+.decisiones-d > li > p:first-child { margin-top: 0; }
+.responder-decision { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; justify-items: start; margin-top: 8px; }
+/* «Apruebo lo que recomiendas», lo principal; «Decido otra cosa» y «Comentar», al lado y más suaves */
+.botones-decision { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.botones-decision > button { min-height: 32px; font-size: 13px; padding: 4px 12px; }
+.botones-decision > .boton-aprobar { display: inline-flex; gap: 5px; align-items: center; background: var(--tinta); border-color: var(--tinta); color: #f6e7b4; font-weight: 600; }
+.botones-decision > .boton-aprobar .icono { width: 16px; height: 16px; stroke: #f6e7b4; }
+.botones-decision > .al-director { background: var(--panel); border-color: var(--borde); color: var(--texto); }
+/* Una parte por leer, de a una idea: cada párrafo o punto con su «Entendido» a la derecha (y su comentario); lo
+   entendido se apaga un poco, para que se vea qué falta */
+.trozos { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin-bottom: 12px; }
+.trozo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; align-items: start; padding: 4px 10px; margin-inline: -10px; border-radius: var(--radio); border-left: 3px solid transparent; transition: background 0.15s, opacity 0.2s; }
+.trozo:hover { background: var(--panel-suave); }
+.trozo > .cuerpo-trozo > :first-child { margin-top: 0.35em; }
+.trozo > .cuerpo-trozo > :last-child { margin-bottom: 0.35em; }
+.trozo > .cuerpo-trozo > :is(ul, ol) { margin-block: 0.35em; }
+.trozo > .notas-lista { grid-column: 1 / -1; margin-bottom: 6px; }
+.trozo.hecho { opacity: 0.6; border-left-color: var(--ok); }
+.trozo.hecho:hover { opacity: 0.85; }
+.trozo.rotulo { display: block; }
+.trozo.decision { opacity: 1; border-left-color: transparent; }
+.trozo.decision .decisiones-d { margin: 0.35em 0; }
+/* Debajo de la idea, para que el texto tenga todo el ancho: su «Entendido» y su comentario, juntos */
+.marcas-trozo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-bottom: 0.35em; }.entendido { min-height: 32px; padding: 3px 10px; font-size: 13px; gap: 5px; background: var(--panel); border-color: var(--borde); color: var(--suave); }
+.entendido .icono { width: 16px; height: 16px; stroke: var(--borde-fuerte); }
+.entendido:hover .icono { stroke: var(--ok); }
+.entendido.hecho { background: var(--ok-fondo); border-color: var(--ok); color: var(--ok-texto); font-weight: 600; }
+/* El seguro: la primera vez, «Entendido» espera lo que tarda en leerse la idea, con su cuenta en el botón */
+.entendido.con-seguro { opacity: 0.6; cursor: progress; }
+.entendido.con-seguro:hover .icono { stroke: var(--borde-fuerte); }
+.entendido .seguro-e { min-width: 1.6em; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--borde); color: var(--suave); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }
+.entendido.hecho .icono { stroke: var(--ok); }
+/* «Entendido» es lo último de la idea, abajo a la derecha y resaltado, como un «Siguiente»: se suele comentar primero y
+   marcar después (nota de voz del titular nmvn0vsbmtit, 24 de octubre de 2026). Ya marcada, vuelve a ser discreta */
+.marcas-trozo > .entendido { margin-left: auto; }
+.entendido:not(.hecho) { min-height: 36px; padding: 4px 16px; font-size: 14px; background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+.entendido:not(.hecho) .icono, .entendido:not(.hecho):hover .icono { stroke: var(--texto-en-color); }
+.entendido:not(.hecho):hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
+.entendido .sigue-e { font-size: 16px; line-height: 1; transition: transform 0.15s; }
+.entendido:not(.con-seguro):hover .sigue-e { transform: translateX(3px); }
+.entendido.con-seguro .seguro-e { background: rgba(255, 255, 255, 0.25); color: var(--texto-en-color); }
+/* Lo comentado de una idea, con las respuestas del director: plegado por defecto pero a la vista, aparte de la idea,
+   porque no hace falta para seguir (nota de voz del titular nmvn0vsbmtit) */
+.notas-idea { margin: 2px 0 6px; }
+.notas-idea > summary { cursor: pointer; width: fit-content; display: inline-flex; gap: 6px; align-items: center; min-height: 30px; padding: 3px 12px; font-size: 13px; font-weight: 600; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); }
+.notas-idea > summary:hover { border-color: #e0c98a; }
+.notas-idea > summary .icono { width: 15px; height: 15px; transition: transform 0.15s; }
+.notas-idea[open] > summary { margin-bottom: 8px; }
+.notas-idea[open] > summary .icono { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .entendido .sigue-e, .notas-idea > summary .icono { transition: none; } }
+/* Al marcarla, un estímulo corto y discreto: el botón late, el check entra girando y un anillo verde se abre y se apaga */
+.entendido.recien { position: relative; animation: late-entendido 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.entendido.recien .icono { animation: entra-check 0.45s ease-out; }
+.entendido.recien::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; border: 2px solid var(--ok); pointer-events: none; animation: anillo-entendido 0.7s ease-out forwards; }
+@keyframes late-entendido { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes entra-check { 0% { transform: scale(0.3) rotate(-45deg); opacity: 0; } 70% { transform: scale(1.25) rotate(0); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes anillo-entendido { 0% { opacity: 0.8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.35, 1.7); } }
+@media (prefers-reduced-motion: reduce) { .entendido.recien, .entendido.recien .icono { animation: none; } .entendido.recien::after { display: none; } }
+.comentar-idea { min-height: 32px; padding: 3px 10px; font-size: 13px; }
+/* El ✉ de cada punto de un bloque de puntos cortos: pequeño y en el mismo renglón, al final del texto del punto, sin
+   hacer más alto el renglón (margen negativo) ni separar los puntos entre sí; con el ratón se nota al pasar por el
+   punto, y en una pantalla táctil se ve siempre */
+/* El ✉ de cada punto se ve siempre, discreto pero a la vista (nota del titular, 22 de octubre de 2026: solo se notaba
+   al pasar el ratón y no lo vio); al pasar el ratón por su punto, resalta */
+.cuerpo-trozo li > .comentar-punto { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; min-width: 28px; padding: 0 6px; margin: -3px 0 -3px 6px; font-size: 12px; line-height: 1; vertical-align: baseline; opacity: 1; }
+.cuerpo-trozo li:hover > .comentar-punto, .cuerpo-trozo li > .comentar-punto:focus-visible { border-color: #e0c98a; box-shadow: 0 0 0 2px var(--sobre); }
+/* Llegaste al documento desde un paso de tu misión: arriba, la vuelta a ella */
+/* «← Volver a tu misión», flotante: abajo al centro, siempre en el mismo lugar y encima del velo del enfoque (z 45, como
+   su salida), mientras dure el ir y volver desde un paso (director.ts › volverAMisionDe; pd_volver_flotante) */
+.volver-flotante {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 45;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 22px; border-radius: 999px;
+  background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+.volver-flotante b { font-size: 14px; white-space: nowrap; }
+.volver-flotante small { font-size: 12px; opacity: 0.9; white-space: nowrap; }
+@media (hover: none) { .cuerpo-trozo li > .comentar-punto { opacity: 1; min-height: 28px; min-width: 36px; margin-block: -5px; } }
+.estado-decision { font-size: 12.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); white-space: nowrap; display: inline-flex; gap: 4px; align-items: center; }
+.estado-decision.hecha { background: var(--ok-fondo); border-color: var(--ok); color: var(--ok-texto); }
+.estado-decision .icono { width: 14px; height: 14px; }
+/* Cuánto de la parte ya está atendido: se marca sola al terminar */
+.progreso-parte { margin-left: auto; display: inline-flex; gap: 8px; align-items: center; min-height: 40px; padding: 4px 14px; font-size: 14px; color: var(--suave); border: 1px dashed var(--borde-fuerte); border-radius: 8px; }
+.progreso-parte .icono { width: 22px; height: 22px; stroke: #c9a227; }
+/* Lo que viene después en el documento espera: se abre al terminar la parte de ahora */
+.parte-doc.cerrada { opacity: 0.6; }
+.parte-doc.cerrada > h2 { position: static; box-shadow: none; margin-bottom: 4px; }
+.parte-doc.cerrada .como { display: flex; gap: 6px; align-items: center; margin: 0; }
+.parte-doc.cerrada .icono { width: 16px; height: 16px; }
+/* Una idea a la vez: lo entendido, plegado arriba en una línea (se abre para releer); lo que sigue no se muestra */
+.ideas-entendidas { margin: 0 0 8px; }
+.ideas-entendidas > summary { cursor: pointer; width: fit-content; display: inline-flex; gap: 6px; align-items: center; font-size: 13.5px; font-weight: 600; color: var(--suave); padding: 2px 0; }
+.ideas-entendidas > summary .icono { width: 15px; height: 15px; stroke: var(--ok); }
+.ideas-entendidas[open] > summary { margin-bottom: 6px; }
+.trozo.contexto { opacity: 0.6; border-left-color: var(--ok); }
+.trozo.actual { background: var(--panel-suave); border-left-color: var(--acento, var(--borde-fuerte)); }
+.trozo.decision.actual { background: transparent; border-left-color: transparent; }
+.trozo.llega { animation: llega-idea 0.35s ease-out; }
+@keyframes llega-idea { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.cuenta-ideas { margin: -6px 0 10px; font-size: 12.5px; color: var(--suave); }
+/* Una idea que el director reescribió (o agregó) después de que la leíste: vuelve a quedar por leer, y lo dice */
+.idea-cambiada { margin: 0 0 6px; display: inline-flex; gap: 5px; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--espera); background: var(--espera-fondo); }
+.idea-cambiada svg { width: 13px; height: 13px; }
+/* El modo enfoque, uno solo para un documento y para la misión (director.ts › aplicarEnfoque): un velo desenfoca todo
+   lo de alrededor y deja nítido lo de ahora, la idea que toca leer en una ventana al centro o la tarjeta de tu misión,
+   donde está. El texto del documento no se desenfoca: lo que no es la parte de ahora se pliega. Su botón va arriba,
+   junto al del tema, y en el atajo junto a la cara del director: puesto, los dos se ven encendidos */
+.boton-enfoque { min-height: 34px; padding: 0 12px; display: inline-flex; gap: 6px; align-items: center; font-size: 13.5px; font-weight: 600; background: var(--acento-fondo); border-color: var(--acento-borde); color: var(--acento-texto); }
+.boton-enfoque .icono { width: 17px; height: 17px; }
+.boton-enfoque:hover { box-shadow: 0 0 0 3px var(--acento-fondo); }
+.boton-enfoque[aria-pressed='true'] { background: var(--acento); border-color: var(--acento); color: var(--texto-en-color); }
+/* Lo de alrededor queda bajo el velo, y bajo el velo no se toca nada */
+html:is(.enfoque, .enfoque-mision) :is(.lateral, .cabeza-proyecto, .barra-movil, .desplegar-lateral, .lista-docs, .desplegar-lista) { pointer-events: none; user-select: none; }
+/* El director flotante y sus atajos quedan siempre encima, también del enfoque: desde lo enfocado se pregunta, se
+   comenta o se sale del enfoque sin moverse (sus diálogos son modales y van por encima de todo) */
+html:is(.enfoque, .enfoque-mision) :is(.director-flotante, .atajos-director, .segundo-plano) { z-index: 45; }
+html:is(.enfoque, .enfoque-mision) .progreso-director { z-index: 46; }
+/* El atajo del enfoque está solo donde el enfoque aplica: sin él, lo que pasa en segundo plano baja lo que él ocupa (un
+   atajo y su separación) y sigue justo encima de los atajos */
+body:has(#atajos-director > [data-enfoque][hidden]) .segundo-plano { translate: 0 52px; }
+@media (max-width: 759px) { body:has(#atajos-director > [data-enfoque][hidden]) .segundo-plano { translate: 0 48px; } }
+/* Con el enfoque puesto aparece un atajo más, el de la niebla de lectura: la pastilla sube lo que él ocupa */
+body:has(#atajos-director > [data-niebla]:not([hidden])) .segundo-plano { translate: 0 -52px; }
+@media (max-width: 759px) { body:has(#atajos-director > [data-niebla]:not([hidden])) .segundo-plano { translate: 0 -48px; } }
+/* En el enfoque, el tema también se cambia desde la franja de la ventana (fuera de él, está arriba, en la cabecera) */
+html:not(.enfoque) .opciones-lector .boton-tema { display: none; }
+.opciones-lector .boton-tema { min-height: 34px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.opciones-lector .boton-tema .icono { width: 17px; height: 17px; }
+/* Los controles del enfoque, en cuatro grupos separados por una línea fina (controlesEnfoque.ts; pd_controles_enfoque):
+   el tema (con la letra), la niebla, la narración y el sonido. La línea es el comienzo de cada grupo menos el primero, así
+   un grupo que no se ve no deja la suya: la narración solo está con la niebla puesta, y fuera del enfoque, en la franja
+   del documento, solo queda el del tema (la letra) */
+.grupo-enfoque { display: inline-flex; align-items: center; gap: 4px; }
+.grupo-enfoque-tema { gap: 8px; }
+.grupo-enfoque + .grupo-enfoque::before { content: ''; flex: none; align-self: center; width: 1px; height: 20px; margin-right: 4px; background: var(--borde); }
+html:not(.enfoque) .opciones-lector .grupo-enfoque:not(.grupo-enfoque-tema), html:not(.niebla-lectura) .grupo-enfoque-narracion { display: none; }
+/* El velo (zen.ts lo monta): cubre toda la pantalla, también la cabecera, sin franja ni recuadro aparte (nota del
+   titular, 22 de octubre: la franja de arriba empujaba lo enfocado hacia abajo y lo estrechaba). Desenfoca y tiñe todo
+   lo de alrededor y lo cierra con un viñeteado quieto y tenue, del color del tema. Entra y sale suave, con el
+   desenfoque y el tinte creciendo juntos, y después no se mueve. Encima de lo de alrededor y debajo de lo enfocado
+   (z 40) y de la salida (z 45); no recibe clics. Sin el enfoque, no se ve ni se dibuja */
+.velo-zen {
+  --zen-curva: cubic-bezier(0.45, 0, 0.25, 1);
+  --zen-tinte: color-mix(in srgb, var(--fondo) 45%, transparent);
+  --zen-vineta: color-mix(in srgb, var(--tinta) 14%, transparent);
+  position: fixed; inset: 0; z-index: 35;
+  background: radial-gradient(ellipse at 50% 45%, transparent 45%, var(--zen-vineta)), var(--zen-tinte);
+  -webkit-backdrop-filter: blur(0) saturate(1);
+  backdrop-filter: blur(0) saturate(1);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 0.6s var(--zen-curva), backdrop-filter 0.6s var(--zen-curva), -webkit-backdrop-filter 0.6s var(--zen-curva), visibility 0s linear 0.6s;
+}
+html.oscuro .velo-zen { --zen-tinte: color-mix(in srgb, var(--fondo) 55%, transparent); --zen-vineta: rgba(0, 0, 0, 0.4); }
+html:is(.enfoque, .enfoque-mision) .velo-zen { opacity: 1; visibility: visible; -webkit-backdrop-filter: blur(8px) saturate(1.15); backdrop-filter: blur(8px) saturate(1.15); transition-delay: 0s; }
+/* La salida del enfoque flota encima del velo, sin franja ni recuadro, en el lugar exacto del botón de la cabecera
+   (zen.ts la monta; director.ts › ubicarEnfoque la lleva ahí): salir está donde se entró. El de la cabecera queda bajo
+   el velo, sin verse. En el teléfono no hace falta: se sale con el atajo, junto a la cara del director */
+.salida-enfoque { position: fixed; top: 16px; right: 24px; z-index: 45; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+html:is(.enfoque, .enfoque-mision) .cabeza-proyecto .boton-enfoque { visibility: hidden; }
+/* Al salir, lo que estaba enfocado sigue por encima del velo mientras este se va (director.ts › aplicarEnfoque): nunca
+   se ve desenfocado */
+html.enfoque-saliendo :is(.docs > .lector, .mision-c.sigue.mia) { position: relative; z-index: 40; }
+html.enfoque .lector :is(.parte-doc.cerrada, .ya-leido-doc, .entrada-doc, .leido-doc) { display: none; }
+/* En el enfoque, lo enfocado (la idea de ahora, en su documento, o la tarjeta de tu misión) es una ventana al centro de
+   la pantalla, como un diálogo: ancha (hasta 1200 px o el 92 % del ancho) y del alto que pide su contenido; si no cabe,
+   se desplaza por dentro (la página no). Arriba deja 24 px, salvo que la salida le quede encima: entonces empieza justo
+   debajo de ella (director.ts › ubicarEnfoque, --enfoque-arriba). En el documento, la franja de arriba, con el tema y
+   la letra, queda siempre a la vista */
+html:is(.enfoque, .enfoque-mision), html:is(.enfoque, .enfoque-mision) body { overflow: hidden; }
+html.enfoque .docs > .lector, html.enfoque-mision .mision-c.sigue.mia {
+  position: fixed; inset: var(--enfoque-arriba, 24px) 24px 24px; z-index: 40; margin: auto;
+  width: min(1200px, calc(92 * var(--vw))); height: fit-content; max-height: calc(100 * var(--dvh) - var(--enfoque-arriba, 24px) - 24px);
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+}
+html.enfoque .docs > .lector { --franja-enfoque: 60px; padding-top: 0; }
+/* La franja tiene un alto fijo (en el enfoque solo lleva el tema y la letra, en una línea), y el título de la parte se
+   pega justo debajo de ella, no a la altura de la cabecera de la página, que aquí no está: si no, quedaba a media
+   ventana, sobre el texto que pasa por detrás */
+html.enfoque .lector .ajustes-lector { position: sticky; top: 0; z-index: 3; box-sizing: border-box; height: var(--franja-enfoque); flex-wrap: nowrap; background: var(--panel); padding: 6px 0 0; margin: 0 0 8px; }
+html.enfoque .lector .parte-doc > :is(h2, h3):first-child { top: var(--franja-enfoque); }
+/* Una idea alta se lleva arriba (director.ts › centrarIdea): empieza justo bajo la franja y el título de la parte, no detrás */
+html.enfoque .lector .trozo { scroll-margin-top: calc(var(--franja-enfoque) + 64px); }
+html.enfoque .lector .parte-doc.por-leer { border-bottom: 0; padding-block: 4px 8px; }
+/* En pantallas angostas la ventana deja a la derecha un margen para los atajos y la cara del director, que siguen
+   encima del enfoque (con su atajo se sale): así no tapan el texto. La salida de arriba no hace falta */
+@media (max-width: 759px) {
+  html.enfoque .docs > .lector, html.enfoque-mision .mision-c.sigue.mia { inset: 8px; width: calc(100 * var(--vw) - 84px); max-height: calc(100 * var(--dvh) - 16px); margin-inline: 0 auto; }
+  .boton-enfoque.salida-enfoque { display: none; }
+}
+html.enfoque .trozo.actual { background: transparent; }
+/* Con la cabecera fija (no en el teléfono): al salir, mientras el velo se va, lo enfocado vuelve a su lugar por debajo
+   de ella, sin taparla */
+@media (min-width: 760px) { html.enfoque-saliendo .cabeza-proyecto { z-index: 41; } }
+/* El modo enfoque de la misión: el mismo velo, y la tarjeta de ahora en su ventana al centro, nítida y por encima. Lo
+   demás de Hoy queda bajo el velo */
+html.enfoque-mision #vista { pointer-events: none; user-select: none; }
+/* La tarjeta se selecciona y se copia (rutas, direcciones, órdenes): «text» y no «auto», que bajo un padre con
+   user-select: none también vale none. Es la tuya: con todo el equipo a la vista, las de los demás quedan bajo el velo */
+html.enfoque-mision .mision-c.sigue.mia { pointer-events: auto; -webkit-user-select: text; user-select: text; }
+/* Su franja de arriba, como la del documento: el tema y la niebla de lectura, con su ▶ y su velocidad (director.ts ›
+   opcionesMision; nota de voz del titular nmvofr7x3tit). Se queda a la vista al desplazar la tarjeta, y las nubes pasan
+   por debajo. Fuera del enfoque solo queda «Tu misión ahora» */
+.franja-mision { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
+.opciones-mision { display: none; gap: 8px; align-items: center; }
+html.enfoque-mision .mision-c.sigue.mia .opciones-mision { display: flex; }
+html.enfoque-mision .mision-c.sigue.mia .franja-mision { position: sticky; top: 0; z-index: 3; background: var(--panel); padding-block: 2px 6px; }
+.opciones-mision .boton-tema { min-height: 34px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.opciones-mision .boton-tema .icono { width: 17px; height: 17px; }
+/* Los mismos controles arriba de «¿Dónde quedamos?» (director.ts › opcionesDq; nota de voz del titular nmvpi5ydttit): se ven
+   siempre, con el enfoque o sin él */
+.opciones-dq { display: inline-flex; gap: 8px; align-items: center; flex: none; }
+.opciones-dq .boton-tema { min-height: 34px; width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.opciones-dq .boton-tema .icono { width: 17px; height: 17px; }
+@media (prefers-reduced-motion: reduce) {
+  .trozo.llega { animation: none; }
+  .velo-zen { transition: none; }
+}
+@media (max-width: 600px) {
+  .trozo { grid-template-columns: minmax(0, 1fr); }
+  .marcas-trozo { justify-content: flex-end; padding-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .trozo { transition: none; } }
+
+/* ── El proyecto: el repositorio, el contexto, el objetivo y el equipo ── */
+.fila-form { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.fila-form input { flex: 1 1 260px; min-width: 0; width: auto; }
+.info-repo { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; font-size: 14px; margin: 14px 0 0; }
+.info-repo dt { color: var(--suave); }
+.info-repo dd { margin: 0; word-break: break-word; }
+.bien-repo { margin: 10px 0 0; font-size: 14px; color: var(--ok); font-weight: 600; word-break: break-word; }
+/* Lo que no hace falta para dirigir va plegado: se abre si se quiere ver */
+.detalles-repo, .mas-datos { margin-top: 10px; font-size: 14px; }
+.detalles-repo > summary, .mas-datos > summary { cursor: pointer; color: var(--acento-texto); font-weight: 500; width: max-content; max-width: 100%; }
+.detalles-repo .fila-form { margin-top: 8px; }
+.mas-datos .form-proyecto { margin-top: 8px; }
+/* Modelo y consumo (en el pie de la barra): el modelo del director, los límites del plan y lo que gastó */
+.campo-modelo { display: grid; gap: 6px; font-size: 14px; font-weight: 600; margin-top: 10px; max-width: 320px; }
+.campo-modelo select { width: 100%; }
+.abrir-claude { margin-top: 14px; }
+.abrir-claude button { min-height: 36px; }
+/* Cómo pide permisos el director: el modo de hoy, a la vista (director.ts › seccionPermisos) */
+.modo-permisos { display: flex; gap: 8px; align-items: center; margin: 4px 0 8px; padding: 8px 12px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); }
+.modo-permisos .icono { flex: none; width: 18px; height: 18px; stroke: var(--suave); }
+/* Lo que se le negó al director, para autorizarlo con una casilla (director.ts › seccionNegados) */
+.negados-panel { margin-top: 14px; }
+.negados-panel h4 { margin: 14px 0 4px; }
+.negado-d code { overflow-wrap: anywhere; }
+.negado-d select { margin-left: 6px; }
+/* Al corregir una nota, lo que ya tiene adjunto, cada uno con su casilla para quitarlo (pd_corregir_adjuntos) */
+.adjuntos-actuales { display: grid; gap: 4px; margin: 10px 0 0; padding: 8px 12px; border: 1px solid var(--borde); border-radius: var(--radio); }
+.adjuntos-actuales legend { padding: 0 4px; font-size: 13px; color: var(--suave); }
+/* Lo negado en la última revisión, en una línea de «¿Dónde quedamos?», con su botón al panel (director.ts › informeNegadosDq) */
+.negados-dq { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; padding: 8px 12px; border-radius: var(--radio); background: var(--panel-suave); border: 1px solid var(--borde); font-size: 14px; line-height: 1.5; }
+.negados-dq .icono { flex: none; width: 16px; height: 16px; margin-top: 2px; stroke: var(--suave); }
+/* «Autorizo los marcados», con aire sobre la tarjeta de arriba (nota de voz del titular nmvow70jqtit) */
+.negados-panel .acciones-p { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+/* Tus ajustes de Claude Code en el director, clave por clave (director.ts › seccionAjustesPropios) */
+.ajustes-d { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.ajuste-d { padding: 8px 12px; border: 1px solid var(--borde); border-radius: var(--radio); }
+.ajuste-d .casilla-d { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ajuste-d .casilla-d .icono { width: 16px; height: 16px; stroke: var(--suave); }
+.ajuste-d p.como { margin: 4px 0 0; font-size: 13.5px; }
+.consejo-ajuste { margin-left: auto; font-size: 12px; color: var(--suave); }
+.consejo-si .consejo-ajuste { color: var(--acento); font-weight: 600; }
+/* Una clave que apareció después de guardar la selección: se marca para confirmarla */
+.ajuste-nueva { padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: var(--aviso-fondo); color: var(--aviso-texto); }
+.aviso-ajustes-nuevas { margin: 0 0 10px; padding: 8px 12px; border-radius: var(--radio); background: var(--aviso-fondo); color: var(--aviso-texto); font-size: 14px; line-height: 1.5; }
+.consejo-nunca { background: var(--panel-suave); }
+.panel-d[data-ancla="m-ajustes"] .acciones-p { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.consumo-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+.consumo-cifras > div { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px; }
+.consumo-cifras .tit { font-size: 12px; color: var(--suave); }
+.consumo-cifras b { font-size: 18px; }
+.consumo-cifras small { font-size: 12px; color: var(--suave); }
+.aviso-modelo { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: #fff6d8; border: 1px solid #f2b828; font-size: 14px; }
+.consumo-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.consumo-lista li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13px; padding-bottom: 6px; border-bottom: 1px solid var(--borde); }
+.consumo-lista li > span:last-of-type { color: var(--suave); }
+.consumo-lista li > .consumo-modelos, .consumo-lista li > .consumo-paquete { flex-basis: 100%; font-size: 12px; color: var(--suave); }
+.consumo-proyectos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.consumo-proyectos li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 13.5px; }
+.consumo-proyectos li > span:last-child { color: var(--suave); }
+/* La bitácora de este computador (al final de «Modelo y consumo»): una acción por fila, filtrable; se desplaza por dentro */
+.filtro-bitacora { display: grid; gap: 6px; max-width: 420px; margin-top: 10px; font-size: 14px; font-weight: 600; }
+.lista-bitacora { list-style: none; margin: 8px 0 0; padding: 0; display: grid; font-size: 13.5px; max-height: calc(60 * var(--vh)); overflow-y: auto; overflow-x: hidden; }
+.lista-bitacora li { display: grid; grid-template-columns: 120px 140px minmax(0, 1fr); gap: 2px 12px; padding: 6px 0; border-bottom: 1px solid var(--borde); line-height: 1.45; }
+.lista-bitacora .f, .lista-bitacora .q, .lista-bitacora small { color: var(--suave); font-size: 12.5px; }
+.lista-bitacora small { display: block; }
+@media (max-width: 700px) { .lista-bitacora li { grid-template-columns: minmax(0, 1fr); } }
+.form-proyecto { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; font-size: 14px; margin-top: 12px; }
+.form-proyecto label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-weight: 600; }
+.form-proyecto label.ancho { grid-column: 1 / -1; }
+.form-proyecto .detectado { font-weight: 500; font-size: 13px; color: var(--sobre-texto); }
+/* Mientras el director revisa, se le sigue hablando (comentarios, audios y preguntas, para la revisión siguiente): solo
+   lo que cambia lo que él está leyendo queda apagado (director.ts › libreMientrasRevisa). Al escribir, este aviso lo dice */
+.aviso-revisando { margin: 0 0 8px; padding: 8px 12px; border-radius: 10px; background: var(--aviso-fondo); color: var(--aviso-texto); font-size: 14px; }
+.tarjeta-trabajando b { color: #f6e7b4; }
+.form-proyecto .botones { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+.objetivo-firmado { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; background: var(--acento-fondo); border: 1px solid var(--acento-borde); border-radius: var(--radio-g); padding: 14px 16px; font-size: 15px; }
+.objetivo-firmado p { margin: 0; line-height: 1.55; }
+.objetivo-firmado .obj-texto { font-size: 19px; font-weight: 700; color: var(--acento-texto); line-height: 1.4; }
+.objetivo-firmado .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
+.lista-equipo { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.lista-equipo li { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--borde); border-radius: var(--radio); font-size: 14px; }
+.lista-equipo li > div { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; }
+.lista-equipo li small { color: var(--suave); font-size: 13px; }
+.lista-equipo .monograma { width: 34px; height: 34px; font-size: 14px; }
+.lista-equipo button { min-height: 30px; font-size: 13px; padding: 3px 10px; }
+.interruptor-s { display: flex; gap: 10px; align-items: center; font-size: 15px; margin-top: 10px; cursor: pointer; }
+
+/* ── Los proyectos y la bienvenida ── */
+.lista-proyectos { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.tarjeta-proyecto { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); padding: 16px; font-size: 14px; box-shadow: var(--sombra); }
+.tarjeta-proyecto header { display: flex; gap: 8px; align-items: center; }
+.tarjeta-proyecto header b { flex: 1; font-size: 17px; }
+.tarjeta-proyecto p { margin: 0; line-height: 1.5; }
+.tarjeta-proyecto.activo { border-color: var(--acento-borde); box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.1); }
+.tarjeta-proyecto.nueva { border-style: dashed; background: var(--panel-suave); justify-items: start; box-shadow: none; }
+.tarjeta-proyecto .acciones-p { display: flex; gap: 6px; margin-top: 4px; }
+.cifras-p { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; color: var(--suave); font-size: 13px; }
+.cifras-p b { color: var(--texto); font-size: 15px; }
+.alerta-p { margin: 0; padding: 8px 12px; border-radius: var(--radio); background: var(--peligro-fondo); color: var(--peligro-texto); font-size: 14px; line-height: 1.45; }
+/* «Qué pasó con la revisión»: lo último que alcanzó a hacer, con la misma lista del progreso en vivo, sin su marco */
+.falla-revision .pasos-progreso { padding: 0; max-height: 220px; }
+.falla-revision .botones { flex-wrap: wrap; }
+.bienvenida { max-width: 1080px; margin: 24px auto; padding: 28px 32px; font-size: 16px; line-height: 1.6; }
+.bienvenida h1 { margin: 6px 0 10px; font-size: 28px; }
+.bienvenida .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
+.salud { list-style: none; margin: 0 0 16px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.salud li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
+.salud li > div { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; }
+.salud li small { color: var(--suave); font-size: 13px; }
+.salud .icono-s { flex: none; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; width: 24px; height: 24px; border-radius: 50%; font-weight: 700; font-size: 12px; background: #e9e6dd; color: var(--suave); }
+.salud li.ok .icono-s { background: var(--ok); color: var(--texto-en-color); }
+.salud li.falta .icono-s { background: var(--peligro); color: var(--texto-en-color); }
+
+/* ── La cabecera del proyecto (estilos.css le da el armazón) ── */
+/* La cabecera, siempre en una sola línea arriba (nota de voz del titular, 26 de octubre de 2026: «no quiero que los
+   botones se bajen a una segunda línea, porque eso descuadra el diseño»): el título a la izquierda y los botones a la
+   derecha, en la misma fila y sin envolver. El título cede: su letra baja con el ancho que le queda (clamp con la unidad
+   del contenedor) y, si aun así no cabe, se corta con puntos suspensivos; los botones no ceden. En el teléfono (menos
+   de 760 px) caben menos botones de los que hay, y ahí la fila vuelve a envolver, como antes. La escala de la ventana
+   (escala.ts) nunca baja de 760 px de ancho, así que en toda ventana de escritorio es una sola línea */
+.cabeza-fila { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 16px; flex-wrap: nowrap; }
+.cabeza-fila .donde { flex: 1 1 0; min-width: 0; container-type: inline-size; }
+.cabeza-fila.segunda { align-items: center; justify-content: flex-start; gap: 10px 18px; }
+.acciones-cabeza { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; flex: none; }
+.acciones-cabeza > * { flex: none; white-space: nowrap; }
+@media (max-width: 759px) {
+  .cabeza-fila:not(.segunda) { flex-wrap: wrap; }
+  .cabeza-fila:not(.segunda) .donde { flex-basis: 100%; }
+  .acciones-cabeza { flex-wrap: wrap; flex: 1 1 100%; }
+}
+/* Pedir revisión y en qué va (estudio/src/director.ts › botonRevision) */
+.pedir-revision .cifra { margin-left: 2px; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--acento); color: var(--texto-en-color); font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
+.estado-revision { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: var(--radio); font-size: 13.5px; border: 1px solid var(--acento-borde); background: var(--acento-fondo); color: var(--acento-texto); }
+.estado-revision.en-curso, .estado-revision.ocupado { gap: 0; }
+.estado-revision.ocupado { cursor: help; }
+.estado-revision .enlace { font-size: 13px; margin-left: 4px; }
+.estado-revision.sin-vigilia { border-color: #e7a9a6; background: var(--peligro-fondo); color: var(--peligro-texto); font-weight: 600; }
+.cabeza-proyecto .donde { min-width: 0; }
+.sobretitulo { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--tenue); }
+.cabeza-proyecto .sobretitulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* El título de la fase: una sola línea; su letra baja de 26 a 17 px con el ancho que deja su contenedor (.donde) y, si no
+   cabe, se corta con puntos suspensivos. La etapa («Beta privada») se queda a su lado */
+.cabeza-proyecto h1 { display: flex; align-items: baseline; min-width: 0; margin: 4px 0 0; overflow: hidden; font-size: 22px; font-size: clamp(17px, 3.4cqi, 26px); line-height: 1.2; }
+.cabeza-proyecto h1 .titulo-fase { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cabeza-proyecto h1 small { flex: none; font-size: 15px; font-weight: 400; color: var(--suave); margin-left: 8px; white-space: nowrap; }
+.cabeza-proyecto .sobretitulo .aqui { color: var(--acento-texto); }
+/* La cabecera queda fija al desplazar: siempre se sabe en qué proyecto y en qué sección estás. Al bajar se compacta. */
+@media (min-width: 760px) {
+  .cabeza-proyecto { position: sticky; top: 0; z-index: 8; transition: padding 0.15s; }
+  body.cabeza-compacta .cabeza-proyecto { padding-top: 10px; padding-bottom: 10px; gap: 6px; box-shadow: 0 2px 12px rgba(30, 28, 24, 0.07); }
+  body.cabeza-compacta .cabeza-fila.segunda { display: none; }
+  body.cabeza-compacta .cabeza-proyecto h1 { font-size: 19px; font-size: clamp(16px, 3.4cqi, 19px); margin-top: 2px; }
+}
+/* El título de cada parte de un documento queda fijo bajo la cabecera mientras la lees */
+.parte-doc > h2:first-child, .parte-doc > h3:first-child { position: sticky; top: var(--alto-cabeza, 0px); z-index: 2; margin-top: 0; padding: 8px 0; background: var(--panel); box-shadow: 0 6px 6px -6px rgba(30, 28, 24, 0.12); }
+/* La franja de abajo (los criterios para cruzar y la meta) usa todo el ancho que hay: una sola fila, la meta crece hasta
+   llenarla y cada texto se corta con puntos suspensivos solo donde ya no cabe */
+.avance-puerta { flex: 0 1 auto; min-width: 0; min-height: 32px; gap: 10px; padding: 2px 4px; border: 0; background: none; font-size: 14px; color: var(--suave); justify-content: flex-start; text-align: left; }
+.avance-puerta:hover { background: none; color: var(--acento-texto); }
+.avance-puerta .barra-medida { width: 150px; flex: none; }
+.avance-puerta > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.objetivo-cabeza { flex: 1 1 auto; min-width: 0; font-size: 14px; color: var(--acento-texto); background: var(--acento-fondo); padding: 4px 10px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.objetivo-cabeza.sin { color: var(--suave); background: #efece4; }
+.alerta-p.chica { padding: 4px 10px; font-size: 13.5px; max-width: min(460px, 100%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── «Dónde quedamos»: el brief al volver a un proyecto ── */
+.donde-quedamos { width: min(620px, calc(100 * var(--vw) - 32px)); }
+.donde-quedamos form { gap: 10px; }
+.donde-quedamos h2 { outline: none; }
+/* Arriba, junto al título, los controles de lectura (director.ts › opcionesDq); si no caben, bajan a otra línea */
+.dq-cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.dq-cabeza h2 { margin: 0; flex: 1 1 200px; min-width: 0; }
+/* En qué quedamos: el primer párrafo, el estado del proyecto (no un título, ni una lista de pendientes) */
+.dq-quedamos { margin: 0; font-size: 17px; line-height: 1.55; color: var(--texto); }
+.donde-quedamos h3 { margin: 8px 0 0; }
+.donde-quedamos ul { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; font-size: 15px; color: var(--texto); line-height: 1.5; }
+.donde-quedamos .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
+
+/* «Dónde quedamos» como lectura de juego (director.ts › tocarDq): cada línea se toca al leerla, se tacha, se rompe y baja
+   a «Ya leído». Solo transform y opacity en lo que se mueve; sin movimiento si el sistema lo pide */
+.donde-quedamos { position: relative; overflow-x: hidden; }
+.dq-progreso { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--ok-texto); }
+.dq-barra { flex: 1; max-width: 220px; height: 7px; border-radius: 999px; background: #e8e4da; overflow: hidden; }
+.dq-barra i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--ok); transition: width 0.35s ease-out; }
+.dq-seccion[hidden] { display: none; }
+.donde-quedamos ul.dq-lista { list-style: none; padding-left: 0; gap: 2px; }
+.dq-lista > li { display: flex; align-items: flex-start; gap: 2px; }
+/* El ✉ de cada línea: comentarla o preguntar sobre ella al director */
+.dq-comentar { flex: none; min-height: 0; margin: 2px 0 0; padding: 3px 7px; font-size: 14px; line-height: 1.4; color: var(--suave); background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.dq-comentar:hover, .dq-comentar:focus-visible { color: var(--acento); border-color: var(--borde); background: var(--panel); }
+.dq-item { position: relative; display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 0; margin: 0; padding: 5px 8px; text-align: left; font: inherit; font-size: 15px; line-height: 1.5; color: var(--texto); background: transparent; border: 0; border-radius: 8px; cursor: pointer; }
+.dq-item:hover { background: var(--ok-fondo); }
+.dq-item:focus-visible { outline: 2px solid var(--ok); outline-offset: 1px; }
+.dq-check { flex: none; display: grid; place-items: center; width: 18px; height: 18px; margin-top: 3px; border: 2px solid #c9c3b5; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 800; line-height: 1; transition: background-color 0.12s, border-color 0.12s, transform 0.15s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.dq-item:hover .dq-check { border-color: var(--ok); }
+.dq-cuerpo { flex: 1; min-width: 0; }
+/* El tachado se dibuja de izquierda a derecha, también si la línea ocupa varios renglones */
+.dq-texto { background: linear-gradient(var(--ok), var(--ok)) no-repeat 0 62% / 0% 2px; transition: background-size 0.35s ease-out, color 0.35s; }
+.dq-item.tachando .dq-check, .dq-item.leida .dq-check { background: var(--ok); border-color: var(--ok); }
+.dq-item.tachando .dq-check { transform: scale(1.3); }
+.dq-item.tachando .dq-check::before, .dq-item.leida .dq-check::before { content: '✓'; }
+.dq-item.tachando .dq-texto { background-size: 100% 2px; color: var(--suave); }
+.dq-item.rompiendo .dq-texto { background: none; }
+.dq-pieza { display: inline-block; }
+.dq-item.rompiendo .dq-pieza { animation: dq-caer 0.8s cubic-bezier(0.55, 0, 0.8, 0.2) var(--retraso) forwards; }
+@keyframes dq-caer { to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
+.dq-lista li.cerrando { overflow: hidden; opacity: 0; transition: height 0.2s ease-in, opacity 0.15s; }
+.dq-chispas { position: absolute; left: 17px; top: 17px; width: 0; height: 0; pointer-events: none; }
+.dq-chispas i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--h), 62%, 45%); animation: dq-chispa 0.45s ease-out forwards; }
+.dq-chispas.especial i { left: -6px; top: -9px; width: auto; height: auto; background: none; color: #e0a92a; font-size: 13px; font-style: normal; }
+@keyframes dq-chispa { from { transform: rotate(var(--a)) translateX(4px) scale(1); opacity: 1; } to { transform: rotate(var(--a)) translateX(var(--d)) scale(0.4); opacity: 0; } }
+/* El botón «¿Dónde quedamos?»: mientras quede algo por leer se distingue y late suave, sin parar; lo nuevo del director, más */
+[data-donde-quedamos] .cifra { margin-left: 6px; }
+[data-donde-quedamos].por-leer { border-color: var(--acento); background: var(--acento-fondo); color: var(--acento-texto); font-weight: 650; animation: latido 2.6s ease-in-out infinite; }
+[data-donde-quedamos].por-leer .cifra { background: var(--acento); color: var(--texto-en-color); }
+[data-donde-quedamos].por-leer.hay-novedades { background: var(--acento); color: var(--texto-en-color); animation-duration: 1.8s; }
+[data-donde-quedamos].por-leer.hay-novedades .icono { color: var(--texto-en-color); }
+[data-donde-quedamos].por-leer.hay-novedades .cifra { background: #fff; color: var(--acento-texto); }
+/* Lo que se explica una vez y después estorba, plegado: el Buzón y la guía de validaciones */
+details.explica-buzon > summary, .guia-plegada > summary { cursor: pointer; font-weight: 650; color: var(--suave); }
+details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto); }
+.guia-plegada { max-width: var(--lectura); margin: -4px 0 12px; font-size: 14.5px; }
+.guia-plegada p { margin: 6px 0 0; }
+.dq-al-dia { margin: 4px 0 0; padding: 8px 12px; border-radius: var(--radio); background: var(--ok-fondo); color: var(--ok-texto); font-weight: 650; }
+.dq-al-dia[hidden] { display: none; }
+.dq-leidas[hidden] { display: none; }
+.dq-leidas summary { cursor: pointer; font-size: 13.5px; font-weight: 650; color: var(--suave); }
+.dq-leidas .dq-item { color: var(--suave); font-size: 14px; }
+.dq-leidas .dq-texto { text-decoration: line-through; text-decoration-color: rgba(59, 125, 42, 0.5); }
+.botones .primario.dq-llamada { animation: latido 1.6s ease-in-out 3; }
+/* Si la entrega sola no se pudo hacer, «Entregar al director» es lo que sigue: late unas veces */
+.acciones-m .primario.llamada { animation: latido 1.6s ease-in-out 3; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .dq-texto, .dq-check, .dq-barra i { transition: none; }
+  .dq-chispas { display: none; }
+  .botones .primario.dq-llamada { animation: none; outline: 3px solid var(--ok); }
+  .acciones-m .primario.llamada { animation: none; outline: 3px solid var(--acento); }
+  [data-donde-quedamos].por-leer { animation: none; }
+}
+.mision-a { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; background: var(--acento-fondo); border-radius: var(--radio); padding: 10px 14px; margin-top: 6px; }
+.mision-a b { font-size: 16px; }
+.mision-a small { font-size: 13.5px; color: var(--suave); }
+.mision-a .etiqueta { font-size: 12px; }
+
+/* ── El juego: logros y la celebración de una misión aprobada (dorado para los logros, verde para lo completado) ── */
+.para-subir { font-size: 12px; color: var(--suave); }
+.logros-p { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.logros-p .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
+.logros-p ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.logro { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 7px; border-radius: 999px; font-size: 12.5px; font-weight: 600; background: #f1efe9; color: var(--suave); border: 1px solid transparent; max-width: 100%; }
+.logro .icono { width: 15px; height: 15px; flex: none; }
+.logro.ganado { background: #fbf3dc; color: #7a5a06; border-color: #ecd690; }
+.logro.ganado .icono { color: var(--oro); fill: #f2c94c; }
+/* Nunca pasa del alto de la ventana (nota de voz del titular, 26 de octubre de 2026: en una ventana baja la lista de
+   misiones no cabía y se cortaba bajo los botones, sin desplazamiento: el «overflow: hidden» del diálogo, que recorta las
+   esquinas y el confeti, la dejaba sin barra): arriba van la etiqueta y el título, abajo los botones, y lo que se desplaza
+   por dentro es la lista. Si ni así cabe (una ventana muy baja), se desplaza el formulario entero, con los botones pegados
+   abajo, como en los demás diálogos */
+.celebracion { width: min(560px, calc(100 * var(--vw) - 32px)); overflow: hidden; }
+.celebracion[open] { display: flex; flex-direction: column; }
+.celebracion form { position: relative; gap: 10px; display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.celebracion form > * { flex: none; }
+.celebracion form > .cumplidas { flex: 0 1 auto; min-height: 56px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.celebracion h2 { font-size: 22px; line-height: 1.35; animation: celebra-entra 0.5s ease-out both; }
+.celebracion .etiqueta { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oro); }
+.celebracion .cumplidas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.celebracion .cumplidas li { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radio); background: var(--ok-fondo); font-size: 15px; }
+.celebracion .cumplidas li > span { flex: 1; min-width: 0; }
+.celebracion .cumplidas .icono { width: 18px; height: 18px; color: var(--ok); flex: none; }
+.celebracion .cumplidas b { color: var(--oro); white-space: nowrap; }
+.celebracion .todas-hechas { margin: 0; padding: 10px 14px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 15px; line-height: 1.5; }
+.celebracion .barra-xp > div { animation: celebra-barra 1.2s ease-out both; }
+/* La recomendación del director de pedir la revisión: se ve, pero la revisión la pide solo la persona con su botón */
+.recomienda-revision { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; padding: 10px 14px; border-radius: var(--radio); border: 1px dashed var(--acento, #2f6fdf); font-size: 15px; line-height: 1.5; }
+.recomienda-revision p { margin: 0; flex: 1 1 260px; }
+.sube-nivel, .logros-nuevos { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; color: #7a5a06; }
+.sube-nivel .icono { width: 20px; height: 20px; color: var(--oro); fill: #f2c94c; }
+/* El confeti cae dentro de su diálogo: recortado ahí, nunca abre un desplazamiento horizontal */
+.confeti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.confeti i { position: absolute; top: 0; left: calc(var(--i) * 5.6%); width: 8px; height: 12px; border-radius: 2px; background: hsl(calc(var(--i) * 47), 70%, 55%); opacity: 0; animation: confeti 1.8s calc(var(--i) * 45ms) ease-in both; }
+@keyframes confeti { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(260px) rotate(calc(var(--i) * 70deg)); } }
+@keyframes celebra-entra { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes celebra-barra { from { width: 0; } }
+@media (prefers-reduced-motion: reduce) { .confeti { display: none; } .celebracion h2, .celebracion .barra-xp > div { animation: none; } }
+
+/* ── El explorador de carpetas ── */
+.con-explorar { display: flex; gap: 6px; }
+.con-explorar input { flex: 1; min-width: 0; }
+.con-explorar button, .fila-form button[data-explorar-repo] { white-space: nowrap; }
+.explorador { width: min(700px, calc(100 * var(--vw) - 32px)); }
+.explorador .inicios-e { display: flex; flex-wrap: wrap; gap: 6px; }
+.explorador .inicios-e button { min-height: 32px; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
+.explorador .ruta-e, .explorador .filtro-e { display: flex; gap: 6px; align-items: center; }
+.explorador .ruta-e input, .explorador .filtro-e input { flex: 1; }
+.explorador .ruta-e button { width: 40px; padding: 0; font-weight: 700; }
+.explorador .filtro-e small { color: var(--suave); white-space: nowrap; }
+.carpetas-e { list-style: none; margin: 0; padding: 4px; height: min(380px, calc(46 * var(--vh))); overflow-y: auto; overflow-x: hidden; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel-suave); }
+.carpetas-e li { display: flex; align-items: center; gap: 6px; border-radius: 8px; }
+.carpetas-e li:hover { background: #f1efe8; }
+.carpetas-e li.git { background: #f4f9ef; }
+.carpetas-e .entrar-e { flex: 1; min-width: 0; justify-content: flex-start; text-align: left; border: 0; background: none; padding: 6px 8px; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carpetas-e .elegir-e { min-height: 30px; font-size: 13px; padding: 3px 12px; margin-right: 4px; }
+.carpetas-e .vacio-e { padding: 12px; color: var(--suave); font-size: 14px; }
+
+/* ── Entregar proyectos: existentes, uno nuevo o escanear el equipo ── */
+.nuevo-proyecto { width: min(780px, calc(100 * var(--vw) - 32px)); }
+.otras-entregas { margin: 4px 0 0; font-size: 13.5px; color: var(--suave); line-height: 1.7; }
+.otras-entregas .enlace { font-size: 13.5px; }
+.tipos-proyecto { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tipos-proyecto.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tipo-proyecto { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; justify-items: start; text-align: left; padding: 16px; min-height: 0; border: 1px solid var(--borde-fuerte); border-radius: var(--radio-g); background: #fff; font-size: 14px; line-height: 1.5; color: var(--suave); }
+.tipo-proyecto b { font-size: 16px; color: var(--texto); }
+.tipo-proyecto:hover:not(:disabled) { border-color: var(--acento); background: #f5f9ff; box-shadow: 0 0 0 3px rgba(47, 95, 179, 0.1); }
+.tipo-proyecto .icono-tipo { width: 26px; height: 26px; color: var(--acento); }
+.tipo-proyecto .chip { margin-top: auto; }
+.lineas-p { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.linea-p { display: grid; grid-template-columns: minmax(140px, 0.6fr) minmax(0, 1.4fr) auto; gap: 8px; align-items: center; }
+.linea-p .quitar-l { width: 40px; padding: 0; }
+/* el permiso del escaneo: cada fuente es una tarjeta que se marca; las unidades, fichas */
+.grupo-opciones { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.grupo-opciones legend { padding: 0; margin-bottom: 8px; font-size: 15px; font-weight: 700; color: var(--texto); }
+.grupo-opciones legend small { font-weight: 400; color: var(--suave); font-size: 13px; }
+.opcion { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--borde-fuerte); border-radius: 12px; background: #fff; cursor: pointer; }
+.opcion:hover { border-color: var(--acento); }
+.opcion:has(input:checked) { border-color: var(--acento); background: var(--acento-fondo); }
+.opcion:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
+.opcion.apagado { cursor: not-allowed; background: var(--panel-suave); border-style: dashed; }
+.opcion.apagado .opcion-texto b { color: var(--suave); }
+.opcion-texto { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; flex: 1; min-width: 0; }
+.opcion-texto b { font-size: 15px; }
+.ruta-mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12.5px; color: var(--suave); overflow-wrap: anywhere; line-height: 1.4; }
+.estado-opcion { flex: none; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--ok-fondo); color: var(--ok-texto); }
+.opcion.apagado .estado-opcion { background: #ece9e1; color: var(--suave); }
+.fichas-unidad { display: flex; flex-wrap: wrap; gap: 8px; }
+.ficha-unidad { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 8px 16px 8px 12px; border: 1px solid var(--borde-fuerte); border-radius: 999px; background: #fff; cursor: pointer; font-weight: 600; font-size: 15px; }
+.ficha-unidad .icono { color: var(--suave); }
+.ficha-unidad:hover { border-color: var(--acento); }
+.ficha-unidad:has(input:checked) { border-color: var(--acento); background: var(--acento-fondo); color: var(--acento-texto); }
+.ficha-unidad:has(input:focus-visible) { outline: 2px solid var(--acento); outline-offset: 2px; }
+.nota-privacidad { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: var(--radio); background: var(--ok-fondo); font-size: 14px; }
+.dialogo-director .nota-privacidad p { color: var(--ok-texto); }
+.nota-privacidad .icono { color: var(--ok); margin-top: 2px; }
+/* la lista del escaneo: cada repositorio con su casilla y su nombre editable */
+.todos-e { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.todos-e .casilla-todos { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.candidatos-e { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.candidatos-e li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--borde-fuerte); border-radius: 12px; background: #fff; }
+.candidatos-e li:has(> input:checked) { border-color: var(--acento); background: var(--acento-fondo); }
+.candidatos-e li.ya { opacity: 0.65; background: var(--panel-suave); border-style: dashed; }
+.candidatos-e li > input { margin-top: 10px; }
+.candidatos-e li > div { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }
+.candidatos-e li > div > input { font-weight: 600; min-height: 36px; padding: 6px 10px; }
+.candidatos-e small { color: var(--suave); font-size: 13px; overflow-wrap: anywhere; line-height: 1.4; }
+.candidatos-e .senales-e { color: var(--acento-texto); }
+.escaneando { animation: latido-g 1.2s ease-in-out infinite; }
+
+/* ── Pantallas medianas y angostas ── */
+@media (max-width: 1100px) {
+  .hoy-columnas { grid-template-columns: minmax(0, 1fr); }
+  .hoy-columnas .ficha { position: static; }
+  .docs { grid-template-columns: minmax(0, 1fr); }
+  .lista-docs { position: static; max-height: none; }
+  .equipo-misiones { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .dos-columnas { grid-template-columns: minmax(0, 1fr); }
+  .pasos-arranque { grid-template-columns: 1fr 1fr; }
+  .ruta { grid-template-columns: repeat(var(--fases, 7), 120px); }
+}
+@media (max-width: 700px) {
+  .tipos-proyecto, .tipos-proyecto.tres { grid-template-columns: minmax(0, 1fr); }
+  .linea-p { grid-template-columns: minmax(0, 1fr); }
+  .pasos-arranque { grid-template-columns: minmax(0, 1fr); }
+  .fila-barra { grid-template-columns: 120px minmax(0, 1fr) 48px; }
+  .bitacora li { grid-template-columns: 80px minmax(0, 1fr); }
+  .bitacora li .q { display: none; }
+  .mision-c { padding: 14px; }
+  .cabeza-proyecto h1 { font-size: 22px; }
+}
+
+/* ── Las preguntas al director: aparte de los comentarios, respondidas como un informe ── */
+.preguntas-dialogo { width: min(680px, calc(100 * var(--vw) - 32px)); }
+.pendientes-preguntas h3 { margin-top: 0 !important; }
+.lista-preguntas { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; max-height: calc(40 * var(--vh)); overflow-y: auto; overflow-x: hidden; }
+.lista-preguntas li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel-suave); }
+.lista-preguntas li.editando { background: #fff; border-color: var(--acento); }
+.num-pregunta { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; font-weight: 700; background: var(--acento-fondo); color: var(--acento-texto); }
+.cuerpo-pregunta { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.dialogo-director .cuerpo-pregunta p { margin: 0; color: var(--texto); line-height: 1.5; }
+.acciones-pregunta { display: flex; gap: 6px; flex-wrap: wrap; }
+.acciones-pregunta button { min-height: 30px; font-size: 13px; padding: 3px 10px; }
+.nueva-pregunta { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-top: 12px; border-top: 1px dashed var(--borde); }
+.fila-pregunta { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cabeza-preguntas { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
+.cabeza-preguntas .intro { flex: 1 1 420px; margin-bottom: 8px; }
+.preguntas-espera { margin: 0; padding-left: 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.preguntas-espera li { padding: 10px 12px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel); }
+.preguntas-espera li::marker { color: var(--acento); font-weight: 700; }
+.preguntas-espera p { margin: 0; line-height: 1.55; }
+.preguntas-espera footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.preguntas-espera footer .como { flex: 1; min-width: 10em; }
+.preguntas-espera footer button { min-height: 30px; font-size: 13px; padding: 2px 10px; }
+.informe-preguntas { margin-bottom: 18px; padding: 18px 22px; background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); }
+.informe-preguntas > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+.informe-preguntas > header div { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.informe-preguntas > header b { font-size: 17px; }
+.informe-preguntas > header button { min-height: 32px; font-size: 13px; padding: 4px 12px; }
+.qa { list-style: none; counter-reset: qa; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.qa > li { counter-increment: qa; padding: 16px 0; border-bottom: 1px dashed var(--borde); }
+.qa > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.pregunta-qa { position: relative; padding-left: 36px; }
+.pregunta-qa::before { content: counter(qa); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--acento); color: var(--texto-en-color); }
+.pregunta-qa p { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.45; }
+.pregunta-qa small { display: block; margin-top: 2px; }
+.pregunta-qa .transcripcion { font-size: 15px; font-weight: 550; }
+.respuesta-qa { margin: 10px 0 0 36px; padding: 2px 0 2px 14px; border-left: 3px solid var(--acento-borde); font-size: 15.5px; line-height: 1.65; max-width: var(--lectura); }
+.respuesta-qa > :first-child { margin-top: 0; }
+.respuesta-qa > :last-child { margin-bottom: 0; }
+.respuesta-qa ul, .respuesta-qa ol { padding-left: 20px; }
+.pide-decision { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); font-size: 14px; }
+/* Las conversaciones: plegadas, para abrir solo la que quieres revisar */
+.hilos-preguntas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.hilo-preguntas { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra); }
+.hilo-preguntas > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; padding: 12px 16px 12px 40px; position: relative; }
+.hilo-preguntas > summary::-webkit-details-marker { display: none; }
+.hilo-preguntas > summary::before { content: ''; position: absolute; left: 18px; top: 18px; width: 7px; height: 7px; border-right: 2px solid var(--suave); border-bottom: 2px solid var(--suave); transform: rotate(-45deg); transition: transform 0.15s; }
+.hilo-preguntas[open] > summary::before { transform: rotate(45deg); }
+.hilo-preguntas > summary:hover { background: var(--panel-suave); border-radius: var(--radio-g); }
+.titulo-hilo { flex: 1 1 22em; min-width: 0; font-weight: 650; line-height: 1.45; }
+.chip-espera { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--sobre); border: 1px solid var(--sobre-borde); color: var(--sobre-texto); }
+.hilo-preguntas .qa { padding: 0 18px; border-top: 1px solid var(--borde); }
+.hilo-preguntas .qa > li.sigue .pregunta-qa::before { background: var(--acento-fondo); color: var(--acento-texto); border: 1px solid var(--acento-borde); }
+.etiqueta-sigue { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tenue); margin-bottom: 2px; }
+.respuesta-qa.esperando { border-left-style: dashed; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.respuesta-qa.esperando .como { flex: 1; min-width: 12em; }
+.respuesta-qa.esperando button { min-height: 30px; font-size: 13px; padding: 2px 10px; }
+.pie-hilo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 18px 14px; border-top: 1px dashed var(--borde); }
+.pie-hilo button:not(.enlace) { min-height: 34px; font-size: 14px; }
+@media (max-width: 700px) {
+  .respuesta-qa { margin-left: 0; }
+  .informe-preguntas { padding: 14px 16px; }
+}
+/* Las confirmaciones del Studio (estudio/src/modal.ts), en vez de las del navegador */
+.dialogo-director.confirmar { width: min(460px, calc(100 * var(--vw) - 32px)); }
+.dialogo-director .botones .a-la-izquierda { margin-right: auto; }
+
+/* El Buzón: lo ya respondido, plegado (al entrar, la atención en lo que espera) */
+.ya-respondidas > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; width: fit-content; }
+.ya-respondidas > summary::-webkit-details-marker { display: none; }
+.ya-respondidas > summary::before { content: ''; width: 7px; height: 7px; border: solid var(--suave); border-width: 0 1.8px 1.8px 0; transform: rotate(-45deg); transition: transform 0.15s; }
+.ya-respondidas[open] > summary::before { transform: rotate(45deg); }
+.ya-respondidas > summary h3 { margin: 0; }
+.ya-respondidas[open] > summary { margin-bottom: 10px; }
+.ya-respondidas { margin-top: 18px; }
+
+/* Las pestañas en pastillas: «La ruta», por fase, y «Modelo y consumo» */
+.pestanas-stl { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+.pestana-stl { min-height: 34px; padding: 6px 14px; font-size: 14px; border-radius: 999px; background: var(--panel); color: var(--suave); }
+.pestana-stl.sel { background: var(--acento-fondo); border-color: var(--acento); color: var(--acento-texto); font-weight: 650; }
+/* «Modelo y consumo», en pestañas (nota de voz del titular nmvoqwicctit, 25 de octubre de 2026): las mismas pastillas
+   de «La ruta». Cada tarjeta usa todo el ancho que tiene, sin tope, y las de lo que gasta van una encima de la otra
+   (nota de voz del titular nmvow70jqtit, 26 de octubre de 2026: «no quiero una carta que deje demasiado espacio libre a
+   la derecha») */
+
+/* El botón del tema, junto a «¿Dónde quedamos?»: solo el ícono */
+.boton-tema { width: 38px; padding: 0; }
+
+/* Los sonidos (panelSonidos.ts): el botón de la cabecera, tenue si están apagados, y su panel pequeño, bajo él */
+.boton-sonido.apagado { color: var(--suave); }
+.panel-sonido {
+  position: fixed; z-index: 60; width: min(300px, calc(100 * var(--vw) - 16px)); padding: 12px 14px;
+  background: var(--panel); color: var(--texto); border: 1px solid var(--borde); border-radius: var(--radio-g); box-shadow: var(--sombra-alta);
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; font-size: 14px;
+}
+/* Nada se sale del panel (nota de voz del titular nmvoqgl0stit, 25 de octubre de 2026): el nombre largo de una voz o
+   de una pista no ensancha la columna; el selector se corta con sus puntos suspensivos y se lee entero al abrirlo */
+.panel-sonido .ps-grupo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+.panel-sonido .ps-fila { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.panel-sonido select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+.panel-sonido .ps-vol { padding-left: 24px; color: var(--suave); }
+.panel-sonido .ps-vol span { min-width: 58px; }
+.panel-sonido .ps-vol input[type='range'], .panel-sonido .ps-vol select { flex: 1; min-width: 0; accent-color: var(--acento); }
+.panel-sonido .ps-nota { margin: 0; color: var(--suave); line-height: 1.5; }
+.panel-sonido .ps-nota b { color: var(--texto); }
+.panel-sonido .ps-momentos { justify-self: start; }
+/* La voz de la niebla, al final del panel: su voz y ▶ para oírla */
+.panel-sonido .ps-grupo:last-child { border-bottom: 0; padding-bottom: 0; }
+.panel-sonido .ps-voz button { width: 38px; padding: 0; flex: none; }
+/* Cada momento en una sola línea (nota de voz del titular nmvpfiupftit, 26 de octubre de 2026: unos en dos líneas y
+   otros en una se veía confuso): el diálogo, más ancho, y los selectores alineados en su columna, del mismo ancho. En
+   una pantalla angosta, el selector baja bajo su nombre, como antes */
+.dialogo-director.dialogo-sonidos { width: min(820px, calc(100 * var(--vw) - 32px)); }
+.dialogo-sonidos .lista-momentos { list-style: none; margin: 10px 0 14px; padding: 0; display: grid; gap: 8px; }
+.dialogo-sonidos .lista-momentos li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 16px; padding: 6px 0; border-bottom: 1px solid var(--borde); }
+.dialogo-sonidos .lista-momentos label { color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dialogo-sonidos .ps-elegir { display: inline-flex; gap: 6px; align-items: center; }
+.dialogo-sonidos .ps-elegir button { width: 38px; padding: 0; flex: none; }
+@media (max-width: 760px) {
+  .dialogo-sonidos .lista-momentos li { grid-template-columns: minmax(0, 1fr); }
+  .dialogo-sonidos .lista-momentos label { white-space: normal; }
+}
+
+/* ── El tema oscuro: lo que no usa variables (los fondos blancos y los tonos claros fijos) ── */
+html.oscuro :is(.dialogo-director, .dialogo-director .botones, .menu-proyectos, .item-nav.sel, .candidato, .tipo-proyecto, .opcion, .ficha-unidad, .candidatos-e li, .mision-c.cola[open], .pasos-arranque li.actual, .lista-preguntas li.editando, .cerrar-grande, .puerta) { background: var(--panel); color: var(--texto); }
+html.oscuro .item-nav:hover { background: rgba(255, 255, 255, 0.06); }
+html.oscuro :is(code, .lector pre) { background: #2f2d28; color: var(--texto); }
+/* .cifra.accion queda fuera: conserva su acento (antes esta regla, más específica, la dejaba gris) */
+html.oscuro :is(.chip, .cifra:not(.accion), .insignia.quien, .nota-letra, .icono-m, .pasos-arranque .num-a, .ruta .estado-fase, .salud .icono-s, .logro, .objetivo-cabeza.sin, .opcion.apagado .estado-opcion, .excepciones li.cerrada) { background: #34322c; color: var(--suave); }
+html.oscuro :is(.barra-medida, .barra-xp, .fila-barra .pista-b, .dq-barra) { background: #34322c; }
+html.oscuro :is(.criterio.cumplido, .puerta.abierta, .ruta li.superada .estado-fase, .veredicto.aprobada, .carpetas-e li.git, .chip.estado-doc.leido, .chip.estado-doc.revisado) { background: var(--ok-fondo); color: var(--ok-texto); }
+html.oscuro :is(.veredicto.rehacer, .chip.estado-m.rehacer, .icono-m.rehacer, .grabadora.en-grabacion, .urgente-campo:has(input:checked)) { background: var(--peligro-fondo); color: var(--peligro-texto); }
+html.oscuro :is(.chip.estado-m.entregada, .icono-m.entregada, .mision-c .xp, .logro.ganado, .botones-parte > .leido-parte.hecho, button.al-director:hover) { background: var(--sobre); color: var(--sobre-texto); border-color: var(--sobre-borde); }
+html.oscuro .doc-l.revisado b { text-decoration-color: rgba(255, 255, 255, 0.3); }
+/* La verificación de contrastes del tema oscuro (nota del titular, 21 de octubre de 2026): lo que quedaba claro bajo
+   un texto claro, o oscuro bajo uno oscuro. Las parejas de variables se comprueban en estilos.test.ts */
+html.oscuro .ir-paso:not(.principal):hover { background: #26375a; border-color: #4a6aa0; }
+/* la marca blanca sobre el verde claro no llegaba a 3:1 */
+html.oscuro :is(.criterio .marca, .dq-check) { color: var(--texto-en-color); }
+html.oscuro .grabadora button.grabar { border-color: #7a3a36; color: var(--peligro-texto); }
+html.oscuro .grabadora button.grabando { background: var(--peligro-fondo); border-color: #7a3a36; color: var(--peligro-texto); }
+html.oscuro .aviso-modelo { background: var(--aviso-fondo); border-color: #6b4f1f; color: var(--aviso-texto); }
+html.oscuro .carpetas-e li:hover { background: var(--panel); }
+html.oscuro :is(.sube-nivel, .logros-nuevos) { color: var(--sobre-texto); }
+/* Las opciones de un paso: su borde era la tinta, casi negra sobre el panel oscuro */
+html.oscuro .opciones-paso .boton-opcion { border-color: var(--borde-control); }
+/* Los botones de fondo tinta («Hazlo tú», «Abrir la terminal», «Apruebo lo que recomiendas»): en oscuro la tinta es casi
+   negra y su borde no se distinguía del panel (1,3:1); el del control llega a 3:1 */
+html.oscuro :is(.hazlo-paso, .abrir-terminal, .botones-decision > .boton-aprobar) { border-color: var(--borde-control); }
+html.oscuro .mision-c .pasos li { border-color: var(--borde); }
+html.oscuro :is(.mision-c .pasos li.hecho, .criterio.cumplido, .pasos-arranque li.hecho) { border-color: #2f4a26; }
+html.oscuro .ruta .hito { background: conic-gradient(var(--ok) calc(var(--av, 0) * 1turn), var(--borde-fuerte) 0); }
+html.oscuro .ruta li.futura .hito::before { background: radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--panel) 90%, transparent), color-mix(in srgb, var(--panel) 25%, transparent) 60%, transparent 70%); }
+html.oscuro .parte-doc > h2:first-child { box-shadow: 0 6px 6px -6px rgba(0, 0, 0, 0.5); }
+html.oscuro img:not([src$='.svg']) { filter: brightness(0.92); }
+/* Un archivo que nombra el director (enlacesArchivos.ts): su nombre, igual que antes, con el subrayado de un enlace */
+a.enlace-archivo, button.enlace-archivo { all: unset; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+a.enlace-archivo:hover, button.enlace-archivo:hover, button.enlace-archivo:focus-visible, a.enlace-archivo:focus-visible { text-decoration-style: solid; outline: none; }
