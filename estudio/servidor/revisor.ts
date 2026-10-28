@@ -229,6 +229,20 @@ export const COMO_ORDENES =
   `verifica tú su resultado contra él (el cambio, sus pruebas y su commit) antes de darlo por hecho.`;
 
 /**
+ * Cada modelo para lo suyo (propuesta aceptada pr_modelos_por_tarea, puntos 2 y 3, con lo que Anthropic publica y mide en
+ * code.claude.com/docs/en/costs): el director decide y comprueba, y delega solo donde ahorra de verdad; lo simple, sin
+ * ayudantes, y un flujo de varios agentes solo cuando hace falta. El modelo de los ayudantes lo pone el Studio
+ * (modeloDeLosAyudantes). Va en cada encargo que ejecuta trabajo (la revisión y la urgencia).
+ */
+export const POLITICA_DE_MODELOS =
+  ` Cada modelo para lo suyo: primero tu propio esfuerzo, que suele bastar; delega en un ayudante solo donde ahorra de ` +
+  `verdad (mucho trabajo rutinario y comprobable, o más lectura de la que cabe en tu contexto), con su encargo acotado, ` +
+  `y comprueba tú lo que te devuelva. Lo delicado (el núcleo del Studio, los permisos, lo que borra o cuesta) lo haces o ` +
+  `lo verificas tú. Un flujo de varios agentes, solo con muchas piezas independientes o algo delicado que verificar ` +
+  `desde varios ángulos; lo simple, sin ayudantes. Tus ayudantes trabajan con el modelo que pone el Studio, más barato ` +
+  `que el tuyo salvo que el titular elija «Todo con el modelo que elegí».`;
+
+/**
  * Un proyecto de la cola de diagnósticos que una revisión va a atender, con lo que el Studio le abre al director de él
  * (propuesta aceptada «La cola de diagnósticos, con los permisos de hoy»): leer su repositorio, escribir su memoria
  * (.stl) y leer su historial de IA, solo en esa revisión.
@@ -269,6 +283,7 @@ export const encargo = (proyecto: string, reintento = false, cola: ProyectoDeCol
   `node tools/director/bandeja.ts --proyecto ${proyecto} --listo y el commit en la memoria del proyecto.` +
   (reintento ? ' Es un reintento: la revisión anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).' : '') +
   COMO_ORDENES +
+  POLITICA_DE_MODELOS +
   QUIEN_MANDA +
   conLaPagina(esElStudio) +
   conLaCola(cola) +
@@ -318,6 +333,7 @@ export const encargoUrgencia = (u: UrgenciaPedida, esElStudio = false) =>
   `node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo y el commit en la memoria del proyecto.` +
   (u.reintento ? RETOMA_APARTE : '') +
   COMO_ORDENES +
+  POLITICA_DE_MODELOS +
   QUIEN_MANDA +
   conLaPagina(esElStudio) +
   SIN_PERMISO +

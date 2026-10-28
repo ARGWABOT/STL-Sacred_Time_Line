@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realp
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso } from './revisor';
+import { POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso } from './revisor';
 
 describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», confirmada con 15 días)', () => {
   it('borra lo de más de quince días con su paquete, y conserva el último de cada proyecto y de cada tipo', () => {
@@ -692,6 +692,10 @@ describe('el director que lanza el Studio', () => {
       expect(entornoDelDirector(base, undefined, 'haiku').CLAUDE_CODE_SUBAGENT_MODEL).toBe('haiku');
       expect(modeloDeLosAyudantes('claude-haiku-5-5')).toBe('haiku');
       expect(modeloDeLosAyudantes(null)).toBe('sonnet');
+      // La política de modelos va en el encargo de la revisión y de la urgencia, no en el de una aclaración (pr_modelos_por_tarea, puntos 2 y 3)
+      expect(encargo('golf')).toContain(POLITICA_DE_MODELOS);
+      expect(encargoUrgencia({ proyecto: 'golf', quien: 'Laura', notas: ['n1'], pedida: '2026-10-28T10:00:00.000Z' })).toContain(POLITICA_DE_MODELOS);
+      expect(encargoAclaracion({ proyecto: 'golf', mision: 'm1', paso: 0, nota: 'n1', quien: 'Laura', pedida: '2026-10-28T10:00:00.000Z' })).not.toContain(POLITICA_DE_MODELOS);
       // «Todo con el modelo que elegí»: el mismo del director, si se sabe cuál es (pr_modelos_por_tarea, punto 4)
       expect(modeloDeLosAyudantes('claude-opus-5-5[1m]', true)).toBe('claude-opus-5-5[1m]');
       expect(modeloDeLosAyudantes(null, true)).toBe('sonnet');
