@@ -45,6 +45,12 @@ describe('una línea por cada revisión', () => {
     });
   });
 
+  it('las rutas quedan cortas con una raíz de Windows o de Linux, en cualquiera de los dos (la integración continua corre en Linux)', () => {
+    const linux = usar('Edit', { file_path: '/srv/Studio/src/a.ts', old_string: 'a', new_string: 'b' });
+    expect(lineaDeRegistro('p-2026-10-28T07-09-20-889Z.log', linux, undefined, '/srv/Studio')?.archivos).toEqual(['src/a.ts']);
+    expect(lineaDeRegistro('p-2026-10-28T07-09-20-889Z.log', CERRADA, undefined, 'C:\\Studio\\')?.archivos).toEqual(['CLAUDE.md', '.stl/director/cambios.json']);
+  });
+
   it('una que no terminó con su resultado: sin costo, sin cierre, y dura hasta lo último que escribió', () => {
     const l = lineaDeRegistro('p-urgencia-2026-10-28T07-00-00-000Z.log', ev({ type: 'system', subtype: 'init', model: 'm' }), Date.parse('2026-10-28T07:30:00.000Z'));
     expect(l).toMatchObject({ tipo: 'urgencia', costo: null, cerro: false, minutos: 30, notas: [], archivos: [], commits: [], negados: [] });

@@ -4,7 +4,7 @@
 // se guarda aparte, en este computador y fuera de git (.estudio/revisiones.jsonl), y no se borra: el registro completo
 // se poda a los quince días (DIAS_REGISTROS), la línea se queda. Se escribe una sola vez, cuando su lanzamiento terminó.
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, posix, resolve, win32 } from 'node:path';
 import { negacionesDe } from './director.ts';
 import { esFinEscrito, type QuienTermino } from './finDeLanzamiento.ts';
 import { REGISTRO, REVISIONES } from './paquete.ts';
@@ -55,7 +55,9 @@ export function lineaDeRegistro(nombre: string, texto: string, ultimo?: number, 
   const m = REGISTRO.exec(nombre);
   if (!m) return null;
   const cuando = `${m[3]}T${m[4]}:${m[5]}:${m[6]}.${m[7]}Z`;
-  const base = raiz ? resolve(raiz).replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase() : null;
+  // Una raíz ya absoluta, de Windows o de Linux, no se resuelve: en Linux, resolve('C:/…') la pega a la carpeta actual
+  const absoluta = raiz && (win32.isAbsolute(raiz) || posix.isAbsolute(raiz)) ? raiz : raiz && resolve(raiz);
+  const base = absoluta ? absoluta.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase() : null;
   const corta = (ruta: string) => {
     const r = ruta.replace(/\\/g, '/');
     return base && r.toLowerCase().startsWith(`${base}/`) ? r.slice(base.length + 1) : r;
