@@ -678,8 +678,45 @@ export function progresoDe(registro: string, max = 40, auto: EnVivo = { usos: ne
   return pasos.slice(-max);
 }
 
+/**
+ * Lo que el director tiene corriendo ahora, de su registro en stream-json: la última herramienta que pidió sin su
+ * resultado todavía (una orden larga, como las pruebas, o un ayudante), o lo que espera en segundo plano (un flujo, un
+ * ayudante); null si nada. Mientras corre, su registro no crece, y eso no es estar parado: es avance (propuesta aceptada
+ * «Cada proceso, a la vista», pr_procesos_vista, punto 2, «avance real, no solo actividad»). Pura.
+ */
+export function herramientaEnCurso(registro: string): string | null {
+  const pedidas = new Map<string, string>();
+  const respondidas = new Set<string>();
+  let fondo: string[] = [];
+  for (const linea of registro.split('\n')) {
+    if (!linea.startsWith('{')) continue;
+    let ev: { type?: string; subtype?: string; tasks?: unknown; message?: { content?: unknown } };
+    try { ev = JSON.parse(linea); } catch { continue; }
+    if (ev.type === 'system' && ev.subtype === 'background_tasks_changed') fondo = Array.isArray(ev.tasks) ? (ev.tasks as { description?: unknown }[]).map((x) => corto(x?.description ?? 'un trabajo en segundo plano', 90)) : [];
+    if (ev.type === 'result') pedidas.clear();
+    if (!Array.isArray(ev.message?.content)) continue;
+    for (const b of ev.message.content as { type?: string; id?: string; tool_use_id?: string; name?: string; input?: Record<string, unknown> }[]) {
+      if (ev.type === 'assistant' && b.type === 'tool_use' && b.id && b.name) pedidas.set(b.id, queHace(b.name, b.input ?? {}));
+      if (ev.type === 'user' && b.type === 'tool_result' && b.tool_use_id) respondidas.add(b.tool_use_id);
+    }
+  }
+  const sinResultado = [...pedidas].filter(([id]) => !respondidas.has(id)).map(([, que]) => que);
+  if (sinResultado.length) return sinResultado.at(-1)!;
+  return fondo.length ? `Espera en segundo plano: «${fondo[0]}»${fondo.length > 1 ? ` y ${fondo.length - 1} más` : ''}` : null;
+}
+
+/** Lo que tiene corriendo ahora el director de un proyecto (herramientaEnCurso), de su último registro. */
+export function enCursoDeProyecto(raiz: string, proyecto: string): string | null {
+  const archivo = ultimoRegistro(raiz, proyecto);
+  try {
+    return archivo ? herramientaEnCurso(readFileSync(archivo, 'utf-8')) : null;
+  } catch {
+    return null;
+  }
+}
+
 const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
-const sumaUso = (u: Record<string, unknown>) => n(u.input_tokens) + n(u.cache_creation_input_tokens) + n(u.cache_read_input_tokens) + n(u.output_tokens);
+const sumaUso =(u: Record<string, unknown>) => n(u.input_tokens) + n(u.cache_creation_input_tokens) + n(u.cache_read_input_tokens) + n(u.output_tokens);
 /**
  * Los tokens de todos los modelos de la sesión (`modelUsage` del evento `result`, sumado desde que empezó: el director,
  * sus ayudantes, sus flujos y lo de Claude Code por dentro), o null si no los trae. El `usage` del mismo evento es solo lo
@@ -1243,9 +1280,13 @@ export function diagnosticarFalla(registro: string, f: FinDeRevision = {}): Fall
     return reporte('Se detuvo a mitad de camino', errorDicho ? `Claude Code devolvió un error: «${corto(errorDicho, 200)}».` : 'Claude Code perdió la sesión de tu cuenta mientras el director trabajaba.', sesion ? 'cuenta' : 'pedir', sesion ? 'Abre una terminal, corre «claude auth login» y, con la sesión iniciada, pídela de nuevo.' : 'Pídela de nuevo: suele ser pasajero. Si se repite, abre Claude Code en una terminal para ver el error.');
   // 3. El límite de tiempo del Studio
   if (f.limite) {
+    // Lo que corría (una orden larga, un ayudante) no es estar parado, aunque su registro no creciera (pr_procesos_vista, punto 2)
+    const corria = herramientaEnCurso(registro);
     const porque = pendientes.length
       ? `Seguía esperando ${deFondo}, que trabajaba en segundo plano, cuando llegó el límite de ${f.limite} minutos.`
-      : sinActividad >= SIN_ACTIVIDAD_MIN
+      : corria && sinActividad >= SIN_ACTIVIDAD_MIN
+        ? `Llevaba ${sinActividad} minutos esperando a que terminara lo que corría (${corria.replace(/\.$/, '')}) cuando llegó el límite de ${f.limite} minutos.`
+        : sinActividad >= SIN_ACTIVIDAD_MIN
         ? `Llevaba ${sinActividad} minutos sin ninguna actividad en su registro: se había quedado parado.`
         : `Seguía trabajando cuando llegó el límite de ${f.limite} minutos: la revisión tenía más de lo que cabe en ese tiempo.`;
     return reporte(`La revisión se cortó a los ${f.limite} minutos`, porque, conFlujos ? 'sin_ultracode' : 'pedir', conFlujos ? SUGERENCIA_SIN_FLUJOS : SUGERENCIA_PEDIR);

@@ -84,7 +84,7 @@ import { escanear, fuentesDeEscaneo } from './escaneo';
 import { clavesDeTusAjustes, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
 import { conNuevas, opcionesDeTusAjustes, recomendadas } from './ajustesPropios';
 import { POR_QUE_SIN_AUTOMATICO } from './modoPermisos';
-import { actividadDeProyecto, agruparPasos, automaticoDisponible, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
+import { actividadDeProyecto, agruparPasos, automaticoDisponible, enCursoDeProyecto, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
 import { corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, midiendo } from './medidor';
 import { ALCANCES, casosDelAlcance, casosMedibles, type Alcance } from '../../src/director/corrida';
 import { esPlanDeClaude, PLANES_DE_CLAUDE, type PlanDeClaude } from '../../src/director/costoDelPlan';
@@ -1166,6 +1166,12 @@ export function servidorDirector(): Plugin {
               actividad: await (async () => {
                 const r = (await leerLocal(raiz)).revision;
                 return r?.proyecto === id && r.lanzada && !r.hecha && !r.error ? actividadDeProyecto(raiz, id) : null;
+              })(),
+              // Y lo que tiene corriendo (una orden larga, un ayudante, un flujo): mientras corre, su registro no crece y
+              // no está parado (pr_procesos_vista, punto 2)
+              enCurso: await (async () => {
+                const r = (await leerLocal(raiz)).revision;
+                return r?.proyecto === id && r.lanzada && !r.hecha && !r.error ? enCursoDeProyecto(raiz, id) : null;
               })(),
               hoy: hoy(),
               errores: [...(avisoDelPlan ? [avisoDelPlan] : []), ...validarPlan(plan, personas), ...validarEstado(estado, plan), ...validarProyecto(proyecto)],

@@ -212,6 +212,8 @@ interface Datos {
   seguidas?: { quien: string; desde: string; hechas: number; paro?: { cuando: string; porque: string } } | null;
   /** La última vez que creció el registro de la revisión en marcha (revisor.ts › actividadDeProyecto): si es vieja, está parada. */
   actividad?: string | null;
+  /** Lo que tiene corriendo el director ahora (revisor.ts › herramientaEnCurso): mientras corre, su registro no crece y no está parado. */
+  enCurso?: string | null;
   /** La última vuelta de la sesión del director mirando si hay revisiones pedidas. */
   vigilia?: string | null;
   /** Si el Studio lanza solo al director al pedir la revisión (estudio/servidor/revisor.ts), o por qué no puede. */
@@ -693,7 +695,8 @@ function pintarSegundoPlano() {
     .filter((a): a is string => !!a && d.transcripciones[a] === undefined && !d.sinTranscribir?.includes(a)).length;
   const r = estadoRevision();
   const u = urgenciaEnCurso(d.urgencia) ? d.urgencia : null;
-  const parada = minutosSinActividad();
+  // Con algo corriendo, no está parado aunque su registro no crezca (pr_procesos_vista, punto 2)
+  const parada = d.enCurso ? 0 : minutosSinActividad();
   const ocupado = directorOcupado();
   const lineas = [
     ...(procesando ? [`<span class="sp-linea">Transcribiendo ${procesando === 1 ? 'tu audio' : `${procesando} audios`}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>`] : []),
@@ -736,7 +739,8 @@ function pintarSegundoPlano() {
 function rotularProgreso() {
   const info = document.querySelector<HTMLElement>('.atajo[data-progreso]');
   if (!info || !d) return;
-  const parada = minutosSinActividad();
+  // Con algo corriendo, no está parado aunque su registro no crezca (pr_procesos_vista, punto 2)
+  const parada = d.enCurso ? 0 : minutosSinActividad();
   const n = estadoRevision().estado === 'en_curso' && d.negadosVivos?.length ? porAutorizarEnVivo(d.negadosVivos).length : 0;
   const tokens = tokensMostrados ?? d.tokensVivos ?? null;
   info.dataset.etiqueta = [
@@ -2234,6 +2238,9 @@ function minutosSinActividad(): number {
 }
 const PARADA = (min: number) =>
   `El registro del director no cambia desde hace ${min} minutos: puede haberse quedado parado. El Studio lo vigila: si Claude Code se detuvo, la marca como fallida y te dice por qué; si sigue así, la corta al llegar a su límite.`;
+/** Lo que corre el director mientras su registro no crece: espera a que termine, y el límite lo sigue cuidando. */
+const CORRE = (que: string, min: number) =>
+  `Desde hace ${min} minutos espera a que termine lo que corre (${que.replace(/\.$/, '')}), y su registro no cambia mientras tanto. Si llega a su límite, el Studio lo corta y te dice qué esperaba.`;
 
 /** Cuánto se sigue mostrando por qué pararon las revisiones seguidas (horas). */
 const PARO_VISIBLE_H = 12;
@@ -2270,6 +2277,9 @@ function botonRevision() {
   const tiempo = tiempoDeRevision(r);
   const lleva = (t = tiempo) => (t ? ` · lleva ${t.lleva} min de ${t.limite}` : '');
   const cuandoCorta = tiempo ? ` Lleva ${tiempo.lleva} minutos de los ${tiempo.limite} de su límite: ${tiempo.queda ? `le quedan ${tiempo.queda}` : 'llegó a su límite, y el Studio lo corta'}.` : '';
+  // Con algo corriendo (una orden larga, un ayudante, un flujo), su registro no crece y no está parado: es avance, y se dice
+  // qué corre (pr_procesos_vista, punto 2)
+  if (e.estado === 'en_curso' && parada && d.enCurso) return `<span class="estado-revision en-curso" role="status" title="${esc(`${CORRE(d.enCurso, parada)}${cuandoCorta}`)}">El director está revisando${lleva()} · corre algo largo<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
   if (e.estado === 'en_curso' && parada) return `<span class="estado-revision en-curso" role="status" title="${esc(PARADA(parada) + cuandoCorta)}">El director está revisando · sin actividad desde hace ${parada} min</span>${cadena}`;
   if (e.estado === 'en_curso') return `<span class="estado-revision en-curso" role="status"${cuandoCorta ? ` title="${esc(cuandoCorta.trim())}"` : ''}>El director está revisando${lleva()}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
   // Lanzada y fallida no es «sin tomar»: se dice lo que pasó, y «¿Por qué?» abre su reporte

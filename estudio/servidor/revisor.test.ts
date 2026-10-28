@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realp
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe } from './revisor';
+import { actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso } from './revisor';
 
 describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», confirmada con 15 días)', () => {
   it('borra lo de más de quince días con su paquete, y conserva el último de cada proyecto y de cada tipo', () => {
@@ -434,6 +434,31 @@ describe('el director que lanza el Studio', () => {
     expect(progresoDe(registro, 2)).toHaveLength(2);
   });
 
+  it('lo que tiene corriendo: la última herramienta sin su resultado, o lo que espera en segundo plano; mientras corre, no está parado (pr_procesos_vista, punto 2)', () => {
+    const pide = (id: string, name: string, input: Record<string, unknown>) => JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', id, name, input }] } });
+    const responde = (id: string) => JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content: 'listo' }] } });
+    const base = [JSON.stringify({ type: 'system', subtype: 'init' }), pide('a', 'Read', { file_path: 'C:/x/plan.json' }), responde('a')];
+    expect(herramientaEnCurso(base.join('\n'))).toBeNull();
+    // Las pruebas corren: su registro no crece hasta que terminan
+    expect(herramientaEnCurso([...base, pide('b', 'Bash', { command: 'npm test', description: 'Correr todas las pruebas' })].join('\n'))).toBe('Correr todas las pruebas');
+    expect(herramientaEnCurso([...base, pide('b', 'Bash', { command: 'npm test' }), responde('b')].join('\n'))).toBeNull();
+    // Un ayudante, y lo que espera en segundo plano al terminar su turno
+    expect(herramientaEnCurso([...base, pide('c', 'Agent', { description: 'Leer el diagnóstico' })].join('\n'))).toBe('Le pide a un ayudante: Leer el diagnóstico');
+    const fondo = JSON.stringify({ type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 't1', description: 'La auditoría de los cortes' }, { task_id: 't2', description: 'Otra' }] });
+    expect(herramientaEnCurso([...base, fondo].join('\n'))).toBe('Espera en segundo plano: «La auditoría de los cortes» y 1 más');
+    expect(herramientaEnCurso([...base, fondo, JSON.stringify({ type: 'system', subtype: 'background_tasks_changed', tasks: [] })].join('\n'))).toBeNull();
+    // Lo que se pidió en un turno que ya dio su resultado no sigue corriendo
+    expect(herramientaEnCurso([...base, pide('d', 'Bash', { command: 'sleep 1' }), JSON.stringify({ type: 'result', result: 'fin' })].join('\n'))).toBeNull();
+    // Cortada en su límite con algo corriendo: no estaba parada, y «Qué pasó» lo dice
+    const inicio = Date.parse('2026-10-28T10:00:00Z');
+    const corriendo = [...base, pide('e', 'Bash', { command: 'npm test', description: 'Correr todas las pruebas' })].join('\n');
+    expect(diagnosticarFalla(corriendo, { limite: 60, inicio, fin: inicio + 60 * 60_000, ultimaActividad: inicio + 40 * 60_000 }).porque).toBe('Llevaba 20 minutos esperando a que terminara lo que corría (Correr todas las pruebas) cuando llegó el límite de 60 minutos.');
+    // La página: con algo corriendo, la cabecera dice que corre algo largo, no que está parado
+    const pagina = readFileSync(join(process.cwd(), 'estudio', 'src', 'director.ts'), 'utf8');
+    expect(pagina).toContain("if (e.estado === 'en_curso' && parada && d.enCurso) return");
+    expect(pagina).toContain('const parada = d.enCurso ? 0 : minutosSinActividad();');
+  });
+
   it('junta las líneas iguales seguidas en una, con su cuenta, sin cambiar el orden', () => {
     const hace = (texto: string) => ({ tipo: 'hace' as const, texto });
     expect(agruparPasos([hace('Edita plan.json'), hace('Edita plan.json'), hace('Edita plan.json'), hace('Lee CLAUDE.md'), hace('Edita plan.json'), { tipo: 'dice', texto: 'Edita plan.json' }])).toEqual([
@@ -804,8 +829,11 @@ describe('el director que lanza el Studio', () => {
         { tipo: 'hace', texto: 'Lee plan.json' },
         { tipo: 'hace', texto: 'Edita plan.json', veces: 2 },
       ]);
-      // sin nada nuevo en su registro desde hace rato, se había quedado parado
-      expect(diagnosticarFalla(registro, { limite: 60, inicio, fin: inicio + 60 * 60_000, ultimaActividad: inicio + 30 * 60_000 }).porque).toContain('30 minutos sin ninguna actividad');
+      // sin nada nuevo en su registro desde hace rato y sin nada corriendo, se había quedado parado
+      const respondido = [registro, ...['t1', 't2', 't3'].map((id) => JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content: 'ok' }] } }))].join('\n');
+      expect(diagnosticarFalla(respondido, { limite: 60, inicio, fin: inicio + 60 * 60_000, ultimaActividad: inicio + 30 * 60_000 }).porque).toContain('30 minutos sin ninguna actividad');
+      // con algo corriendo, lo que esperaba (pr_procesos_vista, punto 2)
+      expect(diagnosticarFalla(registro, { limite: 60, inicio, fin: inicio + 60 * 60_000, ultimaActividad: inicio + 30 * 60_000 }).porque).toBe('Llevaba 30 minutos esperando a que terminara lo que corría (Edita plan.json) cuando llegó el límite de 60 minutos.');
       // esperando un flujo en segundo plano: conviene pedirla sin ultracode
       const conFlujo = diagnosticarFalla(`${registro}\n${usa('t4', 'Workflow', { description: 'Investigar' })}\n${JSON.stringify({ type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 'w1', description: 'Evalúa los tipos de nota' }] })}`, { limite: 60 });
       expect(conFlujo.porque).toContain('Seguía esperando «Evalúa los tipos de nota»');
