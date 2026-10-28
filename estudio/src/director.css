@@ -56,6 +56,10 @@ html.oscuro {
 .monograma { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; font-weight: 700; font-size: 18px; background: var(--acento-fondo); color: var(--acento-texto); }
 .monograma.director { background: var(--tinta); color: #f6e7b4; }
 .vacio-m { font-size: 15px; color: var(--suave); margin: 4px 0; padding: 18px 20px; border: 1px dashed var(--borde-fuerte); border-radius: var(--radio-g); background: var(--panel-suave); }
+/* Sin misión, el paso siguiente: con borde firme y su botón, para que no parezca que no hay nada (nmvsrix5ptit) */
+.paso-siguiente { color: var(--texto); border-style: solid; }
+.paso-siguiente p { margin: 0; }
+.paso-siguiente .botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 /* La cola, plegada debajo de la misión de ahora: se lee para comprobar la reserva, no compite con la misión */
 .cola-m { margin: 12px 0; }
 .cola-m > summary { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; cursor: pointer; }

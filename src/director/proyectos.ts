@@ -333,7 +333,10 @@ export const ORIGENES_REVISION = {
   // Una revisión y, al cerrar cada una, la siguiente, mientras la cola del director siga (pedido pd_revisiones_seguidas: el
   // titular lo eligió el 27 de octubre de 2026, en t_encadenar_revisiones): la persona las pide con este botón, y para
   // cuando quiere (`Seguidas`)
-  seguidas: '«Pedir revisiones seguidas», en la cabecera',
+  seguidas: '«Pedir revisiones seguidas», en la cabecera o en «Hoy»',
+  // Sin misión abierta, «Hoy» dice que el paso siguiente es pedir la revisión, con su botón (nota de voz del titular
+  // nmvsrix5ptit, 28 de octubre de 2026): lo ofrece, nunca la pide sola
+  hoy: '«Pedir la revisión», en «Hoy», sin misión abierta',
 } as const;
 export type OrigenRevision = keyof typeof ORIGENES_REVISION;
 export const esOrigenRevision = (x: unknown): x is OrigenRevision => typeof x === 'string' && Object.hasOwn(ORIGENES_REVISION, x);

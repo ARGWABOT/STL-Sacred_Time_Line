@@ -15,11 +15,14 @@ export interface Frase {
 
 /** Adónde lleva el director al tocarlo: la primera misión abierta y, sin misiones, lo que le toque a esa persona. */
 export interface Pendiente {
-  tipo: 'mision' | 'proyecto' | 'propuestas' | 'buzon';
+  tipo: 'mision' | 'proyecto' | 'propuestas' | 'revision' | 'buzon';
   mision?: Mision;
   /** Lo que dice el botón: «Seguir con …». */
   texto: string;
 }
+
+/** Las etapas del arranque en que lo que sigue es de la persona (conectar, contar, fijar la meta), no una revisión. */
+const ARRANQUE_DE_LA_PERSONA: EtapaArranque[] = ['conectar', 'contar', 'objetivo'];
 
 export function siguientePendiente(ctx: Contexto, persona: Persona, etapa: EtapaArranque = 'en_marcha'): Pendiente {
   const { plan, estado } = ctx;
@@ -31,7 +34,43 @@ export function siguientePendiente(ctx: Contexto, persona: Persona, etapa: Etapa
   const actual = plan.fases.indexOf(faseActual(plan, estado));
   const abiertas = plan.propuestas.filter((p) => plan.fases.findIndex((f) => f.id === p.fase) <= actual && !estado.propuestas[p.id]);
   if (persona === TITULAR && abiertas.length) return { tipo: 'propuestas', texto: 'responder las propuestas del director' };
-  return { tipo: 'buzon', texto: 'contarle al director qué sigue' };
+  if (ARRANQUE_DE_LA_PERSONA.includes(etapa)) return { tipo: 'buzon', texto: 'contarle al director qué sigue' };
+  // Sin misión, lo que sigue es pedir la revisión, y se dice (nota de voz del titular nmvsrix5ptit, 28 de octubre de
+  // 2026: «así sea que el paso siguiente sea pedir la revisión, al usuario hay que decírselo»)
+  return { tipo: 'revision', texto: 'pedir la revisión' };
+}
+
+/** Lo que pasa con la revisión del proyecto, visto desde «Hoy»: nada, pedida, en curso o un director ocupado en otra. */
+export type EstadoParaHoy = 'libre' | 'pedida' | 'en_curso' | 'ocupado';
+
+/** El paso siguiente de una persona sin misión abierta: qué hacer o qué esperar, y si «Hoy» ofrece pedir la revisión. */
+export interface PasoSinMision {
+  que: 'proyecto' | 'propuestas' | 'pedir' | 'esperar';
+  texto: string;
+  /** Con «pedir»: si conviene ofrecer también «Pedir revisiones seguidas» (la cola del director tiene algo). */
+  seguidas?: boolean;
+}
+
+/**
+ * «Hoy» nunca se queda sin un paso siguiente (nota de voz del titular nmvsrix5ptit, 28 de octubre de 2026, «una norma
+ * crítica»: entregó la única misión de un lote corto y «Hoy» decía solo «Sin misiones por hacer», sin decirle que lo que
+ * seguía era pedir la revisión; «el propósito del director es guiar al usuario y tenerle siempre algo para que haga, espere,
+ * apruebe, examine o decida»). Sin misión abierta, dice qué sigue: lo del arranque, las propuestas por responder, esperar
+ * la revisión que ya corre o está pedida, o pedirla, con su botón. La revisión nunca se pide sola: solo se ofrece. Con una
+ * misión abierta, null: lo que sigue es ella.
+ */
+export function pasoSinMision(ctx: Contexto, persona: Persona, etapa: EtapaArranque, revision: EstadoParaHoy, entregadas = 0, colaDelDirector = 0): PasoSinMision | null {
+  const sig = siguientePendiente(ctx, persona, etapa);
+  if (sig.tipo === 'mision') return null;
+  if (revision === 'en_curso') return { que: 'esperar', texto: 'El director está revisando. Tus misiones siguientes aparecen aquí en cuanto termine: mientras tanto no tienes nada pendiente, y puedes leer o dejarle una nota en el Buzón.' };
+  if (revision === 'pedida') return { que: 'esperar', texto: 'Ya pediste la revisión. Cuando el director termine, tus misiones siguientes aparecen aquí: mientras tanto no tienes nada pendiente.' };
+  if (sig.tipo === 'proyecto') return { que: 'proyecto', texto: `Tu paso siguiente: ${sig.texto}, en «Proyecto».` };
+  if (sig.tipo === 'propuestas') return { que: 'propuestas', texto: 'Tu paso siguiente: responder las propuestas del director, en «Propuestas». Después, pide la revisión para que te deje tus misiones siguientes.' };
+  if (revision === 'ocupado') return { que: 'esperar', texto: 'Tu paso siguiente es pedir la revisión, en cuanto termine el director que está trabajando ahora (trabaja uno a la vez): «Pedir revisión» vuelve solo, arriba y aquí.' };
+  const porQue = entregadas
+    ? `Entregaste ${entregadas === 1 ? 'la misión que tenías' : `las ${entregadas} misiones que tenías`}: el director la${entregadas === 1 ? '' : 's'} revisa y te deja tus misiones siguientes.`
+    : 'No tienes misiones abiertas: el director te deja las siguientes en la revisión.';
+  return { que: 'pedir', texto: `Tu paso siguiente: pedir la revisión. ${porQue} Solo tú la pides, cuando quieras.`, seguidas: colaDelDirector > 0 };
 }
 
 /**
@@ -126,8 +165,8 @@ export function frasesDelDirector(ctx: Contexto, persona: Persona | null, equipo
         : { texto: `${nombre}, lo que sigue: «${sig.mision.titulo}». Tócame y te llevo.`, emocion: 'feliz', empuja: true });
     } else if (sig.tipo === 'propuestas') {
       empujan.push({ texto: `${nombre}, misiones al día. Faltan tus respuestas a las propuestas: tócame.`, emocion: 'sorprendido', empuja: true });
-    } else if (sig.tipo === 'buzon' && etapa === 'en_marcha') {
-      empujan.push({ texto: `${nombre}, estás al día. ¡Bien hecho! Pídele al director lo que sigue.`, emocion: 'enamorado', empuja: true });
+    } else if (sig.tipo === 'revision' && etapa === 'en_marcha') {
+      empujan.push({ texto: `${nombre}, estás al día. ¡Bien hecho! Tu paso siguiente es pedir la revisión, con «Pedir revisión»: ahí te dejo tus misiones siguientes. Tócame y te llevo.`, emocion: 'enamorado', empuja: true });
     }
   }
   // Una sola cosa a la vez: lo que sigue. Las cifras de la ruta están en la cabecera, y lo que espera al director, en

@@ -23,7 +23,7 @@ Dirigir un proyecto de semanas por chat tiene seis problemas: lo que envías se 
 ## Qué trae
 
 - **Entregar es elegir la carpeta**: el director lo diagnostica y te propone metas (también varios a la vez, los que encuentre al escanear tu equipo, o uno nuevo).
-- **Hoy**: lo último que se completó, lo que sigue y tu misión de ahora, completa, paso a paso, cada paso con su botón al lugar exacto.
+- **Hoy**: lo último que se completó, lo que sigue y tu misión de ahora, completa, paso a paso, cada paso con su botón al lugar exacto. Si entregaste todas, nunca queda vacío: dice tu paso siguiente (pedir la revisión, con su botón, o esperar la que ya corre).
 - **La ruta**: fases con sus puertas, criterios al 100 % y frentes en foco, de apoyo o en espera.
 - **Documentos comentables** por partes, con decisiones que se responden una a una, escritas o grabadas.
 - **Buzón y preguntas**: los comentarios y los pedidos en el Buzón; las preguntas aparte, como conversaciones que puedes seguir.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import planPlantilla from '../../plantilla/plan.json';
-import { ANIMO, celebracion, destinoDeMision, frasesDelDirector, logrosDe, PARA_QUE_SIRVE, seccionesConAlgo, siguientePendiente } from './animo';
+import { ANIMO, celebracion, destinoDeMision, frasesDelDirector, logrosDe, PARA_QUE_SIRVE, pasoSinMision, seccionesConAlgo, siguientePendiente } from './animo';
 import { estadoVacio, type Integrante, type Mision, type Plan } from './director';
 
 const plan = planPlantilla as unknown as Plan;
@@ -13,7 +13,33 @@ const ctx = (p: Plan = plan) => ({ plan: p, estado: estadoVacio(), senales: {} }
 describe('el director asistente flotante', () => {
   it('lleva a la primera misión abierta de cada persona', () => {
     expect(siguientePendiente(ctx(), 'titular', 'conectar')).toMatchObject({ tipo: 'mision', mision: { id: 't_conectar' } });
-    expect(siguientePendiente(ctx(), 'ana').tipo).toBe('buzon');
+    expect(siguientePendiente(ctx(), 'ana').tipo).toBe('revision');
+  });
+
+  it('sin misión, «Hoy» nunca se queda sin paso siguiente: pedir la revisión, o esperar la que ya corre (nota nmvsrix5ptit)', () => {
+    // El caso del titular: entregó la única misión de un lote corto y no tenía nada abierto
+    const m: Mision = { id: 't_subir', para: 'titular', fase: 'arranque', frente: 'direccion', titulo: 'Sube los cambios', porQue: '', pasos: ['Súbelos.'], entrega: '', xp: 15 };
+    const sin: Plan = { ...plan, misiones: [m] };
+    const e = estadoVacio();
+    e.entregas.t_subir = { cuando: '2026-10-28T23:43:44Z', quien: 'titular' };
+    const c = { plan: sin, estado: e, senales: {} };
+    expect(siguientePendiente(c, 'titular')).toMatchObject({ tipo: 'revision', texto: 'pedir la revisión' });
+    // En cada estado de la revisión hay algo que hacer o que esperar, dicho en palabras
+    for (const revision of ['libre', 'pedida', 'en_curso', 'ocupado'] as const) {
+      const paso = pasoSinMision(c, 'titular', 'en_marcha', revision, 1, 3);
+      expect(paso, revision).not.toBeNull();
+      expect(paso!.texto.length, revision).toBeGreaterThan(40);
+    }
+    expect(pasoSinMision(c, 'titular', 'en_marcha', 'libre', 1, 3)).toMatchObject({ que: 'pedir', seguidas: true });
+    expect(pasoSinMision(c, 'titular', 'en_marcha', 'libre', 1, 3)!.texto).toMatch(/pedir la revisión.*la misión que tenías/);
+    expect(pasoSinMision(c, 'titular', 'en_marcha', 'libre', 0, 0)).toMatchObject({ que: 'pedir', seguidas: false });
+    expect(pasoSinMision(c, 'titular', 'en_marcha', 'en_curso')!.que).toBe('esperar');
+    // Lo que dice el director flotante también lo nombra
+    expect(frasesDelDirector(c, 'titular', equipo).some((f) => f.empuja && /pedir la revisión/.test(f.texto))).toBe(true);
+    // Con una misión abierta, lo que sigue es ella
+    expect(pasoSinMision(ctx({ ...plan, misiones: [m] }), 'titular', 'en_marcha', 'libre')).toBeNull();
+    // En el arranque, lo que le toca a la persona va antes que pedir la revisión
+    expect(pasoSinMision(ctx({ ...plan, misiones: [] }), 'titular', 'objetivo', 'libre')).toMatchObject({ que: 'proyecto' });
   });
 
   it('sin misiones, en el arranque lleva al titular a conectar el repositorio o a fijar su meta', () => {

@@ -136,7 +136,7 @@ import './zen';
 import './encima';
 import './siguiente';
 import { controlAuto, dondeVa, llamarNiebla, NO_AVANZA, nieblaPuesta, nubladoEn, ponerNiebla, sinDestapar } from './guiaLectura';
-import { celebracion, destinoDeMision, logrosDe, PARA_QUE_SIRVE, seccionesConAlgo } from '../../src/director/animo';
+import { celebracion, destinoDeMision, logrosDe, PARA_QUE_SIRVE, pasoSinMision, seccionesConAlgo } from '../../src/director/animo';
 import { anchoDeVentana, aplicarEscala, aPantalla, rectaEnPagina } from './escala';
 
 // La página se escala a la ventana (escala.ts): lo primero, antes de que nada se mida
@@ -2599,7 +2599,7 @@ async function seguirCercaDelLimite(): Promise<boolean> {
   return !!si;
 }
 
-async function pedirLaRevision(pedir: boolean, origen?: 'cabecera' | 'falla' | 'falla_nota' | 'falla_sin_ultracode' | 'meta' | 'urgente' | 'recomendada' | 'permisos' | 'seguidas', callada = false): Promise<boolean> {
+async function pedirLaRevision(pedir: boolean, origen?: 'cabecera' | 'falla' | 'falla_nota' | 'falla_sin_ultracode' | 'meta' | 'urgente' | 'recomendada' | 'permisos' | 'seguidas' | 'hoy', callada = false): Promise<boolean> {
   // Ningún camino pide una segunda revisión mientras un director vive: se dice qué corre y por qué
   const ocupado = pedir ? directorOcupado() : null;
   if (ocupado || (pedir && revisando())) {
@@ -3088,9 +3088,28 @@ function tareasDe(p: Persona) {
   const por = (es: EstadoMision[]) => mis.filter((m) => es.includes(estadoMision(m, d.plan, d.estado)));
   const ahora = misionesAbiertas(d.plan, d.estado, p);
   const esperando = por(['entregada']);
-  return `${ahora.length ? tarjetaMision(ahora[0], false, 1) : '<p class="vacio-m">Sin misiones por hacer: el director asigna la siguiente al revisar.</p>'}
+  return `${ahora.length ? tarjetaMision(ahora[0], false, 1) : pasoSiguienteHtml(p, esperando.length)}
     ${colaDe(p)}
     ${esperando.length ? `<h4>Esperando al director</h4>${esperando.map((m) => tarjetaMision(m)).join('')}` : ''}`;
+}
+
+/**
+ * Sin misión abierta, «Hoy» dice el paso siguiente, nunca solo que no hay nada (nota de voz del titular nmvsrix5ptit, 28
+ * de octubre de 2026; animo.ts › pasoSinMision): esperar la revisión que corre o está pedida, lo del arranque, las
+ * propuestas o pedir la revisión, con su botón, que dice que la pide (origen «hoy»): solo se ofrece, nunca se pide sola.
+ */
+function pasoSiguienteHtml(p: Persona, entregadas: number): string {
+  const e = estadoRevision();
+  const revision = e.estado === 'en_curso' ? 'en_curso' : e.estado === 'pedida' || (e.estado === 'sin_vigilia' && !d.revision?.error) ? 'pedida' : directorOcupado() ? 'ocupado' : 'libre';
+  const paso = pasoSinMision(ctx(), p, d.arranque, revision, entregadas, colaDelDirector(d.plan, d.estado).length);
+  if (!paso) return '';
+  const botones =
+    paso.que === 'pedir'
+      ? `<button type="button" class="primario" data-revision="pedir" data-origen="hoy" title="Solo tú pides la revisión: el Studio llama al director con este clic">${icono('revisar')} Pedir la revisión</button>${paso.seguidas && automatica() ? '<button type="button" class="boton-suave" data-revision="pedir" data-origen="seguidas" title="Una revisión y, al cerrar cada una, la siguiente, mientras la cola del director siga; paran cuando algo de verdad te necesita, o con «Detener»">Pedir revisiones seguidas</button>' : ''}`
+      : paso.que === 'proyecto' ? botonIr({ vista: 'proyecto', ancla: d.arranque === 'objetivo' ? 'p-objetivo' : d.arranque === 'contar' ? 'p-contexto' : 'p-repositorio', etiqueta: 'Ir a «Proyecto»' })
+      : paso.que === 'propuestas' ? botonIr({ vista: 'propuestas', etiqueta: 'Ir a las propuestas' })
+      : '';
+  return `<div class="paso-siguiente vacio-m" id="paso-siguiente" role="status"><p>${esc(paso.texto)}</p>${botones ? `<div class="botones">${botones}</div>` : ''}</div>`;
 }
 
 /**
@@ -3111,7 +3130,7 @@ function colaDe(p: Persona) {
   // Lo que necesita antes, con su nombre: así se ve por qué todavía no aparece
   const queEspera = (m: Mision) => `<li><b>${esc(m.titulo)}</b><small>Aparece cuando esté hecho: ${esperaA(d.plan, d.estado, m).map((id) => `«${esc(nombreDeLoQueEspera(d.plan, id))}»`).join(', ')}.</small></li>`;
   // La cuenta baja al entregar cada una, hasta la revisión siguiente, que la vuelve a llenar: no es una alarma
-  return `<details class="cola-m panel-d"${plegable(`cola-${p}`)}><summary><h4>Lo que sigue · ${siguen.length} ${siguen.length === 1 ? 'misión' : 'misiones'} más</h4><small class="reserva-m" title="Cada revisión te deja tu misión de ahora y por lo menos ${RESERVA_MINIMA - 1} más que alcanzas sin esperar al director">${corta ? `Lote corto: ${r.alcanza} contando la de ahora, con su razón` : `Reserva: ${r.alcanza} contando la de ahora (cada revisión deja ${RESERVA_MINIMA} o más)`}</small></summary>
+  return `<details class="cola-m panel-d"${plegable(`cola-${p}`)}><summary><h4>Lo que sigue · ${siguen.length} ${siguen.length === 1 ? 'misión' : 'misiones'} más</h4><small class="reserva-m" title="Cada revisión te deja tu misión de ahora y por lo menos ${RESERVA_MINIMA - 1} más que alcanzas sin esperar al director">${corta && !r.alcanza ? 'Lote corto: ya lo entregaste entero; las siguientes llegan con la revisión' : corta ? `Lote corto: ${r.alcanza} contando la de ahora, con su razón` : `Reserva: ${r.alcanza} contando la de ahora (cada revisión deja ${RESERVA_MINIMA} o más)`}</small></summary>
     ${corta ? `<p class="como reserva-corta"><b>Por qué este lote es de menos de ${RESERVA_MINIMA}:</b> ${esc(corta)} Si no te convence, díselo al director en el Buzón: cada revisión busca otra vez ${RESERVA_MINIMA} que de verdad sirvan a la ruta, nunca de relleno.</p>` : ''}
     ${siguen.length ? `<ol class="cola-lista">${siguen.map(item).join('')}</ol>` : '<p class="como">No hay más misiones abiertas después de esta.</p>'}
     ${r.esperan.length ? `<p class="como">Cuando esté hecho lo que necesitan antes:</p><ul class="cola-lista espera">${r.esperan.map(queEspera).join('')}</ul>` : ''}
@@ -5714,7 +5733,7 @@ document.addEventListener('click', (e) => {
   if (rev && d) {
     const que = rev.dataset.revision;
     const ahora = estadoRevision();
-    if (que === 'pedir') return void pedirLaRevision(true, rev.dataset.origen === 'recomendada' ? 'recomendada' : rev.dataset.origen === 'seguidas' ? 'seguidas' : 'cabecera');
+    if (que === 'pedir') return void pedirLaRevision(true, rev.dataset.origen === 'recomendada' ? 'recomendada' : rev.dataset.origen === 'seguidas' ? 'seguidas' : rev.dataset.origen === 'hoy' ? 'hoy' : 'cabecera');
     if (que === 'cancelar') return void pedirLaRevision(false);
     if (que === 'detener') return void detenerLaRevision();
     // Una revisión lanzada que no se cerró: el reporte de qué pasó, en su diálogo (nunca solo un aviso que se va)

@@ -264,6 +264,8 @@ function llevar() {
     sig.tipo === 'mision' ? destinoDeMisionAqui(sig.mision!)
     : sig.tipo === 'proyecto' ? { vista: 'proyecto', ancla: datos.arranque === 'objetivo' ? 'p-objetivo' : datos.arranque === 'contar' ? 'p-contexto' : 'p-repositorio', etiqueta: sig.texto }
     : sig.tipo === 'propuestas' ? { vista: 'propuestas', etiqueta: 'Las propuestas' }
+    // Sin misión: a «Hoy», donde su paso siguiente dice que pida la revisión, con su botón
+    : sig.tipo === 'revision' ? { vista: 'misiones', ancla: 'paso-siguiente', etiqueta: 'Pedir la revisión' }
     : { vista: 'buzon', ancla: 'escribir', etiqueta: 'El Buzón del director' };
   // Si la persona elegida no se ve, se cambia a ella: el pendiente es suyo
   if (personaVista() && personaVista() !== persona()) ponerVista(persona());
