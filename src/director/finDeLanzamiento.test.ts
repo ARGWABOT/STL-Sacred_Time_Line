@@ -13,7 +13,8 @@ describe('quién terminó cada lanzamiento', () => {
     ]);
     expect(esFinEscrito({ quien: 'cierre', causa: 'x', minutos: null })).toBe(true);
     expect(esFinEscrito({ quien: 'nada' })).toBe(false);
-    expect(Object.keys(NOMBRE_FIN)).toEqual(['cierre', 'tras_cierre', 'limite', 'cuenta', 'no_arranco', 'claude', 'afuera']);
+    // «Detener ahora» que no cerró a tiempo, junto al límite: los dos son el Studio que corta (pr_procesos_vista, punto 3)
+    expect(Object.keys(NOMBRE_FIN)).toEqual(['cierre', 'tras_cierre', 'limite', 'detenida', 'cuenta', 'no_arranco', 'claude', 'afuera']);
   });
 
   it('la línea de cada revisión dice quién la terminó, si el Studio lo escribió', () => {

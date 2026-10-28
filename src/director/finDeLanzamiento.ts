@@ -3,10 +3,11 @@
 // en cada lanzamiento y los cuenta por cómo terminaron. Puro: lo usan el servidor y la página.
 
 /**
- * Cerró solo; cerró y el Studio lo detuvo después de su cierre; lo cortó el límite del Studio; lo detuvo la cuenta (su
- * límite de uso o su sesión); no arrancó; Claude Code terminó sin cerrar; o se cerró desde afuera, sin su resultado final.
+ * Cerró solo; cerró y el Studio lo detuvo después de su cierre; lo cortó el límite del Studio; lo detuvo la persona con
+ * «Detener ahora» y no cerró a tiempo (pr_procesos_vista, punto 3); lo detuvo la cuenta (su límite de uso o su sesión); no
+ * arrancó; Claude Code terminó sin cerrar; o se cerró desde afuera, sin su resultado final.
  */
-export type QuienTermino = 'cierre' | 'tras_cierre' | 'limite' | 'cuenta' | 'no_arranco' | 'claude' | 'afuera';
+export type QuienTermino = 'cierre' | 'tras_cierre' | 'limite' | 'detenida' | 'cuenta' | 'no_arranco' | 'claude' | 'afuera';
 
 export interface FinEscrito {
   quien: QuienTermino;
@@ -22,6 +23,7 @@ export const NOMBRE_FIN: Record<QuienTermino, string> = {
   cierre: 'cerró',
   tras_cierre: 'cerró, y el Studio lo detuvo después',
   limite: 'lo cortó el límite del Studio',
+  detenida: 'lo detuviste y no cerró a tiempo',
   cuenta: 'lo detuvo la cuenta',
   no_arranco: 'no arrancó',
   claude: 'Claude Code terminó sin cerrar',

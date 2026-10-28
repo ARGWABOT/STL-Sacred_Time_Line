@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { proyectoVacio, validarPlan, validarProyecto, type Integrante } from './director';
-import { abrirMemoria, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
+import { abrirMemoria, prorrogarRevision, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, elegirActivo, empezarSeguidas, encadenarRevision, enDisco, guardarActivo, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, mismoCorreo, olvidarProyecto, pararSeguidas, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, seguidasActivas, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
 cpSync(join(__dirname, '..', '..', 'plantilla'), join(raiz, 'plantilla'), { recursive: true });
@@ -177,6 +177,22 @@ describe('la revisión pedida desde el Studio', () => {
     expect(r.lanzada ?? r.enCurso).toBeUndefined();
     await pedirRevision(raiz, 'rev', 'Laura', 'cabecera');
     expect((await leerLocal(raiz)).revision?.error).toBeUndefined();
+  });
+
+  it('los minutos de más que recibe al llegar a su límite avanzando quedan en su límite, solo mientras está en marcha (pr_procesos_vista, punto 4)', async () => {
+    await pedirRevision(raiz, 'rev', 'Laura', 'cabecera');
+    await prorrogarRevision(raiz, 'rev', 70);
+    expect((await leerLocal(raiz)).revision?.limite).toBeUndefined();
+    await marcarLanzada(raiz, 'rev', undefined, undefined, 60);
+    await marcarRevision(raiz, 'rev', 'en_curso');
+    await prorrogarRevision(raiz, 'rev', 70);
+    expect((await leerLocal(raiz)).revision).toMatchObject({ limite: 70, lanzada: expect.any(String), enCurso: expect.any(String) });
+    // De otro proyecto, o ya cerrada, nada
+    await prorrogarRevision(raiz, 'otro', 90);
+    expect((await leerLocal(raiz)).revision?.limite).toBe(70);
+    await marcarRevision(raiz, 'rev', 'hecha');
+    await prorrogarRevision(raiz, 'rev', 90);
+    expect((await leerLocal(raiz)).revision?.limite).toBe(70);
   });
 
   it('guarda el reporte de qué pasó junto al error, y pedirla de nuevo lo limpia', async () => {

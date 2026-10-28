@@ -763,6 +763,18 @@ export async function marcarLanzada(raiz: string, proyecto: string, error?: stri
   });
 }
 
+/**
+ * La revisión lanzada recibe minutos de más, una sola vez, porque llegó a su límite avanzando (propuesta aceptada «Cada
+ * proceso, a la vista», pr_procesos_vista, punto 4): su límite nuevo, para la cabecera («lleva 62 min de 70») y para
+ * quien la vigile sin haberla lanzado. Sin una revisión en marcha de ese proyecto, nada.
+ */
+export async function prorrogarRevision(raiz: string, proyecto: string, limite: number): Promise<void> {
+  await cambiarLocal(raiz, (l) => {
+    const r = l.revision?.proyecto === proyecto && !l.revision.hecha && !l.revision.error && (l.revision.lanzada || l.revision.enCurso) ? l.revision : null;
+    return r ? { ...l, revision: { ...r, limite } } : undefined;
+  });
+}
+
 /** La revisión pedida empieza (`en_curso`) o termina (`hecha`). Sin una pedida, `hecha` igual deja la fecha. */
 export async function marcarRevision(raiz: string, proyecto: string, paso: 'en_curso' | 'hecha'): Promise<void> {
   await cambiarLocal(raiz, ({ retoma, ...l }) => {

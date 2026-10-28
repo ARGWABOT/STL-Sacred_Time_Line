@@ -218,7 +218,8 @@ interface Datos {
   vigilia?: string | null;
   /** Si el Studio lanza solo al director al pedir la revisión (estudio/servidor/revisor.ts), o por qué no puede. */
   /** `espera`: otro director tiene el candado del proyecto (la sesión del director, u otra copia del Studio), en una frase. */
-  revisor?: { agente: string | null; problema: string | null; revisando: string | null; espera?: { proyecto: string; texto: string } | null } | null;
+  /** `deteniendo`: alguien oprimió «Detener ahora» y el director cierra con lo hecho (revisor.ts › detenerAhora). */
+  revisor?: { agente: string | null; problema: string | null; revisando: string | null; espera?: { proyecto: string; texto: string } | null; deteniendo?: { proyecto: string; quien: string; cuando: string } | null } | null;
   /** El modelo de Claude Code en este computador, el de /model, con el que el Studio lanza al director (null: el de la cuenta). */
   modelo?: string | null;
   /** Cuánto piensa (el esfuerzo de Claude Code, el de /effort; null: el de la cuenta). */
@@ -2268,6 +2269,38 @@ function paroReciente(): { cuando: string; porque: string } | null {
 const lineaDeParo = (paro: { cuando: string; porque: string }) =>
   `<p class="alerta-p dq-paro">Las revisiones seguidas pararon a las ${hora(paro.cuando)}: ${esc(paro.porque.replace(/\.$/, ''))}.</p>`;
 
+/** Cuánto tiene el director para cerrar después de «Detener ahora» (avisoAlDirector.ts › DETENER_TRAS_MIN). */
+const DETENER_TRAS_MIN = 3;
+
+/**
+ * «Detener ahora», junto a «El director está revisando», solo si lo lanzó este Studio (la sesión del director, a mano, no
+ * se le puede hablar); o, si alguien ya lo oprimió, que cierra con lo hecho, quién lo pidió y cuándo.
+ */
+function detenerAhora(): { boton: string; cerrando: string | null } {
+  const v = d?.revisor?.deteniendo;
+  if (v && v.proyecto === d.activo) return { boton: '', cerrando: `${v.quien} oprimió «Detener ahora» a las ${hora(v.cuando)}: el director cierra con lo hecho y, si a las ${hora(new Date(Date.parse(v.cuando) + DETENER_TRAS_MIN * 60_000).toISOString())} no cerró, el Studio lo corta.` };
+  if (!automatica() || d?.revisor?.revisando !== d.activo) return { boton: '', cerrando: null };
+  return { boton: `<button type="button" class="enlace" data-revision="detener" title="Le pide al director que cierre con lo hecho; si en ${DETENER_TRAS_MIN} minutos no cerró, el Studio lo corta">Detener ahora</button>`, cerrando: null };
+}
+
+/** «Detener ahora», con su confirmación: lo que hace, lo que queda y lo que no. */
+async function detenerLaRevision(): Promise<void> {
+  const seguidas = !!d.seguidas && !d.seguidas.paro;
+  const si = await pedir({
+    titulo: '¿Detener al director ahora?',
+    ayuda: `Le pido al director que cierre con lo hecho: que no empiece nada nuevo, guarde en sus commits lo que ya pasa sus pruebas, escriba lo que alcanzó y lo que no, y cierre la revisión. Lo verás en «¿Dónde quedamos?», como siempre. Si en ${DETENER_TRAS_MIN} minutos no cerró, el Studio lo corta: lo que alcanzó a guardar queda, y la revisión que pidas después termina solo lo que falte.${seguidas ? ' Las revisiones seguidas también paran.' : ''}`,
+    campos: [],
+    boton: 'Detenerlo',
+    cancelar: 'Que siga trabajando',
+    vacioVale: true,
+  });
+  if (!si) return;
+  const r = await fetch('/__estudio/director/detener', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(30_000) }).catch((x) => x as Error);
+  if (r instanceof Error || !r.ok) return avisar(r instanceof Error ? 'No se pudo hablar con el servidor del Studio.' : (await r.json().catch(() => ({}))).error ?? `No se pudo: el servidor respondió ${r.status}.`);
+  avisar(`Le pedí al director que cierre con lo hecho. Si en ${DETENER_TRAS_MIN} minutos no cerró, el Studio lo corta.`);
+  await cargar();
+}
+
 function botonRevision() {
   const r = d.revision;
   const e = estadoRevision();
@@ -2276,12 +2309,15 @@ function botonRevision() {
   // Lo que lleva y lo que le queda de su límite, a la vista mientras trabaja (pr_procesos_vista, punto 3)
   const tiempo = tiempoDeRevision(r);
   const lleva = (t = tiempo) => (t ? ` · lleva ${t.lleva} min de ${t.limite}` : '');
-  const cuandoCorta = tiempo ? ` Lleva ${tiempo.lleva} minutos de los ${tiempo.limite} de su límite: ${tiempo.queda ? `le quedan ${tiempo.queda}` : 'llegó a su límite, y el Studio lo corta'}.` : '';
+  const cuandoCorta = tiempo ? ` Lleva ${tiempo.lleva} minutos de los ${tiempo.limite} de su límite: ${tiempo.queda ? `le quedan ${tiempo.queda}` : 'llegó a su límite, y el Studio lo corta'}. Unos minutos antes le avisa que cierre con lo hecho y, si sigue avanzando, le da unos minutos más, una sola vez.` : '';
+  // «Detener ahora» (pr_procesos_vista, punto 3), o que ya cierra con lo hecho porque alguien lo pidió
+  const parar = detenerAhora();
   // Con algo corriendo (una orden larga, un ayudante, un flujo), su registro no crece y no está parado: es avance, y se dice
   // qué corre (pr_procesos_vista, punto 2)
-  if (e.estado === 'en_curso' && parada && d.enCurso) return `<span class="estado-revision en-curso" role="status" title="${esc(`${CORRE(d.enCurso, parada)}${cuandoCorta}`)}">El director está revisando${lleva()} · corre algo largo<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
-  if (e.estado === 'en_curso' && parada) return `<span class="estado-revision en-curso" role="status" title="${esc(PARADA(parada) + cuandoCorta)}">El director está revisando · sin actividad desde hace ${parada} min</span>${cadena}`;
-  if (e.estado === 'en_curso') return `<span class="estado-revision en-curso" role="status"${cuandoCorta ? ` title="${esc(cuandoCorta.trim())}"` : ''}>El director está revisando${lleva()}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
+  if (e.estado === 'en_curso' && parar.cerrando) return `<span class="estado-revision en-curso" role="status" title="${esc(parar.cerrando)}">El director cierra con lo hecho${lleva()}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
+  if (e.estado === 'en_curso' && parada && d.enCurso) return `<span class="estado-revision en-curso" role="status" title="${esc(`${CORRE(d.enCurso, parada)}${cuandoCorta}`)}">El director está revisando${lleva()} · corre algo largo<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>${parar.boton}</span>${cadena}`;
+  if (e.estado === 'en_curso' && parada) return `<span class="estado-revision en-curso" role="status" title="${esc(PARADA(parada) + cuandoCorta)}">El director está revisando · sin actividad desde hace ${parada} min${parar.boton}</span>${cadena}`;
+  if (e.estado === 'en_curso') return `<span class="estado-revision en-curso" role="status"${cuandoCorta ? ` title="${esc(cuandoCorta.trim())}"` : ''}>El director está revisando${lleva()}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>${parar.boton}</span>${cadena}`;
   // Lanzada y fallida no es «sin tomar»: se dice lo que pasó, y «¿Por qué?» abre su reporte
   const ocupado = directorOcupado();
   if (e.estado === 'sin_vigilia') return `<span class="estado-revision sin-vigilia" role="alert" title="${esc(e.texto)}">⚠ ${r?.error ? 'La revisión no terminó' : 'Revisión pedida, sin tomar'}<button type="button" class="enlace" data-revision="explicar">¿Por qué?</button>${r?.error && !ocupado ? '<button type="button" class="enlace" title="La pide otra vez: retoma lo que esta dejó hecho, sin rehacerlo, y termina lo que falta" data-revision="pedir">Retomarla</button>' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;
@@ -5569,6 +5605,7 @@ document.addEventListener('click', (e) => {
     const ahora = estadoRevision();
     if (que === 'pedir') return void pedirLaRevision(true, rev.dataset.origen === 'recomendada' ? 'recomendada' : rev.dataset.origen === 'seguidas' ? 'seguidas' : 'cabecera');
     if (que === 'cancelar') return void pedirLaRevision(false);
+    if (que === 'detener') return void detenerLaRevision();
     // Una revisión lanzada que no se cerró: el reporte de qué pasó, en su diálogo (nunca solo un aviso que se va)
     if (ahora.estado === 'sin_vigilia' && d.revision?.error) return void mostrarFalla();
     return avisar(ahora.texto, ahora.estado !== 'sin_vigilia');

@@ -709,7 +709,8 @@ describe('el director que lanza el Studio', () => {
       expect(lanzar).toContain("{ cwd: this.raiz, stdio: ['pipe', registro, registro] }, archivo, modelo, entornoDelPermiso)");
       const guarda = lanzar.indexOf('writeFileSync(paqueteDeRegistro(archivo).encargo, elEncargo');
       expect(guarda).toBeGreaterThan(0);
-      expect(lanzar.indexOf('p.stdin?.end(elEncargo)')).toBeGreaterThan(guarda);
+      // Por la entrada en stream-json, que sigue abierta para el aviso del Studio (avisoAlDirector.ts)
+      expect(lanzar.indexOf('p.stdin?.write(mensajeDeEntrada(elEncargo))')).toBeGreaterThan(guarda);
     });
   });
 

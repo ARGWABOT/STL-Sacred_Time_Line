@@ -75,7 +75,7 @@ import {
 } from '../../src/director/director';
 import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
 import { leerEstadoDelEquipo, leerPlanParaVer, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria';
-import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
+import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, seguidasActivas, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO, eventoDeAccion, leerBitacora } from '../../src/director/bitacora';
 import { archivoDelPaquete } from '../../src/director/paquete';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
@@ -1604,6 +1604,20 @@ export function servidorDirector(): Plugin {
             await pararSeguidas(raiz, id, `la detuvo ${yo.nombre}`);
             await anotar(raiz, { quien: yo.nombre, que: 'detiene las revisiones seguidas', desde: '«Detener», junto a las revisiones seguidas', proyecto: id });
             return responder(res, 200, { seguidas: ((s) => (s?.proyecto === id ? s : null))((await leerLocal(raiz)).seguidas) });
+          }
+          // «Detener ahora» (pr_procesos_vista, punto 3; tu decisión del 26 de octubre de 2026): el Studio le pide al director
+          // que corre cerrar con lo hecho y, si en tres minutos no cerró, lo corta. Las revisiones seguidas paran con él
+          if (ruta === '/detener' && req.method === 'POST') {
+            const yo = await leerIdentidad(raiz, id);
+            if (!yo.rol) return responder(res, 403, { error: yo.problema ?? 'Este Estudio no sabe quién eres: configura git user.name y user.email.' });
+            if (!revisor) return responder(res, 400, { error: 'El Studio no está llamando al director en este computador: no hay nada que detener desde aquí.' });
+            const r = revisor.detenerAhora(id, yo.nombre);
+            if (!r.ok) return responder(res, 400, { error: r.error });
+            if (r.ya) return responder(res, 200, { revisor: revisor.estado() });
+            const seguidas = seguidasActivas((await leerLocal(raiz)).seguidas, id);
+            if (seguidas) await pararSeguidas(raiz, id, `la detuvo ${yo.nombre} con «Detener ahora»`);
+            await anotar(raiz, { quien: yo.nombre, que: `le pide al director que cierre con lo hecho; si en tres minutos no cerró, el Studio lo corta${seguidas ? '. Las revisiones seguidas paran con él' : ''}`, desde: '«Detener ahora», junto a «El director está revisando»', proyecto: id });
+            return responder(res, 200, { revisor: revisor.estado() });
           }
           // Pedir la revisión del director (o cancelarla mientras no empiece): una marca en este computador, fuera de git
           if (ruta === '/revision' && req.method === 'POST') {

@@ -22,14 +22,15 @@ import { fuentesDeEscaneo } from './escaneo';
 import { colaDeDiagnosticos, limiteDelTramo, MAX_MIN_REVISION, negacionesDe, negadosEnVivo, POR_REVISION, type CandidatoDeCola, type Tramo } from '../../src/director/director';
 import { leerJsonFresco } from '../../src/director/memoria';
 import { PROCEDIMIENTOS } from '../../src/director/procedimientos';
-import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
+import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, prorrogarRevision, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora';
-import { anotarDirector, archivoDelCandado, quienLoTiene, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado';
+import { anotarDirector, archivoDelCandado, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado';
 import { guardarLineasDeRevision } from '../../src/director/lineasDeRevision';
 import { esFinEscrito, type FinEscrito, type QuienTermino } from '../../src/director/finDeLanzamiento';
 import { ventanaAgotada } from '../../src/director/limites';
 import type { SemanaDelLanzamiento } from '../../src/director/costoDelPlan';
 import { paqueteDeRegistro, REGISTRO, REVISIONES, tokensEstimados, VARIABLE_REGISTRO } from '../../src/director/paquete';
+import { avanzaba, avisoDetener, avisoLimite, avisoProrroga, cerrarLaEntrada, DETENER_TRAS_MIN, leerTurno, mensajeDeEntrada, minutosDelAviso, SOBRE_EL_AVISO, type Turno } from './avisoAlDirector';
 import { autorizadasPara, NEGACION, NUNCA_SIEMPRE, ordenDePruebas, permisosNegados, pruebasOfrecidas, reglaDeRuta, type PermisoNegado, type RegistroLeido } from './permisosNegados';
 
 export type { FallaRevision };
@@ -44,6 +45,11 @@ export interface EstadoRevisor {
    * del director, o uno que lanzó otra copia del Studio), en una frase, con su proyecto (pd_un_director).
    */
   espera?: { proyecto: string; texto: string } | null;
+  /**
+   * Alguien oprimió «Detener ahora» y el director está cerrando con lo hecho: quién y cuándo, con su proyecto
+   * (pr_procesos_vista, punto 3). Si en DETENER_TRAS_MIN minutos no cerró, el Studio lo corta.
+   */
+  deteniendo?: { proyecto: string; quien: string; cuando: string } | null;
 }
 
 /** Una revisión que tarda más que esto se da por perdida: el Studio la detiene y lo dice. */
@@ -136,7 +142,7 @@ const TRAS_CIERRE =
 const esperar = (minutos: number) =>
   ` Si lanzas un flujo de varios agentes o un ayudante en segundo plano, sigue con lo demás y, cuando no quede nada más, ` +
   `termina tu turno: el aviso de que terminó te despierta solo (no tienes esperas programadas).` + TRAS_CIERRE +
-  ` Tienes ${minutos} minutos en total.`;
+  ` Tienes ${minutos} minutos en total.` + SOBRE_EL_AVISO;
 
 /**
  * Si toca detener al director porque siguió vivo después de su cierre: `cerroDesde` es cuando el Studio vio el cierre
@@ -1175,8 +1181,10 @@ export const fallaDelEsfuerzo = (registro: string) =>
 export interface FinDeRevision {
   /** Lo que dijo el Studio al terminar (fin()). */
   problema?: string;
-  /** Si la cortó el límite de tiempo, y cuál era (minutos). */
+  /** Si la cortó el límite de tiempo, y cuál era (minutos, con los de más si se le dieron). */
   limite?: number;
+  /** Quién la detuvo con «Detener ahora», si no cerró a tiempo y el Studio la cortó (pr_procesos_vista, punto 3). */
+  detenida?: string;
   /** El código con que salió Claude Code, si se sabe. */
   codigo?: number | null;
   /** Si el proceso de Claude Code ya no existe y nadie vio cómo terminó (el servidor que lo lanzó ya no estaba). */
@@ -1278,7 +1286,9 @@ export function diagnosticarFalla(registro: string, f: FinDeRevision = {}): Fall
     return reporte('Se detuvo a mitad de camino', 'Tu plan de Claude llegó a su límite de uso mientras el director trabajaba.', 'cuenta', 'Espera a que se renueve tu límite y pídela de nuevo: lo que el director alcanzó a guardar queda; lo que llevas usado se ve en «Modelo y consumo».', renovacion(rechazo));
   if (sesion || (errorDicho && ultimo?.is_error))
     return reporte('Se detuvo a mitad de camino', errorDicho ? `Claude Code devolvió un error: «${corto(errorDicho, 200)}».` : 'Claude Code perdió la sesión de tu cuenta mientras el director trabajaba.', sesion ? 'cuenta' : 'pedir', sesion ? 'Abre una terminal, corre «claude auth login» y, con la sesión iniciada, pídela de nuevo.' : 'Pídela de nuevo: suele ser pasajero. Si se repite, abre Claude Code en una terminal para ver el error.');
-  // 3. El límite de tiempo del Studio
+  // 3. La detuvo la persona con «Detener ahora» y no cerró a tiempo; o el límite de tiempo del Studio
+  if (f.detenida)
+    return reporte('La detuviste', `${f.detenida} oprimió «Detener ahora»: el Studio le pidió al director cerrar con lo hecho y, como no cerró en ${DETENER_TRAS_MIN} minutos, lo cortó.`, 'pedir', 'Retómala cuando quieras: lo que el director alcanzó a guardar queda, y la revisión nueva termina solo lo que falte.');
   if (f.limite) {
     // Lo que corría (una orden larga, un ayudante) no es estar parado, aunque su registro no creciera (pr_procesos_vista, punto 2)
     const corria = herramientaEnCurso(registro);
@@ -1310,16 +1320,16 @@ export function diagnosticarFalla(registro: string, f: FinDeRevision = {}): Fall
  * en finDeLanzamiento.ts), de lo que se sabe al terminar (si cerró, si el Studio lo detuvo tras su cierre, si lo cortó
  * su límite, su código) y de su registro. Puro: sin archivos.
  */
-export function finEscrito(registro: string, f: FinDeRevision & { cerro: boolean; trasCierre?: boolean }): FinEscrito {
+export function finEscrito(registro: string, f: FinDeRevision & { cerro: boolean; trasCierre?: boolean; pidioCierre?: string }): FinEscrito {
   const minutos = f.inicio && f.fin && f.fin >= f.inicio ? Math.round((f.fin - f.inicio) / 6000) / 10 : null;
   const codigo = f.codigo ?? null;
   if (f.cerro)
     return f.trasCierre
       ? { quien: 'tras_cierre', causa: `Cerró, pero seguía vivo ${GRACIA_CIERRE_MIN} minutos después de su cierre: el Studio lo detuvo.`, minutos, codigo }
-      : { quien: 'cierre', causa: 'Cerró con su cierre y terminó solo.', minutos, codigo };
+      : { quien: 'cierre', causa: f.pidioCierre ? `Cerró con lo hecho cuando ${f.pidioCierre} se lo pidió con «Detener ahora».` : 'Cerró con su cierre y terminó solo.', minutos, codigo };
   const d = diagnosticarFalla(registro, f);
   const conResultado = registro.split('\n').some((l) => l.startsWith('{') && l.includes('"type":"result"'));
-  const quien: QuienTermino = f.limite ? 'limite' : d.accion === 'cuenta' ? 'cuenta' : d.que === 'No arrancó' ? 'no_arranco' : conResultado ? 'claude' : 'afuera';
+  const quien: QuienTermino = f.detenida ? 'detenida' : f.limite ? 'limite' : d.accion === 'cuenta' ? 'cuenta' : d.que === 'No arrancó' ? 'no_arranco' : conResultado ? 'claude' : 'afuera';
   return { quien, causa: d.porque, minutos, codigo };
 }
 
@@ -1668,6 +1678,9 @@ export class Revisor {
   private programa: string | null = null;
   private problema: string | null = null;
   private visto = 0;
+  /** El director que corre ahora, para pedirle que cierre con lo hecho («Detener ahora»); null si ninguno. */
+  private enMarcha: { proyecto: string; pedirCierre: (quien: string) => void } | null = null;
+  private deteniendo: { proyecto: string; quien: string; cuando: string } | null = null;
   /**
    * Mientras dé true, no se lanza ningún director: se está midiendo el núcleo (medidor.ts › midiendo), que gasta del
    * mismo límite de la cuenta. Lo pedido espera, y el reloj de 15 segundos lo lanza cuando termine.
@@ -1678,7 +1691,22 @@ export class Revisor {
   constructor(private raiz: string, private ajustes = archivoAjustesClaude()) {}
 
   estado(): EstadoRevisor {
-    return { agente: this.programa ? 'Claude Code' : null, problema: this.problema, revisando: this.hijo, espera: this.espera };
+    return { agente: this.programa ? 'Claude Code' : null, problema: this.problema, revisando: this.hijo, espera: this.espera, deteniendo: this.deteniendo };
+  }
+
+  /**
+   * «Detener ahora» (pr_procesos_vista, punto 3; decisión del titular del 26 de octubre de 2026): le pide al director que
+   * corre en ese proyecto cerrar con lo hecho y, si en DETENER_TRAS_MIN minutos no cerró, lo corta. `quien`: quien lo pide
+   * (la ruta del servidor lo anota en la bitácora). Sin un director de este Studio en ese proyecto, lo dice y no hace nada;
+   * `ya`: alguien lo había pedido antes.
+   */
+  detenerAhora(proyecto: string, quien: string): { ok: true; ya: boolean } | { ok: false; error: string } {
+    const m = this.enMarcha;
+    if (!m || m.proyecto !== proyecto) return { ok: false, error: 'El Studio no tiene un director trabajando en este proyecto: no hay nada que detener.' };
+    if (this.deteniendo?.proyecto === proyecto) return { ok: true, ya: true };
+    this.deteniendo = { proyecto, quien, cuando: new Date().toISOString() };
+    m.pedirCierre(quien);
+    return { ok: true, ya: false };
   }
 
   /**
@@ -1736,7 +1764,8 @@ export class Revisor {
       if (urgenciaActiva(u)) {
         if (u.lanzada) {
           // Lanzada por un servidor del Studio que ya no está: pasado el límite, queda para la revisión
-          if (Date.now() - Date.parse(u.lanzada) > (MAX_MIN_URGENCIA + 5) * 60_000) await this.falloUrgencia(u, `La urgencia no terminó en ${MAX_MIN_URGENCIA} minutos.`);
+          // (con los minutos de más que se le dan si avanzaba: avisoAlDirector.ts)
+          if (Date.now() - Date.parse(u.lanzada) > (MAX_MIN_URGENCIA + minutosDelAviso(MAX_MIN_URGENCIA) + 5) * 60_000) await this.falloUrgencia(u, `La urgencia no terminó en ${MAX_MIN_URGENCIA} minutos.`);
         } else if (!revisando) {
           await this.preparar(forzar);
           const repositorio = await leerRutaRepositorio(this.raiz, u.proyecto);
@@ -1747,7 +1776,7 @@ export class Revisor {
       if (a && !a.hecha && !a.error) {
         if (a.lanzada) {
           // Lanzada por un servidor del Studio que ya no está: pasado el límite, queda para la revisión
-          if (Date.now() - Date.parse(a.lanzada) > (MAX_MIN_ACLARAR + 5) * 60_000) await this.fallo(a, `La aclaración no terminó en ${MAX_MIN_ACLARAR} minutos.`);
+          if (Date.now() - Date.parse(a.lanzada) > (MAX_MIN_ACLARAR + minutosDelAviso(MAX_MIN_ACLARAR) + 5) * 60_000) await this.fallo(a, `La aclaración no terminó en ${MAX_MIN_ACLARAR} minutos.`);
         } else if (!revisando) {
           // Una revisión en marcha también escribe el plan: la aclaración espera a que termine
           await this.preparar(forzar);
@@ -1926,7 +1955,9 @@ export class Revisor {
     const prohibidas = [...new Set([...SIN_ESPERAS, ...negado(repositorio, this.raiz, cola), ...NUNCA_SIEMPRE])];
     const autorizadas = autorizadasPara(elegido.permisos?.autorizados, proyecto, prohibidas, homedir());
     const permitidas = conAutorizadas(permitido(repositorio, permisos.flujos, this.raiz, homedir(), cola, historial), autorizadas);
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), ...permisos.argumentos, ...nucleo.argumentos, '--add-dir', repositorio, ...cola.map((c) => join(c.repositorio, MEMORIA)), '--disallowedTools', ...prohibidas, '--allowedTools', ...permitidas];
+    // La entrada también en stream-json: el encargo va como el primer mensaje, y la entrada sigue abierta para el aviso del
+    // Studio mientras trabaja («Detener ahora» y el de su límite; avisoAlDirector.ts)
+    const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), ...permisos.argumentos, ...nucleo.argumentos, '--add-dir', repositorio, ...cola.map((c) => join(c.repositorio, MEMORIA)), '--disallowedTools', ...prohibidas, '--allowedTools', ...permitidas];
     // «Automático, vigilado»: lo que ya tenía, en el registro, para leer lo que Claude Code apruebe solo (aprobadosSolos.ts):
     // sus carpetas de trabajo, donde leer nunca pide permiso, son la del Studio, la del proyecto y las de la cola
     const yaPermitido = permisos.automatico ? { permitidas, carpetas: [this.raiz, repositorio, ...cola.map((c) => join(c.repositorio, MEMORIA))].map((c) => `${reglaDeRuta(c)}/**`), casa: homedir() } : null;
@@ -1990,12 +2021,73 @@ export class Revisor {
     } catch {
       // sin disco no hay paquete, pero el director trabaja igual
     }
-    p.stdin?.end(elEncargo);
+    // El encargo, como el primer mensaje; la entrada sigue abierta para el aviso del Studio (avisoAlDirector.ts) y se cierra
+    // cuando el director termina su turno sin nada en segundo plano: entonces Claude Code termina, como antes
+    let entradaAbierta = true;
+    p.stdin?.on('error', () => (entradaAbierta = false));
+    p.stdin?.write(mensajeDeEntrada(elEncargo));
+    const cerrarEntrada = () => {
+      if (!entradaAbierta) return;
+      entradaAbierta = false;
+      p.stdin?.end();
+    };
+    /** Le dice algo al director mientras trabaja, y lo deja escrito en su registro; false si ya no lo puede oír. */
+    const avisar = (texto: string, que: 'detener' | 'limite' | 'prorroga'): boolean => {
+      if (!entradaAbierta || !p.stdin?.writable) return false;
+      try {
+        p.stdin.write(mensajeDeEntrada(texto));
+        writeSync(registro, `${JSON.stringify({ type: 'studio', aviso: que, cuando: new Date().toISOString() })}\n`);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    // Si terminó su turno sin nada en segundo plano, mirado cada 5 segundos en lo nuevo de su registro (sin leerlo entero)
+    let suTurno: Turno = { termino: false, fondo: 0 };
+    let leido = 0;
+    const vigiaTurno = setInterval(() => {
+      if (!entradaAbierta) return void clearInterval(vigiaTurno);
+      const nuevo = leerDesde(archivo, leido);
+      leido = nuevo.hasta;
+      suTurno = leerTurno(nuevo.texto, suTurno);
+      if (cerrarLaEntrada(suTurno)) {
+        clearInterval(vigiaTurno);
+        cerrarEntrada();
+      }
+    }, 5_000);
+    // El límite, sin matar a ciegas (pr_procesos_vista, punto 4; tu decisión del 26 de octubre de 2026): unos minutos
+    // antes, el aviso de que cierre con lo hecho; al llegar, si avanzaba, esos mismos minutos de más, una sola vez
+    const avisoMin = minutosDelAviso(minutos);
+    let limiteMin = minutos;
     let cortada = false;
-    const limite = setTimeout(() => {
+    let prorrogada = false;
+    const avisoDelLimite = setTimeout(() => {
+      if (avisar(avisoLimite(avisoMin), 'limite'))
+        void anotar(this.raiz, { quien: EL_STUDIO, que: `le avisa al director que su límite llega en ${avisoMin} minutos y que cierre con lo hecho`, desde: `el lanzador del director (registro ${relative(this.raiz, archivo)})`, proyecto }).catch(() => undefined);
+    }, (minutos - avisoMin) * 60_000);
+    const alLimite = () => {
+      let ultima: number | null = null;
+      let corre: string | null = null;
+      try {
+        ultima = statSync(archivo).mtimeMs;
+        corre = herramientaEnCurso(readFileSync(archivo, 'utf-8'));
+      } catch {
+        // sin el registro no se sabe si avanzaba: se corta, como siempre
+      }
+      if (!prorrogada && !detenidaPor && avanzaba(ultima, corre, Date.now(), SIN_ACTIVIDAD_MIN) && avisar(avisoProrroga(avisoMin), 'prorroga')) {
+        prorrogada = true;
+        limiteMin = minutos + avisoMin;
+        limite = setTimeout(alLimite, avisoMin * 60_000);
+        // Quien vigila sin haberlo lanzado (otra copia del Studio, este después de reiniciarse) lo sabe por el candado y por la revisión
+        renovarCandado(candado, { estudio: this.raiz, registro: archivo }, new Date(inicio + (limiteMin + GRACIA_CIERRE_MIN + 5) * 60_000).toISOString());
+        if (!aparte) void prorrogarRevision(this.raiz, proyecto, limiteMin).catch(() => undefined);
+        void anotar(this.raiz, { quien: EL_STUDIO, que: `le da al director ${avisoMin} minutos más para cerrar, una sola vez: llegó su límite de ${minutos} minutos y seguía avanzando`, desde: `el lanzador del director (registro ${relative(this.raiz, archivo)})`, proyecto }).catch(() => undefined);
+        return;
+      }
       cortada = true;
       detener(p);
-    }, minutos * 60_000);
+    };
+    let limite = setTimeout(alLimite, minutos * 60_000);
     // El cierre es lo último: si después de cerrar sigue vivo más de la gracia (esperando a un ayudante, escribiendo otra
     // vez el plan), el Studio lo detiene y lo deja escrito en su registro. Mientras viva, no se lanza otro director ni se
     // puede pedir otra revisión
@@ -2005,6 +2097,23 @@ export class Revisor {
       if (aparte?.tipo === 'aclaracion') return l.aclaracion?.nota === aparte.a.nota && !!l.aclaracion.hecha;
       if (aparte?.tipo === 'urgencia') return l.urgencia?.pedida === aparte.u.pedida && !!l.urgencia.hecha;
       return cerroSegunPlan(revisadoDelPlan(this.raiz, proyecto), { pedida: pedidaEn, lanzada: new Date(inicio).toISOString() });
+    };
+    // «Detener ahora» (pr_procesos_vista, punto 3): le pide cerrar con lo hecho y, si en DETENER_TRAS_MIN minutos no cerró, lo corta
+    let detenidaPor: string | null = null;
+    let cortadaPorPersona = false;
+    let alDetener: ReturnType<typeof setTimeout> | null = null;
+    this.enMarcha = {
+      proyecto,
+      pedirCierre: (quien: string) => {
+        if (detenidaPor) return;
+        detenidaPor = quien;
+        avisar(avisoDetener(quien), 'detener');
+        alDetener = setTimeout(() => void (async () => {
+          if (await cerroYa().catch(() => false)) return;
+          cortadaPorPersona = true;
+          detener(p);
+        })(), DETENER_TRAS_MIN * 60_000);
+      },
     };
     let cerroDesde: number | null = null;
     let trasCierre = false;
@@ -2027,7 +2136,13 @@ export class Revisor {
       if (cerrado) return;
       cerrado = true;
       clearTimeout(limite);
+      clearTimeout(avisoDelLimite);
+      if (alDetener) clearTimeout(alDetener);
       clearInterval(tras);
+      clearInterval(vigiaTurno);
+      entradaAbierta = false;
+      if (this.enMarcha?.proyecto === proyecto) this.enMarcha = null;
+      if (this.deteniendo?.proyecto === proyecto) this.deteniendo = null;
       // «Me pregunta en el Studio»: la revisión deja de preguntar, termine como termine. Lo que se negó sin que la persona lo
       // decidiera (no respondió, o no estaba) queda escrito en el registro, para el panel de permisos (permisoAlMomento.ts)
       if (clavePermiso)
@@ -2041,7 +2156,7 @@ export class Revisor {
       // «Modelo y consumo», «Qué pasó con la revisión» y la línea de cada revisión
       try {
         const cerro = await cerroYa().catch(() => false);
-        writeSync(registro, lineaDeFin(finEscrito(readFileSync(archivo, 'utf-8'), { cerro, trasCierre, ...(cortada ? { limite: minutos } : {}), codigo, problema, inicio, fin: Date.now() })));
+        writeSync(registro, lineaDeFin(finEscrito(readFileSync(archivo, 'utf-8'), { cerro, trasCierre, ...(cortada ? { limite: limiteMin } : {}), ...(cortadaPorPersona && detenidaPor ? { detenida: detenidaPor } : {}), ...(detenidaPor ? { pidioCierre: detenidaPor } : {}), codigo, problema, inicio, fin: Date.now() })));
       } catch {
         // sin el registro, el final no se escribe: «Qué pasó con la revisión» lo deduce como antes
       }
@@ -2071,7 +2186,8 @@ export class Revisor {
       this.hijo = null;
       soltarTurno(turno);
       soltarCandado(candado, { estudio: this.raiz, registro: archivo });
-      if (cortada) problema = `La revisión que lanzó el Studio se cortó al llegar a su límite de ${minutos} minutos.`;
+      if (cortada) problema = `La revisión que lanzó el Studio se cortó al llegar a su límite de ${limiteMin} minutos${prorrogada ? `, con los ${avisoMin} de más que le dio porque seguía avanzando` : ''}.`;
+      if (cortadaPorPersona) problema = `${detenidaPor} oprimió «Detener ahora» y el director no cerró en ${DETENER_TRAS_MIN} minutos: el Studio lo cortó.`;
       // La cuenta no acepta el modelo elegido: vuelve al de siempre (también en Claude Code, que con él tampoco
       // arrancaría), y el aviso lo dice
       if (modelo && fallaDelModelo(readFileSync(archivo, 'utf-8'))) {
@@ -2103,7 +2219,7 @@ export class Revisor {
         } catch {
           // sin registro, el reporte dice lo que se sabe
         }
-        const falla = diagnosticarFalla(texto, { problema, codigo, inicio, fin: Date.now(), ultimaActividad, registro: relative(this.raiz, archivo), ...(cortada ? { limite: minutos } : {}) });
+        const falla = diagnosticarFalla(texto, { problema, codigo, inicio, fin: Date.now(), ultimaActividad, registro: relative(this.raiz, archivo), ...(cortada ? { limite: limiteMin } : {}), ...(cortadaPorPersona && detenidaPor ? { detenida: detenidaPor } : {}) });
         await marcarLanzada(this.raiz, proyecto, `${problema} Lo que alcanzó a hacer quedó en ${relative(this.raiz, archivo)}.`, falla);
       }
       // Las revisiones seguidas: la siguiente, si la cadena sigue, o para con su porqué (también si esta falló)
@@ -2111,6 +2227,28 @@ export class Revisor {
     };
     p.on('error', (e) => void fin(`El Studio no pudo lanzar Claude Code (${e.message}).`));
     p.on('exit', (codigo) => void fin(`La revisión que lanzó el Studio terminó sin cerrarse${codigo ? ` (código ${codigo})` : ''}.`, codigo));
+  }
+}
+
+/**
+ * Lo nuevo de un registro desde el byte `desde`, hasta su última línea entera (la que aún se escribe queda para la vuelta
+ * siguiente), y hasta dónde se leyó. Sin el archivo, nada.
+ */
+export function leerDesde(archivo: string, desde: number): { texto: string; hasta: number } {
+  let fd: number | null = null;
+  try {
+    fd = openSync(archivo, 'r');
+    const tam = statSync(archivo).size;
+    if (tam <= desde) return { texto: '', hasta: desde };
+    const buf = Buffer.alloc(tam - desde);
+    const leidos = readSync(fd, buf, 0, buf.length, desde);
+    const fin = buf.lastIndexOf(0x0a, leidos - 1);
+    if (fin < 0) return { texto: '', hasta: desde };
+    return { texto: buf.subarray(0, fin + 1).toString('utf-8'), hasta: desde + fin + 1 };
+  } catch {
+    return { texto: '', hasta: desde };
+  } finally {
+    if (fd !== null) closeSync(fd);
   }
 }
 
