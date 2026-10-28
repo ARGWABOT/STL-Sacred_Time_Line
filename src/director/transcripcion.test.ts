@@ -2,50 +2,49 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { ARCHIVO_DE_VOCES, audioBorrable, borrarSiTranscrito, comandoTranscripcion, limpiarTranscripcion, limpiarTranscrito, MARCA_TRANSCRIPCION, pythonDelDirector, pythonsDeTranscripcion, quitarSiVacia, transcripcionEnDisco, txtDeAudio } from './transcripcion';
+import { ARCHIVO_DE_VOCES, audioBorrable, borrarSiTranscrito, comandoTranscripcion, COMO_INSTALAR_TRANSCRIPCION, limpiarTranscripcion, limpiarTranscrito, MARCA_TRANSCRIPCION, pythonDelDirector, quitarSiVacia, transcribirEnLocal, transcripcionEnDisco, txtDeAudio } from './transcripcion';
 
 const base = mkdtempSync(join(tmpdir(), 'estudio-transcripcion-'));
 afterAll(() => rmSync(base, { recursive: true, force: true }));
 
-describe('la voz sin WSL (pr_voz_sin_wsl): en Windows, la forma nueva apenas está instalada, con WSL de respaldo', () => {
+describe('la voz sin WSL (pr_voz_sin_wsl): el Python de ~/director/.venv en cualquier sistema, y nunca dentro de WSL (nota de voz del titular nmvs7si3qtit)', () => {
   const casa = 'C:\\Users\\ana';
   const venv = join(casa, 'director', '.venv');
   const python = join(venv, 'Scripts', 'python.exe');
   const con = (...rutas: string[]) => ({ plataforma: 'win32', casa, env: {}, existe: (r: string) => rutas.includes(r) });
 
-  it('en Windows, sin WSL solo con lo suyo instalado así: la marca de la transcripción, o el archivo de las voces', () => {
+  it('en Windows, el python.exe del venv; instalado solo con lo suyo: la marca de la transcripción, o el archivo de las voces', () => {
     const marca = join(venv, MARCA_TRANSCRIPCION);
     const voces = join(casa, 'director', 'voces', ARCHIVO_DE_VOCES);
-    expect(pythonDelDirector('transcripcion', con(python, marca))).toEqual({ nativo: true, python });
-    expect(pythonDelDirector('voz', con(python, voces))).toEqual({ nativo: true, python });
-    // A medio instalar (el venv sin su marca), o solo con lo otro: sigue en WSL, como antes
-    expect(pythonDelDirector('transcripcion', con(python))).toEqual({ nativo: false, python: '$HOME/director/.venv/bin/python' });
-    expect(pythonDelDirector('transcripcion', con(python, voces)).nativo).toBe(false);
-    expect(pythonDelDirector('voz', con(python, marca)).nativo).toBe(false);
-    expect(pythonDelDirector('voz', con(marca, voces)).nativo).toBe(false);
-    // DIRECTOR_PYTHON sigue cambiando el Python de WSL
-    expect(pythonDelDirector('transcripcion', { ...con(), env: { DIRECTOR_PYTHON: '/opt/venv/bin/python' } }).python).toBe('/opt/venv/bin/python');
+    expect(pythonDelDirector('transcripcion', con(python, marca))).toEqual({ python, instalado: true });
+    expect(pythonDelDirector('voz', con(python, voces))).toEqual({ python, instalado: true });
+    // A medio instalar (el venv sin su marca), o solo con lo otro: el mismo Python, sin instalar; nunca WSL
+    expect(pythonDelDirector('transcripcion', con(python))).toEqual({ python, instalado: false });
+    expect(pythonDelDirector('transcripcion', con(python, voces)).instalado).toBe(false);
+    expect(pythonDelDirector('voz', con(python, marca)).instalado).toBe(false);
+    expect(pythonDelDirector('voz', con(marca, voces))).toEqual({ python, instalado: false });
+    // DIRECTOR_PYTHON lo cambia, y se da por instalado
+    expect(pythonDelDirector('transcripcion', { ...con(), env: { DIRECTOR_PYTHON: 'C:\\py\\python.exe' } })).toEqual({ python: 'C:\\py\\python.exe', instalado: true });
   });
 
-  it('en los demás sistemas, siempre directo, con el Python de ~/director/.venv o el de DIRECTOR_PYTHON', () => {
-    expect(pythonDelDirector('transcripcion', { plataforma: 'darwin', env: { HOME: '/Users/ana' }, existe: () => false })).toEqual({ nativo: true, python: join('/Users/ana', 'director', '.venv', 'bin', 'python') });
-    expect(pythonDelDirector('voz', { plataforma: 'linux', env: { DIRECTOR_PYTHON: '/x/python' }, existe: () => false })).toEqual({ nativo: true, python: '/x/python' });
+  it('en los demás sistemas, el Python de ~/director/.venv o el de DIRECTOR_PYTHON, con la misma marca', () => {
+    const casaMac = join('/Users/ana', 'director');
+    expect(pythonDelDirector('transcripcion', { plataforma: 'darwin', env: { HOME: '/Users/ana' }, existe: () => false })).toEqual({ python: join(casaMac, '.venv', 'bin', 'python'), instalado: false });
+    expect(pythonDelDirector('transcripcion', { plataforma: 'darwin', env: { HOME: '/Users/ana' }, existe: () => true }).instalado).toBe(true);
+    expect(pythonDelDirector('voz', { plataforma: 'linux', env: { DIRECTOR_PYTHON: '/x/python' }, existe: () => false })).toEqual({ python: '/x/python', instalado: true });
   });
 
-  it('la forma nueva de Windows lleva WSL detrás, de respaldo; sin ella, o en otro sistema, un solo intento', () => {
-    expect(pythonsDeTranscripcion(con(python, join(venv, MARCA_TRANSCRIPCION))).map((p) => p.nativo)).toEqual([true, false]);
-    expect(pythonsDeTranscripcion(con()).map((p) => p.nativo)).toEqual([false]);
-    expect(pythonsDeTranscripcion({ plataforma: 'linux', env: {}, existe: () => false }).map((p) => p.nativo)).toEqual([true]);
-  });
-
-  it('los audios van con la ruta que ve su Python: la de este computador sin WSL, la de WSL dentro de él', () => {
+  it('los audios van con la ruta de este computador, al python del venv; sin la transcripción instalada no se intenta: dice cómo instalarla', async () => {
     const audio = 'C:\\xampp\\STL\\.stl\\director\\notas\\n1.webm';
-    const nativo = comandoTranscripcion('C:\\xampp\\STL', [audio], 'Notas.', { nativo: true, python });
-    expect(nativo.cmd).toBe(python);
-    expect(nativo.args.slice(1)).toEqual(['--pista', 'Notas.', audio]);
-    const wsl = comandoTranscripcion('C:\\xampp\\STL', [audio], 'Notas.', { nativo: false, python: '$HOME/director/.venv/bin/python' });
-    expect(wsl.cmd).toBe('wsl');
-    expect(wsl.args.slice(3)).toEqual(['$HOME/director/.venv/bin/python', '/mnt/c/xampp/STL/tools/director/transcribir.py', '--pista', 'Notas.', '/mnt/c/xampp/STL/.stl/director/notas/n1.webm']);
+    const c = comandoTranscripcion('C:\\xampp\\STL', [audio], 'Notas.', { python, instalado: true });
+    expect(c.cmd).toBe(python);
+    expect(c.args.slice(1)).toEqual(['--pista', 'Notas.', audio]);
+    const r = await transcribirEnLocal('C:\\xampp\\STL', [join(base, 'no-esta.webm')], 'Notas.', { python, instalado: false });
+    expect(r).toEqual({ ok: false, error: COMO_INSTALAR_TRANSCRIPCION });
+    expect(COMO_INSTALAR_TRANSCRIPCION).toContain('bash tools/entorno/instalar_transcripcion.sh');
+    // Nada del Studio corre dentro de WSL
+    const codigo = readFileSync(join(import.meta.dirname, 'transcripcion.ts'), 'utf8');
+    expect(codigo).not.toMatch(/['"]wsl['"]|\/mnt\//);
   });
 
   it('el instalador, sin WSL: las librerías de NVIDIA solo con su tarjeta, y la marca solo si su prueba transcribió', () => {

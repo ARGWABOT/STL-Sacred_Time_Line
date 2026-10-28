@@ -1,6 +1,6 @@
 # Transcribe en local las notas de voz del Director asistente (faster-whisper, modelo large-v3-turbo, en español) y
 # deja cada texto junto a su audio, con el mismo nombre y extensión .txt. Lo llaman el Studio y tools/director/bandeja.ts
-# (src/director/transcripcion.ts: sin WSL, o dentro de WSL de respaldo; ver tools/entorno/instalar_transcripcion.sh).
+# (src/director/transcripcion.ts: con el Python de ~/director/.venv, sin WSL; ver tools/entorno/instalar_transcripcion.sh).
 # Nada sale del equipo.
 # Uso: python transcribir.py [--pista "Notas para el director del proyecto X."] audio1.webm audio2.webm …
 #      python transcribir.py --probar

@@ -3,8 +3,7 @@
 # transcripción, y baja su modelo a ~/director/voces. Al leer no sale nada del equipo: corren sin internet. Sin WSL
 # (propuesta aceptada pr_voz_sin_wsl), desde la carpeta del Estudio, en cualquier sistema:
 #   bash tools/entorno/instalar_voces.sh
-# En Windows, en Git Bash. La forma de antes, dentro de WSL, sigue sirviendo de respaldo:
-#   wsl -d Ubuntu -- bash tools/entorno/instalar_voces.sh
+# En Windows, en Git Bash. El Studio ya no usa WSL para nada (nota de voz del titular nmvs7si3qtit, 28 de octubre de 2026).
 # Baja Kokoro (kokoro-onnx, MIT), con el modelo de todas sus voces (las de partida son Santa y Heart): unos 350 MB, una
 # sola vez (decisión del titular, 26 de octubre de 2026, nota de voz nmvpdu9zqtit: Kokoro es el único motor del Studio).
 # Lo que ya está no se vuelve a bajar, y se puede correr otra vez si algo se corta. Con sus archivos en ~/director/voces,

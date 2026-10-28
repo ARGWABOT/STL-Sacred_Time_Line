@@ -1,11 +1,11 @@
 // Las voces de Kokoro del Studio, las únicas, locales y sin internet: corre tools/director/voz.py con el mismo Python
-// que la transcripción (sin WSL, o dentro de WSL de respaldo; ver pythonDelDirector). Dos rutas: GET /__estudio/voz/lista (las voces
+// que la transcripción (el de ~/director/.venv, sin WSL; ver pythonDelDirector). Dos rutas: GET /__estudio/voz/lista (las voces
 // instaladas, con 60 s de memoria) y POST /__estudio/voz/hablar {voz, texto} (un WAV). Sin Python o sin el paquete, la
 // lista sale vacía, con su motivo (qué falta y cómo instalarlo), y hablar lo repite: nunca se cae el Studio por una voz
 // que falta.
 //
 // Para hablar, el proceso de la voz se queda abierto (voz.py --servidor), con el modelo cargado, y atiende los bloques
-// uno tras otro: antes, cada bloque esperaba a que arrancaran WSL y Python y se cargara el modelo (nota de voz del
+// uno tras otro: antes, cada bloque esperaba a que arrancara Python y se cargara el modelo (nota de voz del
 // titular nmvot5hg8tit, 26 de octubre de 2026: «no es funcional la voz con delay»). Diez minutos sin pedidos, se cierra.
 // Cada pregunta del texto se lee aparte, para que suene como pregunta, con el tono subido al final, y los audios salen unidos
 // en un solo WAV (sintetizar).
@@ -27,7 +27,7 @@ const COMO_INSTALAR = comoInstalarKokoro(process.platform === 'win32');
 /** Lo que dice el error de Python, para la persona: sin Python, sin el paquete o lo último que escribió. */
 export function motivoDeFalla(e: { code?: string | number; message?: string } | null, errores: string): string {
   const ultima = errores.trim().split('\n').filter(Boolean).at(-1) ?? '';
-  if (e?.code === 'ENOENT') return `No encuentro Python ni WSL para las voces de Kokoro. ${COMO_INSTALAR}`;
+  if (e?.code === 'ENOENT') return `No encuentro el Python del director para las voces de Kokoro. ${COMO_INSTALAR}`;
   if (/No module named|no está instalado|not installed/i.test(errores)) return `Falta el paquete de Kokoro en el Python del director. ${COMO_INSTALAR}`;
   return (ultima || e?.message || 'la voz de Kokoro falló').slice(0, 300);
 }

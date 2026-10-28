@@ -89,7 +89,7 @@ Se graban en el Studio y se transcriben **en cuanto terminas de grabar**, en tu 
 bash tools/entorno/instalar_transcripcion.sh
 ```
 
-Si falta uv (el gestor de Python de Astral, gratuito), lo instala. Con una tarjeta gráfica NVIDIA transcribe en ella; si no, en el procesador, con el mismo modelo, y una nota tarda más o menos lo que dura. Las voces que leen en voz alta se instalan igual, con `bash tools/entorno/instalar_voces.sh`. Si ya transcribías dentro de WSL, sigue de respaldo: el Studio pasa a la forma nueva apenas termina de instalarse.
+Si falta uv (el gestor de Python de Astral, gratuito), lo instala. Con una tarjeta gráfica NVIDIA transcribe en ella; si no, en el procesador, con el mismo modelo, y una nota tarda más o menos lo que dura. Las voces que leen en voz alta se instalan igual, con `bash tools/entorno/instalar_voces.sh`. El Studio no usa WSL para nada: si ya transcribías dentro de WSL, instala esta forma, que la reemplaza. Mientras no esté instalada, el Studio lo dice con esta orden, y la bitácora de «Modelo y consumo» anota cada nota que transcribe.
 
 ## Equipos en varios computadores
 

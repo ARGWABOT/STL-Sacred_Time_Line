@@ -4,8 +4,8 @@
 # equipo: el audio se transcribe aquí. Sin WSL (propuesta aceptada «La voz sin WSL, también en Mac», pr_voz_sin_wsl),
 # desde la carpeta del Estudio, en cualquier sistema:
 #   bash tools/entorno/instalar_transcripcion.sh
-# En Windows, en Git Bash (es la terminal que abre el Studio con «Abrir la terminal con esta orden»). La forma de antes,
-# dentro de WSL, sigue sirviendo de respaldo: wsl -d Ubuntu -- bash tools/entorno/instalar_transcripcion.sh
+# En Windows, en Git Bash (es la terminal que abre el Studio con «Abrir la terminal con esta orden»). El Studio ya no usa
+# WSL para nada (nota de voz del titular nmvs7si3qtit, 28 de octubre de 2026): es el mismo para quien lo instala.
 # Si falta uv (el gestor de Python de Astral, gratuito, unos 40 MB), lo instala, y uv baja su propio Python si falta.
 # Deja ~/director/.venv (unos 300 MB; con las librerías de CUDA, unos 2 GB) y el modelo en la caché de Hugging Face
 # (unos 1,6 GB). Cuando su prueba transcribe, deja la marca `transcripcion-lista` en el venv: desde ahí el Studio

@@ -361,7 +361,7 @@ export function servidorDirector(): Plugin {
   /**
    * Cada audio que llega (o que se encuentra sin su .txt) se transcribe en este computador, uno tras otro, sin esperar a
    * la revisión del director: así el Buzón y el lugar donde se grabó muestran lo que se dijo. Con su texto escrito, el
-   * audio se borra (nunca entra a git). Si no se puede (sin WSL o sin el entorno de transcripción) o sale vacía, se anota,
+   * audio se borra (nunca entra a git). Si no se puede (sin la transcripción instalada) o sale vacía, se anota,
    * el audio se queda y el director lo transcribe al revisar.
    */
   const transcribiendo = new Set<string>();
@@ -384,11 +384,10 @@ export function servidorDirector(): Plugin {
       while (colaAudios.length) {
         const lote = colaAudios.splice(0);
         const r = await transcribirEnLocal(raiz, lote.map((x) => enDisco(raiz, x.audio)), lote[0].pista);
-        // Con qué se transcribió, en la bitácora, mientras la forma nueva, sin WSL, se prueba con tus notas (pr_voz_sin_wsl):
-        // así se sabe si transcribió ella o si la cubrió WSL, y por qué
+        // Cómo salió, en la bitácora: así se sabe que transcribió este computador, sin WSL, y si no, por qué (nota de voz del
+        // titular nmvs7si3qtit)
         const cuantas = lote.length === 1 ? 'una nota de voz' : `${lote.length} notas de voz`;
-        if (r.respaldo) void anotar(raiz, { quien: EL_STUDIO, que: `transcribió ${cuantas} con WSL de respaldo: la forma nueva, sin WSL, falló (${r.respaldo})`, desde: 'la transcripción local', proyecto: lote[0].id });
-        else if (r.nativo && process.platform === 'win32') void anotar(raiz, { quien: EL_STUDIO, que: r.ok ? `transcribió ${cuantas} sin WSL` : `no pudo transcribir ${cuantas} sin WSL ni con WSL (${r.error ?? 'sin detalle'})`, desde: 'la transcripción local', proyecto: lote[0].id });
+        void anotar(raiz, { quien: EL_STUDIO, que: r.ok ? `transcribió ${cuantas} en este computador, sin WSL` : `no pudo transcribir ${cuantas} (${r.error ?? 'sin detalle'})`, desde: 'la transcripción local', proyecto: lote[0].id });
         for (const x of lote) {
           transcribiendo.delete(x.audio);
           // Con su texto escrito, el audio se borra (nunca entra a git) y el commit lleva solo el .txt. Si falló o salió

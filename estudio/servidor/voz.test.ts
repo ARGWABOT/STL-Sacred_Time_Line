@@ -13,7 +13,8 @@ const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), 'utf8');
 
 describe('las voces de Kokoro en el servidor', () => {
   it('dice por qué falló una voz, sin volcar el rastro de Python', () => {
-    expect(motivoDeFalla({ code: 'ENOENT' }, '')).toContain('No encuentro Python ni WSL');
+    expect(motivoDeFalla({ code: 'ENOENT' }, '')).toContain('No encuentro el Python del director');
+    expect(motivoDeFalla({ code: 'ENOENT' }, '')).not.toContain('WSL');
     expect(motivoDeFalla({ code: 1 }, "Traceback...\nModuleNotFoundError: No module named 'kokoro_onnx'")).toContain('Falta el paquete de Kokoro');
     expect(motivoDeFalla({ code: 1 }, 'Kokoro: el paquete kokoro-onnx no está instalado.')).toContain('Falta el paquete');
     // Dice con qué se instalan, para quien sea, no «la orden que te da el director»

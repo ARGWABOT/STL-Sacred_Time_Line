@@ -214,23 +214,17 @@ describe('las voces de Kokoro, las únicas del Studio (nota de voz del titular n
     expect(errorDeVozNatural('x')).toContain('La voz de Kokoro no pudo leer');
   });
 
-  it('corre voz.py con el mismo Python que la transcripción: sin WSL con sus voces instaladas así, y si no, dentro de WSL', () => {
+  it('corre voz.py con el mismo Python que la transcripción, el del venv, con la ruta de este computador y nunca dentro de WSL (nota de voz del titular nmvs7si3qtit)', () => {
     const raiz = 'C:\\xampp2024\\htdocs\\www\\STL';
-    // De respaldo, dentro de WSL, con la ruta como la ve WSL
-    const c = comandoVoz(raiz, ['--voz', 'kokoro:em_santa'], { nativo: false, python: '$HOME/director/.venv/bin/python' });
-    expect(c.cmd).toBe('wsl');
-    expect(c.args.slice(0, 3)).toEqual(['-d', process.env.DIRECTOR_WSL ?? 'Ubuntu', '--']);
-    expect(c.args).toContain('/mnt/c/xampp2024/htdocs/www/STL/tools/director/voz.py');
+    const c = comandoVoz(raiz, ['--voz', 'kokoro:em_santa'], { python: 'C:\\Users\\ana\\director\\.venv\\Scripts\\python.exe', instalado: true });
+    expect(c.cmd).toBe('C:\\Users\\ana\\director\\.venv\\Scripts\\python.exe');
+    expect(c.args[0]).toMatch(/^C:\\xampp2024\\htdocs\\www\\STL[\\/]tools[\\/]director[\\/]voz\.py$/);
     expect(c.args.slice(-2)).toEqual(['--voz', 'kokoro:em_santa']);
-    // Sin WSL, el python.exe del venv, con la ruta de este computador
-    const nativo = comandoVoz(raiz, ['--lista'], { nativo: true, python: 'C:\\Users\\ana\\director\\.venv\\Scripts\\python.exe' });
-    expect(nativo.cmd).toBe('C:\\Users\\ana\\director\\.venv\\Scripts\\python.exe');
-    expect(nativo.args[0]).toMatch(/^C:\\xampp2024\\htdocs\\www\\STL[\\/]tools[\\/]director[\\/]voz\.py$/);
-    expect(nativo.args.at(-1)).toBe('--lista');
-    // Lo que elige hoy este computador: una de las dos
+    // Lo que elige hoy este computador: su voz.py, directo
     const hoy = comandoVoz(raiz, ['--lista']);
+    expect(hoy.cmd).not.toBe('wsl');
+    expect(hoy.args[0]).toMatch(/tools[\\/]director[\\/]voz\.py$/);
     expect(hoy.args.at(-1)).toBe('--lista');
-    if (process.platform !== 'win32') expect(hoy.args[0]).toMatch(/tools[\\/]director[\\/]voz\.py$/);
   });
 });
 

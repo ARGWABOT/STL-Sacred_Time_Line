@@ -1,6 +1,6 @@
 // Transcribir notas de voz en local, con faster-whisper (tools/director/transcribir.py), con el Python de ~/director/.venv
-// (o el de DIRECTOR_PYTHON): en Windows, sin WSL apenas está instalado ahí, y si no, dentro de WSL, el respaldo de antes
-// (pythonDelDirector). Cada texto queda junto a su audio, con el mismo nombre y extensión .txt. Nada sale del equipo. Lo
+// (o el de DIRECTOR_PYTHON), en cualquier sistema y sin WSL (pythonDelDirector). Cada texto queda junto a su audio, con el
+// mismo nombre y extensión .txt. Nada sale del equipo. Lo
 // usan el Studio (que transcribe cada audio en cuanto llega) y la bandeja del director (que transcribe lo que falte).
 //
 // El audio de una nota de voz nunca entra a git (regla del titular, 22 de octubre de 2026, para todos los proyectos):
@@ -89,61 +89,54 @@ export function limpiarTranscrito(audio: string): boolean {
   return true;
 }
 
-/** Una ruta de Windows vista desde WSL (C:\a\b es /mnt/c/a/b). */
-const aWsl = (p: string) => `/mnt/${p[0].toLowerCase()}${p.slice(2).replace(/\\/g, '/')}`;
-
 /**
- * La marca que deja tools/entorno/instalar_transcripcion.sh en el venv cuando su prueba transcribió: sin ella, en Windows,
- * la transcripción sigue en WSL aunque el venv exista (a medio instalar, o solo con las voces).
+ * La marca que deja tools/entorno/instalar_transcripcion.sh en el venv cuando su prueba transcribió: sin ella, la
+ * transcripción no está instalada aunque el venv exista (a medio instalar, o solo con las voces).
  */
 export const MARCA_TRANSCRIPCION = 'transcripcion-lista';
 /** Lo que deja instalado tools/entorno/instalar_voces.sh: el archivo de las voces de Kokoro, en ~/director/voces. */
 export const ARCHIVO_DE_VOCES = 'voices-v1.0.bin';
 
-/** Para qué se corre el Python del director: cada uno pasa a la forma nueva cuando lo suyo está instalado sin WSL. */
+/** Para qué se corre el Python del director: cada uso está instalado cuando lo suyo lo está. */
 export type UsoDePython = 'transcripcion' | 'voz';
 
-/** Dónde corre el Python del director: sin WSL (`nativo`, con su ruta) o dentro de WSL (con la ruta que ve WSL). */
+/** El Python del director (su ruta) y si lo de ese uso está instalado en este computador. */
 export interface PythonDelDirector {
-  nativo: boolean;
   python: string;
+  instalado: boolean;
 }
 
+/** Cómo se instala la transcripción, desde la carpeta del Studio: la misma orden en cualquier sistema. */
+export const COMO_INSTALAR_TRANSCRIPCION = 'La transcripción no está instalada en este computador. Se instala, desde la carpeta del Studio (en Windows, en Git Bash), con: bash tools/entorno/instalar_transcripcion.sh';
+
 /**
- * Dónde corre el Python del director (propuesta aceptada «La voz sin WSL, también en Mac», pr_voz_sin_wsl). En Windows,
- * sin WSL apenas lo de ese uso está instalado en ~/director (lo que dejan, desde Git Bash, los scripts de tools/entorno:
- * el python.exe del venv y la marca de la transcripción, o el archivo de las voces); si no, dentro de WSL, el respaldo de
- * antes (elección del titular del 26 de octubre de 2026: tu voz pasa a la forma nueva apenas esté, con WSL de respaldo
- * hasta que la nueva transcriba bien una semana). En los demás sistemas, siempre directo. DIRECTOR_PYTHON cambia el
- * Python de WSL o, fuera de Windows, el de siempre. Pura, salvo `o.existe`.
+ * El Python del director (propuesta aceptada «La voz sin WSL, también en Mac», pr_voz_sin_wsl): el de ~/director/.venv,
+ * en cualquier sistema (en Windows, su python.exe, lo que deja desde Git Bash el script de tools/entorno), o el de
+ * DIRECTOR_PYTHON. Nunca dentro de WSL: este Studio es el mismo que recibe quien lo instala (nota de voz del titular
+ * nmvs7si3qtit, 28 de octubre de 2026, que deja sin efecto el respaldo de WSL de su elección del 26 de octubre). Está
+ * instalado si están el Python y lo de ese uso: la marca de la transcripción, o el archivo de las voces. Pura, salvo
+ * `o.existe`.
  */
 export function pythonDelDirector(uso: UsoDePython, o: { plataforma?: string; casa?: string; existe?: (ruta: string) => boolean; env?: NodeJS.ProcessEnv } = {}): PythonDelDirector {
   const { plataforma = process.platform, existe = existsSync, env = process.env } = o;
-  if (plataforma !== 'win32') return { nativo: true, python: env.DIRECTOR_PYTHON ?? join(env.HOME ?? '~', 'director', '.venv', 'bin', 'python') };
-  const director = join(o.casa ?? homedir(), 'director');
-  const python = join(director, '.venv', 'Scripts', 'python.exe');
+  if (env.DIRECTOR_PYTHON) return { python: env.DIRECTOR_PYTHON, instalado: true };
+  const director = join(o.casa ?? (plataforma === 'win32' ? homedir() : env.HOME ?? homedir()), 'director');
+  const python = plataforma === 'win32' ? join(director, '.venv', 'Scripts', 'python.exe') : join(director, '.venv', 'bin', 'python');
   const listo = uso === 'transcripcion' ? join(director, '.venv', MARCA_TRANSCRIPCION) : join(director, 'voces', ARCHIVO_DE_VOCES);
-  if (existe(python) && existe(listo)) return { nativo: true, python };
-  return { nativo: false, python: env.DIRECTOR_PYTHON ?? '$HOME/director/.venv/bin/python' };
+  return { python, instalado: existe(python) && existe(listo) };
 }
 
 /**
- * El comando que corre un script de Python del director con su Python (pythonDelDirector): directo o dentro de WSL
- * (DIRECTOR_WSL, por defecto Ubuntu). `script` es su ruta completa en este computador; los `args` van tal cual, y las
- * rutas que lleven, como las ve ese Python (rutaParaPython). Lo comparten la transcripción y las voces de Kokoro
- * (tools/director/voz.py).
+ * El comando que corre un script de Python del director con su Python (pythonDelDirector). `script` es su ruta completa
+ * en este computador, y los `args` van tal cual. Lo comparten la transcripción y las voces de Kokoro (tools/director/voz.py).
  */
 function comandoPython(script: string, args: string[], p: PythonDelDirector): { cmd: string; args: string[] } {
-  if (p.nativo) return { cmd: p.python, args: [script, ...args] };
-  return { cmd: 'wsl', args: ['-d', process.env.DIRECTOR_WSL ?? 'Ubuntu', '--', p.python, aWsl(script), ...args] };
+  return { cmd: p.python, args: [script, ...args] };
 }
-
-/** Una ruta de este computador, como la ve el Python que la va a leer (dentro de WSL, la de WSL). */
-const rutaParaPython = (ruta: string, p: PythonDelDirector) => (p.nativo ? ruta : aWsl(ruta));
 
 /** El comando que transcribe estos audios (rutas completas en este computador), con el Python que se le da o el de hoy. */
 export function comandoTranscripcion(raiz: string, audios: string[], pista: string, p: PythonDelDirector = pythonDelDirector('transcripcion')): { cmd: string; args: string[] } {
-  return comandoPython(join(raiz, 'tools', 'director', 'transcribir.py'), ['--pista', pista, ...audios.map((a) => rutaParaPython(a, p))], p);
+  return comandoPython(join(raiz, 'tools', 'director', 'transcribir.py'), ['--pista', pista, ...audios], p);
 }
 
 /** El comando de las voces de Kokoro (tools/director/voz.py): `args` son sus opciones (--lista, --voz <id>). */
@@ -151,46 +144,27 @@ export function comandoVoz(raiz: string, args: string[], p: PythonDelDirector = 
   return comandoPython(join(raiz, 'tools', 'director', 'voz.py'), args, p);
 }
 
-/**
- * Con qué se intenta transcribir, en orden: el Python de hoy y, si es el nuevo de Windows, WSL detrás, de respaldo (si la
- * forma nueva falla, la nota se transcribe igual y lo que falló queda dicho). Pura, como pythonDelDirector.
- */
-export function pythonsDeTranscripcion(o: Parameters<typeof pythonDelDirector>[1] = {}): PythonDelDirector[] {
-  const p = pythonDelDirector('transcripcion', o);
-  const plataforma = o.plataforma ?? process.platform;
-  return p.nativo && plataforma === 'win32' ? [p, { nativo: false, python: (o.env ?? process.env).DIRECTOR_PYTHON ?? '$HOME/director/.venv/bin/python' }] : [p];
-}
-
-/** Lo que salió de transcribir: si quedó, con qué (sin WSL o con WSL) y, si la forma nueva falló y WSL la cubrió, por qué. */
+/** Lo que salió de transcribir: si quedó y, si no, por qué. */
 export interface Transcripcion {
   ok: boolean;
   error?: string;
-  nativo?: boolean;
-  respaldo?: string;
 }
 
 /** La última línea de lo que dijo Python al fallar, o el mensaje del error. */
 const ultimaLinea = (e: Error, errores: string) => (String(errores).trim().split('\n').at(-1) || e.message).slice(0, 300);
 
 /**
- * Transcribe estos audios sin bloquear: termina cuando están sus .txt, ya limpios (o con el error, si no se pudo). En
- * Windows, con la forma nueva instalada, si falla lo intenta otra vez dentro de WSL (pythonsDeTranscripcion).
+ * Transcribe estos audios sin bloquear: termina cuando están sus .txt, ya limpios (o con el error, si no se pudo). Sin la
+ * transcripción instalada no lo intenta: dice cómo instalarla, y el audio se queda hasta que salga bien.
  */
-export async function transcribirEnLocal(raiz: string, audios: string[], pista: string): Promise<Transcripcion> {
-  let respaldo: string | undefined;
-  let r: Transcripcion = { ok: false, error: 'No hay con qué transcribir.' };
-  for (const p of pythonsDeTranscripcion()) {
-    const { cmd, args } = comandoTranscripcion(raiz, audios, pista, p);
-    r = await new Promise<Transcripcion>((listo) => {
-      execFile(cmd, args, { timeout: 15 * 60_000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 }, (e, _salida, errores) => {
-        listo(e ? { ok: false, error: ultimaLinea(e, String(errores)), nativo: p.nativo } : { ok: true, nativo: p.nativo });
-      });
+export async function transcribirEnLocal(raiz: string, audios: string[], pista: string, p: PythonDelDirector = pythonDelDirector('transcripcion')): Promise<Transcripcion> {
+  if (!p.instalado) return { ok: false, error: COMO_INSTALAR_TRANSCRIPCION };
+  const { cmd, args } = comandoTranscripcion(raiz, audios, pista, p);
+  const r = await new Promise<Transcripcion>((listo) => {
+    execFile(cmd, args, { timeout: 15 * 60_000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 }, (e, _salida, errores) => {
+      listo(e ? { ok: false, error: ultimaLinea(e, String(errores)) } : { ok: true });
     });
-    if (r.ok) break;
-    if (p.nativo) respaldo = r.error;
-  }
+  });
   for (const audio of audios) limpiarTranscrito(audio);
-  // Si también falló WSL, lo que vale decir es por qué falló la forma nueva
-  if (!respaldo) return r;
-  return r.ok ? { ...r, respaldo } : { ...r, error: respaldo, nativo: true };
+  return r;
 }
