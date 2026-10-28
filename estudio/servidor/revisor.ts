@@ -28,6 +28,7 @@ import { anotarDirector, archivoDelCandado, quienLoTiene, soltarCandado, tomarCa
 import { guardarLineasDeRevision } from '../../src/director/lineasDeRevision';
 import { esFinEscrito, type FinEscrito, type QuienTermino } from '../../src/director/finDeLanzamiento';
 import { ventanaAgotada } from '../../src/director/limites';
+import type { SemanaDelLanzamiento } from '../../src/director/costoDelPlan';
 import { paqueteDeRegistro, REGISTRO, REVISIONES, tokensEstimados, VARIABLE_REGISTRO } from '../../src/director/paquete';
 import { autorizadasPara, NEGACION, NUNCA_SIEMPRE, ordenDePruebas, permisosNegados, pruebasOfrecidas, reglaDeRuta, type PermisoNegado, type RegistroLeido } from './permisosNegados';
 
@@ -810,6 +811,11 @@ export interface Consumo {
   /** Quién lo terminó, por qué y cuánto duró de verdad, como lo escribió el Studio (finEscrito). No viene en los de antes. */
   fin?: FinEscrito;
   /**
+   * Tu límite semanal al empezar y al terminar (el primer y el último aviso de límites del registro): lo que subió es la
+   * parte de tu semana que gastó (costoDelPlan.ts, pd_costo_plan). No viene si Claude Code no lo informó.
+   */
+  semana?: SemanaDelLanzamiento;
+  /**
    * El paquete con que empezó (pedido del titular del 23 de octubre de 2026): lo que el director recibió al empezar,
    * guardado junto a su registro (src/director/paquete.ts). No viene en los registros de antes, sin encargo ni bandeja.
    */
@@ -975,10 +981,13 @@ function lecturaDe(registro: string): { consumo: ConsumoLeido | null; modelo: st
   let ventanas: any = null;
   let arranque: number | undefined;
   let fin: FinEscrito | undefined;
+  // El límite semanal como estaba al empezar: el primer aviso de límites que lo trae
+  let primeraSemana: { uso: number; renueva: string | null } | null = null;
   for (const linea of registro.split('\n')) {
     if (!linea.startsWith('{')) continue;
     let ev: any;
     try { ev = JSON.parse(linea); } catch { continue; }
+    if (!primeraSemana && ev.type === 'rate_limit_event') primeraSemana = ventanaDe(ev.rate_limit_info?.unifiedWindows?.seven_day);
     if (ev.type === 'studio' && ev.pedido) pedido = { modelo: ev.pedido.modelo ?? null, esfuerzo: ev.pedido.esfuerzo ?? null };
     if (ev.type === 'studio' && esFinEscrito(ev.fin)) fin = ev.fin;
     if (!modelo && ev.type === 'system' && ev.subtype === 'init' && typeof ev.model === 'string') modelo = ev.model;
@@ -995,6 +1004,9 @@ function lecturaDe(registro: string): { consumo: ConsumoLeido | null; modelo: st
   if (!resultado) return { consumo: null, ...empezo };
   const u = resultado.usage ?? {};
   const limites = ventanas ? { cincoHoras: ventanaDe(ventanas.five_hour), semana: ventanaDe(ventanas.seven_day) } : null;
+  // Lo que subió tu límite semanal dentro del lanzamiento, de la misma ventana (si se renovó en medio, no se sabe)
+  const ultimaSemana = limites?.semana ?? null;
+  const semana = primeraSemana && ultimaSemana && primeraSemana.renueva === ultimaSemana.renueva ? { desde: primeraSemana.uso, hasta: ultimaSemana.uso, renueva: ultimaSemana.renueva } : null;
   // Si se pidió un modelo, si trabajó con él (null: no se pidió ninguno, o Claude Code no dijo cuál usó)
   if (pedido) pedido.cumplido = pedido.modelo && modelo ? trabajoConElPedido(pedido.modelo, modelo) : null;
   const negados = negacionesDe(registro);
@@ -1007,6 +1019,7 @@ function lecturaDe(registro: string): { consumo: ConsumoLeido | null; modelo: st
     ...(negados.length ? { negados } : {}),
     ...(modelos.length ? { modelos } : {}),
     ...(fin ? { fin } : {}),
+    ...(semana ? { semana } : {}),
     costo: n(resultado.total_cost_usd),
     entrada: modelos.length ? suma('entrada') : n(u.input_tokens) + n(u.cache_creation_input_tokens),
     cache: modelos.length ? suma('cache') : n(u.cache_read_input_tokens),

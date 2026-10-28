@@ -106,6 +106,7 @@ import type { EventoBitacora } from '../../src/director/bitacora';
 import { duracionAprox, type Alcance as AlcanceMedicion } from '../../src/director/corrida';
 import { contarFinales, NOMBRE_FIN, type FinEscrito } from '../../src/director/finDeLanzamiento';
 import { limiteCasiLleno } from '../../src/director/limites';
+import { enTuPlan, esPlanDeClaude, PLANES_DE_CLAUDE, semanaDeCadaUno, type PlanDeClaude } from '../../src/director/costoDelPlan';
 import type { ResumenProyecto } from '../servidor/director';
 import type { OpcionAjuste } from '../servidor/ajustesPropios';
 import { ofrecidoEnVivo, pendientesEnVivo, type PermisoAutorizado, type PermisoNegado } from '../servidor/permisosNegados';
@@ -248,7 +249,11 @@ interface Datos {
     paquete?: Paquete;
     /** Quién lo terminó, por qué y cuánto duró de verdad (revisor.ts › finEscrito). No viene en los de antes. */
     fin?: FinEscrito;
+    /** Tu límite semanal al empezar y al terminar: lo que subió es la parte de tu semana que gastó (costoDelPlan.ts). */
+    semana?: { desde: number; hasta: number; renueva: string | null };
   }[];
+  /** Tu plan de Claude en este computador, para decir lo gastado en lo que cuesta de tu plan (pd_costo_plan); null: a precio de API. */
+  planDeClaude?: PlanDeClaude | null;
   /**
    * Los lanzamientos que no terminaron con su resultado (siguen trabajando, el Studio los cortó o Claude Code murió), con
    * su paquete para abrirlo igual y quién los terminó (revisor.ts › SinTerminar). No cuentan en lo gastado: Claude Code no
@@ -4798,12 +4803,24 @@ function vistaModelo() {
   const opciones = [...MODELOS, ...(elegido ? [] : [{ id: actual, nombre: actual, que: 'El que tiene la configuración de Claude Code (lo eligió /model o se escribió a mano).' }])];
   const hoyLocal = new Date();
   const dia = (x: Date) => `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`;
-  const suma = (xs: typeof lista) => ({ n: xs.length, costo: xs.reduce((s, x) => s + x.costo, 0), tokens: xs.reduce((s, x) => s + x.entrada + x.cache + x.salida, 0), negados: xs.reduce((s, x) => s + (x.negados?.length ?? 0), 0) });
+  // Lo gastado, en lo que cuesta de tu plan y no a precio de API (pd_costo_plan): la parte de tu semana que gastó cada
+  // lanzamiento, repartida en cada ventana en proporción a su gasto, y su equivalente aproximado con el precio de tu plan
+  const plan = d.planDeClaude ?? null;
+  const conPlan = !!plan && PLANES_DE_CLAUDE[plan].mes !== null;
+  const idDe = (x: (typeof lista)[number]) => `${x.tipo}|${x.proyecto}|${x.cuando}`;
+  const deTuSemana = semanaDeCadaUno(lista.map((x) => ({ id: idDe(x), costo: x.costo, semana: x.semana })));
+  const suma = (xs: typeof lista) => ({ n: xs.length, costo: xs.reduce((s, x) => s + x.costo, 0), tokens: xs.reduce((s, x) => s + x.entrada + x.cache + x.salida, 0), negados: xs.reduce((s, x) => s + (x.negados?.length ?? 0), 0), ...(xs.some((x) => deTuSemana.has(idDe(x))) ? { semana: xs.reduce((s, x) => s + (deTuSemana.get(idDe(x)) ?? 0), 0) } : {}) });
   const negadosDe = (n: number) => `${n} ${n === 1 ? 'permiso negado' : 'permisos negados'}`;
   const deHoy = suma(lista.filter((x) => dia(new Date(x.cuando)) === dia(hoyLocal)));
   const semana = lista.filter((x) => hoyLocal.getTime() - Date.parse(x.cuando) < 7 * 86_400_000);
   const deSemana = suma(semana);
-  const cifra = (titulo: string, s: ReturnType<typeof suma>) => `<div><span class="tit">${titulo}</span><b>${dolares(s.costo)}</b><small>${s.n} ${s.n === 1 ? 'lanzamiento' : 'lanzamientos'} · ${miles(s.tokens)} tokens${s.negados ? ` · ${negadosDe(s.negados)}` : ''}</small></div>`;
+  // Con tu plan elegido, lo de tu plan, y el precio de API al pasar el ratón; si falta lo que dijo tu límite, sin monto
+  const gastado = (costo: number, puntos: number | undefined) => {
+    if (!conPlan) return dolares(costo);
+    const enPlan = enTuPlan(puntos, plan);
+    return `<span title="${esc(`A precio de API serían ${dolares(costo)}: no es lo que pagas con tu plan.`)}">${enPlan ? esc(enPlan) : 'sin lo que dijo tu límite semanal'}</span>`;
+  };
+  const cifra = (titulo: string, s: ReturnType<typeof suma>) => `<div><span class="tit">${titulo}</span><b>${conPlan ? gastado(s.costo, s.semana) : dolares(s.costo)}</b><small>${s.n} ${s.n === 1 ? 'lanzamiento' : 'lanzamientos'} · ${miles(s.tokens)} tokens${s.negados ? ` · ${negadosDe(s.negados)}` : ''}</small></div>`;
   // El nombre de un modelo: el de la lista o, si no está, el que dice su id («claude-haiku-4-5-20251001» es «Haiku 4.5»)
   const nombreModelo = (id: string) => {
     const m = /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?(\[1m\])?$/i.exec(id);
@@ -4842,7 +4859,7 @@ function vistaModelo() {
   // Quién terminó cada uno, como lo escribió el Studio al terminar (pr_procesos_vista, punto 1): al pasar el ratón, por qué
   const termino = (f: FinEscrito | undefined) => (f ? `<small class="consumo-fin" title="${esc(f.causa)}">Terminó: ${esc(NOMBRE_FIN[f.quien])}${f.minutos != null ? `, a los ${Math.round(f.minutos).toLocaleString('es')} min de lanzarlo` : ''}</small>` : '');
   const filas = [
-    ...lista.map((x) => ({ cuando: x.cuando, html: `<li><span>${cual(x)}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${dolares(x.costo)} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min${x.negados?.length ? ` · <span title="${esc(x.negados.join('\n'))}">${negadosDe(x.negados.length)}</span>` : ''}</span>${termino(x.fin)}${lineaModelos(x)}${lineaPaquete(x.paquete)}</li>` })),
+    ...lista.map((x) => ({ cuando: x.cuando, html: `<li><span>${cual(x)}${x.pedido?.esfuerzo ? ` · esfuerzo ${esc(ESFUERZOS.find((e) => e.id === x.pedido!.esfuerzo)?.nombre.toLowerCase() ?? x.pedido.esfuerzo)}` : ''}</span><span>${gastado(x.costo, deTuSemana.get(idDe(x)))} · ${miles(x.entrada + x.cache + x.salida)} tokens · ${x.minutos.toLocaleString('es')} min${x.negados?.length ? ` · <span title="${esc(x.negados.join('\n'))}">${negadosDe(x.negados.length)}</span>` : ''}</span>${termino(x.fin)}${lineaModelos(x)}${lineaPaquete(x.paquete)}</li>` })),
     ...sinTerminar.map((x) => ({ cuando: x.cuando, html: `<li><span>${cual(x)}</span><span>${x.enCurso ? 'En curso: lo que gasta se sabe al terminar' : 'Sin terminar: Claude Code no devolvió lo que gastó'}</span>${termino(x.fin)}${lineaPaquete(x.paquete)}</li>` })),
   ].sort((a, b) => b.cuando.localeCompare(a.cuando)).map((f) => f.html).join('');
   // Cómo terminaron los de la semana, también los que se cortaron sin resultado: solo los que tienen su final escrito
@@ -4897,16 +4914,18 @@ function vistaModelo() {
       <section class="panel-d" data-ancla="m-limites">
         <h3>Los límites de tu plan</h3>
         ${limites}
+        <label class="campo-modelo">Tu plan de Claude<select data-plan-claude>${[['', 'No lo digo: lo gastado, a precio de API'], ...Object.entries(PLANES_DE_CLAUDE).map(([id, p]) => [id, p.mes === null ? p.nombre : `${p.nombre}, US$ ${p.mes} al mes`])].map(([v, n]) => `<option value="${esc(v)}"${(plan ?? '') === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+        <p class="como">Con tu plan, lo que gasta el director se dice en lo que cuesta de él, y no a precio de API: la parte de tu semana que gastó cada lanzamiento (lo que subió tu límite semanal mientras trabajaba, repartido en proporción a lo que gastó cada uno, porque el límite se mide en saltos de 1 % y lo comparte con tus otras sesiones) y su equivalente con el precio de tu plan (al mes, por 12 y entre 52: el de una semana). Es aproximado: Anthropic no publica cuánto trae cada plan. Con una clave de API pagas por uso, y entonces el precio de API es el real.</p>
       </section>
       <section class="panel-d" data-ancla="m-consumo">
         <h3>Lo que gastó el director</h3>
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
-          ${porProyecto.length > 1 ? `<ul class="consumo-proyectos" aria-label="Por proyecto, en los últimos 7 días">${porProyecto.map((p) => `<li><span>${esc(nombreProyecto(p.id))}</span><span>${dolares(p.costo)} · ${p.n} ${p.n === 1 ? 'lanzamiento' : 'lanzamientos'}</span></li>`).join('')}</ul>` : ''}` : ''}
+          ${porProyecto.length > 1 ? `<ul class="consumo-proyectos" aria-label="Por proyecto, en los últimos 7 días">${porProyecto.map((p) => `<li><span>${esc(nombreProyecto(p.id))}</span><span>${conPlan ? gastado(p.costo, p.semana) : dolares(p.costo)} · ${p.n} ${p.n === 1 ? 'lanzamiento' : 'lanzamientos'}</span></li>`).join('')}</ul>` : ''}` : ''}
         ${comoTerminaron}
         ${filas ? `<details class="detalles-repo"${plegable('consumo-lanzamientos')}><summary>Cada lanzamiento (últimos 35 días)</summary>
             <ul class="consumo-lista">${filas}</ul>
           </details>` : '<p class="como">Todavía no hay lanzamientos del director en este computador.</p>'}
-        <p class="como">Los tokens son exactos: los cuenta la API y Claude Code los devuelve al terminar cada lanzamiento. Los dólares no son un cobro: Claude Code multiplica esos tokens por el precio de la API. Con un plan de suscripción no pagas eso; lo que gastas de verdad es el porcentaje de tus límites.</p>
+        <p class="como">Los tokens son exactos: los cuenta la API y Claude Code los devuelve al terminar cada lanzamiento. ${conPlan ? `Lo gastado va como parte de tu plan ${esc(PLANES_DE_CLAUDE[plan!].nombre)}, aproximado; al pasar el ratón, lo que sería a precio de API, que no es un cobro: con un plan de suscripción lo que gastas de verdad es el porcentaje de tus límites.` : 'Los dólares no son un cobro: Claude Code multiplica esos tokens por el precio de la API. Con un plan de suscripción no pagas eso; lo que gastas de verdad es el porcentaje de tus límites. Elige tu plan en «Los límites de tu plan» para verlo en lo que cuesta de él.'}</p>
         <p class="como">Si un lanzamiento usó otros modelos además del principal, debajo dice cuáles, lo que gastó cada uno y para qué: lo que se le pidió al ayudante o la fase del flujo que lo usó, o «por dentro de Claude Code» si lo usó Claude Code por su cuenta (WebFetch, por ejemplo, resume con un modelo pequeño cada página que lee). Si no dice nada, trabajó solo con el principal.</p>
         <p class="como">«El paquete» es lo que el director recibió al empezar: el encargo con que lo lanzó el Studio y lo que le dio la bandeja (cada vez que la corrió, menos al cerrar). Cada uno se abre en otra pestaña, para leerlo. Sus tokens son estimados (los caracteres entre 4); el del arranque es exacto: todo lo que leyó en su primera llamada al modelo, con sus reglas y lo que trae Claude Code. Los lanzamientos de antes no lo tienen. Los que no terminaron (siguen trabajando, se cortaron o Claude Code murió) también están en la lista con su paquete, pero sin lo gastado y sin contar en las cifras: Claude Code solo lo devuelve al terminar.</p>
         <p class="como">Los permisos negados son lo que el director intentó y sus permisos no le dejaron hacer: en cada lanzamiento, pasa el ratón sobre la cifra para verlos. La revisión siguiente empieza sabiéndolo, para no intentarlo igual; si le hace falta uno para lo que aprobaste, lo encuentras en la pestaña «Permisos», para autorizarlo con una casilla.</p>
@@ -5669,6 +5688,18 @@ $('vista').addEventListener('change', async (e) => {
     Object.assign(d, { modelo: x.modelo ?? null, esfuerzo: x.esfuerzo ?? null, esfuerzoGuardado: x.esfuerzoGuardado ?? null });
     pintar();
     return avisar(`${d.modelo ? `Claude Code trabaja con ${MODELOS.find((m) => m.id === d.modelo)?.nombre ?? d.modelo}, como con /model.` : 'Claude Code vuelve al modelo de tu cuenta.'} ${CUANDO_RIGE}`, true);
+  }
+  // Tu plan de Claude, para ver lo gastado en lo que cuesta de tu plan y no a precio de API (pd_costo_plan)
+  const sp = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-plan-claude]');
+  if (sp) {
+    const r = await fetch('/__estudio/director/plan-de-claude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: sp.value || null }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+    if (r instanceof Error) return avisar('No se pudo guardar tu plan: el Studio no respondió.');
+    const x = await r.json().catch(() => ({}));
+    if (!r.ok) return avisar(x.error ?? 'No se pudo guardar tu plan.');
+    d.planDeClaude = esPlanDeClaude(x.planDeClaude) ? x.planDeClaude : null;
+    pintar();
+    const p = d.planDeClaude;
+    return avisar(!p ? 'Lo que gasta el director vuelve a decirse a precio de API.' : PLANES_DE_CLAUDE[p].mes === null ? 'Con una clave de API pagas por uso: lo que gasta el director, a precio de API, es lo que de verdad pagas.' : `Lo que gasta el director se dice ahora como parte de tu plan ${PLANES_DE_CLAUDE[p].nombre}: la parte de tu semana que gastó cada lanzamiento y su equivalente aproximado en dólares.`, true);
   }
   const se = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-esfuerzo]');
   if (se) {

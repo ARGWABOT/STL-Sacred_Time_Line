@@ -21,6 +21,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { appendFile, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import type { Integrante, Proyecto, TipoProyecto, Tramo } from './director';
+import type { PlanDeClaude } from './costoDelPlan';
 
 /** El prefijo de las rutas virtuales de los proyectos dentro del Estudio. */
 export const CARPETA = 'proyectos';
@@ -157,6 +158,11 @@ export interface Local {
    * te pregunta en un diálogo durante la revisión (estudio/servidor/modoPermisos.ts).
    */
   modoPermisos?: ModoPermisos;
+  /**
+   * Tu plan de Claude en este computador (Pro, Max 5x, Max 20x o una clave de API), para decir lo que gasta cada revisión
+   * en lo que cuesta de tu plan y no a precio de API (pedido pd_costo_plan; costoDelPlan.ts). Sin él, a precio de API.
+   */
+  planDeClaude?: PlanDeClaude;
   /**
    * Los permisos que el titular le dio al director lanzado, más allá de los de siempre (revisor.ts › permitido). Los pide el
    * Studio cuando hacen falta y el titular los da con «Autorizo»: `ultracode`, que el director siga a ultracode cuando está
@@ -656,6 +662,11 @@ export async function guardarEsfuerzoMaximo(raiz: string, activo: boolean): Prom
  */
 export async function guardarModoPermisos(raiz: string, modo: ModoPermisos): Promise<void> {
   await cambiarLocal(raiz, ({ modoPermisos, ...l }) => ({ ...l, ...(modo !== 'autorizado' ? { modoPermisos: modo } : {}) }));
+}
+
+/** Tu plan de Claude en este computador (Local › planDeClaude); con null, sale, y lo gastado vuelve a decirse a precio de API. */
+export async function guardarPlanDeClaude(raiz: string, plan: PlanDeClaude | null): Promise<void> {
+  await cambiarLocal(raiz, ({ planDeClaude, ...l }) => ({ ...l, ...(plan ? { planDeClaude: plan } : {}) }));
 }
 
 /**

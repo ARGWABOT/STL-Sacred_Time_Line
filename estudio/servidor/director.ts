@@ -75,7 +75,7 @@ import {
 } from '../../src/director/director';
 import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
 import { leerEstadoDelEquipo, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria';
-import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
+import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO, eventoDeAccion, leerBitacora } from '../../src/director/bitacora';
 import { archivoDelPaquete } from '../../src/director/paquete';
 import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
@@ -87,6 +87,7 @@ import { POR_QUE_SIN_AUTOMATICO } from './modoPermisos';
 import { actividadDeProyecto, agruparPasos, automaticoDisponible, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
 import { corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, midiendo } from './medidor';
 import { ALCANCES, casosDelAlcance, type Alcance } from '../../src/director/corrida';
+import { esPlanDeClaude, PLANES_DE_CLAUDE, type PlanDeClaude } from '../../src/director/costoDelPlan';
 import { revisarPedido, sinAutorizar, valePara } from './permisosNegados';
 import { queAnotarDeLaLlamada, queAnotarDeLaRespuesta, respuestaValida } from './permisoAlMomento';
 import { decidirParaElGancho, permisosEnEspera } from './permisosEnEspera';
@@ -1130,6 +1131,8 @@ export function servidorDirector(): Plugin {
               ajustesPropios: await estadoAjustesPropios(raiz),
               // Cómo pide permisos el director: solo lo autorizado (sin la clave) o preguntándote en el Studio
               modoPermisos: (await leerLocal(raiz)).modoPermisos ?? 'autorizado',
+              // Tu plan de Claude, para decir lo gastado en lo que cuesta de tu plan (pd_costo_plan); null: a precio de API
+              planDeClaude: (await leerLocal(raiz)).planDeClaude ?? null,
               // Si se puede elegir «Automático, vigilado» y, si no, lo que le falta: lo último que se supo, sin esperar a la
               // ayuda de Claude Code (mientras no se sabe, se ofrece, y guardarlo lo comprueba)
               automatico: automaticoSabido() === false ? { admite: false, porque: POR_QUE_SIN_AUTOMATICO } : { admite: true },
@@ -1411,6 +1414,17 @@ export function servidorDirector(): Plugin {
             await guardarModoPermisos(raiz, cuerpo.modo);
             await anotar(raiz, { quien: await quienAqui(), que: cuerpo.modo === 'pregunta' ? 'elige que el director le pregunte en el Studio lo que le falte de permisos, en vez de negárselo' : cuerpo.modo === 'automatico' ? 'elige «Automático, vigilado»: lo que le falte al director lo decide solo Claude Code, y lo que apruebe queda en el panel de permisos' : 'vuelve a dejar al director solo con lo autorizado: lo que le falta se le niega y queda en el panel de permisos', desde: '«Cómo pide permisos el director», en «Modelo y consumo»' });
             return responder(res, 200, { modoPermisos: cuerpo.modo });
+          }
+          // Tu plan de Claude, para decir lo que gasta cada revisión en lo que cuesta de tu plan y no a precio de API (pedido
+          // pd_costo_plan): se elige en «Modelo y consumo» › «Lo que gasta»
+          if (ruta === '/plan-de-claude' && req.method === 'POST') {
+            const cuerpo = await leerCuerpo(req);
+            const elegido: unknown = cuerpo.plan === null || cuerpo.plan === '' ? null : cuerpo.plan;
+            if (elegido !== null && !esPlanDeClaude(elegido)) return responder(res, 400, { error: 'Elige Pro, Max 5x, Max 20x o una clave de API.' });
+            const plan = elegido as PlanDeClaude | null;
+            await guardarPlanDeClaude(raiz, plan);
+            await anotar(raiz, { quien: await quienAqui(), que: plan ? `elige su plan de Claude, ${PLANES_DE_CLAUDE[plan].nombre}, para ver lo que gasta cada revisión en lo que cuesta de su plan` : 'quita su plan de Claude: lo que gasta cada revisión vuelve a decirse a precio de API', desde: '«Tu plan de Claude», en «Modelo y consumo»' });
+            return responder(res, 200, { planDeClaude: plan });
           }
           // Si el director que lanza el Studio carga tus ajustes de usuario de Claude Code (y con ellos tus skills y tus
           // comandos): se elige en «Modelo y consumo», viendo sus claves (pd_arranque_limpio)
