@@ -43,9 +43,15 @@ describe('las revisiones seguidas', () => {
 describe('el límite de cada revisión, estimado por el director', () => {
   it('lo de siempre sin estimación, y entre lo de siempre y el tope con ella', () => {
     expect(limiteDelTramo(undefined)).toBe(MAX_MIN_REVISION);
-    expect(limiteDelTramo(sigue)).toBe(120);
+    expect(limiteDelTramo({ ...sigue, minutos: 75 })).toBe(75);
     expect(limiteDelTramo({ ...sigue, minutos: 20 })).toBe(MAX_MIN_REVISION);
     expect(limiteDelTramo({ ...sigue, minutos: 600 })).toBe(TOPE_MIN_TRAMO);
+  });
+
+  it('el tope es de 90 minutos (decisión nmvsptkshtit): una estimación de 180 queda en 90', () => {
+    expect(TOPE_MIN_TRAMO).toBe(90);
+    expect(limiteDelTramo(sigue)).toBe(90);
+    expect(limiteDelTramo({ ...sigue, minutos: 180 })).toBe(90);
   });
 
   it('al cerrar: con la cadena en marcha, el tramo de esta revisión; nunca que sigue con la cola vacía', () => {

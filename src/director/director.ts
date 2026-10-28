@@ -1355,9 +1355,11 @@ export interface Tramo {
 /**
  * Los minutos de una revisión del director: los que estimó el director para el tramo que sigue (`Plan.tramo.minutos`),
  * entre lo de siempre (`base`) y TOPE_MIN_TRAMO, para una ejecución larga (nota de voz del titular nmvqwclpitit: «una
- * especie de pre-evaluación de cuánto puede durar»). Sin estimación, lo de siempre. Pura.
+ * especie de pre-evaluación de cuánto puede durar»). Sin estimación, lo de siempre. Pura. El tope bajó de 180 a 90 con
+ * la decisión del titular nmvsptkshtit (28 de octubre de 2026, «Revisiones más cortas», parte 5): revisiones más cortas,
+ * encadenadas, que releen menos y dejan lo hecho antes.
  */
-export const TOPE_MIN_TRAMO = 180;
+export const TOPE_MIN_TRAMO = 90;
 /** Lo de siempre: los minutos de una revisión lanzada por el Studio sin estimación del director (revisor.ts › MAX_MIN). */
 export const MAX_MIN_REVISION = 60;
 export function limiteDelTramo(tramo: Tramo | undefined | null, base = MAX_MIN_REVISION): number {
