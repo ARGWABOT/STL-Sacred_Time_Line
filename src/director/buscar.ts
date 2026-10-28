@@ -5,6 +5,7 @@
 // que instalar: BM25 (la búsqueda léxica de los buscadores) sobre las raíces de las palabras en español. Pura: la
 // herramienta (tools/director/buscar.ts) le da lo que lee.
 import { aceptadasSinEjecutar, estadoMision, origenDePrevista, reemplazos, type EstadoDirector, type Plan } from './director.ts';
+import type { LineaDeRevision } from './lineasDeRevision.ts';
 
 /** Los grupos de lo que se encuentra, en el orden en que se muestran. */
 export const GRUPOS = ['hecho', 'ahora', 'previsto', 'respondido'] as const;
@@ -78,10 +79,11 @@ const dia = (iso?: string) => (iso ? iso.slice(0, 10) : '');
 
 /**
  * Todo lo del proyecto donde se busca, cada cosa con su estado: las propuestas, los pedidos, las misiones, las misiones
- * previstas de cada fase, lo avanzado, lo adelantado, lo respondido a cada nota y los commits. `plan` es el unido con su
- * archivo, para que cuente lo cerrado.
+ * previstas de cada fase, lo avanzado, lo adelantado, lo respondido a cada nota, los commits y la línea de cada revisión de
+ * este computador (lineasDeRevision.ts: qué respondió, qué commits hizo, qué cambió y qué se le negó). `plan` es el unido
+ * con su archivo, para que cuente lo cerrado.
  */
-export function piezasDelProyecto(plan: Plan, estado: EstadoDirector, commits: readonly CommitDelRepositorio[] = []): Pieza[] {
+export function piezasDelProyecto(plan: Plan, estado: EstadoDirector, commits: readonly CommitDelRepositorio[] = [], revisiones: readonly LineaDeRevision[] = []): Pieza[] {
   const fuera = reemplazos(plan);
   const piezas: Pieza[] = [];
   for (const p of plan.propuestas ?? []) {
@@ -126,6 +128,18 @@ export function piezasDelProyecto(plan: Plan, estado: EstadoDirector, commits: r
     piezas.push({ id, grupo: 'respondido', estado: `respuesta del ${dia(r.cuando)}${r.tratamiento ? ` · ${r.tratamiento}` : ''}`, titulo: corto(n?.texto ?? r.texto), texto: [n?.texto ?? '', r.texto].join('\n'), hilo: destino });
   }
   for (const c of commits) piezas.push({ id: c.hash, grupo: 'hecho', estado: `commit del ${dia(c.cuando)}`, titulo: corto(c.asunto), texto: c.asunto, hilo: [] });
+  for (const r of revisiones) {
+    const que = r.tipo === 'urgencia' ? 'urgencia' : r.tipo === 'aclaracion' ? 'aclaración' : 'revisión';
+    const cifras = [r.cerro ? 'cerró' : 'no cerró', r.minutos !== null ? `${Math.round(r.minutos)} min` : '', r.costo !== null ? `${r.costo} USD a precio de API` : ''].filter(Boolean).join(' · ');
+    const texto = [
+      r.notas.length ? `Respondió ${r.notas.join(', ')}` : '',
+      ...r.commits.map((c) => `Commit ${c.hash}: ${c.asunto}`),
+      r.archivos.length ? `Cambió ${r.archivos.join(', ')}` : '',
+      r.negados.length ? `Se le negó: ${r.negados.join('; ')}` : '',
+    ].filter(Boolean).join('\n');
+    const titulo = r.commits[0]?.asunto ?? (r.notas.length ? `Respondió ${r.notas.length === 1 ? 'una nota' : `${r.notas.length} notas`}` : `${que} sin commits ni respuestas`);
+    piezas.push({ id: r.registro, grupo: 'hecho', estado: `${que} de este computador, del ${dia(r.cuando)} · ${cifras}`, titulo: corto(titulo), texto, hilo: r.commits.length > 1 ? [`${r.commits.length} commits`] : [] });
+  }
   return piezas;
 }
 

@@ -67,6 +67,15 @@ describe('lo ya hecho, a una consulta (pr_memoria_consultable, punto 2)', () => 
     expect(de('helicóptero')).toEqual([]);
   });
 
+  it('la línea de cada revisión de este computador se encuentra por lo que respondió, sus commits, lo que cambió y lo negado (pd_lineas_por_revision)', () => {
+    const linea = { registro: 'p-2026-10-28T07-09-20-889Z.log', proyecto: 'p', tipo: 'revision' as const, cuando: '2026-10-28T07:09:20.889Z', minutos: 90.4, costo: 12.35, modelo: 'm', cerro: true, notas: ['n1'], archivos: ['src/director/candado.ts'], commits: [{ hash: '3fb3cf0', asunto: 'STL: el candado de cada proyecto' }], negados: ['Bash: powershell -NoProfile'] };
+    const cortada = { ...linea, registro: 'p-urgencia-2026-10-27T10-00-00-000Z.log', tipo: 'urgencia' as const, cuando: '2026-10-27T10:00:00.000Z', minutos: null, costo: null, cerro: false, notas: [], archivos: [], commits: [], negados: [] };
+    const piezas = piezasDelProyecto(planDePrueba(), estadoVacio(), [], [linea, cortada]);
+    expect(buscar(piezas, 'candado').find((h) => h.id === linea.registro)).toMatchObject({ grupo: 'hecho', estado: 'revisión de este computador, del 2026-10-28 · cerró · 90 min · 12.35 USD a precio de API', titulo: 'STL: el candado de cada proyecto' });
+    expect(buscar(piezas, 'powershell').map((h) => h.id)).toEqual([linea.registro]);
+    expect(piezas.find((x) => x.id === cortada.registro)).toMatchObject({ estado: 'urgencia de este computador, del 2026-10-27 · no cerró', titulo: 'urgencia sin commits ni respuestas' });
+  });
+
   it('lo más parecido va primero dentro de su grupo, y cada grupo trae a lo sumo los que se piden', () => {
     const p = planDePrueba();
     const e = estadoVacio();

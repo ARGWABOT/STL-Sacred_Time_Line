@@ -1,12 +1,14 @@
 // Lo ya hecho, a una consulta (propuesta aceptada pr_memoria_consultable, punto 2). Busca por palabras en todo lo del
-// proyecto (el plan con su archivo, lo respondido a cada nota y los commits de su repositorio) y dice de cada hallazgo en
-// qué estado está, en cuatro grupos: lo hecho o cerrado, lo de ahora, lo previsto y lo respondido, cada uno con su hilo.
+// proyecto (el plan con su archivo, lo respondido a cada nota, los commits de su repositorio y la línea de cada revisión de
+// este computador, pd_lineas_por_revision) y dice de cada hallazgo en qué estado está, en cuatro grupos: lo hecho o
+// cerrado, lo de ahora, lo previsto y lo respondido, cada uno con su hilo.
 // El director la usa antes de ejecutar algo y antes de pedir algo: lo que ya se hizo no se vuelve a pedir.
 // Uso: node tools/director/buscar.ts "<palabras>" [--proyecto <id>]
 import { execFileSync } from 'node:child_process';
 import { buscar, GRUPOS, NOMBRE_GRUPO, piezasDelProyecto, type CommitDelRepositorio } from '../../src/director/buscar.ts';
+import { guardarLineasDeRevision, type LineaDeRevision } from '../../src/director/lineasDeRevision.ts';
 import { ARGUMENTOS_DE_COMMITS } from '../firma.ts';
-import { argumentos, leerTodo } from './comun.ts';
+import { argumentos, leerTodo, raiz } from './comun.ts';
 
 const { args, pedido } = argumentos();
 const consulta = args.filter((a) => !a.startsWith('--')).join(' ').trim();
@@ -31,9 +33,17 @@ if (repo) {
   }
 }
 
-const hallazgos = buscar(piezasDelProyecto(plan, estado, commits), consulta);
+// La línea de cada revisión de este proyecto en este computador, con las que falten de las que ya terminaron
+let revisiones: LineaDeRevision[] = [];
+try {
+  revisiones = guardarLineasDeRevision(raiz).filter((l) => l.proyecto === id);
+} catch {
+  // sin las líneas, se busca en lo demás
+}
+
+const hallazgos = buscar(piezasDelProyecto(plan, estado, commits, revisiones), consulta);
 console.log(`# Buscar «${consulta}» en ${proyecto.nombre || id} (${id})`);
-if (!hallazgos.length) console.log('Nada lo nombra: ni el plan, ni su archivo, ni lo respondido, ni los commits.');
+if (!hallazgos.length) console.log('Nada lo nombra: ni el plan, ni su archivo, ni lo respondido, ni los commits, ni las revisiones de este computador.');
 for (const g of GRUPOS) {
   const suyos = hallazgos.filter((h) => h.grupo === g);
   if (!suyos.length) continue;

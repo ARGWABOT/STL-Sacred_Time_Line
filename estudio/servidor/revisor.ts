@@ -25,6 +25,7 @@ import { PROCEDIMIENTOS } from '../../src/director/procedimientos';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora';
 import { anotarDirector, archivoDelCandado, quienLoTiene, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado';
+import { guardarLineasDeRevision } from '../../src/director/lineasDeRevision';
 import { paqueteDeRegistro, REGISTRO, REVISIONES, tokensEstimados, VARIABLE_REGISTRO } from '../../src/director/paquete';
 import { autorizadasPara, NEGACION, NUNCA_SIEMPRE, ordenDePruebas, permisosNegados, pruebasOfrecidas, reglaDeRuta, type PermisoNegado, type RegistroLeido } from './permisosNegados';
 
@@ -74,6 +75,13 @@ export function registrosParaPodar(nombres: readonly string[], ahora: Date, dias
 
 /** Borra los registros viejos (registrosParaPodar) y deja en la bitácora cuántos; el que no se pueda borrar, queda para el lanzamiento siguiente. */
 async function podarRegistros(raiz: string, carpeta: string, proyecto: string): Promise<void> {
+  // Antes de podar, la línea de cada revisión que aún no la tiene (pd_lineas_por_revision): el registro se va, la línea se
+  // queda. Nadie trabaja desde este Studio mientras se poda (el turno es de quien va a lanzar), así que todas terminaron
+  try {
+    guardarLineasDeRevision(raiz, 'todos');
+  } catch {
+    // sin disco para las líneas, se poda igual: lo de los últimos quince días sigue en sus registros
+  }
   let borrados = 0;
   for (const n of registrosParaPodar(readdirSync(carpeta), new Date())) {
     try {
@@ -1883,6 +1891,12 @@ export class Revisor {
             // el registro ya no se puede escribir: el permiso no queda en el panel, pero la revisión cierra igual
           }
       closeSync(registro);
+      // Su línea, para buscarla después aunque el registro se pode (pd_lineas_por_revision)
+      try {
+        guardarLineasDeRevision(this.raiz, [archivo]);
+      } catch {
+        // se escribe en la poda siguiente
+      }
       // «Automático, vigilado»: lo que Claude Code aprobó solo queda en el panel de «Permisos», marcado «Lo aprobó Claude
       // Code», con el alcance de «Permitir siempre» y su casilla para quitarlo (tu elección del 26 de octubre de 2026). Si
       // no se pudo leer o guardar, la revisión cierra igual y la bitácora lo dice
