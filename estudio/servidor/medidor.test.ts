@@ -29,7 +29,9 @@ if (args[args.indexOf('--output-format') + 1] === 'json') {
 }
 const id = /proyecto «([^»]+)»/.exec(entrada)[1];
 const repo = args[args.indexOf('--add-dir') + 1];
-writeFileSync(constancia, JSON.stringify({ args, cwd: process.cwd(), stlRaiz: process.env.STL_RAIZ ?? null, id, entrada }));
+const conNucleo = args.indexOf('--append-system-prompt-file');
+const nucleo = conNucleo < 0 ? null : readFileSync(args[conNucleo + 1], 'utf8');
+writeFileSync(constancia, JSON.stringify({ args, cwd: process.cwd(), stlRaiz: process.env.STL_RAIZ ?? null, id, entrada, nucleo }));
 if (process.env.DIRECTOR_BIEN) {
   const ruta = join(repo, '.stl', 'director', 'plan.json');
   const p = JSON.parse(readFileSync(ruta, 'utf8'));
@@ -58,9 +60,12 @@ describe('la corrida de la medición, con el director de verdad', () => {
   it('el director lee y escribe solo en el Estudio de prueba, con el modelo y el esfuerzo elegidos; quien califica, sin herramientas', () => {
     const estudio = join(base, 'x', 'estudio');
     const repo = join(base, 'x', 'repo');
-    const args = argumentosDeVuelta({ estudio, repo, ajustes: join(estudio, 'a.json'), modelo: 'opus', esfuerzo: 'high', casa: join(base, 'casa') });
+    const nucleo = join(estudio, '.revisiones', 'nucleo-del-director.md');
+    const args = argumentosDeVuelta({ estudio, repo, ajustes: join(estudio, 'a.json'), nucleo, modelo: 'opus', esfuerzo: 'high', casa: join(base, 'casa') });
     expect(args.slice(args.indexOf('--model'), args.indexOf('--model') + 4)).toEqual(['--model', 'opus', '--effort', 'high']);
     expect(args[args.indexOf('--permission-mode') + 1]).toBe('dontAsk');
+    // Con su núcleo explícito, como en una revisión (pr_reglas_por_encargo, punto 3)
+    expect(args[args.indexOf('--append-system-prompt-file') + 1]).toBe(nucleo);
     const permitidas = args.slice(args.indexOf('--allowedTools') + 1);
     const real = RAIZ.replace(/\\/g, '/').toLowerCase();
     // Ninguna regla nombra el Studio real, y lo que escribe es solo el repositorio de prueba
@@ -83,9 +88,12 @@ describe('la corrida de la medición, con el director de verdad', () => {
     } finally {
       delete process.env.DIRECTOR_BIEN;
     }
-    const lanzado = JSON.parse(readFileSync(constancia, 'utf8')) as { cwd: string; stlRaiz: string; id: string; entrada: string };
+    const lanzado = JSON.parse(readFileSync(constancia, 'utf8')) as { cwd: string; stlRaiz: string; id: string; entrada: string; nucleo: string | null };
     // Con el encargo de una revisión de verdad, en su Estudio de prueba, y sus herramientas mirando solo ese
     expect(lanzado.entrada).toContain(`Haz «revisa estudio» de ese proyecto según CLAUDE.md`);
+    // …y su núcleo explícito: el CLAUDE.md del Studio de prueba, entero, con la línea que dice qué es
+    expect(lanzado.nucleo?.startsWith('# CLAUDE.md, the rules of STL Studio\n')).toBe(true);
+    expect(lanzado.nucleo).toContain(readFileSync(join(RAIZ, 'CLAUDE.md'), 'utf8').split(/\r?\n/)[0]);
     expect(lanzado.id).toBe(idDeVuelta('c_peticion_sin_pedido', 1));
     expect(resolve(lanzado.stlRaiz)).toBe(resolve(lanzado.cwd));
     expect(resolve(lanzado.cwd).startsWith(resolve(base))).toBe(true);
@@ -102,6 +110,9 @@ describe('la corrida de la medición, con el director de verdad', () => {
     expect(v.costo).toBeCloseTo(0.51);
     const califica = JSON.parse(readFileSync(`${constancia}.califica`, 'utf8')) as { args: string[]; entrada: string };
     expect(califica.args).toContain('sonnet');
+    // Quien califica, como antes: sin el núcleo del director ni sus ajustes, para que su nota no cambie con el lanzador
+    expect(califica.args).not.toContain('--append-system-prompt-file');
+    expect(califica.args[califica.args.indexOf('--settings') + 1]).toMatch(/ajustes-de-quien-califica\.json$/);
     expect(califica.entrada).toContain(CASOS_FIJOS.find((c) => c.id === 'c_orden_aleatorio')!.pauta!);
     expect(califica.entrada).not.toMatch(/\bopus\b/i);
   }, 120_000);

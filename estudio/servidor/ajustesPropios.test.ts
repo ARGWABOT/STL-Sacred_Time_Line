@@ -153,8 +153,9 @@ describe('tus ajustes, clave por clave', () => {
   it('el lanzador suma lo conservado debajo de lo del Studio, y el director no puede leer ese archivo', async () => {
     const revisor = (await readFile(join(__dirname, 'revisor.ts'), 'utf-8')).replace(/\r\n/g, '\n');
     expect(revisor).toContain('const conservados = propios && modoPermisos !== \'pregunta\' ? {} : await (propios ? todosDeTusAjustes(this.ajustes) : conservadosDeTusAjustes(elegido.ajustesConservados ?? [], this.ajustes, elegido.ajustesVistos))');
-    // Lo del Studio va después: manda sobre lo tuyo (modoPermisos.ts › permisosDelModo, que arma el archivo)
-    expect(revisor).toContain('writeFileSync(ajustes, permisos.ajustes);');
+    // Lo del Studio va después: manda sobre lo tuyo (modoPermisos.ts › permisosDelModo, que arma el archivo), y el núcleo
+    // explícito solo le suma lo que no carga solo (ajustesClaude.ts › conNucleoExplicito)
+    expect(revisor).toContain('writeFileSync(ajustes, conNucleoExplicito(permisos.ajustes, this.raiz));');
     const modo = (await readFile(join(__dirname, 'modoPermisos.ts'), 'utf-8')).replace(/\r\n/g, '\n');
     expect(modo).toContain('ajustes: JSON.stringify({ ...e.conservados, ...director.ajustes }),');
     expect(negado(String.raw`C:\repos\golf`, String.raw`C:\xampp\STL`)).toContain('Read(//c/xampp/STL/.revisiones/ajustes-del-director.json)');

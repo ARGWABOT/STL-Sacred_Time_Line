@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AJUSTES_DEL_DIRECTOR, ajustesDelDirector, arranqueLimpio, clavesDeTusAjustes, fuentesDelDirector, SIN_CONECTORES, archivoAjustesClaude, conMaximo, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, ignoraEsfuerzoGeneral, leerAjustesClaude, nombreCanonico } from './ajustesClaude';
+import { AJUSTES_DEL_DIRECTOR, ajustesDelDirector, arranqueLimpio, clavesDeTusAjustes, conNucleoExplicito, fuentesDelDirector, nucleoExplicito, SIN_CONECTORES, archivoAjustesClaude, conMaximo, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, ignoraEsfuerzoGeneral, leerAjustesClaude, nombreCanonico, textoDelNucleo } from './ajustesClaude';
 import { ordenAbrirClaude } from './revisor';
 
 let carpeta: string;
@@ -163,6 +163,30 @@ describe('la configuración de Claude Code (lo mismo que /model y /effort)', () 
     expect(await clavesDeTusAjustes(archivo)).toEqual(['model', 'env › SECRETO']);
     await writeFile(archivo, '{ roto');
     expect(await clavesDeTusAjustes(archivo)).toBeNull();
+  });
+
+  it('el núcleo del director va explícito: el lanzador pasa CLAUDE.md y lo saca, con AGENTS.md, de lo que Claude Code carga solo (pr_reglas_por_encargo, punto 3)', async () => {
+    const n = nucleoExplicito('C:\\xampp\\STL\\', 'C:\\xampp\\STL\\.revisiones\\nucleo-del-director.md');
+    expect(n.claudeMdExcludes).toEqual(['C:/xampp/STL/CLAUDE.md', 'C:/xampp/STL/AGENTS.md']);
+    expect(n.argumentos).toEqual(['--append-system-prompt-file', 'C:\\xampp\\STL\\.revisiones\\nucleo-del-director.md']);
+    // Lo que pasa es CLAUDE.md entero, con una línea que dice qué es, para no tener que abrir el archivo
+    const claude = '# STL Studio: reglas del director asistente\n\nUna regla.\n';
+    expect(textoDelNucleo(claude).startsWith('# CLAUDE.md, the rules of STL Studio\n')).toBe(true);
+    expect(textoDelNucleo(claude).endsWith(claude)).toBe(true);
+    // Se suma a lo que ya excluía el arranque limpio, sin quitarle nada ni repetirlo, y sin tocar lo demás
+    for (const u of [true, false]) for (const p of [true, false]) {
+      const ajustes = ajustesDelDirector(u, p, 'C:\\Users\\ana', false).ajustes;
+      const con = JSON.parse(conNucleoExplicito(JSON.stringify(ajustes), 'C:\\xampp\\STL'));
+      expect(con.claudeMdExcludes).toEqual([...arranqueLimpio('C:\\Users\\ana').claudeMdExcludes, 'C:/xampp/STL/CLAUDE.md', 'C:/xampp/STL/AGENTS.md']);
+      expect({ ...con, claudeMdExcludes: ajustes.claudeMdExcludes }).toEqual(ajustes);
+      expect(JSON.parse(conNucleoExplicito(JSON.stringify(con), 'C:\\xampp\\STL')).claudeMdExcludes).toEqual(con.claudeMdExcludes);
+    }
+    // El lanzador lo usa en cada revisión, urgencia y aclaración: el archivo con el texto, sus argumentos y sus ajustes
+    const revisor = (await readFile(join(__dirname, 'revisor.ts'), 'utf-8')).replace(/\r\n/g, '\n');
+    expect(revisor).toContain("writeFileSync(archivoNucleo, textoDelNucleo(readFileSync(join(this.raiz, 'CLAUDE.md'), 'utf-8')));");
+    expect(revisor).toContain('...permisos.argumentos, ...nucleo.argumentos, ');
+    expect(revisor).toContain('writeFileSync(ajustes, conNucleoExplicito(permisos.ajustes, this.raiz));');
+    expect(revisor).not.toMatch(/writeFileSync\(ajustes, permisos\.ajustes\)/);
   });
 
   it('el director lanzado nunca carga los conectores de claude.ai, con ultracode o sin él (pedido del titular del 23 de octubre)', () => {

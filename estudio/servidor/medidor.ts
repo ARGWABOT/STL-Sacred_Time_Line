@@ -9,7 +9,7 @@
 import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ajustesDelDirector, fuentesDelDirector } from './ajustesClaude';
+import { ajustesDelDirector, conNucleoExplicito, fuentesDelDirector, nucleoExplicito, textoDelNucleo } from './ajustesClaude';
 import { NUNCA_SIEMPRE } from './permisosNegados';
 import { consumoDe, detener, encargo, lanzarClaude, negado, permitido, SIN_ESPERAS } from './revisor';
 import { CASOS_FIJOS, type CasoFijo } from '../../src/director/casosFijos';
@@ -31,15 +31,16 @@ export const idDeVuelta = (caso: string, numero: number) => `m-${caso.replace(/^
 
 /**
  * Los argumentos de Claude Code para el director en una vuelta: los de una revisión, con el modelo y el esfuerzo elegidos
- * para él, el arranque limpio, y lo permitido y lo negado de un proyecto cuyo Studio es el de prueba: lee y escribe solo
- * ahí. Pura.
+ * para él, el arranque limpio, su núcleo explícito (`nucleo`: el archivo con el texto que pasa el lanzador,
+ * textoDelNucleo), y lo permitido y lo negado de un proyecto cuyo Studio es el de prueba: lee y escribe solo ahí. Pura.
  */
-export function argumentosDeVuelta(v: { estudio: string; repo: string; ajustes: string; modelo: string | null; esfuerzo: string | null; casa?: string }): string[] {
+export function argumentosDeVuelta(v: { estudio: string; repo: string; ajustes: string; nucleo: string; modelo: string | null; esfuerzo: string | null; casa?: string }): string[] {
   const prohibidas = [...new Set([...SIN_ESPERAS, ...negado(v.repo, v.estudio), ...NUNCA_SIEMPRE])];
   return [
     '-p', '--output-format', 'stream-json', '--verbose',
     ...(v.modelo ? ['--model', v.modelo] : []), ...(v.esfuerzo ? ['--effort', v.esfuerzo] : []),
     '--settings', v.ajustes, ...fuentesDelDirector(false), '--permission-mode', 'dontAsk',
+    ...nucleoExplicito(v.estudio, v.nucleo).argumentos,
     '--add-dir', v.repo, '--disallowedTools', ...prohibidas, '--allowedTools', ...permitido(v.repo, false, v.estudio, v.casa ?? homedir()),
   ];
 }
@@ -127,12 +128,19 @@ export async function correrVuelta(o: OpcionesDeVuelta): Promise<Vuelta> {
     const estado = unirEstados({ titular: JSON.parse(readFileSync(join(e.memoria, 'director', 'equipo', 'titular.json'), 'utf8')) });
     const carpeta = join(e.estudio, '.revisiones');
     mkdirSync(carpeta, { recursive: true });
+    // El director, con su núcleo explícito como en una revisión; quien califica, con los ajustes de antes, para que su
+    // nota no cambie con lo que cambia el lanzador del director
+    const deCalificacion = JSON.stringify(ajustesDelDirector(false, false, o.casa ?? homedir(), false).ajustes);
+    const ajustesCalifica = join(carpeta, 'ajustes-de-quien-califica.json');
+    writeFileSync(ajustesCalifica, deCalificacion);
     const ajustes = join(carpeta, 'ajustes-de-la-medicion.json');
-    writeFileSync(ajustes, JSON.stringify(ajustesDelDirector(false, false, o.casa ?? homedir(), false).ajustes));
+    writeFileSync(ajustes, conNucleoExplicito(deCalificacion, e.estudio));
+    const nucleo = join(carpeta, 'nucleo-del-director.md');
+    writeFileSync(nucleo, textoDelNucleo(readFileSync(join(e.estudio, 'CLAUDE.md'), 'utf8')));
     const registro = join(carpeta, `${id}.log`);
     const minutos = o.minutos ?? MAX_MIN_VUELTA;
     const inicio = Date.now();
-    const args = argumentosDeVuelta({ estudio: e.estudio, repo: e.repo, ajustes, modelo: o.modelo, esfuerzo: o.esfuerzo, casa: o.casa });
+    const args = argumentosDeVuelta({ estudio: e.estudio, repo: e.repo, ajustes, nucleo, modelo: o.modelo, esfuerzo: o.esfuerzo, casa: o.casa });
     await correr(o.programa, [...(o.previos ?? []), ...args], e.estudio, encargo(id, false, [], false, [], minutos), registro, minutos, o.modelo);
     const plan = e.plan();
     const cerro = !!(await leerLocal(e.estudio)).revision?.hecha;
@@ -142,7 +150,7 @@ export async function correrVuelta(o: OpcionesDeVuelta): Promise<Vuelta> {
     let calificacion: Calificacion | null | undefined;
     if (caso.pauta) {
       const salida = join(carpeta, `${id}-calificacion.json`);
-      await correr(o.programa, [...(o.previos ?? []), ...argumentosDeCalificacion(ajustes)], e.estudio, encargoDeCalificacion(caso, situacion.notas, loQueDejo(plan, antes)), salida, MAX_MIN_CALIFICAR, MODELO_CALIFICA);
+      await correr(o.programa, [...(o.previos ?? []), ...argumentosDeCalificacion(ajustesCalifica)], e.estudio, encargoDeCalificacion(caso, situacion.notas, loQueDejo(plan, antes)), salida, MAX_MIN_CALIFICAR, MODELO_CALIFICA);
       const r = leerResultadoDeCalificacion(existsSync(salida) ? readFileSync(salida, 'utf8') : '');
       calificacion = r.calificacion;
       if (r.costo !== null) costo = (costo ?? 0) + r.costo;

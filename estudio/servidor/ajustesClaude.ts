@@ -196,6 +196,33 @@ export function arranqueLimpio(home: string) {
 }
 
 /**
+ * El núcleo del director, explícito (propuesta aceptada «Las reglas, a la medida de cada encargo», pr_reglas_por_encargo,
+ * punto 3): el lanzador le pasa las reglas del Studio, su CLAUDE.md, al final de su indicación de sistema
+ * (--append-system-prompt-file, en la referencia de la línea de órdenes de Claude Code), en vez de esperar que Claude Code
+ * las cargue solo, que en el modo sin pantalla dejará de hacerlo en una versión futura: lo elige el código, no el modelo.
+ * Las saca de lo que carga solo (claudeMdExcludes), con el AGENTS.md que leería en su lugar, para que no lleguen dos
+ * veces. `estudio`: la carpeta del Studio; `archivo`: donde el lanzador deja el texto que pasa (textoDelNucleo). Pura.
+ */
+export function nucleoExplicito(estudio: string, archivo: string): { claudeMdExcludes: string[]; argumentos: string[] } {
+  const carpeta = estudio.replace(/\\/g, '/').replace(/\/+$/, '');
+  return { claudeMdExcludes: [`${carpeta}/CLAUDE.md`, `${carpeta}/AGENTS.md`], argumentos: ['--append-system-prompt-file', archivo] };
+}
+
+/**
+ * Lo que el lanzador pasa como núcleo: CLAUDE.md tal cual, con una línea antes que dice qué es, para que «CLAUDE.md» en el
+ * encargo o en un procedimiento nombre este texto y no un archivo que abrir. En inglés, porque lo lee el modelo. Pura.
+ */
+export const textoDelNucleo = (claude: string) =>
+  `# CLAUDE.md, the rules of STL Studio\n\nThe launcher passes them here instead of letting Claude Code load the file on its own. Wherever the assignment or a procedure says «CLAUDE.md», it means this text: there is no need to open the file.\n\n${claude}`;
+
+/** Los ajustes del director (su JSON) con el núcleo explícito: lo que ya no carga solo, sumado a lo que excluía el arranque limpio. Pura. */
+export function conNucleoExplicito(ajustes: string, estudio: string): string {
+  const a = JSON.parse(ajustes) as Record<string, unknown>;
+  const antes = Array.isArray(a.claudeMdExcludes) ? a.claudeMdExcludes.filter((x): x is string => typeof x === 'string') : [];
+  return JSON.stringify({ ...a, claudeMdExcludes: [...new Set([...antes, ...nucleoExplicito(estudio, '').claudeMdExcludes])] });
+}
+
+/**
  * La configuración del director lanzado y si puede correr flujos de varios agentes: con el permiso del titular y
  * ultracode encendido, sigue a ultracode como tus sesiones (y necesita Workflow); si falta cualquiera de los dos, sin él.
  * Siempre sin los conectores de claude.ai (SIN_CONECTORES) y con el arranque limpio (arranqueLimpio). Sin tus ajustes

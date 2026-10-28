@@ -12,7 +12,7 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { basename, delimiter, isAbsolute, join, relative, resolve } from 'node:path';
-import { archivoAjustesClaude, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude } from './ajustesClaude';
+import { archivoAjustesClaude, conMaximo, conNucleoExplicito, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude, nucleoExplicito, textoDelNucleo } from './ajustesClaude';
 import { conservadosDeTusAjustes, todosDeTusAjustes } from './ajustesPropios';
 import { admiteAutomatico, modosDeLaAyuda, nombreDelModoQuePregunta, permisosDelModo, puertoDelStudio, rutaDelGancho, urlDelGancho } from './modoPermisos';
 import { aprobadoEnVivo, aprobadosSolos, conLoAprobado, lineaAutomatico, type EnVivo } from './aprobadosSolos';
@@ -1861,7 +1861,11 @@ export class Revisor {
     const conservados = propios && modoPermisos !== 'pregunta' ? {} : await (propios ? todosDeTusAjustes(this.ajustes) : conservadosDeTusAjustes(elegido.ajustesConservados ?? [], this.ajustes, elegido.ajustesVistos)).catch(() => ({}));
     const ajustes = join(carpeta, 'ajustes-del-director.json');
     const permisos = permisosDelModo(modoPermisos, { ultracode, permitidoUltracode: elegido.permisos?.ultracode === true, home: homedir(), propios, conservados, archivo: ajustes, gancho: rutaDelGancho(this.raiz), modoQuePregunta: modoPermisos === 'pregunta' ? await nombreDelModoDe(programa) : 'default' });
-    writeFileSync(ajustes, permisos.ajustes);
+    // Las reglas del Studio, explícitas: el lanzador las pasa, en vez de esperar que Claude Code las cargue solo (nucleoExplicito)
+    const archivoNucleo = join(carpeta, 'nucleo-del-director.md');
+    writeFileSync(archivoNucleo, textoDelNucleo(readFileSync(join(this.raiz, 'CLAUDE.md'), 'utf-8')));
+    const nucleo = nucleoExplicito(this.raiz, archivoNucleo);
+    writeFileSync(ajustes, conNucleoExplicito(permisos.ajustes, this.raiz));
     // dontAsk: lo que no está en la lista se niega sin preguntar (nadie está mirando para responder); las esperas
     // programadas no piden permiso, así que se quitan aparte (SIN_ESPERAS). Con «Me pregunta en el Studio» corre en el modo
     // que pregunta, y lo que falta lo pregunta el gancho del Studio. En stream-json, el
@@ -1881,7 +1885,7 @@ export class Revisor {
     const prohibidas = [...new Set([...SIN_ESPERAS, ...negado(repositorio, this.raiz, cola), ...NUNCA_SIEMPRE])];
     const autorizadas = autorizadasPara(elegido.permisos?.autorizados, proyecto, prohibidas, homedir());
     const permitidas = conAutorizadas(permitido(repositorio, permisos.flujos, this.raiz, homedir(), cola, historial), autorizadas);
-    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), ...permisos.argumentos, '--add-dir', repositorio, ...cola.map((c) => join(c.repositorio, MEMORIA)), '--disallowedTools', ...prohibidas, '--allowedTools', ...permitidas];
+    const args = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), ...(esfuerzo ? ['--effort', esfuerzo] : []), ...permisos.argumentos, ...nucleo.argumentos, '--add-dir', repositorio, ...cola.map((c) => join(c.repositorio, MEMORIA)), '--disallowedTools', ...prohibidas, '--allowedTools', ...permitidas];
     // «Automático, vigilado»: lo que ya tenía, en el registro, para leer lo que Claude Code apruebe solo (aprobadosSolos.ts):
     // sus carpetas de trabajo, donde leer nunca pide permiso, son la del Studio, la del proyecto y las de la cola
     const yaPermitido = permisos.automatico ? { permitidas, carpetas: [this.raiz, repositorio, ...cola.map((c) => join(c.repositorio, MEMORIA))].map((c) => `${reglaDeRuta(c)}/**`), casa: homedir() } : null;
