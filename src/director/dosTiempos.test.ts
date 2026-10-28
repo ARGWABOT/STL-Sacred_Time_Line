@@ -1,7 +1,7 @@
 // La revisión en dos tiempos (pd_dos_tiempos): el formato de la lista de encargos del primer tiempo, su validación, cuándo
 // se salta y cómo se mide, antes y después, con las revisiones de verdad.
 import { describe, expect, it } from 'vitest';
-import { antesYDespues, archivoDeEncargos, conElPlanDeLaRevision, conEncargoHecho, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MARGEN_DE_VENTANA, ordenDeHecho, registroDelPrimerTiempo, resumirRevisiones, saltaPrimerTiempo, ultimaListaDe, validarEncargos, VENTANAS, type EncargoDeRevision } from './dosTiempos';
+import { antesYDespues, archivoDeEncargos, bandejaParaElEncargo, conElPlanDeLaRevision, conEncargoHecho, conLaBandejaLista, MAX_KB_BANDEJA_LISTA, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MARGEN_DE_VENTANA, ordenDeHecho, registroDelPrimerTiempo, resumirRevisiones, saltaPrimerTiempo, ultimaListaDe, validarEncargos, VENTANAS, type EncargoDeRevision } from './dosTiempos';
 import { lineaDeRegistro, type LineaDeRevision } from './lineasDeRevision';
 import { PROCEDIMIENTOS } from './procedimientos';
 import { REGISTRO } from './paquete';
@@ -69,6 +69,23 @@ describe('el primer tiempo, conectado al lanzador', () => {
     expect(e).toContain('within its 90 minutes');
     expect(e).toContain('only a JSON array');
     for (const k of Object.keys(PROCEDIMIENTOS)) expect(e).toContain(`"${k}"`);
+  });
+
+  it('el paquete listo: con la bandeja que corrió el Studio, los dos tiempos la reciben dentro y no la corren (pd_paquete_listo)', () => {
+    const bandeja = '# Bandeja del director · Golf (golf)\n## Notas sin respuesta (1)\n';
+    const e = encargoDelPrimerTiempo('golf', 90, bandeja);
+    expect(e).toContain('The Studio already ran node tools/director/bandeja.ts --proyecto golf for you');
+    expect(e).toContain('Do not run it again');
+    expect(e).not.toContain('once and read what it lists');
+    expect(e.endsWith(`<<<\n${bandeja.trimEnd()}\n>>>`)).toBe(true);
+    const s = conLaBandejaLista('golf', bandeja);
+    expect(s).toContain('No la corras otra vez para leerla');
+    expect(s.endsWith(`La bandeja:\n<<<\n${bandeja.trimEnd()}\n>>>`)).toBe(true);
+    // Vacía, sin salida o demasiado grande, no va: el director la corre él mismo, como antes
+    expect(bandejaParaElEncargo(bandeja)).toBe(bandeja.trim());
+    expect(bandejaParaElEncargo('  \n')).toBeNull();
+    expect(bandejaParaElEncargo(null)).toBeNull();
+    expect(bandejaParaElEncargo('x'.repeat(MAX_KB_BANDEJA_LISTA * 1024 + 1))).toBeNull();
   });
 
   it('lee la lista de su respuesta final, suelta o en un bloque de código, y la valida', () => {

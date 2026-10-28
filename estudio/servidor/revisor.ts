@@ -21,7 +21,7 @@ import { permisosEnEspera } from './permisosEnEspera.ts';
 import { fuentesDeEscaneo } from './escaneo.ts';
 import { colaDeDiagnosticos, limiteDelTramo, MAX_MIN_REVISION, negacionesDe, negadosEnVivo, POR_REVISION, type CandidatoDeCola, type Tramo } from '../../src/director/director.ts';
 import { leerEstadoDelEquipo, leerJsonFresco, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria.ts';
-import { archivoDeEncargos, conElPlanDeLaRevision, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, registroDelPrimerTiempo, saltaPrimerTiempo, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
+import { archivoDeEncargos, bandejaParaElEncargo, conElPlanDeLaRevision, conLaBandejaLista, encargoDelPrimerTiempo, MAX_MIN_BANDEJA_LISTA, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, registroDelPrimerTiempo, saltaPrimerTiempo, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
 import { PROCEDIMIENTOS } from '../../src/director/procedimientos.ts';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, prorrogarRevision, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos.ts';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora.ts';
@@ -1614,6 +1614,40 @@ export function detener(p: ReturnType<typeof spawn>): void {
   else p.kill();
 }
 
+/**
+ * El paquete listo (pedido pd_paquete_listo; dosTiempos.ts › MAX_MIN_BANDEJA_LISTA): la bandeja de una revisión, corrida
+ * por el Studio antes de lanzar al director, sin modelo y con la ruta de su registro (así reconoce el candado que tomó el
+ * lanzador y guarda lo que imprime en el paquete de la revisión). Lo que imprimió, o null si falla, sale con un código o
+ * pasa de su tope: entonces el director la corre él mismo, como antes.
+ */
+export function correrLaBandeja(raiz: string, proyecto: string, registro: string, modelo: string | null): Promise<string | null> {
+  return new Promise((listo) => {
+    let salida = '';
+    let fin = false;
+    let tope: ReturnType<typeof setTimeout> | null = null;
+    const termina = (x: string | null) => {
+      if (fin) return;
+      fin = true;
+      if (tope) clearTimeout(tope);
+      listo(x);
+    };
+    let q: ReturnType<typeof spawn>;
+    try {
+      q = spawn(process.execPath, ['tools/director/bandeja.ts', '--proyecto', proyecto], { cwd: raiz, env: entornoDelDirector(process.env, registro, modelo), stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
+    } catch {
+      return termina(null);
+    }
+    tope = setTimeout(() => {
+      detener(q);
+      termina(null);
+    }, MAX_MIN_BANDEJA_LISTA * 60_000);
+    q.stdout?.setEncoding('utf8');
+    q.stdout?.on('data', (x: string) => (salida += x));
+    q.on('error', () => termina(null));
+    q.on('exit', (codigo) => termina(codigo === 0 ? salida : null));
+  });
+}
+
 /** Si Claude Code no tiene sesión en este computador, cómo se inicia (una sola vez, en una terminal). */
 function sinSesion(programa: string): Promise<string | null> {
   if (process.env.ANTHROPIC_API_KEY) return Promise.resolve(null);
@@ -1966,7 +2000,7 @@ export class Revisor {
    * lista, con por qué no la hay (se pasó de MAX_MIN_PRIMER_TIEMPO, no arrancó o no pasó la validación) o, si la persona
    * oprimió «Detener ahora» mientras planeaba, con quién lo detuvo.
    */
-  private primerTiempo(programa: string, args: string[], registro: string, proyecto: string, minutos: number, modelo: string | null, todoConElModelo: boolean): Promise<{ encargos: EncargoDeRevision[]; escrito: PrimerTiempoEscrito } | { porque: string; escrito: PrimerTiempoEscrito } | { detenida: string }> {
+  private primerTiempo(programa: string, args: string[], registro: string, proyecto: string, minutos: number, modelo: string | null, todoConElModelo: boolean, bandeja: string | null = null): Promise<{ encargos: EncargoDeRevision[]; escrito: PrimerTiempoEscrito } | { porque: string; escrito: PrimerTiempoEscrito } | { detenida: string }> {
     const archivo = registroDelPrimerTiempo(registro);
     const inicio = Date.now();
     return new Promise((listo) => {
@@ -2009,7 +2043,7 @@ export class Revisor {
         return termina(`no arrancó (${(e as Error).message})`);
       }
       q.stdin?.on('error', () => undefined);
-      q.stdin?.end(encargoDelPrimerTiempo(proyecto, minutos));
+      q.stdin?.end(encargoDelPrimerTiempo(proyecto, minutos, bandeja));
       // «Detener ahora» mientras planea: no hay nada que cerrar, así que se detiene ya y el director no se lanza
       this.enMarcha = { proyecto, pedirCierre: (quien: string) => {
         detenidaPor = quien;
@@ -2152,6 +2186,17 @@ export class Revisor {
     else if (aparte?.tipo === 'urgencia') await marcarUrgencia(this.raiz, aparte.u.pedida, 'lanzada');
     else await marcarLanzada(this.raiz, proyecto, undefined, undefined, minutos === MAX_MIN ? undefined : minutos);
     const inicio = Date.now();
+    // El paquete listo (pd_paquete_listo): en una revisión, el Studio corre la bandeja antes que nada, sin modelo, y lo que
+    // imprime va dentro del encargo de los dos tiempos; si no sale bien, el director la corre él mismo, como antes
+    const bandejaLista = aparte ? null : bandejaParaElEncargo(await correrLaBandeja(this.raiz, proyecto, archivo, modelo));
+    if (!aparte) {
+      await anotar(this.raiz, {
+        quien: EL_STUDIO,
+        que: bandejaLista ? `corre la bandeja antes de lanzar al director, sin modelo (${Math.ceil(bandejaLista.length / 1024)} KB, dentro del encargo)` : 'no pudo correr la bandeja antes de lanzar al director: él la corre, como antes',
+        desde: `el lanzador del director (registro ${relative(this.raiz, archivo)})`,
+        proyecto,
+      }).catch(() => undefined);
+    }
     // La revisión en dos tiempos (pd_dos_tiempos): antes del director, su primer tiempo, que solo planea, salvo que la
     // revisión traiga un solo trabajo pequeño (saltaPrimerTiempo). Lee donde lee el director y corre la bandeja, nada más,
     // siempre en «Solo lo autorizado» (sin el gancho que pregunta: no hay nada que preguntar). Si no deja una lista válida,
@@ -2165,7 +2210,7 @@ export class Revisor {
       writeFileSync(ajustesPrimero, conNucleoExplicito(permisosPrimero.ajustes, this.raiz));
       const soloLeer = [...permitidas.filter((r) => r.startsWith('Read(')), `Bash(node tools/director/bandeja.ts --proyecto ${proyecto})`];
       const argsPrimero = ['-p', '--output-format', 'stream-json', '--verbose', ...(modelo ? ['--model', modelo] : []), '--effort', 'low', ...permisosPrimero.argumentos, ...nucleo.argumentos, '--add-dir', repositorio, '--disallowedTools', ...prohibidas, '--allowedTools', ...soloLeer];
-      const primero = await this.primerTiempo(programa, argsPrimero, archivo, proyecto, minutos, modelo, elegido.todoConElModelo === true);
+      const primero = await this.primerTiempo(programa, argsPrimero, archivo, proyecto, minutos, modelo, elegido.todoConElModelo === true, bandejaLista);
       if ('detenida' in primero) return void (await this.detenidaAlPlanear(proyecto, primero.detenida, { archivo, registro, turno, candado, inicio }));
       writeSync(registro, lineaDelPrimerTiempo(primero.escrito));
       if ('encargos' in primero) {
@@ -2184,6 +2229,11 @@ export class Revisor {
       const planeo = Math.ceil((Date.now() - inicio) / 60_000);
       renovarCandado(candado, { estudio: this.raiz, registro: archivo }, new Date(Date.now() + (minutos + GRACIA_CIERRE_MIN + 5) * 60_000).toISOString());
       await prorrogarRevision(this.raiz, proyecto, minutos + planeo).catch(() => undefined);
+    } else if (bandejaLista) {
+      // Sin primer tiempo, lo que tomó la bandeja tampoco se le quita al director
+      const previo = Math.ceil((Date.now() - inicio) / 60_000);
+      renovarCandado(candado, { estudio: this.raiz, registro: archivo }, new Date(Date.now() + (minutos + GRACIA_CIERRE_MIN + 5) * 60_000).toISOString());
+      await prorrogarRevision(this.raiz, proyecto, minutos + previo).catch(() => undefined);
     }
     // «Me pregunta en el Studio»: la revisión pregunta desde ahora, con una clave que solo conoce su gancho (por la variable
     // con la dirección del servidor), y deja de preguntar al terminar el director, de la forma que sea (fin)
@@ -2218,7 +2268,7 @@ export class Revisor {
     const delStudio = esElStudio(repositorio, this.raiz);
     // Con su plan, si el primer tiempo dejó uno válido (pd_dos_tiempos)
     const elEncargo = aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u, delStudio)
-      : encargo(proyecto, reintento, cola, delStudio, historial, minutos) + (planDeLaRevision ? conElPlanDeLaRevision(proyecto, planDeLaRevision) : '');
+      : encargo(proyecto, reintento, cola, delStudio, historial, minutos) + (planDeLaRevision ? conElPlanDeLaRevision(proyecto, planDeLaRevision) : '') + (bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) : '');
     // El paquete de la revisión: el encargo, tal como se envía, junto a su registro (se abre en «Lo que gastó el director»)
     try {
       writeFileSync(paqueteDeRegistro(archivo).encargo, elEncargo, 'utf8');

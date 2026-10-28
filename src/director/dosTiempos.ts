@@ -108,11 +108,15 @@ export const MAX_MIN_PRIMER_TIEMPO = 10;
  * responde solo con la lista de encargos. Nace en inglés, como lo que lee el modelo (decisión del titular del 23 de
  * octubre de 2026). `minutos`: los de la revisión entera, para que planee lo que cabe en ella. Pura.
  */
-export const encargoDelPrimerTiempo = (proyecto: string, minutos: number): string =>
+export const encargoDelPrimerTiempo = (proyecto: string, minutos: number, bandeja: string | null = null): string =>
   `First time of the review requested from the Studio for project «${proyecto}». You are the STL Studio director, launched ` +
   `by the Studio without a screen, and this is only the plan of the review: a second session, also you, executes it ` +
-  `right after. Do not execute anything: do not write or change any file, do not answer notes, do not commit. Run ` +
-  `node tools/director/bandeja.ts --proyecto ${proyecto} once and read what it lists. Read with Read, Grep and Glob only ` +
+  `right after. Do not execute anything: do not write or change any file, do not answer notes, do not commit. ` +
+  (bandeja
+    ? `The Studio already ran node tools/director/bandeja.ts --proyecto ${proyecto} for you, without a model: its output is ` +
+      `at the end of this message, as it printed it. Do not run it again. `
+    : `Run node tools/director/bandeja.ts --proyecto ${proyecto} once and read what it lists. `) +
+  `Read with Read, Grep and Glob only ` +
   `what you need to name the files and the part each task touches (the plan and its archive by id, the project map, the ` +
   `code). Then decide what this review does, in the order it does it, within its ${minutos} minutes: each delivery and ` +
   `each note it must answer, and the pieces of your queue it can finish, from the top, each piece with its tests and its ` +
@@ -126,7 +130,35 @@ export const encargoDelPrimerTiempo = (proyecto: string, minutos: number): strin
   `"herramientas": [], "modelo": "director" | "sonnet" | "haiku", "contexto": <tokens it reads plus writes> }. Use ` +
   `"sonnet" or "haiku" only for routine and checkable work (a long reading, a bounded change with its test); the core of ` +
   `the Studio, permissions and what deletes or costs go with "director". The Studio validates the list: a task that a ` +
-  `model's window cannot hold with margin is rejected.`;
+  `model's window cannot hold with margin is rejected.` +
+  (bandeja ? `\n\nThe inbox (bandeja.ts), as the Studio ran it:\n<<<\n${bandeja.trimEnd()}\n>>>` : '');
+
+/**
+ * El paquete listo (pedido pd_paquete_listo; decisión del titular nmvsptzs9tit, 28 de octubre de 2026, en «Revisiones
+ * más cortas», parte 5): antes de lanzar al director, el Studio corre la bandeja él mismo, sin modelo, y lo que imprime va
+ * dentro del encargo de los dos tiempos. El director empieza trabajando, no leyendo: no la corre, no busca su salida
+ * guardada en un archivo ni la relee por partes. Si la bandeja no termina en este tope (la transcripción de muchos audios),
+ * o falla, o sale vacía o demasiado grande, el director la corre él mismo, como antes.
+ */
+export const MAX_MIN_BANDEJA_LISTA = 5;
+/** Lo más que pesa la bandeja que va dentro del encargo (en KB de texto): más, la corre el director, como antes. */
+export const MAX_KB_BANDEJA_LISTA = 160;
+
+/** Lo que imprimió la bandeja, si sirve para ir dentro del encargo: con algo y dentro de su tope; si no, null. Pura. */
+export function bandejaParaElEncargo(salida: string | null | undefined): string | null {
+  const t = (salida ?? '').trim();
+  return t && t.length <= MAX_KB_BANDEJA_LISTA * 1024 ? t : null;
+}
+
+/**
+ * Lo que el segundo tiempo recibe de la bandeja ya corrida, al final de su encargo y en su idioma: que no la corra para
+ * leerla y lo que imprimió, tal cual. Va después del plan de la revisión. Pura.
+ */
+export const conLaBandejaLista = (proyecto: string, bandeja: string): string =>
+  ` El Studio ya corrió la bandeja por ti, sin modelo, justo antes de lanzarte (node tools/director/bandeja.ts ` +
+  `--proyecto ${proyecto}): lo que imprimió va al final de este encargo, tal cual. No la corras otra vez para leerla: ` +
+  `empieza trabajando, con los procedimientos que nombra. Córrela de nuevo solo si necesitas lo que cambió después; ` +
+  `--aplicar y --listo, como siempre.\n\nLa bandeja:\n<<<\n${bandeja.trimEnd()}\n>>>`;
 
 /**
  * La lista de encargos de la respuesta final del primer tiempo: el arreglo JSON, solo o dentro de un bloque de código, y

@@ -774,7 +774,24 @@ describe('el director que lanza el Studio', () => {
       // Y su tope, para no quedarse planeando
       const metodo = revisor.slice(revisor.indexOf('private primerTiempo('), revisor.indexOf('private async detenidaAlPlanear('));
       expect(metodo).toContain('MAX_MIN_PRIMER_TIEMPO * 60_000');
-      expect(metodo).toContain('q.stdin?.end(encargoDelPrimerTiempo(proyecto, minutos))');
+      expect(metodo).toContain('q.stdin?.end(encargoDelPrimerTiempo(proyecto, minutos, bandeja))');
+    });
+
+    it('el paquete listo: la bandeja la corre el Studio antes que nada, sin modelo, y va dentro del encargo (pd_paquete_listo)', () => {
+      const revisor = readFileSync(new URL('./revisor.ts', import.meta.url), 'utf8');
+      const lanzar = revisor.slice(revisor.indexOf('private async lanzar('), revisor.indexOf('function anotarHijo('));
+      // Solo en una revisión, antes del primer tiempo y del director
+      const corre = lanzar.indexOf('const bandejaLista = aparte ? null : bandejaParaElEncargo(await correrLaBandeja(this.raiz, proyecto, archivo, modelo))');
+      expect(corre).toBeGreaterThan(0);
+      expect(corre).toBeLessThan(lanzar.indexOf('await this.primerTiempo('));
+      expect(lanzar).toContain('elegido.todoConElModelo === true, bandejaLista)');
+      expect(lanzar).toContain("(bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) : '')");
+      // Con la ruta del registro (el candado del lanzador y el paquete de la revisión), con su tope, y sin modelo
+      const metodo = revisor.slice(revisor.indexOf('export function correrLaBandeja('), revisor.indexOf('function sinSesion('));
+      expect(metodo).toContain("spawn(process.execPath, ['tools/director/bandeja.ts', '--proyecto', proyecto]");
+      expect(metodo).toContain('entornoDelDirector(process.env, registro, modelo)');
+      expect(metodo).toContain('MAX_MIN_BANDEJA_LISTA * 60_000');
+      expect(metodo).toContain('termina(codigo === 0 ? salida : null)');
     });
 
     it('el director puede marcar hecho cada encargo de su plan, y nada más con esa herramienta', () => {
