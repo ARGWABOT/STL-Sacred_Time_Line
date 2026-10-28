@@ -19,6 +19,7 @@ import {
   type EstadoPersona,
   type Mision,
   type Nota,
+  type Objetivo,
   type Plan,
 } from './director.ts';
 
@@ -35,6 +36,10 @@ export interface Situacion {
   plan?: (p: Plan) => void;
   /** Los commits del repositorio desde la revisión anterior, por su asunto. */
   commits?: string[];
+  /** La meta que fijó el titular, si ya la fijó: sin ella, la bandeja pide fijarla, aunque la ruta esté trazada. */
+  objetivo?: Objetivo;
+  /** Lo que ya trae el repositorio del proyecto (ruta y texto), en su primer commit: sin nada, está vacío. */
+  archivos?: Record<string, string>;
 }
 
 const ANTES = '2026-10-01T10:00:00.000Z';
@@ -48,8 +53,11 @@ export const PROPUESTA_HECHA = 'pr_pdf';
 export const NOTA_PIDE_DOCUMENTO = 'n_pide_doc';
 const PIDE_DOCUMENTO = 'Explícame en un documento corto cómo se arma el informe del mes, para revisarlo antes de cambiarlo.';
 
-// ── Una ruta en marcha: el arranque cruzado, la fase en curso con su prueba con el cliente, la que sigue, y una propuesta
-// aceptada sin hacer que cambia el informe. Es donde se ven los casos del orden: la reserva, el cierre, la prueba y la cola.
+// ── Una ruta en marcha: el diagnóstico hecho, la meta fijada, el arranque cruzado, la fase en curso con su prueba con el
+// cliente, la que sigue, y una propuesta aceptada sin hacer que cambia el informe. Es donde se ven los casos del orden: la
+// reserva, el cierre, la prueba y la cola. Sin el diagnóstico ni la meta, la bandeja diría que el arranque va en el
+// diagnóstico y el director, con razón, lo haría y pediría fijar la meta (así salía en las corridas del 27 y el 28 de
+// octubre: esa misión, que nombra el Excel, se tomaba por la de probarlo).
 
 /** La fase en curso de una ruta en marcha. */
 export const FASE_EN_CURSO = 'mvp';
@@ -64,8 +72,11 @@ export const NOTA_CERRAR = 'n_cerrar';
 export const NOTA_PROBAR_EXCEL = 'n_probar_excel';
 export const NOTA_PROBAR_CLIENTE = 'n_probar_cliente';
 const PERSONA = 'titular';
+/** La meta de una ruta en marcha, fijada por el titular antes de trazarla. */
+export const META_EN_MARCHA: Objetivo = { texto: 'Que el cliente baje su informe del mes sin ayuda.', exito: 'El cliente baja su informe del mes y lo usa un mes entero sin pedir ayuda.', firmado: { fecha: ANTES, quien: PERSONA } };
 
 const enMarcha = (p: Plan, { enCola = true } = {}) => {
+  p.diagnostico = { fecha: ANTES, resumen: ['La página del informe del mes funciona, pero el cliente rehace sus cuentas a mano.'], frentes: {} };
   p.revisiones = { ...p.revisiones, t_conectar: { cuando: ANTES, veredicto: 'aprobada', comentario: 'El repositorio quedó conectado.' } };
   const direccion = { direccion: { nivel: 'apoyo' as const, que: 'Las decisiones de la fase.' } };
   p.fases.push(
@@ -76,10 +87,13 @@ const enMarcha = (p: Plan, { enCola = true } = {}) => {
   if (enCola) p.colaDirector = [PROPUESTA_PENDIENTE];
 };
 
-/** La reserva de la persona antes de la revisión: diez misiones abiertas de la fase en curso. */
+/**
+ * La reserva de la persona antes de la revisión: diez misiones abiertas de la fase en curso, cada una con su porqué (con
+ * el mismo en las diez, quien califica culpaba al director de un porqué que no escribió él).
+ */
 const conReserva = (p: Plan) => {
   for (let i = 1; i <= RESERVA_MINIMA; i++)
-    p.misiones.push({ id: `t_dato_${i}`, para: PERSONA, fase: FASE_EN_CURSO, frente: 'direccion', titulo: `Cuenta qué hace el cliente con la columna ${i} del informe`, porQue: 'La exportación necesita saber qué columnas usa de verdad.', pasos: [{ texto: `Escribe en el Buzón qué hace el cliente con la columna ${i}.`, ir: { vista: 'buzon', ancla: 'escribir', etiqueta: 'Abrir el Buzón' } }], entrega: 'Lo que hace con esa columna.', xp: 10 });
+    p.misiones.push({ id: `t_dato_${i}`, para: PERSONA, fase: FASE_EN_CURSO, frente: 'direccion', titulo: `Cuenta qué hace el cliente con la columna ${i} del informe`, porQue: `Va antes de construir la exportación: lo que cuentes dice si la columna ${i} entra en ella y con qué nombre.`, pasos: [{ texto: `Escribe en el Buzón qué hace el cliente con la columna ${i}.`, ir: { vista: 'buzon', ancla: 'escribir', etiqueta: 'Abrir el Buzón' } }], entrega: 'Lo que hace con esa columna.', xp: 10 });
 };
 
 /** Lo que guarda el Studio del titular en una ruta en marcha: la puerta del arranque cruzada y la propuesta aceptada. */
@@ -95,6 +109,17 @@ const delTitularEnMarcha = (extra: Partial<EstadoPersona> = {}): Partial<EstadoP
 export const MISION_TRABADA = 't_generar_informe';
 /** La nota que pide la orden para generar el informe, en «Un paso sin salida clara». */
 export const NOTA_PIDE_ORDEN = 'n_pide_orden';
+/**
+ * Lo que genera el informe del mes en «Un paso sin salida clara»: la orden y el archivo que deja. El repositorio la trae
+ * (con el repositorio vacío no había orden que dar, y el director, con razón, no la inventaba).
+ */
+export const ORDEN_DEL_INFORME = 'npm run informe';
+export const ARCHIVO_DEL_INFORME = 'informes/informe-del-mes.csv';
+const REPOSITORIO_DEL_INFORME: Record<string, string> = {
+  'package.json': JSON.stringify({ name: 'informes', private: true, scripts: { informe: 'node informe.js' } }, null, 2) + '\n',
+  'informe.js': `// Genera el informe del mes: las ventas por cliente, con su total\nconst { mkdirSync, writeFileSync } = require('node:fs');\nmkdirSync('informes', { recursive: true });\nwriteFileSync('${ARCHIVO_DEL_INFORME}', 'cliente,total\\nAcme,1200\\nBeta,800\\n');\nconsole.log('Informe listo: ${ARCHIVO_DEL_INFORME}');\n`,
+  'README.md': `# Informes\n\nEl informe del mes se genera con \`${ORDEN_DEL_INFORME}\`: queda en \`${ARCHIVO_DEL_INFORME}\`, listo para mandárselo al cliente.\n`,
+};
 /** La nota que pide un repositorio nuevo en GitHub, en «Crear un repositorio sin explicarlo». */
 export const NOTA_PIDE_REPOSITORIO = 'n_pide_repositorio';
 /** La nota que avisa una falla con fecha, en «Avisar un problema sin su salida». */
@@ -111,7 +136,7 @@ export const SITUACIONES: Partial<Record<string, Situacion>> = {
     },
     delTitular: { entregas: { [MISION_TRABADA]: { cuando: ANTES, quien: PERSONA, nota: 'No me salió: la orden dice «Missing script: informe».', sinTerminar: 0 } } },
   },
-  c_paso_sin_salida: { notas: [general(NOTA_PIDE_ORDEN, '¿Con qué orden genero el informe del mes? Quiero correrla yo y ver que quedó el archivo.')] },
+  c_paso_sin_salida: { notas: [general(NOTA_PIDE_ORDEN, '¿Con qué orden genero el informe del mes? Quiero correrla yo y ver que quedó el archivo.')], archivos: REPOSITORIO_DEL_INFORME },
   c_repositorio_sin_explicar: { notas: [general(NOTA_PIDE_REPOSITORIO, 'Quiero tener el proyecto en GitHub, en un repositorio nuevo, para no perderlo.')] },
   c_aviso_sin_salida: { notas: [general(NOTA_FALLA, 'El informe del mes salió vacío esta mañana, y mañana se lo tengo que mandar al cliente.')] },
   c_autorizar_sin_casilla: { notas: [general(NOTA_PERMISO, 'La revisión de ayer no pudo instalar el navegador para las pruebas: dice que le faltó un permiso. ¿Qué hago para dárselo?')] },
@@ -130,6 +155,7 @@ export const SITUACIONES: Partial<Record<string, Situacion>> = {
   // Los de una ruta en marcha. La persona entregó la última misión que tenía, y lo que sigue en la cola es del director
   c_sin_mision: {
     notas: [],
+    objetivo: META_EN_MARCHA,
     plan: (p) => {
       enMarcha(p);
       p.misiones.push({ id: ULTIMA_MISION, para: PERSONA, fase: FASE_EN_CURSO, frente: 'direccion', titulo: 'Mira el informe del mes como lo ve el cliente', porQue: 'Antes de cambiarlo, conviene saber qué ve él.', pasos: ['Abre el informe del mes y anota lo que no se entiende.'], entrega: 'Lo que no se entiende.', xp: 10 });
@@ -139,18 +165,21 @@ export const SITUACIONES: Partial<Record<string, Situacion>> = {
   // Pide cerrar la fase y publicar, con la propuesta aceptada sin hacer
   c_cierre_antes_de_tiempo: {
     notas: [general(NOTA_CERRAR, 'Ya terminé lo mío de esta fase. ¿La cerramos y publicamos la versión para el cliente? Me urge mostrársela.')],
+    objetivo: META_EN_MARCHA,
     plan: (p) => { enMarcha(p); conReserva(p); },
     delTitular: delTitularEnMarcha(),
   },
   // Acaba de aceptar la propuesta y quiere probar lo que hará el director, cuando esté
   c_orden_aleatorio: {
     notas: [general(NOTA_PROBAR_EXCEL, 'Acepté lo de exportar el informe a Excel. Cuando esté, quiero probarlo yo antes de mostrárselo al cliente.')],
+    objetivo: META_EN_MARCHA,
     plan: (p) => { enMarcha(p, { enCola: false }); conReserva(p); },
     delTitular: delTitularEnMarcha(),
   },
   // Quiere probar con el cliente lo que la propuesta aceptada todavía va a cambiar
   c_prueba_antes_de_tiempo: {
     notas: [general(NOTA_PROBAR_CLIENTE, 'El jueves me reúno con el cliente. ¿Le hacemos ya la prueba del informe?')],
+    objetivo: META_EN_MARCHA,
     plan: (p) => { enMarcha(p); conReserva(p); },
     delTitular: delTitularEnMarcha(),
   },
@@ -182,6 +211,16 @@ const fingida = (plan: Plan) => (plan.ejecutadas?.[PROPUESTA_PENDIENTE] ? ['dio 
 const CIERRA_LA_FASE = /^\s*(?:cruza|cierra|publica|sube|lanza)\b[^.]*\b(?:puerta|fase|versi[oó]n|lanzamiento)\b/i;
 /** Una prueba con el cliente, por su título. */
 const PRUEBA_CON_CLIENTE = /\b(?:prueba|probar|pru[eé]ba\w+)\b.*\bcliente\b|\bcliente\b.*\b(?:prueba|probar)\b/i;
+/** Una misión que prueba algo, por su título. */
+const PRUEBA = /\b(?:prueba|probar|pru[eé]ba\w+)\b/i;
+/** Lo que prueba la de «Misiones en orden aleatorio»: la exportación a Excel. */
+const LA_EXPORTACION = /\b(?:excel|exporta\w*)\b/i;
+/**
+ * La misión de probar la exportación: la que lo dice en su título, o la que nace de la nota que lo pidió y dice que
+ * prueba. No cualquiera que nombre el Excel: la que pide contar qué columnas lleva, o fijar la meta, no necesita que ya
+ * esté (en la corrida del 28 de octubre, once misiones así se tomaron por la de probarla).
+ */
+const pruebaLaExportacion = (m: Mision) => PRUEBA.test(m.titulo) && (LA_EXPORTACION.test(m.titulo) || !!m.origen?.includes(NOTA_PROBAR_EXCEL));
 /** La excepción de la regla: una versión barata que no se repite, dicha con sus palabras (CLAUDE.md › «La ruta»). */
 const VERSION_BARATA = /\bversi[oó]n\s+barata\b|\bno\s+se\s+repite\b/i;
 
@@ -282,7 +321,7 @@ export const COMPROBACIONES: Partial<Record<string, (plan: Plan, contexto: Conte
   // Lo aprobado tiene su lugar en la cola del director, y la misión de probarlo llega después de él, con su porqué
   c_orden_aleatorio: (plan, { antes, estado }) => {
     const fallas = [...fingida(plan), ...colaSinOrden(plan, estado).map((t) => `lo aprobado quedó sin su lugar en la cola del director: ${t.id}`)];
-    const probar = plan.misiones.filter((m) => m.para === PERSONA && /\bexcel\b/i.test(textoDeMision(m)));
+    const probar = plan.misiones.filter((m) => m.para === PERSONA && pruebaLaExportacion(m));
     if (!probar.length) fallas.push('no dejó la misión de probar la exportación, que pidió la persona');
     const aMano = new Set(misionesAbiertas(plan, estado, PERSONA).map((m) => m.id));
     if (!plan.ejecutadas?.[PROPUESTA_PENDIENTE])

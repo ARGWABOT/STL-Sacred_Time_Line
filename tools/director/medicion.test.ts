@@ -8,9 +8,11 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { CASOS_FIJOS } from '../../src/director/casosFijos.ts';
 import { RESERVA_MINIMA, unirEstados, type Mision, type Plan } from '../../src/director/director.ts';
 import {
+  ARCHIVO_DEL_INFORME,
   COMPROBACIONES,
   CRITERIO_CLIENTE,
   FASE_EN_CURSO,
+  META_EN_MARCHA,
   MISION_TRABADA,
   NOTA_CERRAR,
   NOTA_FALLA,
@@ -21,6 +23,7 @@ import {
   NOTA_PROBAR_CLIENTE,
   NOTA_PROBAR_EXCEL,
   NOTA_QUE_PIDE,
+  ORDEN_DEL_INFORME,
   PROPUESTA_HECHA,
   PROPUESTA_PENDIENTE,
   SITUACIONES,
@@ -183,14 +186,18 @@ describe('la medición del núcleo con casos fijos', () => {
   it('«Un paso sin salida clara»: la orden sin comprobar lo que se puede leer no pasa; con su comprobación, pasa y cierra', async () => {
     const { e, comprobar } = await armarCaso('c_paso_sin_salida', 'medir-salida');
     expect(comprobar()).toEqual(['no dejó el paso con la orden que pidió la persona']);
-    const generar = (comprobar?: { orden: string }) => mision('t_generar', 'Genera el informe del mes', { fase: 'arranque', origen: [NOTA_PIDE_ORDEN], pasos: [{ texto: 'Abre la terminal con la orden de este paso: genera el informe del mes. Al terminar, queda el archivo en la carpeta informes.', terminal: 'npm run informe', ...(comprobar ? { comprobar } : {}) }] });
+    // El repositorio trae la orden que se pide, en su primer commit: con él vacío, no había qué dar
+    expect(JSON.parse(readFileSync(join(e.repo, 'package.json'), 'utf8')).scripts.informe).toBe('node informe.js');
+    expect(readFileSync(join(e.repo, 'README.md'), 'utf8')).toContain(ORDEN_DEL_INFORME);
+    expect(e.ultimoCommit()).toMatch(/^[0-9a-f]+$/);
+    const generar = (comprobar?: { orden: string }) => mision('t_generar', 'Genera el informe del mes', { fase: 'arranque', origen: [NOTA_PIDE_ORDEN], pasos: [{ texto: 'Abre la terminal con la orden de este paso: genera el informe del mes. Al terminar, queda el archivo en la carpeta informes.', terminal: ORDEN_DEL_INFORME, ...(comprobar ? { comprobar } : {}) }] });
     e.cambiarPlan((p) => {
       resumenYMensaje(p);
       p.misiones.unshift(generar());
       p.respuestas[NOTA_PIDE_ORDEN] = { cuando: ahora(), texto: 'Es npm run informe: te dejé el paso con la orden.', tratamiento: 'integrada', destino: { vista: 'misiones', ancla: 'mision-t_generar', etiqueta: 'Ver la misión' } };
     });
     expect(comprobar()).toEqual(['«Genera el informe del mes», paso 1: corre una orden cuyo resultado se puede leer y no lo comprueba']);
-    e.cambiarPlan((p) => { p.misiones[0] = generar({ orden: 'existe informes/informe-del-mes.pdf' }); });
+    e.cambiarPlan((p) => { p.misiones[0] = generar({ orden: `existe ${ARCHIVO_DEL_INFORME}` }); });
     expect(comprobar()).toEqual([]);
     const cierre = e.bandeja('--listo');
     expect(cierre.codigo, `debía cerrar; dijo: ${cierre.errores}`).toBe(0);
@@ -259,6 +266,16 @@ describe('la medición del núcleo con casos fijos', () => {
   }, 60_000);
 
   // ── Los de una ruta en marcha
+  it('una ruta en marcha lo está de verdad: con su diagnóstico y su meta fijada, la bandeja no pide diagnosticar ni fijar la meta', async () => {
+    for (const caso of ['c_sin_mision', 'c_cierre_antes_de_tiempo', 'c_orden_aleatorio', 'c_prueba_antes_de_tiempo']) {
+      const { e } = await armarCaso(caso, `medir-marcha-${caso.slice(2, 12).replace(/_/g, '-')}`);
+      expect(JSON.parse(readFileSync(join(e.memoria, 'proyecto.json'), 'utf8')).objetivo, caso).toEqual(META_EN_MARCHA);
+      const r = e.bandeja('--sin-transcribir');
+      expect(r.codigo, `${caso}: ${r.errores}`).toBe(0);
+      expect(r.salida, caso).toContain('## Etapa del arranque: EN_MARCHA');
+    }
+  }, 240_000);
+
   it('«Quedarse sin misión»: un lote corto con la cola del director como razón no pasa ni cierra; la reserva entera pasa y cierra', async () => {
     const { e, comprobar } = await armarCaso('c_sin_mision', 'medir-reserva');
     expect(comprobar()).toEqual([`la persona alcanza 0 de ${RESERVA_MINIMA} misiones: no hay lote corto escrito`]);
@@ -322,6 +339,16 @@ describe('la medición del núcleo con casos fijos', () => {
       '«Prueba la exportación del informe a Excel» llega antes de lo que necesita: la exportación aún no está',
       '«Prueba la exportación del informe a Excel» no dice por qué va en ese punto',
     ]);
+    // Nombrar el Excel no la vuelve la de probarlo: la que pide contar qué columnas lleva no necesita que ya esté
+    const columnas = structuredClone(e.plan());
+    columnas.misiones = columnas.misiones.filter((m) => m.id !== 't_probar_excel');
+    columnas.misiones.unshift(mision('t_columnas_excel', 'Cuenta qué columnas debe traer el Excel', { porQue: 'Va antes de construir la exportación a Excel: dice qué lleva.', origen: [NOTA_PROBAR_EXCEL] }));
+    for (const m of columnas.misiones) if (m.id.startsWith('t_dato_')) m.porQue = `${m.porQue} El Excel lo necesita.`;
+    expect(comprobar(columnas)).toEqual([`lo aprobado quedó sin su lugar en la cola del director: ${PROPUESTA_PENDIENTE}`, 'no dejó la misión de probar la exportación, que pidió la persona']);
+    // La que nace de la nota y dice que prueba sí es la de probarla, aunque no nombre el Excel
+    const sinNombrarlo = structuredClone(columnas);
+    sinNombrarlo.misiones[0] = mision('t_probarla', 'Pruébala tú antes de mostrársela al cliente', { origen: [NOTA_PROBAR_EXCEL] });
+    expect(comprobar(sinNombrarlo)).toContain('«Pruébala tú antes de mostrársela al cliente» llega antes de lo que necesita: la exportación aún no está');
     // Lo correcto: la exportación en la cola, y la misión de probarla después de ella, con su porqué
     e.cambiarPlan((p) => {
       p.colaDirector = [PROPUESTA_PENDIENTE];

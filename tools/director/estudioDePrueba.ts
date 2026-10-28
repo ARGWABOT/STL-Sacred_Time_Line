@@ -5,7 +5,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { EstadoPersona, Nota, Plan } from '../../src/director/director.ts';
+import type { EstadoPersona, Nota, Objetivo, Plan } from '../../src/director/director.ts';
 import { abrirMemoria, crearProyecto, guardarRutaRepositorio, leerLocal, marcarRevision, pedirRevision } from '../../src/director/proyectos.ts';
 
 // El Studio donde está este archivo, calculado al usarlo: el servidor del Studio, que lo importa para la corrida de la
@@ -25,6 +25,10 @@ export interface OpcionesDePrueba {
   plan?: (p: Plan) => void;
   /** Los commits del repositorio desde la revisión anterior, por su asunto. */
   commits?: string[];
+  /** La meta que fijó el titular, en el proyecto.json de la memoria; sin ella, el proyecto nace sin meta. */
+  objetivo?: Objetivo;
+  /** Lo que trae el repositorio del proyecto (ruta y texto), en su primer commit; sin nada, nace vacío. */
+  archivos?: Record<string, string>;
   titular?: { nombre: string; correo: string };
   /**
    * Con el código del Studio dentro (copiarElStudio): para la corrida de la medición, donde el director de verdad trabaja
@@ -55,7 +59,7 @@ function copiarElStudio(destino: string, raiz: string) {
 }
 
 /** Un Estudio temporal dentro de `base`, con un proyecto recién entregado y una revisión en curso. */
-export async function armarEstudioDePrueba(base: string, { id, notas, delTitular = {}, plan: antes, commits = [], titular = { nombre: 'Laura', correo: 'laura@ejemplo.co' }, conCodigo = false, raiz = raizReal() }: OpcionesDePrueba) {
+export async function armarEstudioDePrueba(base: string, { id, notas, delTitular = {}, plan: antes, commits = [], objetivo, archivos = {}, titular = { nombre: 'Laura', correo: 'laura@ejemplo.co' }, conCodigo = false, raiz = raizReal() }: OpcionesDePrueba) {
   const dir = mkdtempSync(join(base, 'e-'));
   const estudio = join(dir, 'estudio');
   const repo = join(dir, 'repo');
@@ -64,11 +68,20 @@ export async function armarEstudioDePrueba(base: string, { id, notas, delTitular
   if (conCodigo) copiarElStudio(estudio, raiz);
   else cpSync(join(raiz, 'plantilla'), join(estudio, 'plantilla'), { recursive: true });
   git(repo, 'init', '-q', '-b', 'main');
+  for (const [ruta, texto] of Object.entries(archivos)) {
+    mkdirSync(dirname(join(repo, ruta)), { recursive: true });
+    writeFileSync(join(repo, ruta), texto);
+  }
+  git(repo, 'add', '-A');
   git(repo, 'commit', '-q', '--allow-empty', '-m', 'código');
   await abrirMemoria(repo);
   await guardarRutaRepositorio(estudio, id, repo);
   await crearProyecto(estudio, { id, nombre: 'Proyecto de prueba', contexto: 'Un proyecto para probar al director.', metaInicial: 'Cerrar una revisión', url: '', titular });
   const memoria = join(repo, '.stl');
+  if (objetivo) {
+    const rutaProyecto = join(memoria, 'proyecto.json');
+    writeFileSync(rutaProyecto, JSON.stringify({ ...JSON.parse(readFileSync(rutaProyecto, 'utf8')), objetivo }, null, 2) + '\n');
+  }
   const rutaPlan = join(memoria, 'director', 'plan.json');
   const textoDelPlan = () => readFileSync(rutaPlan, 'utf8');
   const plan = () => JSON.parse(textoDelPlan()) as Plan;
