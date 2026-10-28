@@ -27,6 +27,7 @@ import { anotar, EL_STUDIO } from '../../src/director/bitacora';
 import { anotarDirector, archivoDelCandado, quienLoTiene, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado';
 import { guardarLineasDeRevision } from '../../src/director/lineasDeRevision';
 import { esFinEscrito, type FinEscrito, type QuienTermino } from '../../src/director/finDeLanzamiento';
+import { ventanaAgotada } from '../../src/director/limites';
 import { paqueteDeRegistro, REGISTRO, REVISIONES, tokensEstimados, VARIABLE_REGISTRO } from '../../src/director/paquete';
 import { autorizadasPara, NEGACION, NUNCA_SIEMPRE, ordenDePruebas, permisosNegados, pruebasOfrecidas, reglaDeRuta, type PermisoNegado, type RegistroLeido } from './permisosNegados';
 
@@ -72,6 +73,20 @@ export function registrosParaPodar(nombres: readonly string[], ahora: Date, dias
   return registros
     .filter((r) => r.cuando < limite && r.cuando < ultimo.get(r.grupo)!)
     .flatMap((r) => [r.n, ...Object.values(paqueteDeRegistro(r.n)).filter((p) => presentes.has(p))]);
+}
+
+/**
+ * Si la ventana de uso de la cuenta está agotada, según el último lanzamiento del director en este computador (de
+ * cualquier proyecto: el límite es de la cuenta), y cuándo se renueva (limites.ts › ventanaAgotada).
+ */
+export function ventanaAgotadaDe(carpeta: string, ahora = Date.now()): { renueva: string } | null {
+  try {
+    const cuando = (n: string) => { const m = REGISTRO.exec(n); return m ? `${m[3]}T${m[4]}${m[5]}${m[6]}${m[7]}` : ''; };
+    const ultimo = readdirSync(carpeta).filter((n) => REGISTRO.test(n)).sort((a, b) => cuando(b).localeCompare(cuando(a)))[0];
+    return ultimo ? ventanaAgotada(readFileSync(join(carpeta, ultimo), 'utf-8'), ahora) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Borra los registros viejos (registrosParaPodar) y deja en la bitácora cuántos; el que no se pueda borrar, queda para el lanzamiento siguiente. */
@@ -1613,16 +1628,31 @@ export class Revisor {
   }
 
   /**
-   * Lo pedido espera porque otro director tiene el candado del proyecto: el Studio lo dice en la cabecera y, una vez por
-   * cada director que lo tiene, en la bitácora. El reloj de 15 segundos lo vuelve a intentar.
+   * Lo pedido espera, y el Studio dice por qué en la cabecera (`texto`, una frase entera) y, una vez por cada causa
+   * (`clave`), en la bitácora (`que`). El reloj de 15 segundos lo vuelve a intentar.
    */
-  private async esperarCandado(proyecto: string, de: Candado): Promise<void> {
-    const texto = quienLoTiene(de, { estudio: this.raiz });
+  private async esperar(proyecto: string, texto: string, clave: string, que: string): Promise<void> {
     this.espera = { proyecto, texto };
-    const clave = `${proyecto}|${de.quien}|${de.estudio}|${de.desde}`;
     if (this.esperaAnotada === clave) return;
     this.esperaAnotada = clave;
-    await anotar(this.raiz, { quien: EL_STUDIO, que: `no lanza al director: ${texto.charAt(0).toLowerCase()}${texto.slice(1)}, y trabaja un director a la vez en cada proyecto. Lo pedido espera su turno y se lanza solo cuando ese director cierre`, desde: 'el lanzador del director', proyecto }).catch(() => undefined);
+    await anotar(this.raiz, { quien: EL_STUDIO, que, desde: 'el lanzador del director', proyecto }).catch(() => undefined);
+  }
+
+  /** Otro director tiene el candado del proyecto (pd_un_director): lo pedido espera a que cierre. */
+  private esperarCandado(proyecto: string, de: Candado): Promise<void> {
+    const quien = quienLoTiene(de, { estudio: this.raiz });
+    return this.esperar(proyecto, `${quien}; esta empieza sola en cuanto él cierre, porque trabaja un director a la vez en cada proyecto.`, `candado|${proyecto}|${de.quien}|${de.estudio}|${de.desde}`,
+      `no lanza al director: ${quien.charAt(0).toLowerCase()}${quien.slice(1)}, y trabaja un director a la vez en cada proyecto. Lo pedido espera su turno y se lanza solo cuando ese director cierre`);
+  }
+
+  /**
+   * La ventana de uso de la cuenta está agotada (pr_procesos_vista, punto 4): no se lanza al director a fallar en cuanto
+   * empieza; lo pedido espera a que se renueve, y entonces se lanza, porque la persona ya lo pidió.
+   */
+  private esperarRenovacion(proyecto: string, renueva: string): Promise<void> {
+    const cuando = new Date(renueva).toLocaleString('es', { weekday: 'long', hour: 'numeric', minute: '2-digit' });
+    return this.esperar(proyecto, `Tu plan de Claude llegó a su límite de uso, que se renueva el ${cuando}: esta se lanza sola entonces, en vez de empezar a fallar.`, `limite|${renueva}`,
+      `no lanza al director: tu plan de Claude llegó a su límite de uso, que se renueva el ${cuando}. Lo pedido espera y se lanza cuando se renueve`);
   }
 
   /** Busca Claude Code y si tiene sesión: cada minuto como mucho. `agente: false` en estudio.local.json lo apaga. */
@@ -1780,6 +1810,12 @@ export class Revisor {
     if (!tomarTurno(turno)) return;
     const antes = await leerLocal(this.raiz);
     if (!sigueSinLanzar(antes, proyecto, aparte)) return soltarTurno(turno);
+    // Con la ventana de uso de la cuenta agotada, lanzarlo es verlo fallar al empezar: lo pedido espera a que se renueve
+    const agotada = ventanaAgotadaDe(carpeta);
+    if (agotada) {
+      soltarTurno(turno);
+      return void (await this.esperarRenovacion(proyecto, agotada.renueva));
+    }
     // Los registros de más de quince días salen antes de escribir el nuevo (DIAS_REGISTROS); si falla, se lanza igual
     await podarRegistros(this.raiz, carpeta, proyecto).catch(() => undefined);
     // Pedida de nuevo después de una que no se cerró: retoma lo que esa dejó (la bandeja lo lista)

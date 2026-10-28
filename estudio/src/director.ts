@@ -105,6 +105,7 @@ import type { FallaRevision, ModoPermisos } from '../../src/director/proyectos';
 import type { EventoBitacora } from '../../src/director/bitacora';
 import { duracionAprox, type Alcance as AlcanceMedicion } from '../../src/director/corrida';
 import { contarFinales, NOMBRE_FIN, type FinEscrito } from '../../src/director/finDeLanzamiento';
+import { limiteCasiLleno } from '../../src/director/limites';
 import type { ResumenProyecto } from '../servidor/director';
 import type { OpcionAjuste } from '../servidor/ajustesPropios';
 import { ofrecidoEnVivo, pendientesEnVivo, type PermisoAutorizado, type PermisoNegado } from '../servidor/permisosNegados';
@@ -1280,7 +1281,7 @@ const SIGUE_AQUI = 'Lo que escribiste, grabaste o adjuntaste sigue aquí: vuelve
  * (pedido del titular pd_nada_se_corta): mientras guarda, ni Cancelar, ni Esc, ni un clic fuera lo cierran; si no se
  * guardó, queda abierto con todo lo escrito, grabado y adjunto, y lo dice. `guardar` devuelve true si quedó guardado.
  */
-function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: string; audio?: boolean; vacioVale?: boolean; adjuntos?: boolean; actuales?: Adjunto[]; urgente?: boolean; guardar?: (r: Dicho) => Promise<boolean> }): Promise<(Record<string, string> & { audio?: string; adjuntos?: { nombre: string; datos: string }[] }) | null> {
+function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: string; cancelar?: string; audio?: boolean; vacioVale?: boolean; adjuntos?: boolean; actuales?: Adjunto[]; urgente?: boolean; guardar?: (r: Dicho) => Promise<boolean> }): Promise<(Record<string, string> & { audio?: string; adjuntos?: { nombre: string; datos: string }[] }) | null> {
   const dlg = $('dialogo') as HTMLDialogElement;
   // El ✉ es uno solo: si sigue abierto (graba a un lado y la página quedó con clics), no se rehace encima de lo grabado.
   // Queda como está y la persona lee por qué en su pastilla, que siempre está a la vista (grabadora.ts › antesDeOtroSobre)
@@ -1309,7 +1310,7 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
     ${o.adjuntos ? '<div class="adjuntos" data-adjuntos></div>' : ''}
     ${o.urgente ? campoUrgente() : ''}
     <p class="error-explorador" role="alert"></p>
-    <div class="botones"><button type="button" data-cancelar>Cancelar</button><button type="submit" class="primario">${esc(o.boton)}</button></div>
+    <div class="botones"><button type="button" data-cancelar>${esc(o.cancelar ?? 'Cancelar')}</button><button type="submit" class="primario">${esc(o.boton)}</button></div>
   </form>`;
   const grabadora = (grabadoraDelSobre = o.audio ? new Grabadora(dlg.querySelector('[data-grabadora]') as HTMLElement) : null);
   const adjuntos = o.adjuntos ? new Adjuntos(dlg.querySelector('[data-adjuntos]') as HTMLElement, dlg.querySelector('form')!, (t) => avisar(t)) : null;
@@ -2160,7 +2161,10 @@ const vigilando = () => !!d.vigilia && Date.now() - Date.parse(d.vigilia) < (VIG
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es', { hour: 'numeric', minute: '2-digit' });
 /** El Studio lanza solo al director: no hace falta ninguna sesión abierta mirando. */
 const automatica = () => !!d.revisor?.agente && !d.revisor.problema;
-/** La revisión pedida espera porque otro director tiene el candado de su proyecto (la sesión del director, u otro Studio). */
+/**
+ * La revisión pedida espera aunque nadie trabaje desde este Studio: otro director tiene el candado de su proyecto (la sesión
+ * del director, u otro Studio), o la ventana de uso de tu plan está agotada.
+ */
 const esperaCandado = () => !!d.revision && !!d.revisor?.espera && d.revisor.espera.proyecto === d.activo;
 /** En qué va la revisión pedida, en una frase (para la cabecera y lo que pasa en segundo plano). */
 function estadoRevision(): { estado: 'ninguna' | 'pedida' | 'en_curso' | 'sin_vigilia'; texto: string } {
@@ -2172,10 +2176,11 @@ function estadoRevision(): { estado: 'ninguna' | 'pedida' | 'en_curso' | 'sin_vi
   // proyecto): esta espera su turno y empieza sola, porque trabaja un director a la vez (nota de voz del 22 de octubre)
   if (r && !r.hecha && automatica() && d.revisor?.revisando)
     return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: espera su turno. ${d.revisor.revisando === d.activo ? 'El director de la revisión anterior ya la cerró, pero sigue terminando lo último' : 'Un director está trabajando en otro proyecto'}; esta empieza sola en cuanto él termine, porque trabaja un director a la vez.` };
-  // Otro director tiene el candado del proyecto: la sesión del director, que corre «revisa estudio» a mano, o uno que
-  // lanzó otra copia del Studio (pd_un_director). Esta espera su turno y empieza sola cuando él cierre
+  // Otro director tiene el candado del proyecto (la sesión del director, que corre «revisa estudio» a mano, o uno que
+  // lanzó otra copia del Studio; pd_un_director), o la ventana de uso de tu plan está agotada (pr_procesos_vista, punto
+  // 4): esta espera su turno y empieza sola, y el porqué lo dice el servidor
   if (r && !r.hecha && automatica() && esperaCandado())
-    return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: espera su turno. ${d.revisor!.espera!.texto}; esta empieza sola en cuanto él cierre, porque trabaja un director a la vez en cada proyecto.` };
+    return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: espera su turno. ${d.revisor!.espera!.texto}` };
   if (r && !r.hecha && automatica()) return { estado: 'pedida', texto: `Revisión pedida a las ${hora(r.pedida)}: el Studio está llamando al director.` };
   if (r && !r.hecha && !vigilando())
     return { estado: 'sin_vigilia', texto: `Revisión pedida a las ${hora(r.pedida)}, pero nadie la está tomando. ${d.revisor?.problema ?? 'El Studio no encontró Claude Code en este computador para llamar al director.'} Mientras tanto, en la sesión del director, escribe /loop 5m /vigila, o «revisa estudio».` };
@@ -2397,6 +2402,25 @@ async function pedirAclaracion(mision: string, i: number) {
  * solo la persona la pide (regla dura del titular, 23 de octubre de 2026). `callada`: sin el aviso de que quedó pedida.
  * ¿Quedó pedida?
  */
+/**
+ * Si al pedir la revisión el límite de cada cinco horas de tu plan va en el 90 % o más (lo último que informó Claude Code,
+ * y no se ha renovado), dice cuánto llevas y cuándo se renueva, con «Pedirla de todos modos» y «Esperar» (tu elección del
+ * 26 de octubre de 2026, en «Cada proceso, a la vista»). true: se pide.
+ */
+async function seguirCercaDelLimite(): Promise<boolean> {
+  const v = limiteCasiLleno((d.consumo ?? []).find((x) => x.limites?.cincoHoras)?.limites?.cincoHoras);
+  if (!v) return true;
+  const si = await pedir({
+    titulo: 'Tu límite de cada cinco horas está casi lleno',
+    ayuda: `Llevas el ${v.uso.toLocaleString('es')} % de tu límite de cada cinco horas, y se renueva el ${fecha(v.renueva!)} a las ${hora(v.renueva!)}. Es lo que informó Claude Code al terminar el último lanzamiento: con lo que hayas usado después en otras sesiones, puede ser más. Una revisión gasta una parte grande de ese límite y, si llega al 100 %, se detiene a mitad de camino: lo hecho queda guardado, y la retomas cuando se renueve. Con «Esperar» no se pide nada.`,
+    campos: [],
+    boton: 'Pedirla de todos modos',
+    cancelar: 'Esperar',
+    vacioVale: true,
+  });
+  return !!si;
+}
+
 async function pedirLaRevision(pedir: boolean, origen?: 'cabecera' | 'falla' | 'falla_nota' | 'falla_sin_ultracode' | 'meta' | 'urgente' | 'recomendada' | 'permisos' | 'seguidas', callada = false): Promise<boolean> {
   // Ningún camino pide una segunda revisión mientras un director vive: se dice qué corre y por qué
   const ocupado = pedir ? directorOcupado() : null;
@@ -2404,6 +2428,8 @@ async function pedirLaRevision(pedir: boolean, origen?: 'cabecera' | 'falla' | '
     avisar(ocupado ? `${ocupado.corto}. ${ocupado.porque}` : 'El director ya está revisando: trabaja un director a la vez, y «Pedir revisión» vuelve en cuanto termine.');
     return false;
   }
+  // Con el límite de cada cinco horas casi lleno, primero cuánto queda y cuándo se renueva (pr_procesos_vista, punto 4)
+  if (pedir && !(await seguirCercaDelLimite())) return false;
   const r = await fetch('/__estudio/director/revision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pedir, ...(pedir ? { origen } : {}) }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
   if (r instanceof Error || !r.ok) {
     // Si el servidor dice por qué no, se muestra su mensaje tal cual
