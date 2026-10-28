@@ -26,6 +26,7 @@ import { dirname, join, resolve } from 'node:path';
 import {
   aclaracionesDe,
   EN_VUELTAS,
+  pideUnaRegla,
   archivar,
   juntarArchivos,
   partirArchivoPorMes,
@@ -295,7 +296,7 @@ if (args.includes('--urgente')) {
     const { plan, estado, proyecto } = await leerTodo(pedido, false);
     const errores = validarPlan(plan, proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : undefined);
     const sinRespuesta = u.notas.filter((n) => !plan.respuestas?.[n]);
-    const sinDestino = respuestasSinDestino(plan, estado.notas.filter((n) => u.notas.includes(n.id)), u.pedida).filter((n) => u.notas.includes(n));
+    const sinDestino = respuestasSinDestino(plan, conLoDicho(estado.notas.filter((n) => u.notas.includes(n.id))), u.pedida).filter((n) => u.notas.includes(n));
     const noCaben = tratamientosQueNoCaben(plan, estado.notas.filter((n) => u.notas.includes(n.id)), u.pedida);
     if (sinRespuesta.length || sinDestino.length || noCaben.length || errores.length) {
       for (const n of sinRespuesta) console.error(`No se cerró la urgencia: falta la respuesta a la nota ${n}.`);
@@ -384,9 +385,9 @@ if (args.includes('--listo')) {
   // (correr --listo otra vez antes del commit no lo mueve), lo avanzado y el mensaje
   const guardado = planGuardado(rutasDe(elegido).plan);
   const desde = comienzoDeLaRevision(plan.revisado, guardado?.revisado);
-  const sinDestino = respuestasSinDestino(plan, estado.notas, desde);
+  const sinDestino = respuestasSinDestino(plan, conLoDicho(estado.notas), desde);
   if (sinDestino.length) {
-    console.error('No se cerró la revisión: estas respuestas llevan algo al plan pero no dicen dónde quedó (`destino`: la misión, la propuesta, la fase o la parte del documento):');
+    console.error('No se cerró la revisión: estas respuestas llevan algo al plan (o responden una nota que pide una regla) pero no dicen dónde quedó (`destino`: la misión, la propuesta, la fase, la parte del documento o lo que vigila la regla):');
     for (const id of sinDestino) console.error(`- ${id}`);
     process.exit(1);
   }
@@ -728,6 +729,24 @@ function lineasDeRetoma(proyecto: string, plan: Plan, desde: string, repositorio
   return l;
 }
 
+/** Lo que la bandeja dice junto a una nota que pide una regla (pideUnaRegla). */
+const PIDE_UNA_REGLA = '  ⚑ Pide una regla: no la recortes en tu respuesta. Llévala tal cual a donde la vigile el código (y, si es del Studio, a su inventario, src/director/reglasDelTitular.ts, con lo que la vigila) o plantéala como decisión si choca con otra; su respuesta dice dónde quedó (`destino`), o el cierre no pasa.';
+
+/**
+ * Las notas con lo que se dijo en su audio, si no traen texto: así una regla pedida de viva voz también se reconoce
+ * (pideUnaRegla). Lo que no se transcribió queda como estaba.
+ */
+function conLoDicho<T extends { texto?: string; audio?: string }>(notas: T[]): T[] {
+  return notas.map((n) => {
+    if (n.texto?.trim() || !n.audio) return n;
+    try {
+      return { ...n, texto: readFileSync(enDiscoDe(raiz, txtDeAudio(n.audio)), 'utf-8') };
+    } catch {
+      return n;
+    }
+  });
+}
+
 /** El plan.json del disco, tal cual (sin lo archivado), para compararlo con el del último commit; null si no se lee. */
 function planEnDisco(proyecto: string): Plan | null {
   try {
@@ -1029,6 +1048,8 @@ for (const n of comentarios) {
   const aMano = destinosDeNota(plan, n, fase?.id);
   if (aMano.length) linea(`  Destinos a mano (existen; si nace un pedido o una propuesta, el suyo): ${aMano.map((d) => `\`${JSON.stringify(d)}\``).join(' · ')}`);
   linea(`  Tratamientos que le caben: ${tratamientosDeNota(n).join(' · ')}`);
+  // Una regla pedida no se recorta (pr_cierre_vigilado, punto 5): va tal cual a donde la vigile el código, o es una decisión
+  if (pideUnaRegla(n.texto?.trim() || transcripcion(n.audio) || '')) linea(PIDE_UNA_REGLA);
 }
 
 // Las preguntas van aparte: el titular las lee en «Preguntas», como un informe (docs/metodo/director/review-cycle.md › los pasos, paso 8)

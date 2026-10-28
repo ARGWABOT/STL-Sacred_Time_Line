@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import planPlantilla from '../../plantilla/plan.json';
 import proyectoPlantilla from '../../plantilla/proyecto.json';
 import {
+  pideUnaRegla,
   juntarArchivos,
   mesDelArchivo,
   partirArchivoPorMes,
@@ -288,6 +289,16 @@ describe('el arranque: del repositorio a la ruta', () => {
     expect(validarPlan(p)).toEqual([]);
     p.respuestas.n2 = { cuando: '2026-10-16T10:00:00.000Z', texto: 'x', tratamiento: 'quizas' as never };
     expect(validarPlan(p)).toHaveLength(1);
+  });
+
+  it('una nota que pide una regla no se recorta: su respuesta, salvo rechazada, dice dónde quedó (pr_cierre_vigilado, punto 5)', () => {
+    for (const t of ['De ahora en adelante, cada paso con su botón.', 'Quiero que siempre me digas el costo.', 'Que nunca se pida una revisión sola.', 'Esto es una regla: nada a la web.', 'Se considera regla.', 'Regla dura: un director a la vez.'])
+      expect(pideUnaRegla(t), t).toBe(true);
+    for (const t of ['Siempre me gustó el amarillo.', 'Se ve así.', 'Nunca lo vi.', 'La regla del Excel está bien.']) expect(pideUnaRegla(t), t).toBe(false);
+    const cuando = '2026-10-19T10:00:00.000Z';
+    const p: Plan = { ...planEjemplo(), respuestas: { r1: { cuando, texto: 'Entendido', tratamiento: 'informada' }, r2: { cuando, texto: 'No va', tratamiento: 'rechazada' }, r3: { cuando, texto: 'Bien', tratamiento: 'informada' } } };
+    const nota = (id: string, texto: string) => ({ id, cuando, quien: 'Laura', sobre: { tipo: 'general' as const }, texto });
+    expect(respuestasSinDestino(p, [nota('r1', 'De ahora en adelante, avísame antes.'), nota('r2', 'Que nunca suba nada.'), nota('r3', 'Se ve bien.')], '2026-10-19T00:00:00.000Z')).toEqual(['r1']);
   });
 
   it('el doble check: lo que se lleva al plan dice dónde quedó, y ese lugar existe', () => {

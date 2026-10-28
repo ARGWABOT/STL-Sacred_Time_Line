@@ -589,11 +589,22 @@ const TRATAMIENTOS_CON_DESTINO: readonly Tratamiento[] = ['integrada', 'aplazada
  */
 export function respuestasSinDestino(plan: Plan, notas: Nota[], desde: string): string[] {
   const decisiones = new Set(notas.filter(decideDecision).map((n) => n.id));
+  // Y una nota que pide una regla (pideUnaRegla): no se recorta en su respuesta, se lleva a donde la vigile el código
+  const reglas = new Set(notas.filter((n) => pideUnaRegla(n.texto ?? '')).map((n) => n.id));
   return Object.entries(plan.respuestas ?? {})
     .filter(([id, r]) => r.cuando >= desde && !r.destino
-      && (TRATAMIENTOS_CON_DESTINO.includes(r.tratamiento!) || (decisiones.has(id) && r.tratamiento !== 'rechazada')))
+      && (TRATAMIENTOS_CON_DESTINO.includes(r.tratamiento!) || ((decisiones.has(id) || reglas.has(id)) && r.tratamiento !== 'rechazada')))
     .map(([id]) => id);
 }
+
+/**
+ * Si una nota pide una regla para siempre (propuesta aceptada «El cierre no deja nada sin atender», pr_cierre_vigilado,
+ * punto 5): «de ahora en adelante», «que siempre», «que nunca», «es una regla»… Una regla que alguien pide no se recorta
+ * en la respuesta: se lleva tal cual a donde la vigile el código (y, si es del Studio, a su inventario,
+ * reglasDelTitular.ts) o se plantea como decisión; por eso su respuesta, salvo que se rechace, dice dónde quedó. Pura.
+ */
+export const pideUnaRegla = (texto: string): boolean =>
+  /\b(?:de ahora en adelante|a partir de ahora|desde ahora|que siempre|que nunca|siempre que|nunca m[aá]s|como regla|es una regla|se considera regla|regla (?:dura|inviolable|cr[ií]tica)|para siempre)\b/i.test(texto);
 
 // ───────────────────────────────────────────────────────────── el archivo del plan
 
