@@ -20,6 +20,22 @@ export function desplazamientoParaVer(lista: { top: number; bottom: number }, el
   return el.top - lista.top - Math.max(0, (lista.bottom - lista.top - (el.bottom - el.top)) / 2);
 }
 
+/** El idioma de quien lee: el de la interfaz, que todavía es solo el español (elegirlo es de una fase que viene, pd_bilingue). */
+export const IDIOMA_DE_QUIEN_LEE = 'es';
+
+/**
+ * La versión de un documento en el idioma de quien lee, si está a su lado (X.md → X.es.md): los procedimientos del
+ * director nacen en inglés, para el modelo, y traen su versión en español, que es la que se lee y se aprueba (propuesta
+ * aceptada «Las reglas, a la medida de cada encargo», pr_reglas_por_encargo, punto 6). Igual con cualquier documento que
+ * venga así, de cualquier proyecto. Si no la hay, o si ya es una versión (X.en.md), el mismo. `hay`: las rutas que
+ * existen. Pura.
+ */
+export function enSuIdioma(ruta: string, hay: readonly string[], idioma = IDIOMA_DE_QUIEN_LEE): string {
+  if (!/\.md$/i.test(ruta) || /\.[a-z]{2}\.md$/i.test(ruta)) return ruta;
+  const version = ruta.replace(/\.md$/i, `.${idioma}.md`);
+  return hay.includes(version) ? version : ruta;
+}
+
 /**
  * Si un archivo del repositorio (`repo:…`) es una instrucción para los agentes de IA y no documentación: CLAUDE.md,
  * AGENTS.md y los comandos de Claude Code (.claude/commands/) y de Codex (.agents/skills/<n>/SKILL.md, .codex/prompts/).

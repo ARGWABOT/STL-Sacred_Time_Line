@@ -1,9 +1,27 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { abiertaEnLista, desplazamientoParaVer, instruccionDeAgente } from './listas';
+import { abiertaEnLista, desplazamientoParaVer, enSuIdioma, IDIOMA_DE_QUIEN_LEE, instruccionDeAgente } from './listas';
 
 const director = readFileSync(join(__dirname, 'director.ts'), 'utf-8');
+
+describe('cada procedimiento, en el idioma de quien lo lee (pr_reglas_por_encargo, punto 6)', () => {
+  const hay = ['docs/metodo/director/review-cycle.md', 'docs/metodo/director/review-cycle.es.md', 'docs/metodo/metodologia.md', 'repo:README.md', 'repo:README.en.md'];
+  it('abre la versión de quien lee si está a su lado; si no, o si ya es una versión, el mismo', () => {
+    expect(IDIOMA_DE_QUIEN_LEE).toBe('es');
+    expect(enSuIdioma('docs/metodo/director/review-cycle.md', hay)).toBe('docs/metodo/director/review-cycle.es.md');
+    expect(enSuIdioma('docs/metodo/metodologia.md', hay)).toBe('docs/metodo/metodologia.md');
+    expect(enSuIdioma('docs/metodo/director/review-cycle.es.md', hay)).toBe('docs/metodo/director/review-cycle.es.md');
+    // Quien lee en inglés abre la principal; la de otro idioma se respeta si la piden por su ruta
+    expect(enSuIdioma('repo:README.md', hay, 'en')).toBe('repo:README.en.md');
+    expect(enSuIdioma('repo:README.en.md', hay)).toBe('repo:README.en.md');
+    expect(enSuIdioma('docs/director/ruta.md', hay)).toBe('docs/director/ruta.md');
+  });
+
+  it('el Studio lo usa al abrir un documento, salvo el que pide leer una misión o el plan, cuyas partes leídas se cuentan por su ruta', () => {
+    expect(director).toContain('if (!enCola.some((x) => x.ruta === ruta) && !d.plan.documentos.some((x) => x.ruta === ruta)) ruta = enSuIdioma(ruta, (documentos ?? []).map((x) => x.ruta));');
+  });
+});
 
 describe('las listas no se pliegan solas al abrir algo (nota del titular, 22 de octubre de 2026)', () => {
   it('una parte abierta sigue abierta: ni abrir un elemento de otra parte ni un repintado la pliegan', () => {

@@ -122,7 +122,7 @@ import { Adjuntos } from './adjuntos';
 import { activarDibujos } from './dibujos';
 import { claveAbierto as claveAbiertoDe, clavePasos, esc, pasosHechos as pasosHechosDe } from './util';
 import { colaDelDirectorHtml } from './colaDirector';
-import { abiertaEnLista, desplazamientoParaVer, instruccionDeAgente } from './listas';
+import { abiertaEnLista, desplazamientoParaVer, enSuIdioma, instruccionDeAgente } from './listas';
 import { PESTANA_MODELO_INICIAL, PESTANAS_MODELO, pestanaConTecla, pestanaDeAncla, pestanaModeloValida, type PestanaModelo } from './pestanasModelo';
 import { pestanaRutaConTecla, pestanaRutaElegida, pestanaRutaValida, pestanasRutaVisibles, tituloPestanaRuta, type PestanaRuta } from './pestanasRuta';
 import { avisoDeEspera, resumenComentarios, segundosParaLeer } from './lectura';
@@ -1085,6 +1085,9 @@ async function abrirDocumento(ruta: string, seccion: string | null = null) {
     return avisar(`Ese documento se abre cuando termines de leer «${tituloDoc(ahora?.ruta ?? '')}»: una cosa a la vez.`);
   }
   await cargarDocumentos();
+  // En el idioma de quien lee, si el documento trae esa versión a su lado (los procedimientos del director: X.md, en
+  // inglés, y X.es.md): no el que pide leer una misión o el plan, cuyas partes leídas se cuentan por su ruta
+  if (!enCola.some((x) => x.ruta === ruta) && !d.plan.documentos.some((x) => x.ruta === ruta)) ruta = enSuIdioma(ruta, (documentos ?? []).map((x) => x.ruta));
   const r = await fetch(`/__estudio/director/documento?ruta=${encodeURIComponent(ruta)}`);
   if (!r.ok) return avisar((await r.json().catch(() => ({}))).error ?? 'No se pudo abrir el documento.');
   doc = await r.json();
