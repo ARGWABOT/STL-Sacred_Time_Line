@@ -5,11 +5,31 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ventanaAgotadaDe } from '../../estudio/servidor/revisor';
-import { limiteCasiLleno, UMBRAL_LIMITE, ventanaAgotada } from './limites';
+import { MAX_MIN_REVISION } from './director';
+import { limiteCasiLleno, tiempoDeRevision, UMBRAL_LIMITE, ventanaAgotada } from './limites';
 
 const AHORA = Date.parse('2026-10-28T08:00:00.000Z');
 const en = (min: number) => new Date(AHORA + min * 60_000).toISOString();
 const aviso = (status: string, resetsAt?: number) => JSON.stringify({ type: 'rate_limit_event', rate_limit_info: { status, ...(resetsAt ? { resetsAt } : {}) } });
+
+describe('mientras el director trabaja, lo que lleva y lo que le queda de su límite (pr_procesos_vista, punto 3)', () => {
+  it('cuenta desde que se lanzó, con el límite que estimó el director o el de siempre, y nunca queda en negativo', () => {
+    expect(tiempoDeRevision({ lanzada: en(-25), limite: 180 }, AHORA)).toEqual({ lleva: 25, limite: 180, queda: 155 });
+    expect(tiempoDeRevision({ lanzada: en(-25) }, AHORA)).toEqual({ lleva: 25, limite: MAX_MIN_REVISION, queda: MAX_MIN_REVISION - 25 });
+    expect(tiempoDeRevision({ lanzada: en(-200), limite: 180 }, AHORA)).toEqual({ lleva: 200, limite: 180, queda: 0 });
+    expect(tiempoDeRevision({ lanzada: en(0.5) }, AHORA)?.lleva).toBe(0);
+    // Sin lanzar, o sin una fecha que se entienda, nada
+    expect(tiempoDeRevision({}, AHORA)).toBeNull();
+    expect(tiempoDeRevision(null, AHORA)).toBeNull();
+    expect(tiempoDeRevision({ lanzada: 'ayer' }, AHORA)).toBeNull();
+  });
+
+  it('la cabecera lo dice mientras el director revisa', () => {
+    const vista = readFileSync(join(import.meta.dirname, '..', '..', 'estudio', 'src', 'director.ts'), 'utf8');
+    expect(vista).toContain('const tiempo = tiempoDeRevision(r);');
+    expect(vista).toContain('lleva ${t.lleva} min de ${t.limite}');
+  });
+});
 
 describe('los límites de uso de tu plan, antes de lanzar al director', () => {
   it('avisa al pedir la revisión desde el 90 % del límite de cada cinco horas, si aún no se renovó', () => {

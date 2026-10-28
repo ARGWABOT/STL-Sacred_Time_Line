@@ -105,7 +105,7 @@ import type { FallaRevision, ModoPermisos } from '../../src/director/proyectos';
 import type { EventoBitacora } from '../../src/director/bitacora';
 import { duracionAprox, type Alcance as AlcanceMedicion } from '../../src/director/corrida';
 import { contarFinales, NOMBRE_FIN, type FinEscrito } from '../../src/director/finDeLanzamiento';
-import { limiteCasiLleno } from '../../src/director/limites';
+import { limiteCasiLleno, tiempoDeRevision } from '../../src/director/limites';
 import { enTuPlan, esPlanDeClaude, PLANES_DE_CLAUDE, semanaDeCadaUno, type PlanDeClaude } from '../../src/director/costoDelPlan';
 import type { ResumenProyecto } from '../servidor/director';
 import type { OpcionAjuste } from '../servidor/ajustesPropios';
@@ -207,7 +207,7 @@ interface Datos {
   /** Las notas de voz que el Studio está transcribiendo ahora, y las que no pudo (las transcribe el director al revisar). */
   transcribiendo?: string[]; sinTranscribir?: string[];
   /** La revisión pedida desde el Studio para este proyecto: la toma la sesión del director en su ciclo (/vigila). */
-  revision?: { quien: string; pedida: string; lanzada?: string; enCurso?: string; hecha?: string; error?: string; falla?: FallaRevision } | null;
+  revision?: { quien: string; pedida: string; lanzada?: string; enCurso?: string; hecha?: string; error?: string; falla?: FallaRevision; limite?: number } | null;
   /** «Pedir revisiones seguidas» de este proyecto: en marcha, o por qué paró (proyectos.ts › Seguidas). */
   seguidas?: { quien: string; desde: string; hechas: number; paro?: { cuando: string; porque: string } } | null;
   /** La última vez que creció el registro de la revisión en marcha (revisor.ts › actividadDeProyecto): si es vieja, está parada. */
@@ -2255,8 +2255,12 @@ function botonRevision() {
   const e = estadoRevision();
   const parada = minutosSinActividad();
   const cadena = cadenaDeRevisiones();
-  if (e.estado === 'en_curso' && parada) return `<span class="estado-revision en-curso" role="status" title="${esc(PARADA(parada))}">El director está revisando · sin actividad desde hace ${parada} min</span>${cadena}`;
-  if (e.estado === 'en_curso') return `<span class="estado-revision en-curso" role="status">El director está revisando<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
+  // Lo que lleva y lo que le queda de su límite, a la vista mientras trabaja (pr_procesos_vista, punto 3)
+  const tiempo = tiempoDeRevision(r);
+  const lleva = (t = tiempo) => (t ? ` · lleva ${t.lleva} min de ${t.limite}` : '');
+  const cuandoCorta = tiempo ? ` Lleva ${tiempo.lleva} minutos de los ${tiempo.limite} de su límite: ${tiempo.queda ? `le quedan ${tiempo.queda}` : 'llegó a su límite, y el Studio lo corta'}.` : '';
+  if (e.estado === 'en_curso' && parada) return `<span class="estado-revision en-curso" role="status" title="${esc(PARADA(parada) + cuandoCorta)}">El director está revisando · sin actividad desde hace ${parada} min</span>${cadena}`;
+  if (e.estado === 'en_curso') return `<span class="estado-revision en-curso" role="status"${cuandoCorta ? ` title="${esc(cuandoCorta.trim())}"` : ''}>El director está revisando${lleva()}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></span>${cadena}`;
   // Lanzada y fallida no es «sin tomar»: se dice lo que pasó, y «¿Por qué?» abre su reporte
   const ocupado = directorOcupado();
   if (e.estado === 'sin_vigilia') return `<span class="estado-revision sin-vigilia" role="alert" title="${esc(e.texto)}">⚠ ${r?.error ? 'La revisión no terminó' : 'Revisión pedida, sin tomar'}<button type="button" class="enlace" data-revision="explicar">¿Por qué?</button>${r?.error && !ocupado ? '<button type="button" class="enlace" title="La pide otra vez: retoma lo que esta dejó hecho, sin rehacerlo, y termina lo que falta" data-revision="pedir">Retomarla</button>' : ''}<button type="button" class="enlace" data-revision="cancelar">Cancelar</button></span>`;

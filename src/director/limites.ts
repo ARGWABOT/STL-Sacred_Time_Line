@@ -1,11 +1,25 @@
 // Los límites de uso de tu plan de Claude, antes de lanzar al director (propuesta aceptada «Cada proceso, a la vista»,
 // pr_procesos_vista, punto 4): si la ventana de uso está agotada, el Studio no lo lanza a fallar, y lo pedido espera a que
 // se renueve; y si al pedir la revisión el límite de cada cinco horas va en el 90 % o más, se dice cuánto queda y cuándo
-// se renueva, con «Pedirla de todos modos» y «Esperar» (tu elección del 26 de octubre de 2026). Puro: lo usan el servidor
-// y la página.
+// se renueva, con «Pedirla de todos modos» y «Esperar» (tu elección del 26 de octubre de 2026). Y, mientras trabaja, el
+// tiempo que lleva y el que le queda de su límite (punto 3). Puro: lo usan el servidor y la página.
+import { MAX_MIN_REVISION } from './director.ts';
 
 /** Desde cuánto del límite de cada cinco horas se avisa al pedir la revisión. */
 export const UMBRAL_LIMITE = 90;
+
+/**
+ * Cuánto lleva el director en la revisión que lanzó el Studio y cuánto le queda de su límite, en minutos (pr_procesos_vista,
+ * punto 3: a la vista mientras trabaja; la página lo relee cada 30 segundos). Su límite es el que estimó el director para
+ * ella (`limite`) o el de siempre. null si no se ha lanzado.
+ */
+export function tiempoDeRevision(r: { lanzada?: string; limite?: number } | null | undefined, ahora = Date.now()): { lleva: number; limite: number; queda: number } | null {
+  const desde = Date.parse(r?.lanzada ?? '');
+  if (Number.isNaN(desde)) return null;
+  const limite = r?.limite ?? MAX_MIN_REVISION;
+  const lleva = Math.max(0, Math.floor((ahora - desde) / 60_000));
+  return { lleva, limite, queda: Math.max(0, limite - lleva) };
+}
 
 /** Una ventana de uso como la informa Claude Code: cuánto va usado (de 0 a 100) y cuándo se renueva. */
 export interface VentanaDeUso {

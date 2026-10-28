@@ -66,7 +66,7 @@ npm run encender
 
 Después:
 
-1. Inicia sesión una vez en la CLI de Claude Code (`claude auth login`): así «Pedir revisión» llama al director al instante, sin pantalla. La sesión del director, para lo demás, es Claude Code abierto **en la carpeta del Studio** (sin la CLI, o con Codex, deja corriendo ahí `/loop 5m /vigila`). Trabaja un director a la vez en cada proyecto: si la sesión del director (u otra copia del Studio) está revisando uno, la revisión que pidas espera su turno, lo dice en la cabecera y empieza sola cuando esa cierre.
+1. Inicia sesión una vez en la CLI de Claude Code (`claude auth login`): así «Pedir revisión» llama al director al instante, sin pantalla. La sesión del director, para lo demás, es Claude Code abierto **en la carpeta del Studio** (sin la CLI, o con Codex, deja corriendo ahí `/loop 5m /vigila`). Trabaja un director a la vez en cada proyecto: si la sesión del director (u otra copia del Studio) está revisando uno, la revisión que pidas espera su turno, lo dice en la cabecera y empieza sola cuando esa cierre. Mientras el director trabaja, la cabecera dice cuánto lleva y de cuántos minutos es su límite.
 2. En el selector de proyecto (arriba de la barra lateral), oprime **«Entregar proyectos»** y elige su carpeta. El director lo diagnostica y te propone metas.
 3. Lee el diagnóstico, coméntalo parte por parte y **fija tu meta** en Proyecto.
 4. **Pedir revisión**: el director traza la ruta y te da tu primera misión. Desde ahí, el ciclo: misión → marcar sus pasos (el último la entrega) → pedir revisión.
