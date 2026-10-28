@@ -838,6 +838,38 @@ export function progresoDeProyecto(raiz: string, proyecto: string): PasoRevision
   }
 }
 
+/** El plan de la revisión en dos tiempos, como lo ve la persona: si aún planea y, ya validada, su lista de encargos. */
+export interface PlanEnVivo {
+  planeando: boolean;
+  encargos: { id: string; que: string; hecho?: string }[] | null;
+}
+
+/**
+ * El plan de la revisión que lanzó el Studio para un proyecto (pd_dos_tiempos): mientras su primer tiempo planea (su
+ * registro existe y aún no termina) y, cuando lo validó el lanzador, su lista, con lo que el director va marcando hecho.
+ * null si esa revisión no tiene primer tiempo. Lee solo el registro del primer tiempo y la lista, que son pequeños.
+ */
+export function planDeProyecto(raiz: string, proyecto: string): PlanEnVivo | null {
+  const archivo = ultimoRegistro(raiz, proyecto);
+  if (!archivo) return null;
+  try {
+    const lista = JSON.parse(readFileSync(archivoDeEncargos(archivo), 'utf-8')) as EncargoDeRevision[];
+    return { planeando: false, encargos: lista.map((e) => ({ id: e.id, que: e.que, ...(e.hecho ? { hecho: e.hecho } : {}) })) };
+  } catch {
+    // sin lista todavía (o no la hubo): ¿planea?
+  }
+  try {
+    // Terminó si respondió; si no respondió, pasado su tope ya no planea (lo detuvo el Studio)
+    const primero = registroDelPrimerTiempo(archivo);
+    const s = statSync(primero);
+    const vencido = Date.now() - (s.birthtimeMs || s.ctimeMs) > (MAX_MIN_PRIMER_TIEMPO + 1) * 60_000;
+    const termino = vencido || finDelPrimerTiempo(readFileSync(primero, 'utf-8')).respuesta !== null;
+    return termino ? null : { planeando: true, encargos: null };
+  } catch {
+    return null;
+  }
+}
+
 /** Los tokens que lleva la revisión que lanzó el Studio para un proyecto (su último registro); 0 si aún no hay. */
 export function tokensDeProyecto(raiz: string, proyecto: string): number {
   progresoDeProyecto(raiz, proyecto);

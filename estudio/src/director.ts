@@ -276,6 +276,8 @@ interface Datos {
   tokensVivos?: number | null;
   /** Lo que se le lleva negado al director en esa revisión, mientras trabaja (revisor.ts › negadosDeProyecto). */
   negadosVivos?: string[] | null;
+  /** Su plan, si la revisión va en dos tiempos: mientras planea y su lista de encargos (revisor.ts › planDeProyecto). */
+  planVivo?: { planeando: boolean; encargos: { id: string; que: string; hecho?: string }[] | null } | null;
   /** «No lo entiendo, explícamelo mejor» de un paso: el director lo aclara al instante, sin el resto de la revisión. */
   /** `falla`: si no se cerró, el reporte de qué pasó, como el de una revisión (pr_retoma_automatica, punto 5). */
   aclaracion?: { mision: string; paso: number; nota: string; pedida: string; lanzada?: string; hecha?: string; error?: string; falla?: FallaRevision } | null;
@@ -780,10 +782,13 @@ function pintarProgreso(trabajando: boolean) {
   const negados = d.negadosVivos ?? [];
   const tokens = tokensMostrados ?? d.tokensVivos ?? null;
   const permisos = negadosEnVivoHtml(negados);
+  // Su plan, plegado como lo dejaste (abrirlo no se pierde con cada consulta)
+  const plan = planVivoHtml(d.planVivo, caja.querySelector<HTMLDetailsElement>('.plan-vivo')?.open ?? false);
   // Con el área de permisos, el panel toma toda su altura y se la reparte por mitades con los pasos
   caja.classList.toggle('con-permisos', !!permisos);
   caja.innerHTML = `<header><b>Lo que va haciendo el director</b><span class="tokens-vivos" data-tokens-vivos title="Lo que lleva leído y escrito el modelo en esta revisión; el total exacto queda en «Modelo y consumo»">${tokens ? `${miles(tokens)} tokens` : ''}</span><button type="button" class="enlace" data-cerrar-progreso aria-label="Cerrar">${icono('cerrar')}</button></header>
     ${permisos}
+    ${plan}
     ${d.progreso === null || d.progreso === undefined
       ? '<p class="como">El director revisa desde su sesión de Claude Code: aquí se ve el avance de las revisiones que lanza el Studio.</p>'
       : pasos.length
@@ -795,6 +800,18 @@ function pintarProgreso(trabajando: boolean) {
   const zonaPermisos = caja.querySelector<HTMLElement>('.negados-vivo');
   if (zonaPermisos) zonaPermisos.scrollTop = permisosAntes;
 }
+/**
+ * El plan de la revisión en dos tiempos (pd_dos_tiempos), arriba de los pasos y plegado, como elegiste el 26 de octubre
+ * de 2026: mientras el primer tiempo planea, una línea que lo dice; después, cuántos encargos van hechos y, al abrirlo,
+ * cada uno, marcado a medida que el director lo termina. Sin primer tiempo (una sola nota o entrega), nada.
+ */
+function planVivoHtml(p: Datos['planVivo'], abierto: boolean): string {
+  if (!p) return '';
+  if (p.planeando || !p.encargos) return '<p class="como plan-vivo">Planea la revisión: unos minutos, con esfuerzo bajo y sin tocar nada<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></p>';
+  const hechos = p.encargos.filter((e) => e.hecho).length;
+  return `<details class="plan-vivo"${abierto ? ' open' : ''}><summary>Su plan: ${hechos} de ${p.encargos.length} ${p.encargos.length === 1 ? 'encargo hecho' : 'encargos hechos'}</summary><ol>${p.encargos.map((e) => `<li${e.hecho ? ' class="hecho"' : ''}>${e.hecho ? '✓ ' : ''}${esc(e.que)}</li>`).join('')}</ol></details>`;
+}
+
 /**
  * Lo negado en vivo, con su «Autorizo» ahí mismo (nota de voz del titular nmvowqdnztit, 26 de octubre de 2026: «Autorizar
  * con una casilla» lo llevaba a un panel sin esa casilla, y luego había que marcarla y guardar): cada intento, con el

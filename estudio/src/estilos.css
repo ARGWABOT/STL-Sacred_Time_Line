@@ -340,6 +340,12 @@ body.sin-proyectos .segundo-plano { display: none !important; }
 .progreso-director .negados-vivo button { margin-top: 8px; }
 /* «Autorizo en este proyecto», en la línea de lo que le faltó (nota de voz del titular nmvowqdnztit) */
 .progreso-director .negados-vivo li button { margin: 2px 0 0; }
+/* El plan de la revisión en dos tiempos, plegado arriba de los pasos (pd_dos_tiempos) */
+.progreso-director .plan-vivo { flex: none; margin: 0; padding: 8px 14px; border-bottom: 1px solid var(--borde); font-size: 13px; line-height: 1.45; }
+.progreso-director details.plan-vivo summary { cursor: pointer; font-weight: 600; }
+.progreso-director details.plan-vivo ol { margin: 6px 0 2px; padding-left: 20px; max-height: 220px; overflow-y: auto; overflow-x: hidden; overflow-wrap: anywhere; }
+.progreso-director details.plan-vivo li + li { margin-top: 4px; }
+.progreso-director details.plan-vivo li.hecho { color: var(--suave); }
 .pasos-progreso { list-style: none; margin: 0; padding: 10px 14px 12px; overflow-y: auto; overflow-x: hidden; display: grid; align-content: start; gap: 6px; line-height: 1.45; }
 /* Con el área de permisos, los pasos toman la otra mitad; sin ella, todo el panel */
 .progreso-director.con-permisos .pasos-progreso { flex: 1 1 0; min-height: 0; }

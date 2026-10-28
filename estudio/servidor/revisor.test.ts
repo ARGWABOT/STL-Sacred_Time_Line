@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realp
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso } from './revisor';
+import { POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, planDeProyecto, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso } from './revisor';
 
 describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», confirmada con 15 días)', () => {
   it('borra lo de más de quince días con su paquete, y conserva el último de cada proyecto y de cada tipo', () => {
@@ -488,6 +488,32 @@ describe('el director que lanza el Studio', () => {
       // Una revisión nueva empieza de cero
       writeFileSync(join(raiz, '.revisiones', 'golf-2026-10-18T14-00-00-000Z.log'), `${dice('Otra')}\n`);
       expect(progresoDeProyecto(raiz, 'golf').map((p) => p.texto)).toEqual(['Otra']);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it('el plan de la revisión en dos tiempos, en vivo: mientras planea y su lista, con lo hecho (pd_dos_tiempos)', () => {
+    const raiz = mkdtempSync(join(tmpdir(), 'stl-revisor-'));
+    try {
+      mkdirSync(join(raiz, '.revisiones'));
+      const base = join(raiz, '.revisiones', 'golf-2026-10-18T13-00-00-000Z');
+      writeFileSync(`${base}.log`, `${lineaPedido('opus', 'high')}`);
+      // Sin primer tiempo (una sola nota), nada
+      expect(planDeProyecto(raiz, 'golf')).toBeNull();
+      // Mientras planea, lo dice
+      writeFileSync(`${base}.primer.jsonl`, `${JSON.stringify({ type: 'system', subtype: 'init' })}\n`);
+      expect(planDeProyecto(raiz, 'golf')).toEqual({ planeando: true, encargos: null });
+      // Terminó sin lista válida: ya no planea, y no hay plan
+      appendFileSync(`${base}.primer.jsonl`, `${JSON.stringify({ type: 'result', result: 'nada' })}\n`);
+      expect(planDeProyecto(raiz, 'golf')).toBeNull();
+      // Con su lista, cada encargo con lo hecho
+      writeFileSync(`${base}.encargos.json`, JSON.stringify([{ id: 'e1', que: 'Uno', hecho: '2026-10-18T13-10-00-000Z', origen: ['x'] }, { id: 'e2', que: 'Dos', origen: ['y'] }]));
+      expect(planDeProyecto(raiz, 'golf')).toEqual({ planeando: false, encargos: [{ id: 'e1', que: 'Uno', hecho: '2026-10-18T13-10-00-000Z' }, { id: 'e2', que: 'Dos' }] });
+      // La página lo pinta plegado, arriba de los pasos, y no pierde si lo abriste
+      const vista = readFileSync(new URL('../src/director.ts', import.meta.url), 'utf8');
+      expect(vista).toContain("const plan = planVivoHtml(d.planVivo, caja.querySelector<HTMLDetailsElement>('.plan-vivo')?.open ?? false);");
+      expect(vista.indexOf('${plan}')).toBeGreaterThan(vista.indexOf('${permisos}\n'));
     } finally {
       rmSync(raiz, { recursive: true, force: true });
     }

@@ -84,7 +84,7 @@ import { escanear, fuentesDeEscaneo } from './escaneo';
 import { clavesDeTusAjustes, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
 import { conNuevas, opcionesDeTusAjustes, recomendadas } from './ajustesPropios';
 import { POR_QUE_SIN_AUTOMATICO } from './modoPermisos';
-import { actividadDeProyecto, agruparPasos, automaticoDisponible, enCursoDeProyecto, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
+import { actividadDeProyecto, agruparPasos, automaticoDisponible, enCursoDeProyecto, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, planDeProyecto, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
 import { corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, midiendo } from './medidor';
 import { ALCANCES, casosDelAlcance, casosMedibles, type Alcance } from '../../src/director/corrida';
 import { esPlanDeClaude, PLANES_DE_CLAUDE, type PlanDeClaude } from '../../src/director/costoDelPlan';
@@ -1153,6 +1153,11 @@ export function servidorDirector(): Plugin {
               progreso: await (async () => {
                 const r = (await leerLocal(raiz)).revision;
                 return r?.proyecto === id && r.lanzada && !r.hecha ? agruparPasos(progresoDeProyecto(raiz, id)) : null;
+              })(),
+              // Y su plan, si la revisión va en dos tiempos: mientras planea y, después, su lista de encargos (pd_dos_tiempos)
+              planVivo: await (async () => {
+                const r = (await leerLocal(raiz)).revision;
+                return r?.proyecto === id && r.lanzada && !r.hecha ? planDeProyecto(raiz, id) : null;
               })(),
               // Y los tokens que lleva, para verlos subir junto a «El director está revisando»
               tokensVivos: await (async () => {
