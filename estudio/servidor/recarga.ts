@@ -4,7 +4,7 @@
 // avisa a la página. Al terminar, si algo quedó retenido, una sola recarga: el Studio la anuncia con una cuenta de tres
 // segundos y la cubre con su pantalla de carga. Sin modelo: solo se lee estudio.local.json.
 import type { ViteDevServer } from 'vite';
-import { directorTrabajando, leerLocalYa } from '../../src/director/proyectos';
+import { directorTrabajando, leerLocalYa } from '../../src/director/proyectos.ts';
 
 /** El aviso a la página: «recarga cuando quieras» o, si el servidor se va a reiniciar, «viene un reinicio». */
 export const EVENTO_RECARGA = 'estudio:recargar';

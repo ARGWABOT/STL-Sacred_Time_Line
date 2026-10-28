@@ -10,7 +10,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { ARCHIVO_LOCAL } from '../../src/director/proyectos';
+import { ARCHIVO_LOCAL } from '../../src/director/proyectos.ts';
 
 /** Solo un nombre de archivo, sin carpetas: nada de `..`, barras ni rutas absolutas. */
 export const NOMBRE_SONIDO = /^[a-z0-9-]+\.mp3$/;

@@ -6,7 +6,7 @@
 // el Studio deja en el panel marcada «Lo aprobó Claude Code», con su casilla para quitarla. Puro: sin archivos. El
 // lanzador (revisor.ts › lanzar) deja al empezar, en el registro, lo que el director ya tenía (lineaAutomatico): con eso,
 // «Lo que va haciendo el director» muestra cada aprobación en vivo (aprobadoEnVivo), y al terminar, el panel la recibe.
-import { ordenesDe, ordenPermitida, reglaDe, rutaPermitida, type Negado, type PermisoAutorizado, type ReglaPropuesta } from './permisosNegados';
+import { ordenesDe, ordenPermitida, reglaDe, rutaPermitida, type Negado, type PermisoAutorizado, type ReglaPropuesta } from './permisosNegados.ts';
 
 /** Las herramientas que piden permiso: las demás (TodoWrite, Agent, ToolSearch…) nunca pasan por él. */
 const LEEN = new Set(['Read', 'Glob', 'Grep', 'LS']);

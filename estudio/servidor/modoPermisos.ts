@@ -10,10 +10,10 @@
 //    disableAllHooks, que es el arranque limpio de hoy (ajustesClaude.ts › arranqueLimpio).
 // Aquí, lo puro: qué cambia en el lanzamiento de uno a otro. El lanzador (revisor.ts › lanzar) lo usa.
 import { resolve } from 'node:path';
-import type { ModoPermisos } from '../../src/director/proyectos';
-import { ajustesDelDirector, fuentesDelDirector } from './ajustesClaude';
-import { ESPERA_PERMISO_MS } from './permisoAlMomento';
-import { leerCandado } from './unico';
+import type { ModoPermisos } from '../../src/director/proyectos.ts';
+import { ajustesDelDirector, fuentesDelDirector } from './ajustesClaude.ts';
+import { ESPERA_PERMISO_MS } from './permisoAlMomento.ts';
+import { leerCandado } from './unico.ts';
 
 /** El puerto de última instancia, el de vite.config.ts. */
 const PUERTO_POR_DEFECTO = 5180;

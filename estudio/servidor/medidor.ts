@@ -9,15 +9,15 @@
 import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ajustesDelDirector, conNucleoExplicito, fuentesDelDirector, nucleoExplicito, textoDelNucleo } from './ajustesClaude';
-import { NUNCA_SIEMPRE } from './permisosNegados';
-import { consumoDe, detener, encargo, lanzarClaude, negado, permitido, SIN_ESPERAS } from './revisor';
-import { CASOS_FIJOS, type CasoFijo } from '../../src/director/casosFijos';
-import { ALCANCES, casosDeCorrida, casosDelAlcance, casosMedibles, costoEstimado, discrepancias, encargoDeCalificacion, leerCalificacion, loQueDejo, minutosEstimados, resumenDeCorrida, vueltasQueFaltan, type Alcance, type Calificacion, type Corrida, type Vuelta } from '../../src/director/corrida';
-import { unirEstados } from '../../src/director/director';
-import { COMPROBACIONES, SITUACIONES } from '../../src/director/medicion';
-import { leerLocal } from '../../src/director/proyectos';
-import { armarEstudioDePrueba } from '../../tools/director/estudioDePrueba';
+import { ajustesDelDirector, conNucleoExplicito, fuentesDelDirector, nucleoExplicito, textoDelNucleo } from './ajustesClaude.ts';
+import { NUNCA_SIEMPRE } from './permisosNegados.ts';
+import { consumoDe, detener, encargo, lanzarClaude, negado, permitido, SIN_ESPERAS } from './revisor.ts';
+import { CASOS_FIJOS, type CasoFijo } from '../../src/director/casosFijos.ts';
+import { ALCANCES, casosDeCorrida, casosDelAlcance, casosMedibles, costoEstimado, discrepancias, encargoDeCalificacion, leerCalificacion, loQueDejo, minutosEstimados, resumenDeCorrida, vueltasQueFaltan, type Alcance, type Calificacion, type Corrida, type Vuelta } from '../../src/director/corrida.ts';
+import { unirEstados } from '../../src/director/director.ts';
+import { COMPROBACIONES, SITUACIONES } from '../../src/director/medicion.ts';
+import { leerLocal } from '../../src/director/proyectos.ts';
+import { armarEstudioDePrueba } from '../../tools/director/estudioDePrueba.ts';
 
 /** Lo más que dura el director en una vuelta: la revisión de un proyecto de prueba, chico. */
 const MAX_MIN_VUELTA = 30;

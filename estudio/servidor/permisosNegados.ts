@@ -5,8 +5,8 @@
 // quiso leer o escribir), no la línea exacta, para que el titular no tenga que autorizar línea por línea (nota de voz
 // nmvovewkqtit, 26 de octubre de 2026), o se dice por qué no se puede. Lo que el Studio le niega siempre (revisor.ts ›
 // negado) sale como «nunca», sin casilla, y no se autoriza ni aunque llegue por la API.
-import { usoNegado } from '../../src/director/director';
-import type { PermisoAutorizado } from '../../src/director/proyectos';
+import { usoNegado } from '../../src/director/director.ts';
+import type { PermisoAutorizado } from '../../src/director/proyectos.ts';
 
 export type { PermisoAutorizado };
 

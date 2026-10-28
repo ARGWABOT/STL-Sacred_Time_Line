@@ -1,4 +1,4 @@
-import type { Plan } from './director';
+import type { Plan } from './director.ts';
 
 /**
  * Escribir el plan con cambios puntuales (propuesta aceptada pr_encargo_a_medida, «El director arma el contexto de cada

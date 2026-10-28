@@ -2,8 +2,8 @@
 import { defineConfig } from 'vite';
 import { configDefaults } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
-import { servidorDirector } from './estudio/servidor/director';
-import { enProyectosViejos } from './estudio/servidor/vigilancia';
+import { servidorDirector } from './estudio/servidor/director.ts';
+import { enProyectosViejos } from './estudio/servidor/vigilancia.ts';
 
 export default defineConfig(({ command }) => ({
   // El Estudio solo existe en desarrollo: es una herramienta local, no un sitio que se publique.

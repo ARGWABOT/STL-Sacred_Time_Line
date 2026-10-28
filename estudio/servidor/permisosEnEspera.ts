@@ -8,7 +8,7 @@
 // cuando el director termina, de la forma que sea (estudio/servidor/modoPermisos.ts). La clave es la de un lanzamiento
 // (un UUID nuevo por cada director que lanza el Studio): «Permitir todo en esta revisión» vive en la espera de esa clave y
 // se olvida al cerrarla; otra clave, aunque sea del mismo proyecto, vuelve a preguntar.
-import { EsperaDePermisos, respuestaDelGancho, solicitudDelGancho, type Decision, type Pedido, type RespuestaDelGancho, type Respondida, type Respuesta, type SolicitudDePermiso } from './permisoAlMomento';
+import { EsperaDePermisos, respuestaDelGancho, solicitudDelGancho, type Decision, type Pedido, type RespuestaDelGancho, type Respondida, type Respuesta, type SolicitudDePermiso } from './permisoAlMomento.ts';
 
 /** El reloj y los temporizadores: los reales, o los de una prueba. `esperar` devuelve con qué cancelarlo. */
 export interface Reloj {

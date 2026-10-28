@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 import { chmod, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
-import { cumpleComprobacion, ordenDeComprobacion, type Comprobacion } from '../../src/director/director';
+import { cumpleComprobacion, ordenDeComprobacion, type Comprobacion } from '../../src/director/director.ts';
 
 /**
  * Comprueba un paso de terminal al marcarlo (`comprobar`): corre su orden de solo lectura en la carpeta del proyecto,

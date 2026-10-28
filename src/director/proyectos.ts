@@ -21,7 +21,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { appendFile, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
-import type { Integrante, Proyecto, TipoProyecto, Tramo } from './director';
+import type { Integrante, Proyecto, TipoProyecto, Tramo } from './director.ts';
 import { esPlanDeClaude, type PlanDeClaude } from './costoDelPlan.ts';
 
 /** El prefijo de las rutas virtuales de los proyectos dentro del Estudio. */

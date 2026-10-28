@@ -1,7 +1,7 @@
 // El director asistente en persona: su cara flota en el Estudio, dice frases de ánimo y de empuje y, al tocarla,
 // lleva a la persona elegida a su siguiente pendiente sin completar (en el arranque, a conectar el repositorio o a
 // fijar la meta). Aquí está lo que dice y adónde lleva; el dibujo y el clic, en estudio/src/equipo.ts.
-import { documentosEnOrden, esPregunta, estadoMision, faseActual, misionesAbiertas, nivelDe, TITULAR, xpDe, type Contexto, type Destino, type EtapaArranque, type Integrante, type Mision, type Persona } from './director';
+import { documentosEnOrden, esPregunta, estadoMision, faseActual, misionesAbiertas, nivelDe, TITULAR, xpDe, type Contexto, type Destino, type EtapaArranque, type Integrante, type Mision, type Persona } from './director.ts';
 
 /** Las caras de la pantalla del director. */
 export type Emocion = 'feliz' | 'riendo' | 'sorprendido' | 'pensativo' | 'picaro' | 'enamorado' | 'tranquilo';

@@ -11,8 +11,8 @@
 // en un solo WAV (sintetizar).
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { comandoVoz } from '../../src/director/transcripcion';
-import { comoInstalarKokoro, leerAvisosVoces, leerListaVoces, MAX_TEXTO_VOZ, motivoSinVoces, partirPreguntas, revisarPedidoDeVoz, unirWavs, type VozNatural } from '../../src/director/voz';
+import { comandoVoz } from '../../src/director/transcripcion.ts';
+import { comoInstalarKokoro, leerAvisosVoces, leerListaVoces, MAX_TEXTO_VOZ, motivoSinVoces, partirPreguntas, revisarPedidoDeVoz, unirWavs, type VozNatural } from '../../src/director/voz.ts';
 
 const MEMORIA_MS = 60_000;
 const ESPERA_LISTA_MS = 90_000;

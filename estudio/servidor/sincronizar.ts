@@ -15,8 +15,8 @@ import { existsSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, sep } from 'node:path';
-import { TITULAR, type Persona, type Proyecto } from '../../src/director/director';
-import { enDisco, rutasDe, SUBE_SOLO } from '../../src/director/proyectos';
+import { TITULAR, type Persona, type Proyecto } from '../../src/director/director.ts';
+import { enDisco, rutasDe, SUBE_SOLO } from '../../src/director/proyectos.ts';
 
 export interface Identidad {
   nombre: string;

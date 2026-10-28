@@ -26,9 +26,9 @@ import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { contenerRecargas, EVENTO_RECARGA } from './recarga';
-import { esRegistro, MAX_BYTES as MAX_BYTES_VER, paginaDeArchivo, paginaDeError, POLITICA as POLITICA_VER, rutaPermitida } from './verArchivo';
-import { leerCandado, otroServidor, soltarCandado, tomarCandado, yaEncendido } from './unico';
+import { contenerRecargas, EVENTO_RECARGA } from './recarga.ts';
+import { esRegistro, MAX_BYTES as MAX_BYTES_VER, paginaDeArchivo, paginaDeError, POLITICA as POLITICA_VER, rutaPermitida } from './verArchivo.ts';
+import { leerCandado, otroServidor, soltarCandado, tomarCandado, yaEncendido } from './unico.ts';
 import {
   aclaracionesDe,
   agendaDe,
@@ -72,30 +72,30 @@ import {
   type Senales,
   type TipoValidacion,
   type Validacion,
-} from '../../src/director/director';
-import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco';
-import { leerEstadoDelEquipo, leerPlanParaVer, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria';
-import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, seguidasActivas, retomarAparte, planCambiadoTrasCierre, guardarTodoConElModelo, type AclaracionPedida, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos';
-import { anotar, EL_STUDIO, eventoDeAccion, leerBitacora } from '../../src/director/bitacora';
-import { archivoDelPaquete } from '../../src/director/paquete';
-import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio';
-import { borrarSiTranscrito, quitarSiVacia, transcribirEnLocal, transcripcionEnDisco, txtDeAudio } from '../../src/director/transcripcion';
-import { escanear, fuentesDeEscaneo } from './escaneo';
-import { clavesDeTusAjustes, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude';
-import { conNuevas, opcionesDeTusAjustes, recomendadas } from './ajustesPropios';
-import { POR_QUE_SIN_AUTOMATICO } from './modoPermisos';
-import { actividadDeProyecto, agruparPasos, automaticoDisponible, enCursoDeProyecto, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, planDeProyecto, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor';
-import { corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, midiendo } from './medidor';
-import { ALCANCES, casosDelAlcance, casosMedibles, type Alcance } from '../../src/director/corrida';
-import { esPlanDeClaude, PLANES_DE_CLAUDE, type PlanDeClaude } from '../../src/director/costoDelPlan';
-import { revisarPedido, sinAutorizar, valePara } from './permisosNegados';
-import { queAnotarDeLaLlamada, queAnotarDeLaRespuesta, respuestaValida } from './permisoAlMomento';
-import { decidirParaElGancho, permisosEnEspera } from './permisosEnEspera';
-import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar';
-import { abrirTerminal, comprobarPaso } from './terminal';
-import { leerSonido, leerSonidos } from './sonidos';
-import { atenderVoz } from './voz';
-import { MAX_AUDIO, MAX_CUERPO, MAX_NOMBRE_ARCHIVO, Rechazo, textoDe } from './topes';
+} from '../../src/director/director.ts';
+import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco.ts';
+import { leerEstadoDelEquipo, leerPlanParaVer, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria.ts';
+import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, seguidasActivas, retomarAparte, planCambiadoTrasCierre, guardarTodoConElModelo, type AclaracionPedida, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos.ts';
+import { anotar, EL_STUDIO, eventoDeAccion, leerBitacora } from '../../src/director/bitacora.ts';
+import { archivoDelPaquete } from '../../src/director/paquete.ts';
+import { comprobarRepositorio, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio.ts';
+import { borrarSiTranscrito, quitarSiVacia, transcribirEnLocal, transcripcionEnDisco, txtDeAudio } from '../../src/director/transcripcion.ts';
+import { escanear, fuentesDeEscaneo } from './escaneo.ts';
+import { clavesDeTusAjustes, conMaximo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, leerAjustesClaude } from './ajustesClaude.ts';
+import { conNuevas, opcionesDeTusAjustes, recomendadas } from './ajustesPropios.ts';
+import { POR_QUE_SIN_AUTOMATICO } from './modoPermisos.ts';
+import { actividadDeProyecto, agruparPasos, automaticoDisponible, enCursoDeProyecto, automaticoSabido, buscarClaude, lanzamientosDelDirector, negadosDelDirector, negadosDeProyecto, ordenAbrirClaude, planDeProyecto, progresoDeProyecto, Revisor, tokensDeProyecto } from './revisor.ts';
+import { corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, guardarAcuerdo, midiendo } from './medidor.ts';
+import { ALCANCES, casosDelAlcance, casosMedibles, type Alcance } from '../../src/director/corrida.ts';
+import { esPlanDeClaude, PLANES_DE_CLAUDE, type PlanDeClaude } from '../../src/director/costoDelPlan.ts';
+import { revisarPedido, sinAutorizar, valePara } from './permisosNegados.ts';
+import { queAnotarDeLaLlamada, queAnotarDeLaRespuesta, respuestaValida } from './permisoAlMomento.ts';
+import { decidirParaElGancho, permisosEnEspera } from './permisosEnEspera.ts';
+import { correrGit, leerIdentidad, olvidarIdentidad, Sincronizador, type Identidad } from './sincronizar.ts';
+import { abrirTerminal, comprobarPaso } from './terminal.ts';
+import { leerSonido, leerSonidos } from './sonidos.ts';
+import { atenderVoz } from './voz.ts';
+import { MAX_AUDIO, MAX_CUERPO, MAX_NOMBRE_ARCHIVO, Rechazo, textoDe } from './topes.ts';
 
 const DIAS_ESFUERZO = 7;
 const ESPERA_COMMIT_MS = 15_000;

@@ -12,7 +12,7 @@
 // lanzamiento), que se cierra al terminar el director, y con ella se olvida. Puro: sin archivos, sin temporizadores y con
 // el reloj (`ahora`, en milisegundos) que le pasa quien lo use. Lo conecta el lanzador (revisor.ts › lanzar) cuando el
 // titular elige «Me pregunta en el Studio» (estudio/servidor/modoPermisos.ts); sin esa elección, el director sigue en dontAsk.
-import { nuncaDe, ordenesDe, ordenPermitida, reglaDe, reglaProhibida, type Negado, type Nunca, type ReglaPropuesta } from './permisosNegados';
+import { nuncaDe, ordenesDe, ordenPermitida, reglaDe, reglaProhibida, type Negado, type Nunca, type ReglaPropuesta } from './permisosNegados.ts';
 
 /** Cuánto espera el Studio a la persona antes de negar: dos minutos (decisión del titular). */
 export const ESPERA_PERMISO_MS = 120_000;

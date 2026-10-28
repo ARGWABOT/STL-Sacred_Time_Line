@@ -17,7 +17,7 @@ import { existsSync } from 'node:fs';
 import { open, readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
-import { gitEn } from '../../src/director/repositorio';
+import { gitEn } from '../../src/director/repositorio.ts';
 
 export interface Senal { agente: string; sesiones?: number; ultima?: string; donde?: string }
 export interface Candidato {

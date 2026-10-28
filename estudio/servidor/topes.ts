@@ -2,7 +2,7 @@
 // director, o no llega: el servidor nunca lo corta en silencio (nota de voz del titular, 22 de octubre de 2026: una
 // definición larga, dictada en un audio largo, no puede perder una parte sin que nadie lo sepa). Cada texto se guarda
 // completo o se rechaza con un aviso que dice cuánto mide, cuál es el tope y qué hacer.
-import { MAX_ADJUNTO, MAX_ADJUNTOS, MAX_TEXTO } from '../../src/director/director';
+import { MAX_ADJUNTO, MAX_ADJUNTOS, MAX_TEXTO } from '../../src/director/director.ts';
 
 /** Un pedido que no se cumple, con su razón para quien lo hizo: el servidor la devuelve con un 400 y el Studio la muestra. */
 export class Rechazo extends Error {}

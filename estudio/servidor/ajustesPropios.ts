@@ -11,7 +11,7 @@
 
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { archivoAjustesClaude } from './ajustesClaude';
+import { archivoAjustesClaude } from './ajustesClaude.ts';
 
 /** si: conviene conservarla · no: el director no la necesita · igual: no cambia nada en él · nunca: no se puede elegir. */
 export type Consejo = 'si' | 'no' | 'igual' | 'nunca';

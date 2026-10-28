@@ -13,8 +13,8 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { esEsfuerzo, MODELO_VALIDO, type Esfuerzo } from '../../src/director/proyectos';
-import { clavesDeAjustes } from './clavesAjustes';
+import { esEsfuerzo, MODELO_VALIDO, type Esfuerzo } from '../../src/director/proyectos.ts';
+import { clavesDeAjustes } from './clavesAjustes.ts';
 
 /** Los esfuerzos que Claude Code guarda en su configuración: todos menos «max», que vale solo para una sesión. */
 const esEsfuerzoGuardable = (x: unknown): x is Exclude<Esfuerzo, 'max'> => esEsfuerzo(x) && x !== 'max';
