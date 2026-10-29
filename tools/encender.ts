@@ -2,6 +2,7 @@
 // lo encendió, el Studio sigue; si su servidor se cae, se vuelve a levantar solo. Es lo que corre el agente al final
 // de la inicialización (INSTALAR.md). Si ya está encendido, nunca enciende otro: recarga la página que esté abierta
 // (o, si no hay ninguna, la abre). Un segundo servidor tampoco puede arrancar por otra vía (estudio/servidor/unico.ts).
+// Si el que está encendido es otra copia del Studio, desde otra carpeta, la apaga y enciende esta, sin preguntar.
 // Uso: npm run encender                (o: node tools/encender.ts)  enciende y abre el navegador
 //      node tools/encender.ts --sin-abrir
 //      node tools/encender.ts --estado    dice si está encendido
@@ -11,7 +12,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { comandoDe, leerCandado, procesoVivo, puertoOcupado } from '../estudio/servidor/unico.ts';
+import { alAbrir, carpetaDeComando, comandoDe, duenoDelPuerto, leerCandado, procesoVivo, puertoOcupado } from '../estudio/servidor/unico.ts';
 
 const raiz = join(import.meta.dirname, '..');
 const puerto = Number(process.env.PORT) || 5180;
@@ -154,9 +155,46 @@ async function apagar() {
   console.log('Studio apagado.');
 }
 
+/**
+ * Otra copia del Studio, en otra carpeta, ocupa el puerto (una descargada aparte, otra versión): se apaga, sin preguntar,
+ * para que esta se encienda en su lugar (pedido pd_un_director, tu decisión nmvsv6pqutit). Primero con su propio
+ * --apagar (su vigilante y su servidor); si sigue ahí (la encendió una terminal), se cierra el proceso que escucha, con
+ * todo lo que lanzó: también su director, si revisaba, porque dos directores a la vez no van; esa revisión se retoma al
+ * pedirla de nuevo. Devuelve si el puerto quedó libre.
+ */
+async function apagarOtraCopia(carpeta: string, servidor: number): Promise<boolean> {
+  console.log(`Hay otra copia del Studio encendida, desde ${carpeta}: la apago y enciendo esta.`);
+  const suyo = join(carpeta, 'tools', 'encender.ts');
+  if (existsSync(suyo)) spawnSync(process.execPath, [suyo, '--apagar'], { cwd: carpeta, stdio: 'ignore', windowsHide: true, timeout: 60_000 });
+  const libre = async () => {
+    for (let i = 0; i < 15; i++) {
+      if (!(await puertoOcupado(puerto))) return true;
+      await esperar(1000);
+    }
+    return false;
+  };
+  if (await libre()) return true;
+  if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(servidor), '/T', '/F'], { windowsHide: true });
+  else try { process.kill(servidor, 'SIGTERM'); } catch { /* ya no estaba */ }
+  return libre();
+}
+
 async function encender() {
   const ya = await yaHayStudio();
-  if (ya) {
+  // Si quien ocupa el puerto es otra copia del Studio, se reemplaza por esta; si es esta misma, se usa la que hay
+  const dueno = ya ? duenoDelPuerto(puerto) : null;
+  const cmd = dueno ? comandoDe(dueno) : null;
+  const carpeta = cmd ? carpetaDeComando(cmd) : null;
+  const queHacer = alAbrir(raiz, carpeta, !!carpeta && existsSync(join(carpeta, 'tools', 'encender.ts')));
+  if (queHacer === 'reemplazar' && !(await apagarOtraCopia(carpeta!, dueno!))) {
+    console.error(`No pude apagar la otra copia del Studio (desde ${carpeta}): apágala con node tools/encender.ts --apagar en su carpeta, o cierra su terminal, y vuelve a abrir esta.`);
+    process.exit(1);
+  }
+  if (ya && queHacer === 'no tocar') {
+    console.error(`Otro programa ocupa el puerto ${puerto} (${cmd}): no lo toco. Ciérralo, o enciende el Studio en otro puerto (PORT=5181 npm run encender).`);
+    process.exit(1);
+  }
+  if (ya && queHacer === 'recargar') {
     // Nunca un segundo servidor: se usa el que hay. Si todavía arranca o se está reiniciando, se espera a que responda
     for (let i = 0; i < 60 && !(await encendido()); i++) await esperar(1000);
     if (!(await encendido())) {

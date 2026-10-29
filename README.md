@@ -65,7 +65,7 @@ npm run iniciar
 npm run encender
 ```
 
-`npm run iniciar` comprueba Node, git y tu identidad, e instala las dependencias; `npm run encender` enciende el Studio aparte y lo abre en **http://localhost:5180/**. Queda corriendo aunque cierres la terminal o el agente, y si su servidor se cae, se levanta solo. Después de reiniciar el computador, vuelve a correr `npm run encender` (si ya está encendido, solo lo abre). En Windows, sin terminal: doble clic en **`Abrir STL Studio.cmd`**, en la carpeta del Studio, hace lo mismo (para tenerlo a mano: clic derecho › Enviar a › Escritorio).
+`npm run iniciar` comprueba Node, git y tu identidad, e instala las dependencias; `npm run encender` enciende el Studio aparte y lo abre en **http://localhost:5180/**. Queda corriendo aunque cierres la terminal o el agente, y si su servidor se cae, se levanta solo. Después de reiniciar el computador, vuelve a correr `npm run encender` (si ya está encendido, solo lo abre; si lo que está encendido es otra copia del Studio, desde otra carpeta, la apaga y enciende esta: un solo Studio a la vez). En Windows, sin terminal: doble clic en **`Abrir STL Studio.cmd`**, en la carpeta del Studio, hace lo mismo (para tenerlo a mano: clic derecho › Enviar a › Escritorio).
 
 Después:
 

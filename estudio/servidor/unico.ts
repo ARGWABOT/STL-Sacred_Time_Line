@@ -174,6 +174,52 @@ export function soltarCandado(raiz: string): void {
   if (leerCandado(raiz)?.pid === process.pid && existsSync(rutaCandado(raiz))) rmSync(rutaCandado(raiz), { force: true });
 }
 
+/** El proceso que escucha en ese puerto de este computador, o null si nadie o no se puede saber. */
+export function duenoDelPuerto(puerto: number): number | null {
+  try {
+    const r = process.platform === 'win32'
+      ? spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `(Get-NetTCPConnection -LocalPort ${puerto} -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1).OwningProcess`], { encoding: 'utf8', windowsHide: true, timeout: 15_000 })
+      : spawnSync('lsof', ['-t', `-iTCP:${puerto}`, '-sTCP:LISTEN'], { encoding: 'utf8', timeout: 5000 });
+    const n = Number(r.stdout?.trim().split(/\s+/)[0]);
+    return r.status === 0 && Number.isInteger(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * La carpeta del Studio que corre un servidor, por su comando: la de su node_modules (vite.js, venga del vigilante o de
+ * npm run estudio). null si el comando no es el de un vite de una carpeta. Pura.
+ */
+export function carpetaDeComando(cmd: string): string | null {
+  for (const m of cmd.matchAll(/"([^"]+)"|(\S+)/g)) {
+    const parte = m[1] ?? m[2];
+    const i = parte.search(/[\\/]node_modules[\\/]/);
+    if (i > 0 && /vite/i.test(parte.slice(i))) return parte.slice(0, i);
+  }
+  return null;
+}
+
+/** ¿Son la misma carpeta? En Windows, sin distinguir mayúsculas ni el tipo de barra. Pura. */
+export function mismaCarpeta(a: string, b: string, windows = process.platform === 'win32'): boolean {
+  const n = (x: string) => {
+    const r = x.replace(/[\\/]+/g, '/').replace(/\/$/, '');
+    return windows ? r.toLowerCase() : r;
+  };
+  return n(a) === n(b);
+}
+
+/**
+ * Qué hace abrir el Studio (encender.ts) cuando su puerto ya está ocupado (pedido pd_un_director, tu decisión nmvsv6pqutit
+ * del 28 de octubre de 2026: «que apague la otra y encienda la nueva, sin preguntar»): si es esta misma copia, recargar
+ * la página, como siempre; si es otra copia del Studio, en otra carpeta, apagarla y encender esta, para que en el
+ * computador haya un solo servidor y un solo director; si es otro programa, o no se sabe, no tocarlo. Pura.
+ */
+export function alAbrir(raiz: string, carpetaDelOtro: string | null, otraEsStudio: boolean, windows = process.platform === 'win32'): 'recargar' | 'reemplazar' | 'no tocar' {
+  if (!carpetaDelOtro || mismaCarpeta(carpetaDelOtro, raiz, windows)) return 'recargar';
+  return otraEsStudio ? 'reemplazar' : 'no tocar';
+}
+
 /** Lo que se dice cuando alguien intenta encender un segundo servidor. */
 export const yaEncendido = (c: Candado) =>
   `STL Studio ya está encendido (proceso ${c.pid}, http://localhost:${c.puerto}/): no se enciende otro servidor. Ábrelo ahí; para apagarlo, npm run encender -- --apagar.`;

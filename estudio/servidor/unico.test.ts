@@ -1,10 +1,10 @@
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { comandoDe, leerCandado, otroServidor, puertoOcupado, rutaCandado, soltarCandado, tomarCandado } from './unico';
+import { alAbrir, carpetaDeComando, comandoDe, leerCandado, mismaCarpeta, otroServidor, puertoOcupado, rutaCandado, soltarCandado, tomarCandado } from './unico';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-unico-'));
 afterAll(() => rmSync(raiz, { recursive: true, force: true }));
@@ -12,6 +12,35 @@ const escribirCandado = (c: object) => {
   mkdirSync(join(raiz, '.estudio'), { recursive: true });
   writeFileSync(rutaCandado(raiz), JSON.stringify(c));
 };
+
+// Tu decisión nmvsv6pqutit (28 de octubre de 2026, misión t_decidir_servidor): al abrir una segunda copia del Studio,
+// desde otra carpeta, se apaga la que está encendida y se enciende la nueva, sin preguntar (pedido pd_un_director)
+describe('una segunda copia del Studio reemplaza a la primera', () => {
+  const primera = 'C:\\Users\\ana\\Descargas\\STL-viejo';
+  const segunda = 'C:/xampp2024/htdocs/www/STL';
+  it('reconoce la carpeta de un servidor por su comando, lo encienda el vigilante o npm run estudio', () => {
+    expect(carpetaDeComando(`"C:\\Program Files\\nodejs\\node.exe" "${primera}\\node_modules\\vite\\bin\\vite.js"`)).toBe(primera);
+    expect(carpetaDeComando(`node ${segunda}/node_modules/.bin/../vite/bin/vite.js`)).toBe(segunda);
+    expect(carpetaDeComando('"C:\\Program Files\\Otro\\otro.exe" --puerto 5180')).toBeNull();
+    expect(carpetaDeComando(`node ${segunda}/node_modules/otra-cosa/index.js`)).toBeNull();
+  });
+
+  it('otra copia se apaga y se enciende la nueva; la misma copia se recarga; otro programa no se toca', () => {
+    expect(alAbrir(segunda, primera, true, true)).toBe('reemplazar');
+    expect(alAbrir(segunda, 'c:\\xampp2024\\htdocs\\www\\STL\\', true, true)).toBe('recargar');
+    expect(alAbrir(segunda, null, false, true)).toBe('recargar');
+    expect(alAbrir(segunda, 'C:\\otra-app', false, true)).toBe('no tocar');
+    expect(mismaCarpeta('/home/ana/STL', '/home/ana/stl', false)).toBe(false);
+  });
+
+  it('abrir el Studio apaga la otra copia antes de encender esta, y nunca enciende con el puerto ocupado', () => {
+    const encender = readFileSync(join(__dirname, '..', '..', 'tools', 'encender.ts'), 'utf-8');
+    const cuerpo = encender.slice(encender.indexOf('async function encender()'));
+    expect(cuerpo.indexOf("queHacer === 'reemplazar' && !(await apagarOtraCopia(")).toBeGreaterThan(0);
+    expect(cuerpo.indexOf("queHacer === 'reemplazar'")).toBeLessThan(cuerpo.indexOf('lanzarVigilante()'));
+    expect(cuerpo).toContain('process.exit(1)');
+  });
+});
 
 describe('un solo servidor del Studio', () => {
   it('el candado propio no cuenta como otro servidor, y solo lo suelta quien lo tiene', async () => {
