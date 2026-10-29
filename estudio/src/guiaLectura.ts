@@ -326,7 +326,7 @@ const FUERA = [
   'nav, header, summary, label, select, textarea, [contenteditable], button, .sr-only, p.como, .gl-sin',
   '.ajustes-lector, .marcas-trozo, .cuenta-ideas, .idea-cambiada, .estado-texto, .eleccion-paso, .espera-paso',
   '.aclarando-paso, .pasos-listos, .solo-tu, .sigue-esta, .orden-paso, .dq-al-dia, .dq-leidas',
-  '.esperando, .quedo-en, .pide-decision, .transcripcion, .leido-doc, .vacio-m, .todas-hechas, .aviso, .urgente-n',
+  '.esperando, .quedo-en, .cabeza-parte, .pide-decision, .transcripcion, .leido-doc, .vacio-m, .todas-hechas, .aviso, .urgente-n',
   '.nota-entrega, .sube-nivel, .logros-nuevos, p.pista-varias, p.intro, p.etiqueta, p.titulo-menu, p.titulo-grupo',
   'p.filtro-equipo, p.bien-repo, p.nota-rol, p.etiqueta-boletin, p.modo-permisos, p.aviso-modelo, p.aviso-ajustes-nuevas, p.cuenta-propuestas',
   'p.leyenda-d, p.error-explorador, p.negados-dq',

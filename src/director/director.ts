@@ -577,6 +577,32 @@ export interface Respuesta {
    * cambia lo decidido en otra parte: salen de lo vigente (`decisionesVigentes`) y se siguen encontrando por su id.
    */
   reemplaza?: string[];
+  /**
+   * Si la nota trae varias cosas (un ajuste y una idea, por ejemplo), cada una por su lado (pedido pd_partes_separadas,
+   * parte 2 de la propuesta aceptada pr_tipo_nota): su tipo, lo que dice el director de ella, su tratamiento y dónde
+   * quedó. `texto`, `tratamiento` y `destino` de arriba siguen siendo los de la respuesta entera (lo principal).
+   */
+  partes?: ParteDeRespuesta[];
+}
+
+/**
+ * Los tipos de una nota (propuesta aceptada pr_tipo_nota): una idea para después, un ajuste (cambiar algo que ya existe),
+ * algo que falla, una pregunta, o una respuesta a lo que dijo el director.
+ */
+const TIPOS_DE_NOTA =['idea', 'ajuste', 'falla', 'pregunta', 'respuesta'] as const;
+export type TipoDeNota = (typeof TIPOS_DE_NOTA)[number];
+export const NOMBRE_TIPO_DE_NOTA: Record<TipoDeNota, string> = { idea: 'Idea para después', ajuste: 'Ajuste', falla: 'Algo falla', pregunta: 'Pregunta', respuesta: 'Te respondo' };
+
+/**
+ * Una de las cosas que trae una nota, separada en la respuesta: su tipo como lo leyó el director (si no calza con el que
+ * eligió la persona, lo corrige y lo dice en su texto), lo que responde de ella, su tratamiento y, si lo lleva al plan,
+ * dónde quedó.
+ */
+export interface ParteDeRespuesta {
+  tipo: TipoDeNota;
+  texto: string;
+  tratamiento: Tratamiento;
+  destino?: Destino;
 }
 
 /** Los tratamientos que llevan algo al plan, y por eso nombran dónde quedó (`destino`). */
@@ -592,8 +618,10 @@ export function respuestasSinDestino(plan: Plan, notas: Nota[], desde: string): 
   // Y una nota que pide una regla (pideUnaRegla): no se recorta en su respuesta, se lleva a donde la vigile el código
   const reglas = new Set(notas.filter((n) => pideUnaRegla(n.texto ?? '')).map((n) => n.id));
   return Object.entries(plan.respuestas ?? {})
-    .filter(([id, r]) => r.cuando >= desde && !r.destino
+    .filter(([id, r]) => r.cuando >= desde && ((!r.destino
       && (TRATAMIENTOS_CON_DESTINO.includes(r.tratamiento!) || ((decisiones.has(id) || reglas.has(id)) && r.tratamiento !== 'rechazada')))
+      // Y cada parte que lleva algo al plan dice el suyo (pd_partes_separadas)
+      || (r.partes ?? []).some((p) => !p.destino && TRATAMIENTOS_CON_DESTINO.includes(p.tratamiento))))
     .map(([id]) => id);
 }
 
@@ -3376,12 +3404,29 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
   for (const id of Object.keys(plan.ejecutadas ?? {})) if (!plan.propuestas.some((p) => p.id === id)) errores.push(`Se marcó como ejecutada una propuesta que no está («${id}»).`);
   for (const [id, r] of Object.entries(plan.respuestas ?? {})) {
     if (r.tratamiento && !TRATAMIENTOS.includes(r.tratamiento)) errores.push(`La respuesta a la nota «${id}» tiene un tratamiento desconocido (${r.tratamiento}).`);
-    if (!r.destino) continue;
-    const donde = `La respuesta a la nota «${id}»`;
-    destinoValido(r.destino, donde);
-    const ancla = r.destino.ancla;
-    if (ancla?.startsWith('mision-') && !misiones.has(ancla.slice(7))) errores.push(`${donde} dice que quedó en una misión que no está («${ancla}»).`);
-    if (r.destino.doc && !r.destino.doc.startsWith('repo:') && !(plan.documentos ?? []).some((x) => x.ruta === r.destino!.doc)) errores.push(`${donde} dice que quedó en un documento que no está en la lista del plan («${r.destino.doc}»).`);
+    const quedoEn = (destino: Destino | undefined, donde: string) => {
+      if (!destino) return;
+      destinoValido(destino, donde);
+      const ancla = destino.ancla;
+      if (ancla?.startsWith('mision-') && !misiones.has(ancla.slice(7))) errores.push(`${donde} dice que quedó en una misión que no está («${ancla}»).`);
+      if (destino.doc && !destino.doc.startsWith('repo:') && !(plan.documentos ?? []).some((x) => x.ruta === destino.doc)) errores.push(`${donde} dice que quedó en un documento que no está en la lista del plan («${destino.doc}»).`);
+    };
+    quedoEn(r.destino, `La respuesta a la nota «${id}»`);
+    // Las partes de una nota que trae varias cosas (pd_partes_separadas): dos o más, cada una con su tipo, su texto, su
+    // tratamiento y, si lo lleva al plan, dónde quedó
+    if (r.partes === undefined) continue;
+    if (!Array.isArray(r.partes) || r.partes.length < 2) {
+      errores.push(`La respuesta a la nota «${id}» trae partes, pero menos de dos: con una sola cosa, va en la respuesta entera, sin partes.`);
+      continue;
+    }
+    r.partes.forEach((p, i) => {
+      const donde = `La parte ${i + 1} de la respuesta a la nota «${id}»`;
+      if (!TIPOS_DE_NOTA.includes(p?.tipo)) errores.push(`${donde} tiene un tipo desconocido (${p?.tipo}): va uno de ${TIPOS_DE_NOTA.join(', ')}.`);
+      if (typeof p?.texto !== 'string' || !p.texto.trim()) errores.push(`${donde} no dice nada (le falta su texto).`);
+      if (!TRATAMIENTOS.includes(p?.tratamiento)) errores.push(`${donde} tiene un tratamiento desconocido (${p?.tratamiento}).`);
+      else if (TRATAMIENTOS_CON_DESTINO.includes(p.tratamiento) && !p.destino) errores.push(`${donde} es «${p.tratamiento}», pero no dice dónde quedó (su destino).`);
+      quedoEn(p?.destino, donde);
+    });
   }
   for (const id of Object.keys(plan.evaluacion ?? {})) if (!criterios.has(id)) errores.push(`El director evaluó un criterio que no está («${id}»).`);
   for (const b of plan.boletin ?? []) {

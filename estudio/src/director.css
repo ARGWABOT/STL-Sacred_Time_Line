@@ -687,6 +687,11 @@ form.soltando { outline: 2px dashed var(--acento, #2f5fa8); outline-offset: 4px;
 .tratamiento.rechazada { background: #8a2c27; color: #fff; }
 .tratamiento.aplazada { background: #8a5a12; color: #fff; }
 .tratamiento.decision { background: #f6e7b4; color: #2c2c2a; }
+/* Una nota que traía varias cosas: cada parte por su lado, con su tipo, su tratamiento y su «Quedó en» (pd_partes_separadas) */
+.partes-resp { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.parte-resp { padding: 8px 10px; border-left: 3px solid rgba(246, 231, 180, 0.5); border-radius: 4px; background: rgba(255, 255, 255, 0.06); }
+.parte-resp .cabeza-parte { margin: 0 0 4px; }
+.tipo-nota { display: inline-block; margin-right: 4px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid rgba(246, 231, 180, 0.6); color: #f6e7b4; }
 
 /* ── Los documentos para leer y comentar ── */
 .docs { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 20px; align-items: start; }

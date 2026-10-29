@@ -135,11 +135,14 @@ import {
   validarPlan,
   validarProyecto,
   xpDe,
+  NOMBRE_TIPO_DE_NOTA,
   type CommitFrentes,
   type Contexto,
   type EstadoDirector,
   type Plan,
   type Proyecto,
+  type TipoDeNota,
+  type Tratamiento,
 } from './director';
 
 const plantilla = planPlantilla as unknown as Plan;
@@ -333,6 +336,50 @@ describe('el arranque: del repositorio a la ruta', () => {
     p.respuestas.n1.destino = { vista: 'misiones', ancla: 'mision-nada', etiqueta: 'X' };
     p.respuestas.n3.destino = { doc: 'docs/director/otro.md', etiqueta: 'Otro' };
     expect(validarPlan(p)).toHaveLength(3);
+  });
+
+  it('una nota con varias cosas se responde por partes, cada una con su tipo, su tratamiento y dónde quedó (pd_partes_separadas)', () => {
+    const cuando = '2026-10-19T10:00:00.000Z';
+    const desde = '2026-10-19T00:00:00.000Z';
+    const mision = { vista: 'misiones' as const, ancla: 'mision-c_endpoints', etiqueta: 'Los endpoints' };
+    const p: Plan = {
+      ...planEjemplo(),
+      respuestas: {
+        n1: {
+          cuando, texto: 'Traías dos cosas: las separé.', tratamiento: 'integrada', destino: mision,
+          partes: [
+            { tipo: 'ajuste', texto: 'El botón, más grande: hecho.', tratamiento: 'integrada', destino: mision },
+            { tipo: 'idea', texto: 'Lo de los temas, para la beta. La marcaste como ajuste, pero es una idea para después.', tratamiento: 'aplazada', destino: { vista: 'ruta', fase: 'beta', etiqueta: 'La beta' } },
+            { tipo: 'pregunta', texto: 'Sí, se puede.', tratamiento: 'informada' },
+          ],
+        },
+      },
+    };
+    expect(validarPlan(p)).toEqual([]);
+    expect(respuestasSinDestino(p, [], desde)).toEqual([]);
+    expect(NOMBRE_TIPO_DE_NOTA[p.respuestas.n1.partes![1].tipo]).toBe('Idea para después');
+    // Una parte que lleva algo al plan sin decir dónde quedó: lo dice la validación y el doble check del cierre
+    const partes = p.respuestas.n1.partes!;
+    delete partes[1].destino;
+    expect(validarPlan(p)).toEqual(['La parte 2 de la respuesta a la nota «n1» es «aplazada», pero no dice dónde quedó (su destino).']);
+    expect(respuestasSinDestino(p, [], desde)).toEqual(['n1']);
+    partes[1].destino = { vista: 'ruta', fase: 'beta', etiqueta: 'La beta' };
+    // Un tipo o un tratamiento que no existe, una parte vacía y un destino que no está
+    const mal = structuredClone(p);
+    mal.respuestas.n1.partes = [
+      { tipo: 'queja' as TipoDeNota, texto: 'X', tratamiento: 'informada' },
+      { tipo: 'falla', texto: ' ', tratamiento: 'resuelta' as Tratamiento },
+      { tipo: 'ajuste', texto: 'Y', tratamiento: 'integrada', destino: { vista: 'misiones', ancla: 'mision-nada', etiqueta: 'X' } },
+    ];
+    const errores = validarPlan(mal);
+    expect(errores).toHaveLength(4);
+    expect(errores.join('\n')).toContain('La parte 1 de la respuesta a la nota «n1» tiene un tipo desconocido (queja)');
+    expect(errores.join('\n')).toContain('La parte 2 de la respuesta a la nota «n1» no dice nada');
+    expect(errores.join('\n')).toContain('La parte 2 de la respuesta a la nota «n1» tiene un tratamiento desconocido (resuelta)');
+    expect(errores.join('\n')).toContain('La parte 3 de la respuesta a la nota «n1» dice que quedó en una misión que no está («mision-nada»)');
+    // Con una sola cosa no hay partes: va en la respuesta entera
+    mal.respuestas.n1.partes = [partes[0]];
+    expect(validarPlan(mal)).toEqual(['La respuesta a la nota «n1» trae partes, pero menos de dos: con una sola cosa, va en la respuesta entera, sin partes.']);
   });
 
   it('los criterios del arranque se miden con el diagnóstico y el objetivo', () => {

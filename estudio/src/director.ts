@@ -55,6 +55,7 @@ import {
   reservaDeMisiones,
   mdDeBloqueDePuntos,
   NIVELES,
+  NOMBRE_TIPO_DE_NOTA,
   notaFoco,
   opcionConDetalle,
   opcionSola,
@@ -3307,9 +3308,16 @@ const plegable = (clave: string, porDefecto = false) => ` data-recuerda="${esc(c
  * comprobarlo de un vistazo. Si es el mismo lugar donde se lee la respuesta (`aqui`), se dice sin botón: uno que te deja
  * donde ya estás confunde (nota de voz del titular, 22 de octubre).
  */
-const quedoEn = (r: Respuesta, aqui?: Lugar) => (!r.destino ? ''
+const quedoEn = (r: Pick<Respuesta, 'destino'>, aqui?: Lugar) => (!r.destino ? ''
   : aqui && llevaAqui(r.destino, aqui) ? `<p class="quedo-en">Quedó aquí, ${aquiMismo(r.destino)}.</p>`
   : `<p class="quedo-en">Quedó en: ${botonIr(r.destino, 'enlace')}</p>`);
+
+/**
+ * Si la nota traía varias cosas, cada una por su lado, como la separó el director (pedido pd_partes_separadas): su tipo,
+ * lo que responde de ella, su tratamiento y dónde quedó.
+ */
+const partesDeRespuesta = (r: Respuesta, aqui?: Lugar) => (!r.partes?.length ? ''
+  : `<ol class="partes-resp">${r.partes.map((p) => `<li class="parte-resp"><p class="cabeza-parte"><span class="tipo-nota ${esc(p.tipo)}">${esc(NOMBRE_TIPO_DE_NOTA[p.tipo] ?? p.tipo)}</span><span class="tratamiento ${esc(p.tratamiento)}">${NOMBRE_TRATAMIENTO[p.tratamiento] ?? esc(p.tratamiento)}</span></p><div class="texto-resp">${limpio(marked.parse(p.texto, { async: false }) as string)}</div>${quedoEn(p, aqui)}</li>`).join('')}</ol>`);
 
 /** La parte de un documento como lugar: ahí se leen las notas sobre ella, sobre sus ideas y sobre sus decisiones. */
 const enParte = (ruta: string, seccion: string): Lugar => ({ vista: 'documentos', doc: ruta, seccion });
@@ -3359,7 +3367,7 @@ function tarjetaNota(n: Nota, conSobre = true, plegada = false, enRespuesta = fa
     : enDoc ? `<div class="dicho-nota gl-sin plegable-dicho${plegado ? ' plegado' : ''}" data-dicho="${esc(n.id)}" tabindex="0" aria-expanded="${!plegado}" title="${plegado ? 'Lo que dijiste, en su primer renglón: tócalo para verlo entero' : 'Tócalo para plegarlo a su primer renglón'}">${dicho}</div>`
     : `<div class="dicho-nota gl-sin">${dicho}</div>`;
   const cuerpo = `${deLaPersona}
-    ${r ? `<div class="respuesta-dir"><b>El director (${momento(r.cuando)}):</b>${r.tratamiento ? ` <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}<div class="texto-resp">${limpio(marked.parse(r.texto, { async: false }) as string)}</div>${quedoEn(r, aqui)}</div>` : '<p class="esperando">Esperando al director. Hasta que lo lea, puedes corregirla o borrarla.</p>'}`;
+    ${r ? `<div class="respuesta-dir"><b>El director (${momento(r.cuando)}):</b>${r.tratamiento ? ` <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}<div class="texto-resp">${limpio(marked.parse(r.texto, { async: false }) as string)}</div>${quedoEn(r, aqui)}${partesDeRespuesta(r, aqui)}</div>` : '<p class="esperando">Esperando al director. Hasta que lo lea, puedes corregirla o borrarla.</p>'}`;
   if (plegada) {
     return `<li class="nota-d plegable${r ? ' respondida' : ''}"><details data-nota="${esc(n.id)}"${notasAbiertas.has(n.id) ? ' open' : ''}>
       <summary>${n.urgente ? `<span class="urgente-s" title="Urgente">${icono('urgente')}</span>` : ''}<span class="asunto">${esc(asuntoDe(n))}</span><span class="como">${esc(n.quien)} · ${momento(n.cuando)}${conSobre ? ` · sobre ${sobreDe(n)}` : ''}${r?.tratamiento ? ` · <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}${enRespuesta ? ' · <span class="hallado-en">está en la respuesta del director</span>' : ''}</span></summary>
