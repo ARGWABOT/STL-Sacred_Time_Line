@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { antesDeCerrarConClicFuera, antesDeGrabar, antesDeOtroSobre, modalDeArriba, ordenDeApertura, repartirDictado, sumarDictado, type EstadoGrabacion } from './grabadora';
+import { antesDeCerrarConClicFuera, antesDeGrabar, antesDeOtroSobre, marcaDeCampos, modalDeArriba, ordenDeApertura, reemplazarMarcado, repartirDictado, sumarDictado, type EstadoGrabacion } from './grabadora';
 
 describe('sumarle algo hablando a una nota que el director aún no lee (nota de voz del titular nmvonrzz6tit, 25 de octubre de 2026)', () => {
   it('lo dicho queda al final, en un párrafo aparte, y sin nada antes queda solo', () => {
@@ -35,6 +35,27 @@ describe('sumarle algo hablando a una nota que el director aún no lee (nota de 
     expect(repartirDictado({ texto: '', dicho: '' }, 'Todo nuevo.')).toEqual({ texto: '', dicho: 'Todo nuevo.' });
     // Una nota escrita sin audio: lo dicho va a su texto
     expect(repartirDictado({ texto: 'Escrito.' }, 'Y esto.')).toEqual({ texto: 'Escrito.\n\nY esto.', dicho: undefined });
+  });
+
+  it('lo que marcaste, lo reemplaza lo dicho, en el campo que marcaste (pedido pd_tipo_voz)', () => {
+    expect(reemplazarMarcado('Quiero el botón azul arriba.', 16, 20, ' verde ')).toBe('Quiero el botón verde arriba.');
+    // Sin pegar palabras: un espacio a cada lado si falta, y nada antes de un punto
+    expect(reemplazarMarcado('Quiero el botónazul.', 15, 19, 'verde')).toBe('Quiero el botón verde.');
+    expect(reemplazarMarcado('Algo.', 0, 5, '  ')).toBe('Algo.');
+    const texto = 'Lo escrito, con un error aquí.';
+    expect(repartirDictado({ texto, dicho: 'Lo del audio.' }, 'un acierto', { campo: 'texto', inicio: 16, fin: 24 })).toEqual({ texto: 'Lo escrito, con un acierto aquí.', dicho: 'Lo del audio.' });
+    expect(repartirDictado({ texto, dicho: 'Lo del audio.' }, 'de la voz', { campo: 'dicho', inicio: 3, fin: 12 })).toEqual({ texto, dicho: 'Lo de la voz.' });
+    // Sin nada marcado (solo el cursor), o marcado en un campo que no está, se suma como siempre
+    expect(marcaDeCampos([{ campo: 'texto', inicio: 4, fin: 4 }])).toBeNull();
+    expect(repartirDictado({ texto: 'Escrito.' }, 'Y esto.', { campo: 'dicho', inicio: 0, fin: 3 })).toEqual({ texto: 'Escrito.\n\nY esto.', dicho: undefined });
+    // Marcado en los dos: vale el último que tocaste
+    const dos = [{ campo: 'texto' as const, inicio: 0, fin: 2 }, { campo: 'dicho' as const, inicio: 1, fin: 3 }];
+    expect(marcaDeCampos(dos, 'dicho')?.campo).toBe('dicho');
+    expect(marcaDeCampos(dos)?.campo).toBe('texto');
+    const pagina = readFileSync(join(__dirname, 'director.ts'), 'utf-8');
+    const corregir = pagina.slice(pagina.indexOf("titulo: 'Corregir la nota'"), pagina.indexOf('} else if (ds.decidir)'));
+    expect(corregir).toContain('repartirDictado({ texto, dicho: nuevo }, sumado, marca)');
+    expect(corregir).toContain('márcala antes de grabar: lo que digas la reemplaza');
   });
 
   it('el diálogo no manda una transcripción vacía al servidor: lo dice antes', () => {

@@ -132,7 +132,7 @@ import { icono, type Icono } from './iconos';
 import { pedirProyectoNuevo } from './nuevo_proyecto';
 import { cerrarConClicFuera, confirmar } from './modal';
 import { abrirPreguntas } from './preguntas';
-import { antesDeCerrarConClicFuera, antesDeOtroSobre, Grabadora, repartirDictado } from './grabadora';
+import { antesDeCerrarConClicFuera, antesDeOtroSobre, Grabadora, marcaDeCampos, repartirDictado, type Marca } from './grabadora';
 import { borradoresDe, guardarBorrador, leerBorrador, lineaDeBorrador, quitarBorrador, type Borrador, type SobreBorrador } from './borradores';
 import { probarDialogo, vigilarPermisos } from './dialogoPermiso';
 import { Adjuntos } from './adjuntos';
@@ -6506,9 +6506,16 @@ async function clicEnVista(b: HTMLButtonElement) {
     const n = d.estado.notas.find((x) => x.id === ds.editarNota)!;
     const dicho = n.audio ? d.transcripciones[n.audio] : undefined;
     const conTexto = !!(n.texto || !dicho);
-    await pedir({
+    // Para rehacer una parte con la voz (pd_tipo_voz): la selección de cada campo sigue ahí al oprimir «Grabar» y «Guardar»;
+    // vale la del último campo que tocaste
+    let ultimoCampo: Marca['campo'] | null = null;
+    const marcaAlGuardar = () => marcaDeCampos((['texto', 'dicho'] as const).flatMap((campo) => {
+      const t = $('dialogo').querySelector<HTMLTextAreaElement>(`textarea[name="${campo}"]`);
+      return t ? [{ campo, inicio: t.selectionStart, fin: t.selectionEnd }] : [];
+    }), ultimoCampo);
+    const corrigiendo = pedir({
       titulo: 'Corregir la nota',
-      ayuda: `El director solo verá lo que quede aquí cuando revise.${dicho ? ' Si la transcripción entendió mal tu audio, corrígela: el audio queda igual.' : ''} Para sumarle algo hablando, oprime «Grabar»: al guardar, lo que digas se transcribe en tu computador y queda al final de ${conTexto ? 'tu nota' : 'lo que dijiste'}. Para sumarle una imagen, pégala con Ctrl + V o adjúntala, como al escribirla${n.adjuntos?.length ? '; y para quitar una que ya tiene, márcala abajo' : ''}.`,
+      ayuda: `El director solo verá lo que quede aquí cuando revise.${dicho ? ' Si la transcripción entendió mal tu audio, corrígela: el audio queda igual.' : ''} Para sumarle algo hablando, oprime «Grabar»: al guardar, lo que digas se transcribe en tu computador y queda al final de ${conTexto ? 'tu nota' : 'lo que dijiste'}. Para rehacer una parte con la voz, márcala antes de grabar: lo que digas la reemplaza. Para sumarle una imagen, pégala con Ctrl + V o adjúntala, como al escribirla${n.adjuntos?.length ? '; y para quitar una que ya tiene, márcala abajo' : ''}.`,
       campos: [
         ...(conTexto ? [{ id: 'texto', etiqueta: 'Tu nota', tipo: 'area' as const, valor: n.texto ?? '' }] : []),
         ...(dicho ? [{ id: 'dicho', etiqueta: 'Lo que dijiste en el audio', tipo: 'area' as const, valor: dicho, requerido: true }] : []),
@@ -6525,17 +6532,18 @@ async function clicEnVista(b: HTMLButtonElement) {
         let nuevo: string | undefined = r.dicho;
         // Si vació lo que se entendió de su audio y grabó, lo dicho lo reemplaza (nota de voz nmvpmv30ytit)
         const reemplaza = !!(r.audio && dicho && !(nuevo ?? '').trim());
+        const marca = r.audio ? marcaAlGuardar() : null;
         if (r.audio) {
           const sumado = await dictar(r.audio);
           if (sumado === null) return false;
-          ({ texto, dicho: nuevo } = repartirDictado({ texto, dicho: nuevo }, sumado));
+          ({ texto, dicho: nuevo } = repartirDictado({ texto, dicho: nuevo }, sumado, marca));
         }
         // Lo que se entendió de un audio no queda vacío: se dice antes de guardar nada, con lo que puede hacer
         if (dicho && nuevo !== undefined && !nuevo.trim()) {
           avisar('Lo que dijiste en el audio no puede quedar vacío: escríbelo o graba lo que quieres decir.');
           return false;
         }
-        const alGuardar = r.audio ? (reemplaza ? 'Corregida: lo que dijiste reemplazó lo que se entendió del audio.' : `Corregida: lo que dijiste quedó al final de ${conTexto ? 'tu nota' : 'lo que dijiste'}.`) : 'Corregida.';
+        const alGuardar = r.audio ? (marca ? 'Corregida: lo que dijiste reemplazó lo que marcaste.' : reemplaza ?'Corregida: lo que dijiste reemplazó lo que se entendió del audio.' : `Corregida: lo que dijiste quedó al final de ${conTexto ? 'tu nota' : 'lo que dijiste'}.`) : 'Corregida.';
         const conAdjuntos = !!(r.adjuntos?.length || r.quitarAdjuntos?.length);
         const cambioTexto = texto !== undefined && texto.trim() !== (n.texto ?? '').trim();
         if ((cambioTexto || conAdjuntos) && !(await accion({ tipo: 'editar_nota', id: n.id, texto: texto ?? n.texto ?? '', ...(r.adjuntos?.length ? { adjuntos: r.adjuntos } : {}), ...(r.quitarAdjuntos?.length ? { quitarAdjuntos: r.quitarAdjuntos } : {}) }, alGuardar))) return false;
@@ -6547,6 +6555,14 @@ async function clicEnVista(b: HTMLButtonElement) {
         return true;
       },
     });
+    // El diálogo ya está en pantalla: se anota el último campo que tocas, para saber cuál marcaste
+    const mientras = new AbortController();
+    $('dialogo').addEventListener('focusin', (e) => {
+      const nombre = (e.target as HTMLTextAreaElement).name;
+      if (nombre === 'texto' || nombre === 'dicho') ultimoCampo = nombre;
+    }, { signal: mientras.signal });
+    await corrigiendo;
+    mientras.abort();
   } else if (ds.decidir) {
     const c = d.plan.fases.flatMap((f) => f.criterios).find((x) => x.id === ds.decidir)!;
     const r = await pedir({

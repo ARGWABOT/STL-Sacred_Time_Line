@@ -211,6 +211,32 @@ export function sumarDictado(antes: string, dicho: string): string {
   return antes.trim() ? `${antes.trimEnd()}\n\n${nuevo}` : nuevo;
 }
 
+/** Lo que la persona marcó en un campo del diálogo «Corregir la nota» (su selección), para reemplazarlo con lo dicho. */
+export interface Marca { campo: 'texto' | 'dicho'; inicio: number; fin: number }
+
+/**
+ * Lo marcado, reemplazado por lo que se dijo (pedido pd_tipo_voz, nota de voz del titular nmvjw1oybtit: «que lo dictado
+ * reemplace lo que marques»), con un espacio a cada lado si hace falta para no pegar las palabras. Pura.
+ */
+export function reemplazarMarcado(antes: string, inicio: number, fin: number, dicho: string): string {
+  const nuevo = dicho.trim();
+  if (!nuevo) return antes;
+  const izq = antes.slice(0, inicio);
+  const der = antes.slice(fin);
+  const espacioAntes = izq && !/\s$/.test(izq) ? ' ' : '';
+  const espacioDespues = der && !/^[\s.,;:!?)»]/.test(der) ? ' ' : '';
+  return `${izq}${espacioAntes}${nuevo}${espacioDespues}${der}`;
+}
+
+/**
+ * La selección que vale de los campos de la nota: la del último que tocaste, si marcaste algo en él; si no, la del otro.
+ * Sin nada marcado (solo el cursor), ninguna: lo dicho se suma, como siempre. Pura.
+ */
+export function marcaDeCampos(campos: { campo: Marca['campo']; inicio: number; fin: number }[], ultimo?: Marca['campo'] | null): Marca | null {
+  const marcados = campos.filter((c) => c.fin > c.inicio);
+  return marcados.find((c) => c.campo === ultimo) ?? marcados[0] ?? null;
+}
+
 /**
  * Dónde queda lo que se dijo al corregir una nota (nota de voz del titular nmvpmv30ytit, 26 de octubre de 2026: borró lo
  * que se entendió de su audio para decir otra cosa hablando, lo dicho se sumó a su nota escrita y el Studio lo rechazó
@@ -218,8 +244,11 @@ export function sumarDictado(antes: string, dicho: string): string {
  * decir otra cosa ahí. Si no, se suma al final de su nota escrita o, si solo es de voz, de lo que se entendió de ella.
  * `texto` y `dicho` son los campos del diálogo (undefined: no está). Pura.
  */
-export function repartirDictado(campos: { texto?: string; dicho?: string }, sumado: string): { texto?: string; dicho?: string } {
+export function repartirDictado(campos: { texto?: string; dicho?: string }, sumado: string, marca?: Marca | null): { texto?: string; dicho?: string } {
   const { texto, dicho } = campos;
+  // Lo que marcaste en uno de los dos campos, lo reemplaza lo dicho (pedido pd_tipo_voz)
+  const antes = marca ? campos[marca.campo] : undefined;
+  if (marca && antes !== undefined && marca.fin > marca.inicio && marca.fin <= antes.length && sumado.trim()) return { ...campos, [marca.campo]: reemplazarMarcado(antes, marca.inicio, marca.fin, sumado) };
   if (dicho !== undefined && !dicho.trim()) return { texto, dicho: sumado.trim() };
   if (texto !== undefined) return { texto: sumarDictado(texto, sumado), dicho };
   return { texto, dicho: sumarDictado(dicho ?? '', sumado) };
