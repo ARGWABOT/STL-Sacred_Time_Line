@@ -1045,11 +1045,16 @@ export function servidorDirector(): Plugin {
       process.once('exit', () => soltarCandado(raiz));
       // Cada 15 segundos mira si hay una revisión pedida que nadie tomó: es leer un archivo, no gasta nada
       revisor = new Revisor(raiz);
+      const este = revisor;
       // Mientras se mide el núcleo del director no se lanza ningún director: gastan del mismo límite de la cuenta
       revisor.enPausa = midiendo;
       const reloj = setInterval(() => void revisor?.mirar().catch(() => {}), 15_000);
       reloj.unref?.();
-      server.httpServer?.on('close', () => clearInterval(reloj));
+      // Al reiniciarse, este lanzador queda retirado: vigila al director que lanzó, y lo siguiente lo lanza el nuevo
+      server.httpServer?.on('close', () => {
+        clearInterval(reloj);
+        este.retirado = true;
+      });
       // Mientras el director trabaja, la página no se recarga a pedazos: una sola vez, al final (recarga.ts)
       contenerRecargas(server, raiz, () => !!revisor?.estado().revisando);
       // Las voces de Kokoro, locales y las únicas: voz.ts corre tools/director/voz.py

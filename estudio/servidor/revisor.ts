@@ -1848,6 +1848,13 @@ export class Revisor {
    * mismo límite de la cuenta. Lo pedido espera, y el reloj de 15 segundos lo lanza cuando termine.
    */
   enPausa: () => boolean = () => false;
+  /**
+   * Si un reinicio del servidor ya puso otro lanzador en su lugar: este sigue vigilando al director que lanzó, pero no
+   * lanza nada más. Lo pedido lo toma el nuevo, con su reloj de 15 segundos, y con el código de hoy: el 28 de octubre de
+   * 2026, en una serie de revisiones seguidas, cada una la lanzaba el lanzador que vigiló a la anterior, con el código de
+   * antes del reinicio, y el arreglo del número de Claude Code en Windows nunca corría (t_ver_huerfano).
+   */
+  retirado = false;
 
   /** `ajustes`: la configuración de Claude Code de donde salen el modelo y el esfuerzo (la de /model y /effort). */
   constructor(private raiz: string, private ajustes = archivoAjustesClaude()) {}
@@ -1913,7 +1920,7 @@ export class Revisor {
    * revisión en marcha, que también escribe el plan. Sin modelo: solo lee estudio.local.json.
    */
   async mirar(forzar = false): Promise<void> {
-    if (this.hijo || this.ocupado || this.enPausa()) return;
+    if (this.retirado || this.hijo || this.ocupado || this.enPausa()) return;
     this.ocupado = true;
     try {
       const local = await leerLocal(this.raiz);

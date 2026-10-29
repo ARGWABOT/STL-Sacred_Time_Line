@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { INVENTARIO_EN_EL_ENCARGO } from '../../src/director/modelos.ts';
 import { tomarCandado as tomarCandadoProyecto } from '../../src/director/candado.ts';
 import { buscarProcesoReal, procesoReal, type Proceso } from './unico';
-import { anotarProcesoReal, POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, planDeProyecto, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso, paqueteListoDe } from './revisor';
+import { anotarProcesoReal, POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, planDeProyecto, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso, paqueteListoDe, Revisor } from './revisor';
 
 describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», confirmada con 15 días)', () => {
   it('borra lo de más de quince días con su paquete, y conserva el último de cada proyecto y de cada tipo', () => {
@@ -361,6 +361,28 @@ describe('el director que lanza el Studio', () => {
       writeFileSync(turno, JSON.stringify({ pid: process.pid, cuando: new Date(ahora).toISOString(), hijo: 500, proyecto: 'golf', registro: 'golf.log' }));
       expect(await anotarProcesoReal(turno, null, 500, 'golf', 'golf.log', registro, () => false, async () => conClaude)).toBeNull();
       expect(JSON.parse(readFileSync(turno, 'utf-8')).hijo).toBe(500);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('un lanzador retirado por un reinicio no lanza nada más: lo toma el nuevo, con el código de hoy (t_ver_huerfano)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stl-retirado-'));
+    try {
+      // enPausa es lo primero que mira el lanzador antes de leer lo pedido: si no lo mira, no llegó a lanzar
+      const viejo = new Revisor(dir);
+      let miro = 0;
+      viejo.enPausa = () => (++miro, true);
+      viejo.retirado = true;
+      await viejo.mirar(true);
+      expect(miro).toBe(0);
+      const nuevo = new Revisor(dir);
+      nuevo.enPausa = () => (++miro, true);
+      await nuevo.mirar(true);
+      expect(miro).toBe(1);
+      // y el servidor lo retira al cerrarse
+      const servidor = readFileSync(join(process.cwd(), 'estudio/servidor/director.ts'), 'utf8');
+      expect(servidor).toMatch(/httpServer\?\.on\('close', \(\) => \{\s*clearInterval\(reloj\);\s*este\.retirado = true;/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
