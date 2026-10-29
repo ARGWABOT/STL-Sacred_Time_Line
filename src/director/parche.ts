@@ -14,6 +14,10 @@ import type { Plan } from './director.ts';
  * - `cambiar`: unos campos de lo que ya está, por id (`{ "misiones": { "t_x": { "vigente": "…", "despuesDe": null } } }`),
  *   y con null el campo sale; una lista de adentro, por posición (porPosicion);
  * - `quitar`: lo que sale de una lista, por id (`{ "misiones": ["t_x"] }`);
+ * - `orden`: cambiar el orden de una lista sin sacar nada (`{ "misiones": ["t_b", "t_a"] }`): las nombradas quedan en
+ *   ese orden, en los lugares que ocupaban, y las demás no se mueven. Para reordenar no se quita y se vuelve a sumar:
+ *   entre un parche y el otro, lo que la persona ya entregó o empezó quedaba sin su misión, y el Studio rechazaba cada
+ *   decisión suya con «Hay una entrega de una misión que no está» (nota del titular nmvsv9ihxtit, 28 de octubre de 2026);
  * - lo demás del plan se reemplaza entero, y con null sale. `revisado` no: lo pone el cierre (--listo).
  */
 const POR_CLAVE = ['respuestas', 'revisiones', 'evaluacion', 'ejecutadas', 'reservaCorta'];
@@ -51,7 +55,7 @@ export function aplicarParche(plan: Plan, parche: unknown): { plan: Plan; hecho:
   const listaDe = (clave: keyof typeof POR_ID) => [...((nuevo[clave] as Registro[] | undefined) ?? [])];
 
   for (const [clave, valor] of Object.entries(parche)) {
-    if (clave === 'cambiar' || clave === 'quitar') continue;
+    if (clave === 'cambiar' || clave === 'quitar' || clave === 'orden') continue;
     if (POR_CLAVE.includes(clave)) {
       if (!esObjeto(valor)) {
         errores.push(`«${clave}» va como un objeto, por clave.`);
@@ -88,7 +92,7 @@ export function aplicarParche(plan: Plan, parche: unknown): { plan: Plan; hecho:
   }
 
   // Después de lo de arriba, para poder cambiar o quitar lo que el mismo parche sumó
-  const porLista = (que: 'cambiar' | 'quitar', forma: string) => {
+  const porLista = (que: 'cambiar' | 'quitar' | 'orden', forma: string) => {
     const valor = parche[que];
     if (valor === undefined) return [];
     if (!esObjeto(valor) || Object.keys(valor).some((c) => !esLista(c))) {
@@ -135,6 +139,25 @@ export function aplicarParche(plan: Plan, parche: unknown): { plan: Plan; hecho:
     if (faltan.length) errores.push(`«quitar» › «${clave}»: no hay ${faltan.join(', ')}.`);
     nuevo[clave] = lista.filter((y) => !ids.includes(y[campo] as string));
     hecho.push(`quitar ${clave}: ${ids.join(', ')}`);
+  }
+  for (const [clave, ids] of porLista('orden', '{ "<lista>": ["<id>", …] }')) {
+    const campo = POR_ID[clave];
+    const lista = listaDe(clave);
+    if (!Array.isArray(ids) || ids.some((x) => typeof x !== 'string') || new Set(ids).size !== ids.length) {
+      errores.push(`«orden» › «${clave}» va como una lista de ids, sin repetir.`);
+      continue;
+    }
+    const faltan = ids.filter((id) => !lista.some((y) => y[campo] === id));
+    if (faltan.length) {
+      errores.push(`«orden» › «${clave}»: no hay ${faltan.join(', ')}.`);
+      continue;
+    }
+    // Los lugares que ocupan las nombradas, de arriba abajo, se llenan con ellas en el orden dado
+    const lugares = lista.flatMap((y, i) => (ids.includes(y[campo] as string) ? [i] : []));
+    const porId = new Map(lista.map((y) => [y[campo], y]));
+    lugares.forEach((i, k) => (lista[i] = porId.get(ids[k])!));
+    nuevo[clave] = lista;
+    hecho.push(`orden ${clave}: ${ids.join(', ')}`);
   }
 
   return errores.length ? { plan, hecho: [], errores } : { plan: nuevo as unknown as Plan, hecho, errores };

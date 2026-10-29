@@ -507,6 +507,9 @@ export function servidorDirector(): Plugin {
     const leido = await leerEstado(id, yo.rol, proyecto);
     const propio = leido.propio!;
     const estado = leido.estado; // para las comprobaciones; lo que cambia va en `propio`
+    // Lo que ya no cuadraba antes de esta decisión no es de la persona: el plan cambió bajo ella (una misión que el
+    // director reordenó quitándola un momento, nota del titular nmvsv9ihxtit). Se rechaza solo lo que su decisión rompe
+    const yaRoto = new Set(validarEstado(estado, plan));
     const firma = { fecha: hoy(), quien: yo.nombre };
     const titular = yo.rol === TITULAR;
     let cambiaProyecto = false;
@@ -909,7 +912,7 @@ export function servidorDirector(): Plugin {
     if (!callado) propio.bitacora.push({ ...firma, texto: que.charAt(0).toUpperCase() + que.slice(1) });
     propio.actualizado = firma.fecha;
     const unido = unirEstados({ ...leido.porPersona, [yo.rol]: propio });
-    const errores = [...validarEstado(unido, plan), ...(cambiaProyecto ? validarProyecto(proyecto) : [])];
+    const errores = [...validarEstado(unido, plan).filter((e) => !yaRoto.has(e)), ...(cambiaProyecto ? validarProyecto(proyecto) : [])];
     if (errores.length) throw new Rechazo(errores.join(' '));
     await escribirJson(rutas.persona(yo.rol), propio);
     if (cambiaProyecto) {

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { Plan } from './director';
+import { estadoVacio, validarEstado, type Plan } from './director';
 import { aplicarParche } from './parche';
 
 // Escribir el plan con cambios puntuales (propuesta pr_encargo_a_medida, punto 1): el director escribe solo lo que cambia
@@ -93,5 +93,42 @@ describe('el plan, con cambios puntuales', () => {
     expect(aplicar).toContain('aplicarParche(');
     expect(aplicar).toMatch(/validarPlan\(r\.plan, equipo\)\.filter\(\(e\) => !antes\.has\(e\)\)/);
     expect(aplicar).not.toContain('marcarRevision');
+  });
+
+  it('el orden de una lista cambia sin sacar nada: las nombradas, en ese orden y en sus lugares; las demás no se mueven', () => {
+    const tres = { ...plan, misiones: [...plan.misiones, { id: 't_c', para: 'otra', fase: 'replicable', titulo: 'C' }, { id: 't_d', para: 'titular', fase: 'replicable', titulo: 'D' }] } as unknown as Plan;
+    const r = aplicarParche(tres, { orden: { misiones: ['t_d', 't_a', 't_b'] } });
+    expect(r.errores).toEqual([]);
+    expect(r.plan.misiones.map((m) => m.id)).toEqual(['t_d', 't_a', 't_c', 't_b']);
+    expect(r.hecho).toEqual(['orden misiones: t_d, t_a, t_b']);
+    expect(aplicarParche(tres, { orden: { misiones: ['t_z'] } }).errores.join(' ')).toMatch(/no hay t_z/);
+    expect(aplicarParche(tres, { orden: { misiones: ['t_a', 't_a'] } }).errores.join(' ')).toMatch(/sin repetir/);
+  });
+
+  // La nota del titular nmvsv9ihxtit (28 de octubre de 2026): para reordenar, el director quitó cinco misiones en un parche
+  // y las volvió a sumar en otro, minuto y medio después. En medio, la persona ya había entregado una (t_ver_tabla_modelos)
+  // y el Studio rechazó su decisión siguiente con «Hay una entrega de una misión que no está», dos veces
+  it('reordenar quitando y volviendo a sumar deja una entrega sin su misión; con «orden», nunca', () => {
+    const plan2 = { ...plan, fases: [], frentes: [], propuestas: [] } as unknown as Plan;
+    const e = estadoVacio();
+    e.entregas = { t_a: { cuando: '2026-10-29T01:27:07.356Z', quien: 'leonc' } };
+    e.empezadas = { t_a: { cuando: '2026-10-29T01:26:00.000Z', quien: 'leonc' } };
+    expect(validarEstado(e, plan2)).toEqual([]);
+    const quitada = aplicarParche(plan2, { quitar: { misiones: ['t_a'] } });
+    expect(validarEstado(e, quitada.plan)).toEqual(['Hay una entrega de una misión que no está («t_a»).', 'Hay una entrega de una misión que no está («t_a»).']);
+    const ordenada = aplicarParche(plan2, { orden: { misiones: ['t_b', 't_a'] } });
+    expect(ordenada.plan.misiones.map((m) => m.id)).toEqual(['t_b', 't_a']);
+    expect(validarEstado(e, ordenada.plan)).toEqual([]);
+  });
+
+  it('la bandeja no aplica un parche que deja inválido lo que el equipo ya guardó, con todo su estado; y el Studio rechaza solo lo que rompe la decisión de la persona', () => {
+    const bandeja = readFileSync(join(__dirname, '..', '..', 'tools', 'director', 'bandeja.ts'), 'utf-8');
+    const aplicar = bandeja.slice(bandeja.indexOf("if (args.includes('--aplicar'))"), bandeja.indexOf("if (args.includes('--aclarar')"));
+    expect(aplicar).toContain('const { estado } = await leerTodo(pedido, false);');
+    expect(aplicar).toMatch(/validarEstado\(estado, unirArchivo\(r\.plan, archivo\)\)\.filter\(\(e\) => !antesEstado\.has\(e\)\)/);
+    const servidor = readFileSync(join(__dirname, '..', '..', 'estudio', 'servidor', 'director.ts'), 'utf-8');
+    const decidir = servidor.slice(servidor.indexOf('async function decidir('), servidor.indexOf('async function entregar('));
+    expect(decidir).toContain('const yaRoto = new Set(validarEstado(estado, plan));');
+    expect(decidir).toContain('validarEstado(unido, plan).filter((e) => !yaRoto.has(e))');
   });
 });

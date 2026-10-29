@@ -188,6 +188,16 @@ if (args.includes('--pedida')) {
   process.exit(1);
 }
 
+// Lo archivado de un proyecto: el de una sola pieza, de antes, que ya no cambia, y los meses, que mandan sobre él («El plan liviano»)
+function archivoDe(elegido: string): { archivo: ArchivoPlan; previo: Partial<ArchivoPlan> | null; carpetaMeses: string } {
+  const rutaPrevio = enDiscoDe(raiz, rutasDe(elegido).archivo);
+  const carpetaMeses = enDiscoDe(raiz, rutasDe(elegido).archivoMeses);
+  const leerJson = (ruta: string) => JSON.parse(readFileSync(ruta, 'utf-8'));
+  const previo: Partial<ArchivoPlan> | null = existsSync(rutaPrevio) ? leerJson(rutaPrevio) : null;
+  const meses = existsSync(carpetaMeses) ? readdirSync(carpetaMeses).filter((f) => f.endsWith('.json')).sort() : [];
+  return { archivo: juntarArchivos([...(previo ? [previo] : []), ...meses.map((f) => leerJson(join(carpetaMeses, f)))]), previo, carpetaMeses };
+}
+
 // El plan, con cambios puntuales (pr_encargo_a_medida, punto 1): el director escribe solo lo que cambia en un parche, en
 // su memoria (director/cambios.json, o la ruta que diga), y aquí se junta con el plan (src/director/parche.ts). Se guarda
 // solo si no le suma errores; así no hace falta leer el plan entero para cambiarlo
@@ -215,6 +225,18 @@ if (args.includes('--aplicar')) {
   if (nuevos.length) {
     console.error(`No se aplicó: ${r.errores.length ? 'esto del parche no se entiende' : 'el plan quedaría con estos errores'} (el plan sigue como estaba):`);
     for (const e of nuevos) console.error(`- ${e}`);
+    process.exit(1);
+  }
+  // Tampoco deja inválido lo que el equipo ya guardó, con todo su estado, también lo de después del corte de la revisión:
+  // una misión quitada para volver a sumarla en otro parche dejó sin ella una entrega recién hecha, y el Studio rechazó
+  // cada decisión siguiente de la persona (nota del titular nmvsv9ihxtit, 28 de octubre de 2026)
+  const { estado } = await leerTodo(pedido, false);
+  const { archivo } = archivoDe(elegido);
+  const antesEstado = new Set(validarEstado(estado, unirArchivo(plan, archivo)));
+  const rotos = validarEstado(estado, unirArchivo(r.plan, archivo)).filter((e) => !antesEstado.has(e));
+  if (rotos.length) {
+    console.error('No se aplicó: el plan dejaría inválido lo que el equipo ya guardó, y el Studio rechazaría sus decisiones siguientes (el plan sigue como estaba). Para cambiar el orden de las misiones, usa «orden» (src/director/parche.ts), sin quitarlas:');
+    for (const e of rotos) console.error(`- ${e}`);
     process.exit(1);
   }
   await escribirDeUnaVez(rutaPlan, JSON.stringify(r.plan, null, 2) + '\n');
@@ -408,13 +430,7 @@ if (args.includes('--listo')) {
   const elegido = await proyectoElegido(pedido);
   const rutaPlan = enDiscoDe(raiz, rutasDe(elegido).plan);
   const plan: Plan = JSON.parse(readFileSync(rutaPlan, 'utf-8'));
-  // Lo archivado: el de una sola pieza, de antes, que ya no cambia, y los meses, que mandan sobre él («El plan liviano»)
-  const rutaPrevio = enDiscoDe(raiz, rutasDe(elegido).archivo);
-  const carpetaMeses = enDiscoDe(raiz, rutasDe(elegido).archivoMeses);
-  const leerJson = (ruta: string) => JSON.parse(readFileSync(ruta, 'utf-8'));
-  const previo: Partial<ArchivoPlan> | null = existsSync(rutaPrevio) ? leerJson(rutaPrevio) : null;
-  const meses = existsSync(carpetaMeses) ? readdirSync(carpetaMeses).filter((f) => f.endsWith('.json')).sort() : [];
-  const archivo: ArchivoPlan = juntarArchivos([...(previo ? [previo] : []), ...meses.map((f) => leerJson(join(carpetaMeses, f)))]);
+  const { archivo, previo, carpetaMeses } = archivoDe(elegido);
   const completo = unirArchivo(plan, archivo);
   // El doble check: lo que esta revisión llevó al plan dice dónde quedó; si no, la revisión no se cierra
   const { estado, proyecto, repo } = await leerTodo(pedido, false);
