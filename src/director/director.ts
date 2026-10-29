@@ -583,15 +583,88 @@ export interface Respuesta {
    * quedó. `texto`, `tratamiento` y `destino` de arriba siguen siendo los de la respuesta entera (lo principal).
    */
   partes?: ParteDeRespuesta[];
+  /**
+   * El tipo de la nota como lo leyó el director (pedido pd_tipo_obligatorio): obligatorio si la persona eligió «No sé:
+   * elígelo tú» o si la nota no lo traía y su lugar no lo dice (una nota de antes que aún no tenía respuesta).
+   */
+  tipo?: TipoDeNota;
 }
 
 /**
  * Los tipos de una nota (propuesta aceptada pr_tipo_nota): una idea para después, un ajuste (cambiar algo que ya existe),
  * algo que falla, una pregunta, o una respuesta a lo que dijo el director.
  */
-const TIPOS_DE_NOTA =['idea', 'ajuste', 'falla', 'pregunta', 'respuesta'] as const;
+export const TIPOS_DE_NOTA =['idea', 'ajuste', 'falla', 'pregunta', 'respuesta'] as const;
 export type TipoDeNota = (typeof TIPOS_DE_NOTA)[number];
 export const NOMBRE_TIPO_DE_NOTA: Record<TipoDeNota, string> = { idea: 'Idea para después', ajuste: 'Ajuste', falla: 'Algo falla', pregunta: 'Pregunta', respuesta: 'Te respondo' };
+
+/** «No sé: elígelo tú» (pedido pd_tipo_obligatorio): la persona duda, y el director le pone el tipo al leerla. */
+export const TIPO_ELIGE = 'elige';
+/** El tipo que la persona eligió al dejar una nota: uno de los cinco, o que lo elija el director. */
+export type TipoElegido = TipoDeNota | typeof TIPO_ELIGE;
+/** Los botones del tipo, en el orden en que se ven al dejar una nota: los cinco y, al final, «No sé: elígelo tú». */
+export const OPCIONES_TIPO_DE_NOTA: [TipoElegido, string][] = [...TIPOS_DE_NOTA.map((t) => [t, NOMBRE_TIPO_DE_NOTA[t]] as [TipoElegido, string]), [TIPO_ELIGE, 'No sé: elígelo tú']];
+
+/**
+ * ¿Hay que elegir el tipo de esta nota al dejarla? (pedido pd_tipo_obligatorio, parte 1 de pr_tipo_nota). Sí, salvo
+ * donde el lugar ya lo dice: una pregunta, una decisión de un documento (aprobar, decidir otra cosa o agregarle algo),
+ * una opción elegida en un paso, un «Hazlo tú», «No lo entiendo» o «Ya lo hice: compruébalo tú». Pura.
+ */
+export function pideTipo(sobre: Nota['sobre']): boolean {
+  return !(sobre.tipo === 'pregunta' || sobre.postura || sobre.eleccion || sobre.hazlo || sobre.aclarar || sobre.comprobar);
+}
+
+/** El tipo de una nota en el Buzón, para su filtro: «Sin tipo» (las de antes) y «Elígelo tú» (aún sin respuesta) aparte. */
+export type TipoEnBuzon = TipoDeNota | 'sin' | typeof TIPO_ELIGE;
+export const NOMBRE_TIPO_EN_BUZON: Record<TipoEnBuzon, string> = { ...NOMBRE_TIPO_DE_NOTA, sin: 'Sin tipo', [TIPO_ELIGE]: 'Lo elige el director' };
+
+/**
+ * El tipo de una nota, para el Buzón y la bandeja (tu decisión nmvsv9nuytit, en t_decidir_notas_viejas: las notas de
+ * antes quedan «Sin tipo», con su filtro). El que eligió la persona; si eligió «No sé: elígelo tú», el que le puso el
+ * director al responderla; el que dice su lugar (una pregunta o «No lo entiendo», pregunta; elegir, decidir, encargar o
+ * pedir comprobar algo, te respondo); y si nada lo dice, «Sin tipo». Pura.
+ */
+export function tipoDeNota(n: Pick<Nota, 'sobre' | 'tipo'>, respuesta?: Pick<Respuesta, 'tipo'>): TipoEnBuzon {
+  if (n.tipo && n.tipo !== TIPO_ELIGE) return n.tipo;
+  if (respuesta?.tipo) return respuesta.tipo;
+  if (n.tipo === TIPO_ELIGE) return TIPO_ELIGE;
+  const s = n.sobre;
+  if (s.tipo === 'pregunta' || s.aclarar) return 'pregunta';
+  if (s.postura || s.eleccion || s.hazlo || s.comprobar) return 'respuesta';
+  return 'sin';
+}
+
+const ORDEN_EN_BUZON: TipoEnBuzon[] = [...TIPOS_DE_NOTA, TIPO_ELIGE, 'sin'];
+
+/** Las notas de un tipo, para el filtro del Buzón; sin tipo elegido, todas. Pura. */
+export function notasDeTipo<T extends Pick<Nota, 'id' | 'sobre' | 'tipo'>>(notas: T[], respuestas: Record<string, Pick<Respuesta, 'tipo'>> | undefined, tipo: TipoEnBuzon | ''): T[] {
+  return tipo ? notas.filter((n) => tipoDeNota(n, respuestas?.[n.id]) === tipo) : notas;
+}
+
+/** Cuántas notas hay de cada tipo, en el orden de los botones del filtro, solo los tipos que tienen alguna. Pura. */
+export function tiposEnBuzon(notas: Pick<Nota, 'id' | 'sobre' | 'tipo'>[], respuestas: Record<string, Pick<Respuesta, 'tipo'>> | undefined): [TipoEnBuzon, number][] {
+  const cuenta = new Map<TipoEnBuzon, number>();
+  for (const n of notas) {
+    const t = tipoDeNota(n, respuestas?.[n.id]);
+    cuenta.set(t, (cuenta.get(t) ?? 0) + 1);
+  }
+  return ORDEN_EN_BUZON.filter((t) => cuenta.has(t)).map((t) => [t, cuenta.get(t)!]);
+}
+
+/**
+ * Las notas cuya respuesta, escrita desde `desde`, debe decir su tipo y no lo dice: las que la persona dejó con «No sé:
+ * elígelo tú». Así el director se lo pone al leerlas, y `--listo` no cierra sin eso. (A una de antes, sin tipo, la bandeja
+ * le pide ponérselo, sin exigirlo: las que ya tienen respuesta quedan «Sin tipo».) Pura.
+ */
+export function respuestasSinTipo(plan: Pick<Plan, 'respuestas'>, notas: Nota[], desde: string): string[] {
+  return notas
+    .filter((n) => n.tipo === TIPO_ELIGE)
+    .filter((n) => {
+      const r = plan.respuestas?.[n.id];
+      return !!r && r.cuando >= desde && !r.tipo;
+    })
+    .map((n) => n.id);
+}
 
 /**
  * Una de las cosas que trae una nota, separada en la respuesta: su tipo como lo leyó el director (si no calza con el que
@@ -1696,6 +1769,11 @@ export interface Nota {
   urgente?: boolean | string;
   /** Imágenes y archivos que acompañan la nota (pegados, arrastrados o adjuntados), junto a los audios. */
   adjuntos?: Adjunto[];
+  /**
+   * Con qué intención la escribió (pedido pd_tipo_obligatorio): uno de los cinco tipos, o «No sé: elígelo tú». Se elige
+   * de un toque al dejarla, salvo donde el lugar ya lo dice (pideTipo); las notas de antes no lo tienen («Sin tipo»).
+   */
+  tipo?: TipoElegido;
 }
 
 /** Un archivo adjunto a una nota: dónde quedó en la memoria del proyecto y cómo se llamaba. */
@@ -3412,6 +3490,7 @@ export function validarPlan(plan: Plan, personas?: Persona[]): string[] {
       if (destino.doc && !destino.doc.startsWith('repo:') && !(plan.documentos ?? []).some((x) => x.ruta === destino.doc)) errores.push(`${donde} dice que quedó en un documento que no está en la lista del plan («${destino.doc}»).`);
     };
     quedoEn(r.destino, `La respuesta a la nota «${id}»`);
+    if (r.tipo !== undefined && !TIPOS_DE_NOTA.includes(r.tipo)) errores.push(`La respuesta a la nota «${id}» tiene un tipo desconocido (${r.tipo}): va uno de ${TIPOS_DE_NOTA.join(', ')}.`);
     // Las partes de una nota que trae varias cosas (pd_partes_separadas): dos o más, cada una con su tipo, su texto, su
     // tratamiento y, si lo lleva al plan, dónde quedó
     if (r.partes === undefined) continue;
@@ -3473,6 +3552,7 @@ export function validarEstado(estado: EstadoDirector, plan: Plan): string[] {
     if (ids.has(n.id)) errores.push(`La nota ${n.id} está repetida.`);
     ids.add(n.id);
     if (!TIPOS_SOBRE.includes(n.sobre?.tipo)) errores.push(`La nota ${n.id} no dice sobre qué es.`);
+    if (n.tipo !== undefined && !OPCIONES_TIPO_DE_NOTA.some(([t]) => t === n.tipo)) errores.push(`La nota ${n.id} tiene un tipo desconocido.`);
     if (!n.texto?.trim() && !n.audio && !n.adjuntos?.length) errores.push(`La nota ${n.id} está vacía.`);
     if (n.audio && !/^proyectos\/[a-z0-9-]+\/director\/notas\/[\w.-]+\.(webm|ogg|m4a|mp3|wav)$/.test(n.audio)) errores.push(`El audio de la nota ${n.id} no está donde debe.`);
     for (const a of n.adjuntos ?? []) if (!RUTA_ADJUNTO.test(a.ruta ?? '')) errores.push(`Un adjunto de la nota ${n.id} no está donde debe.`);

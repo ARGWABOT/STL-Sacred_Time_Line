@@ -56,6 +56,13 @@ import {
   mdDeBloqueDePuntos,
   NIVELES,
   NOMBRE_TIPO_DE_NOTA,
+  NOMBRE_TIPO_EN_BUZON,
+  OPCIONES_TIPO_DE_NOTA,
+  pideTipo,
+  tipoDeNota,
+  tiposEnBuzon,
+  notasDeTipo,
+  type TipoEnBuzon,
   notaFoco,
   opcionConDetalle,
   opcionSola,
@@ -480,6 +487,7 @@ async function cargar(fresco = false) {
     consulta = null;
     celda = null;
     busquedaBuzon = '';
+    tipoBuzon = '';
     // La columna de los documentos vuelve arriba. El repintado toma su scroll de la que está en pantalla, que es la del
     // anterior: también esa vuelve arriba (si no, el proyecto nuevo heredaba hasta dónde bajaste en el otro)
     scrollColumna = 0;
@@ -1263,7 +1271,7 @@ function seguirResalte(v: HTMLElement) {
 
 /** `explorar`: el campo es una carpeta, con su botón para buscarla en el computador. */
 /** `casillas`: varias opciones que se marcan, cada una con su casilla; llegan juntas, separadas por comas. */
-interface Campo { id: string; etiqueta: string; tipo: 'area' | 'texto' | 'select' | 'casillas'; opciones?: [string, string][]; requerido?: boolean; valor?: string; explorar?: boolean; clase?: string; ayuda?: string; pista?: string }
+interface Campo { id: string; etiqueta: string; tipo: 'area' | 'texto' | 'select' | 'casillas' | 'botones'; opciones?: [string, string][]; requerido?: boolean; valor?: string; explorar?: boolean; clase?: string; ayuda?: string; pista?: string }
 
 /**
  * «Es urgente»: una casilla, sin explicación aparte (el porqué ya está en lo que se pide). Al marcarla, el Studio se la
@@ -1348,6 +1356,9 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
         // Las casillas van en su grupo, con su leyenda: una etiqueta no puede llevar otras dentro
         if (c.tipo === 'casillas')
           return `<fieldset class="campo campo-casillas${c.clase ? ` ${c.clase}` : ''}"><legend class="etiqueta-campo">${esc(c.etiqueta)}</legend>${c.ayuda ? `<span class="ayuda-campo">${esc(c.ayuda)}</span>` : ''}${(c.opciones ?? []).map(([v, n]) => `<label class="casilla-d"><input type="checkbox" name="${c.id}" value="${esc(v)}"${(c.valor ?? '').split(',').includes(v) ? ' checked' : ''}> ${esc(n)}</label>`).join('')}</fieldset>`;
+        // Una sola opción, de un toque, como botones (el tipo de una nota, pd_tipo_obligatorio)
+        if (c.tipo === 'botones')
+          return `<fieldset class="campo campo-botones${c.clase ? ` ${c.clase}` : ''}"><legend class="etiqueta-campo">${esc(c.etiqueta)}</legend>${c.ayuda ? `<span class="ayuda-campo">${esc(c.ayuda)}</span>` : ''}<div class="botones-campo">${(c.opciones ?? []).map(([v, n]) => `<label class="boton-campo"><input type="radio" name="${c.id}" value="${esc(v)}"${v === c.valor ? ' checked' : ''}><span>${esc(n)}</span></label>`).join('')}</div></fieldset>`;
         const control =
           c.tipo === 'area' ? `<textarea name="${c.id}" rows="4"${req}>${esc(c.valor ?? '')}</textarea>`
           : c.tipo === 'select' ? `<select name="${c.id}">${(c.opciones ?? []).map(([v, n]) => `<option value="${esc(v)}"${v === c.valor ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`
@@ -1422,11 +1433,11 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
         const audio = grabadora ? await grabadora.datos() : null;
         const archivos = adjuntos && !adjuntos.vacio ? await adjuntos.datos() : null;
         // La casilla de urgencia no es contenido: una nota marcada urgente y vacía sigue vacía
-        const escrito = Object.entries(valores).some(([k, v]) => k !== 'urgente' && v.trim());
+        const escrito = Object.entries(valores).some(([k, v]) => k !== 'urgente' && !o.campos.some((c) => c.id === k && c.tipo === 'botones') && v.trim());
         if (o.audio && !o.vacioVale && !audio && !archivos && !escrito) return avisar(o.adjuntos ? 'Escribe algo, graba un audio o adjunta un archivo.' : 'Escribe algo o graba un audio.');
-        // Lo que es obligatorio de escribir vale también dicho en audio
-        const falta = o.campos.find((c) => c.requerido && !(valores[c.id] ?? '').trim());
-        if (falta && !audio) return avisar(`Falta «${falta.etiqueta}»${o.audio ? ': escríbelo o dilo en un audio' : ''}.`);
+        // Lo que es obligatorio de escribir vale también dicho en audio; lo que se elige de un toque, no
+        const falta = o.campos.find((c) => c.requerido && !(valores[c.id] ?? '').trim() && (c.tipo === 'botones' || !audio));
+        if (falta) return avisar(falta.tipo === 'botones' ? `Elige «${falta.etiqueta}».` : `Falta «${falta.etiqueta}»${o.audio ? ': escríbelo o dilo en un audio' : ''}.`);
         if (o.urgente && valores.urgente && !(await confirmarUrgencia())) return;
         // Si lo cerraron (Cancelar o Esc) mientras se preparaba el audio o lo adjunto, no se envía nada
         if (listo) return;
@@ -3368,14 +3379,17 @@ function tarjetaNota(n: Nota, conSobre = true, plegada = false, enRespuesta = fa
     : `<div class="dicho-nota gl-sin">${dicho}</div>`;
   const cuerpo = `${deLaPersona}
     ${r ? `<div class="respuesta-dir"><b>El director (${momento(r.cuando)}):</b>${r.tratamiento ? ` <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}<div class="texto-resp">${limpio(marked.parse(r.texto, { async: false }) as string)}</div>${quedoEn(r, aqui)}${partesDeRespuesta(r, aqui)}</div>` : '<p class="esperando">Esperando al director. Hasta que lo lea, puedes corregirla o borrarla.</p>'}`;
+  // Su tipo, como lo eligió (o se lo puso el director): las de antes, «Sin tipo» (pd_tipo_obligatorio)
+  const tipo = tipoDeNota(n, r);
+  const chipTipo = `<span class="tipo-nota ${tipo}">${esc(NOMBRE_TIPO_EN_BUZON[tipo])}</span>`;
   if (plegada) {
     return `<li class="nota-d plegable${r ? ' respondida' : ''}"><details data-nota="${esc(n.id)}"${notasAbiertas.has(n.id) ? ' open' : ''}>
-      <summary>${n.urgente ? `<span class="urgente-s" title="Urgente">${icono('urgente')}</span>` : ''}<span class="asunto">${esc(asuntoDe(n))}</span><span class="como">${esc(n.quien)} · ${momento(n.cuando)}${conSobre ? ` · sobre ${sobreDe(n)}` : ''}${r?.tratamiento ? ` · <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}${enRespuesta ? ' · <span class="hallado-en">está en la respuesta del director</span>' : ''}</span></summary>
+      <summary>${n.urgente ? `<span class="urgente-s" title="Urgente">${icono('urgente')}</span>` : ''}<span class="asunto">${esc(asuntoDe(n))}</span><span class="como">${chipTipo} ${esc(n.quien)} · ${momento(n.cuando)}${conSobre ? ` · sobre ${sobreDe(n)}` : ''}${r?.tratamiento ? ` · <span class="tratamiento ${r.tratamiento}">${NOMBRE_TRATAMIENTO[r.tratamiento] ?? r.tratamiento}</span>` : ''}${enRespuesta ? ' · <span class="hallado-en">está en la respuesta del director</span>' : ''}</span></summary>
       <div class="cuerpo-nota">${botones ? `<div class="botones-nota">${botones}</div>` : ''}${urgente}${cuerpo}</div>
     </details></li>`;
   }
   return `<li class="nota-d${r ? ' respondida' : ''}" data-guia="no">
-    <header><b>${esc(n.quien)}</b><span class="como">${momento(n.cuando)}${conSobre ? ` · sobre ${sobreDe(n)}` : ''}</span>${botones}</header>
+    <header><b>${esc(n.quien)}</b><span class="como">${chipTipo} ${momento(n.cuando)}${conSobre ? ` · sobre ${sobreDe(n)}` : ''}</span>${botones}</header>
     ${urgente}
     ${cuerpo}
   </li>`;
@@ -3402,6 +3416,8 @@ function vistaBuzon() {
 
 /** Lo que se escribió en «Buscar en el Buzón»: se queda mientras no cambies de proyecto. */
 let busquedaBuzon = '';
+/** El tipo elegido en el filtro del Buzón (vacío: todas), como la búsqueda. */
+let tipoBuzon: TipoEnBuzon | '' = '';
 
 /** Lo que dice una nota (su texto, lo que se entendió de su audio, lo que eligió) y, con `conRespuesta`, lo que respondió el director. */
 function textosDeNota(n: Nota, conRespuesta = true) {
@@ -3414,20 +3430,28 @@ function textosDeNota(n: Nota, conRespuesta = true) {
  * escribir, sin tocar el campo de búsqueda.
  */
 function notasDelBuzon() {
-  const notas = [...d.estado.notas].reverse().filter((n) => seVe(n.de) && !esPregunta(n));
+  const todas = [...d.estado.notas].reverse().filter((n) => seVe(n.de) && !esPregunta(n));
+  // El filtro por tipo: uno por tipo que tenga notas, con su cuenta; las de antes, en «Sin tipo» (tu decisión nmvsv9nuytit)
+  const tipos = tiposEnBuzon(todas, d.plan.respuestas);
+  if (tipoBuzon && !tipos.some(([t]) => t === tipoBuzon)) tipoBuzon = '';
+  const filtro = tipos.length > 1
+    ? `<div class="filtro-tipo" role="group" aria-label="Filtrar por tipo">${[['', `Todas · ${todas.length}`] as [string, string], ...tipos.map(([t, k]) => [t, `${NOMBRE_TIPO_EN_BUZON[t]} · ${k}`] as [string, string])]
+      .map(([t, n]) => `<button type="button" class="chip-tipo${t === tipoBuzon ? ' activo' : ''}" data-tipo-buzon="${t}" aria-pressed="${t === tipoBuzon}">${esc(n)}</button>`).join('')}</div>`
+    : '';
+  const notas = notasDeTipo(todas, d.plan.respuestas, tipoBuzon);
   const aqui: Lugar = { vista: 'buzon' };
   if (palabrasDeBusqueda(busquedaBuzon).length) {
     const halladas = notas.filter((n) => coincideBusqueda(textosDeNota(n), busquedaBuzon));
     const enPreguntas = d.estado.notas.filter((n) => seVe(n.de) && esPregunta(n) && coincideBusqueda(textosDeNota(n), busquedaBuzon)).length;
     const tambien = enPreguntas ? ` ${enPreguntas === 1 ? 'Hay una' : `Hay ${enPreguntas}`} en <button type="button" class="enlace" data-vista="preguntas">Preguntas</button>, que van aparte.` : '';
-    return `<h3>Lo que encontré <small>· ${halladas.length}</small></h3>
+    return `${filtro}<h3>Lo que encontré <small>· ${halladas.length}</small></h3>
       ${halladas.length
         ? `${tambien ? `<p class="como">${tambien.trim()}</p>` : ''}<ul class="notas-lista">${halladas.map((n) => tarjetaNota(n, true, true, !coincideBusqueda(textosDeNota(n, false), busquedaBuzon), aqui)).join('')}</ul>`
         : `<p class="intro">Ninguna nota del Buzón dice «${esc(busquedaBuzon.trim())}», ni en lo que se dijo ni en lo que respondió el director. Prueba con menos palabras o con otras.${tambien}</p>`}`;
   }
   const esperando = notas.filter((n) => !d.plan.respuestas[n.id]);
   const respondidas = notas.filter((n) => d.plan.respuestas[n.id]);
-  return `<h3>Esperando respuesta del director <small>· ${esperando.length}</small></h3>
+  return `${filtro}<h3>Esperando respuesta del director <small>· ${esperando.length}</small></h3>
     ${esperando.length ? `<ul class="notas-lista">${esperando.map((n) => tarjetaNota(n, true, true, false, aqui)).join('')}</ul>` : '<p class="intro">Nada esperando: el director está al día.</p>'}
     ${respondidas.length
       // Lo ya respondido va plegado: al entrar, la atención queda en lo que espera
@@ -5839,16 +5863,25 @@ async function comentar(sobre: { tipo: string; id?: string; seccion?: string; de
   const r = await pedir({
     titulo,
     ayuda: avisoRevisando() + 'Tu comentario queda en el <b>Buzón del director</b>, donde lo puedes corregir o borrar. Cuando se pida la revisión, él lo lee junto con todo lo demás y te responde ahí y debajo de este mismo lugar, con su recomendación; el titular decide.',
-    campos: [{ id: 'texto', etiqueta: 'Tu comentario (o graba un audio, o pega una imagen)', tipo: 'area' }],
+    campos: [...(pideTipo(sobre as Nota['sobre']) ? [campoTipo()] : []), { id: 'texto', etiqueta: 'Tu comentario (o graba un audio, o pega una imagen)', tipo: 'area' }],
     boton: 'Dejarlo en el Buzón',
     audio: true,
     adjuntos: true,
     urgente: true,
     // Se guarda con el ✉ abierto: si el servidor falla, lo escrito, lo grabado y lo adjunto siguen ahí (pd_nada_se_corta)
-    guardar: (dicho) => dejarNota(sobre, dicho.texto, dicho.audio, !!dicho.urgente, dicho.adjuntos),
+    guardar: (dicho) => dejarNota(sobre, dicho.texto, dicho.audio, !!dicho.urgente, dicho.adjuntos, dicho.tipoNota),
   });
   // Solo vuelve con algo si la nota quedó en el Buzón
   return !!r;
+}
+
+/**
+ * El tipo de la nota, obligatorio y de un toque (pedido pd_tipo_obligatorio): con qué intención la escribes, para que el
+ * director la lea así y el Buzón la filtre. Si dudas, «No sé: elígelo tú», y el director se lo pone al leerla. En un audio
+ * también: lo eliges al enviarlo, así que grabas sin esperar.
+ */
+function campoTipo(): Campo {
+  return { id: 'tipoNota', etiqueta: '¿Qué es?', tipo: 'botones', requerido: true, opciones: OPCIONES_TIPO_DE_NOTA, ayuda: 'Si trae varias cosas, elige la principal: el director separa las demás al responder.' };
 }
 
 type Dicho = Record<string, string> & { audio?: string; adjuntos?: { nombre: string; datos: string }[]; quitarAdjuntos?: string[] };
@@ -5862,15 +5895,16 @@ const EN_AUDIO = 'Lo dije en audio: está en el Buzón.';
 async function anexar(r: Dicho, sobre: { tipo: string; id?: string }, rotulo: string, conAudio = true) {
   const audio = conAudio ? r.audio : undefined;
   if (!audio && !r.adjuntos?.length) return;
-  await accion({ tipo: 'comentar', sobre, texto: rotulo, ...(audio ? { audio } : {}), ...(r.adjuntos?.length ? { adjuntos: r.adjuntos } : {}) }, 'Lo que dijiste o adjuntaste quedó también en el Buzón, para el director.');
+  // Acompaña lo que la persona hace en ese diálogo (entregar, responder): le responde al director
+  await accion({ tipo: 'comentar', sobre, texto: rotulo, tipoNota: 'respuesta', ...(audio ? { audio } : {}), ...(r.adjuntos?.length ? { adjuntos: r.adjuntos } : {}) }, 'Lo que dijiste o adjuntaste quedó también en el Buzón, para el director.');
 }
 
 /**
  * Deja una nota en el Buzón. Si es urgente, el servidor se la lleva sola al director, al instante, sin el resto de la
  * revisión (si no puede llamarlo, pide la revisión); el director decide si de verdad lo es.
  */
-async function dejarNota(sobre: { tipo: string; id?: string; seccion?: string; decision?: string; fragmento?: string; postura?: string },texto: string | undefined, audio: string | null | undefined, urgente = false, adjuntos?: { nombre: string; datos: string }[]) {
-  const ok = await accion({ tipo: 'comentar', sobre, texto, audio, urgente, ...(adjuntos?.length ? { adjuntos } : {}) },
+async function dejarNota(sobre: { tipo: string; id?: string; seccion?: string; decision?: string; fragmento?: string; postura?: string },texto: string | undefined, audio: string | null | undefined, urgente = false, adjuntos?: { nombre: string; datos: string }[], tipoNota?: string) {
+  const ok = await accion({ tipo: 'comentar', sobre, texto, audio, urgente, ...(tipoNota ? { tipoNota } : {}), ...(adjuntos?.length ? { adjuntos } : {}) },
     !urgente ? 'Quedó en el Buzón del director. Te responde cuando revise.'
     : automatica() ? 'Lo urgente va solo al director, ahora mismo, y tú sigues con lo tuyo. Te trae el resultado en «¿Dónde quedamos?»; lo demás del Buzón espera la revisión.'
     : 'Quedó en el Buzón, marcada urgente, y la revisión quedó pedida: el director la atiende primero.');
@@ -5892,6 +5926,14 @@ $('vista').addEventListener('input', (e) => {
   const campo = (e.target as HTMLElement).closest<HTMLInputElement>('[data-buscar-buzon]');
   if (!campo) return;
   busquedaBuzon = campo.value;
+  const resultados = document.getElementById('resultados-buzon');
+  if (resultados) resultados.innerHTML = notasDelBuzon();
+});
+// El filtro por tipo del Buzón: un toque deja solo las de ese tipo (pd_tipo_obligatorio; las de antes, «Sin tipo»)
+document.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-tipo-buzon]');
+  if (!b) return;
+  tipoBuzon = (b.dataset.tipoBuzon ?? '') as TipoEnBuzon | '';
   const resultados = document.getElementById('resultados-buzon');
   if (resultados) resultados.innerHTML = notasDelBuzon();
 });
@@ -6574,13 +6616,13 @@ async function escribirAlDirector() {
   await pedir({
     titulo: 'Un comentario para el director',
     ayuda: avisoRevisando() + 'Plantéale un comentario o una idea que quieras que tenga en cuenta. No entra de golpe al proyecto: el director decide <b>cómo y dónde</b> administrarlo según lo que le digas (una misión, una propuesta, un documento o la ruta) y te responde en el <b>Buzón</b>. Hasta que lo lea, lo puedes corregir o borrar.',
-    campos: [{ id: 'texto', etiqueta: 'Tu comentario o idea (o graba un audio, o pega una imagen)', tipo: 'area' }],
+    campos: [campoTipo(), { id: 'texto', etiqueta: 'Tu comentario o idea (o graba un audio, o pega una imagen)', tipo: 'area' }],
     boton: 'Dejarlo en el Buzón',
     audio: true,
     adjuntos: true,
     urgente: true,
     // Se guarda con el ✉ abierto: si el servidor falla, lo escrito, lo grabado y lo adjunto siguen ahí (pd_nada_se_corta)
-    guardar: (r) => dejarNota({ tipo: 'general' }, r.texto, r.audio, !!r.urgente, r.adjuntos),
+    guardar: (r) => dejarNota({ tipo: 'general' }, r.texto, r.audio, !!r.urgente, r.adjuntos, r.tipoNota),
   });
 }
 

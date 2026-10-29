@@ -88,6 +88,11 @@ import {
   reemplazos,
   respuestasALaFaseEntera,
   respuestasSinDestino,
+  respuestasSinTipo,
+  NOMBRE_TIPO_DE_NOTA,
+  pideTipo,
+  TIPO_ELIGE,
+  TIPOS_DE_NOTA,
   resumenPorCerrar,
   sinAtenderAlCerrar,
   selladosQueCambiaron,
@@ -442,6 +447,13 @@ if (args.includes('--listo')) {
   if (sinDestino.length) {
     console.error('No se cerró la revisión: estas respuestas llevan algo al plan (o responden una nota que pide una regla) pero no dicen dónde quedó (`destino`: la misión, la propuesta, la fase, la parte del documento o lo que vigila la regla):');
     for (const id of sinDestino) console.error(`- ${id}`);
+    process.exit(1);
+  }
+  // …con su tipo, si la persona dudó y lo dejó para el director («No sé: elígelo tú», pd_tipo_obligatorio)
+  const sinTipo = respuestasSinTipo(plan, estado.notas, desde);
+  if (sinTipo.length) {
+    console.error(`No se cerró la revisión: estas respuestas no dicen el tipo de su nota, que la persona dejó para ti («No sé: elígelo tú»). Pónselo, como lo lees (\`tipo\`: ${TIPOS_DE_NOTA.join(', ')}):`);
+    for (const id of sinTipo) console.error(`- ${id}`);
     process.exit(1);
   }
   // …con un tratamiento que su nota admite: la bandeja los da con cada una (decidir con un formulario, pd_formulario)
@@ -1095,6 +1107,9 @@ for (const n of comentarios) {
     : s.tipo === 'objetivo' ? `el objetivo${s.id ? ` (candidato ${s.id})` : ''}`
     : s.tipo === 'general' ? `general${s.seccion ? ` › ${s.seccion}` : ''}${s.fragmento ? ` › la línea que empieza «${s.fragmento}»` : ''}` : `${s.tipo} ${s.id ?? ''}`;
   linea(`\n- [${n.id}] ${n.urgente ? 'URGENTE · ' : ''}${n.quien}, ${n.cuando}, sobre ${sobre}:`);
+  // Su tipo (pd_tipo_obligatorio): el que eligió; si dudó, o si llegó sin él y su lugar no lo dice, lo pones tú
+  if (n.tipo === TIPO_ELIGE || (!n.tipo && pideTipo(n.sobre))) linea(`  Tipo: ${n.tipo === TIPO_ELIGE ? '«No sé: elígelo tú»' : 'sin tipo'}. Pónselo en tu respuesta (\`tipo\`: ${TIPOS_DE_NOTA.join(', ')}), como lo lees.`);
+  else if (n.tipo) linea(`  Tipo: ${NOMBRE_TIPO_DE_NOTA[n.tipo]} (lo eligió al dejarla; si no calza, corrígelo en su respuesta y dilo).`);
   // Las notas viejas traían su razón aparte; las nuevas la dicen en la nota misma: léela para decidir si de verdad urge
   if (typeof n.urgente === 'string') linea(`  Por qué no puede esperar: ${n.urgente.replace(/\s+/g, ' ')}`);
   if (n.texto) linea(`  ${n.texto.replace(/\n/g, '\n  ')}`);

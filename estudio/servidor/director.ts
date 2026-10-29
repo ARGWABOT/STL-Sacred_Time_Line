@@ -57,6 +57,8 @@ import {
   RESPUESTAS,
   sumarDias,
   TIPOS_SOBRE,
+  OPCIONES_TIPO_DE_NOTA,
+  pideTipo,
   TIPOS_VALIDACION,
   TITULAR,
   planSinCommits,
@@ -600,6 +602,9 @@ export function servidorDirector(): Plugin {
           ...(sobre.fragmento ? { fragmento: String(sobre.fragmento).trim().slice(0, 200) } : {}),
           ...(postura ? { postura } : {}), ...(sobre.tipo === 'mision' && sobre.aclarar === true ? { aclarar: true } : {}), ...(sobre.tipo === 'mision' && sobre.comprobar === true ? { comprobar: true } : {}), ...(eleccion ? { eleccion } : {}), ...(hazlo ? { hazlo } : {}),
         };
+        // Con qué intención la escribe: obligatorio y de un toque, salvo donde el lugar ya lo dice (pd_tipo_obligatorio)
+        const tipo = OPCIONES_TIPO_DE_NOTA.find(([t]) => t === cuerpo.tipoNota)?.[0];
+        if (!tipo && pideTipo(donde)) throw new Rechazo('Elige el tipo de la nota: idea para después, ajuste, algo falla, pregunta, te respondo o «No sé: elígelo tú».');
         const nid = `n${Date.now().toString(36)}${yo.rol.slice(0, 3).replace(/-/g, '')}`;
         const lista: unknown[] = Array.isArray(cuerpo.adjuntos) ? cuerpo.adjuntos : [];
         if (lista.length > MAX_ADJUNTOS) throw new Rechazo(`Una nota lleva como mucho ${MAX_ADJUNTOS} adjuntos.`);
@@ -615,7 +620,7 @@ export function servidorDirector(): Plugin {
         const urgente = sobre.tipo !== 'pregunta' && (cuerpo.urgente === true || cuerpo.urgente === 'on' || cuerpo.urgente === '1');
         propio.notas.push({
           id: nid, cuando, quien: yo.nombre, sobre: donde,
-          ...(texto ? { texto } : {}), ...(audio ? { audio } : {}), ...(adjuntos.length ? { adjuntos } : {}), ...(urgente ? { urgente } : {}),
+          ...(texto ? { texto } : {}), ...(audio ? { audio } : {}), ...(adjuntos.length ? { adjuntos } : {}), ...(urgente ? { urgente } : {}), ...(tipo ? { tipo } : {}),
         });
         que = eleccion ? `elige «${eleccion}» en el ${String(sobre.seccion ?? 'paso').toLowerCase()} de la misión ${sobre.id ?? ''}`.trim()
           : hazlo ? `le encarga al director el ${String(sobre.seccion ?? 'paso').toLowerCase()} de la misión ${sobre.id ?? ''}`.trim()
