@@ -153,7 +153,10 @@ const B = 0.75;
  */
 export function buscar(piezas: readonly Pieza[], consulta: string, porGrupo = 8): Hallazgo[] {
   const buscadas = new Set(raices(consulta));
-  if (!buscadas.size) return [];
+  // Un id buscado tal cual (t_…, pd_…, una nota) encuentra su pieza primero, aunque su texto no lo nombre: así lo
+  // archivado se sigue encontrando por su id (pd_foto_inicial)
+  const porId = new Set(consulta.split(/[\s,]+/).filter(Boolean));
+  if (!buscadas.size && !porId.size) return [];
   const docs = piezas.map((p) => raices(`${p.titulo}\n${p.texto}`));
   const total = docs.length;
   const largoMedio = docs.reduce((s, d) => s + d.length, 0) / Math.max(1, total);
@@ -170,6 +173,7 @@ export function buscar(piezas: readonly Pieza[], consulta: string, porGrupo = 8)
       const idf = Math.log(1 + (total - n + 0.5) / (n + 0.5));
       puntaje += (idf * f * (K1 + 1)) / (f + K1 * (1 - B + (B * d.length) / largoMedio));
     }
+    if (porId.has(p.id)) puntaje += 1000;
     if (puntaje > 0) hallazgos.push({ ...p, puntaje, fragmento: fragmentoDe(p.texto, buscadas) });
   });
   return GRUPOS.flatMap((g) => hallazgos.filter((h) => h.grupo === g).sort((a, b) => b.puntaje - a.puntaje).slice(0, porGrupo));

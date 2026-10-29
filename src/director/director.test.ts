@@ -3,6 +3,7 @@ import { marked } from 'marked';
 import { describe, expect, it } from 'vitest';
 import planPlantilla from '../../plantilla/plan.json';
 import proyectoPlantilla from '../../plantilla/proyecto.json';
+import { buscar, piezasDelProyecto } from './buscar.ts';
 import {
   pideUnaRegla,
   juntarArchivos,
@@ -28,6 +29,7 @@ import {
   origenDePrevista,
   archivar,
   archivoVacio,
+  fotoInicial,
   negacionesDe,
   negadosEnVivo,
   usoNegado,
@@ -2172,5 +2174,63 @@ describe('la cola de diagnósticos', () => {
     // Sin nombre, el id
     expect(colaDeDiagnosticos([c('x', { nombre: '' })], 'otro')[0].nombre).toBe('x');
     expect(POR_REVISION).toBe(3);
+  });
+});
+
+describe('la foto inicial: lo cerrado sale al archivo de una vez, y nada se pierde (pd_foto_inicial)', () => {
+  it('deja en el plan solo lo que está en firme, y unido con su archivo, leído por meses, el plan es el mismo y cada id se encuentra', () => {
+    const p = planEjemplo();
+    const fase = 'mvp';
+    const prop = (id: string) => ({ id, area: 'x', titulo: `La propuesta ${id}`, problema: 'x', propuesta: 'x', conecta: 'x', fase });
+    p.propuestas = [prop('pr_ejec'), prop('pr_acept'), prop('pr_sin')];
+    p.ejecutadas = { pr_ejec: { cuando: '2026-10-13T10:00:00Z', nota: 'hecha hoy' } };
+    p.pedidos = [{ id: 'pd_hecho', fase, texto: 'Un pedido hecho hoy', hecho: { cuando: '2026-10-13T10:00:00Z', nota: 'hecho' } }, { id: 'pd_sin', fase, texto: 'Un pedido por hacer' }];
+    p.fases = p.fases.map((f) => f.id === 'arranque' ? { ...f, misiones: ['Lo del arranque', 'Otra del arranque'] } : f.id === fase ? { ...f, misiones: ['Primero pd_hecho', 'Los endpoints', 'Después pd_sin'] } : f);
+    p.adelantado = [{ fase: 'arranque', frente: 'api', texto: 'Hecho en el arranque' }, { fase: 'beta', frente: 'web', texto: 'El panel' }];
+    const e = estadoVacio();
+    e.notas = [{ id: 'nota_hoy', cuando: '2026-10-13T09:00:00Z', quien: 'Laura', sobre: { tipo: 'general' }, texto: 'Una nota de hoy' }, { id: 'nota_abierta', cuando: '2026-10-13T09:00:00Z', quien: 'Laura', sobre: { tipo: 'mision', id: 't_alcance' }, texto: 'x' }];
+    e.entregas.t_diag = { cuando: '2026-10-13T08:00:00.000Z', quien: 'Laura' };
+    e.cierres = { arranque: { fecha: '2026-10-13T09:00:00Z', quien: 'titular' } };
+    const firma = { fecha: '2026-10-10T10:00:00Z', quien: 'titular', estado: 'aceptada' as const };
+    e.propuestas = { pr_ejec: firma, pr_acept: firma };
+    const hoy = '2026-10-13T11:00:00Z';
+    p.respuestas = { nota_hoy: { cuando: '2026-10-13T10:00:00Z', texto: 'Hecho', tratamiento: 'informada' }, nota_abierta: { cuando: '2026-10-13T10:00:00Z', texto: 'Visto', tratamiento: 'informada' } };
+    p.revisiones = { t_diag: { cuando: '2026-10-13T10:00:00Z', veredicto: 'aprobada', comentario: 'Bien' } };
+    // Lo de la última revisión también sale: archivar esperaría una vuelta más, la foto no
+    expect(archivar(p, archivoVacio(), e, '2026-10-12T00:00:00Z').movidas).toBe(0);
+    const foto = fotoInicial(p, archivoVacio(), e, hoy);
+    // En firme: lo abierto, lo aceptado sin ejecutar, lo pedido sin hacer, lo que adelanta y las previstas sin hacer
+    expect(foto.plan.misiones.some((m) => m.id === 't_diag')).toBe(false);
+    expect(Object.keys(foto.plan.respuestas)).toEqual(['nota_abierta']);
+    expect(foto.plan.propuestas.map((x) => x.id)).toEqual(['pr_acept', 'pr_sin']);
+    expect(foto.plan.pedidos!.map((x) => x.id)).toEqual(['pd_sin']);
+    expect(foto.plan.adelantado.map((x) => x.fase)).toEqual(['beta']);
+    expect(foto.plan.fases.find((f) => f.id === 'arranque')!.misiones).toEqual([]);
+    expect(foto.plan.fases.find((f) => f.id === fase)!.misiones).toEqual(['Los endpoints', 'Después pd_sin']);
+    // t_diag y su veredicto, nota_hoy, pr_ejec, pd_hecho, lo adelantado del arranque y tres previstas
+    expect(foto.movidas).toBe(9);
+    // Nada se pierde: el archivo partido por mes y leído de nuevo, unido con el plan, da el plan de antes
+    const meses = partirArchivoPorMes(foto.archivo);
+    const leido = juntarArchivos(Object.keys(meses).sort().map((m) => JSON.parse(JSON.stringify(meses[m]))));
+    const unido = unirArchivo(foto.plan, leido);
+    const porId = <T extends { id: string }>(xs: T[]) => [...xs].sort((x, y) => x.id.localeCompare(y.id));
+    expect(porId(unido.misiones)).toEqual(porId(p.misiones));
+    expect(unido.respuestas).toEqual(p.respuestas);
+    expect(unido.revisiones).toEqual(p.revisiones);
+    expect(porId(unido.propuestas)).toEqual(porId(p.propuestas));
+    expect(unido.ejecutadas).toEqual(p.ejecutadas);
+    expect(porId(unido.pedidos!)).toEqual(porId(p.pedidos));
+    expect(unido.adelantado).toEqual(p.adelantado);
+    expect(unido.fases).toEqual(p.fases);
+    // Y buscar.ts encuentra cada cosa por su id, igual que antes, con su estado
+    const antes = piezasDelProyecto(unirArchivo(p, null), e);
+    const despues = piezasDelProyecto(unido, e);
+    expect(despues.map((x) => `${x.id} ${x.estado}`).sort()).toEqual(antes.map((x) => `${x.id} ${x.estado}`).sort());
+    for (const id of ['t_diag', 'nota_hoy', 'pr_ejec', 'pd_hecho']) expect(buscar(despues, id).some((h) => h.id === id)).toBe(true);
+    // Otra foto no mueve nada más ni duplica lo ya archivado
+    const otra = fotoInicial(foto.plan, leido, e, hoy);
+    expect(otra.movidas).toBe(0);
+    expect(otra.archivo.previstas).toEqual(leido.previstas);
+    expect(unirArchivo(otra.plan, otra.archivo).fases).toEqual(p.fases);
   });
 });

@@ -632,10 +632,31 @@ export interface ArchivoPlan {
    * que vienen, y el de una fase cerrada ya no adelanta nada, solo es historia.
    */
   adelantado?: Adelantado[];
+  /**
+   * Las misiones previstas que la foto inicial sacó de su fase (pd_foto_inicial): las de una fase cerrada y las ya
+   * hechas, cada una con su lugar en la lista de su fase (`pos`), para volver a ella en el mismo orden al unir.
+   */
+  previstas?: PrevistaArchivada[];
 }
+
+/** Una misión prevista archivada, con su fase y su lugar en la lista entera de esa fase. */
+export interface PrevistaArchivada { fase: string; pos: number; texto: string }
 
 /** Lo que identifica una entrada de lo adelantado, que no lleva id. */
 const claveAdelantado = (a: Adelantado) => `${a.fase}\n${a.frente}\n${a.texto}`;
+const clavePrevista = (p: PrevistaArchivada) => `${p.fase}#${p.pos}`;
+
+/** Las fases con sus previstas archivadas de vuelta en su lugar: de la primera posición a la última, como estaban. */
+function conPrevistas(fases: Fase[], previstas: PrevistaArchivada[] | undefined): Fase[] {
+  if (!previstas?.length) return fases;
+  return fases.map((f) => {
+    const suyas = previstas.filter((p) => p.fase === f.id).sort((a, b) => a.pos - b.pos);
+    if (!suyas.length) return f;
+    const lista = [...(f.misiones ?? [])];
+    for (const p of suyas) lista.splice(Math.min(p.pos, lista.length), 0, p.texto);
+    return { ...f, misiones: lista };
+  });
+}
 
 /** Lo archivado primero y lo del plan después, sin repetir: lo del plan manda. Sin nada archivado, lo del plan tal cual. */
 function conArchivados<T extends { id: string }>(archivados: T[] | undefined, actuales: T[] | undefined): T[] | undefined {
@@ -668,6 +689,10 @@ export function juntarArchivos(partes: Partial<ArchivoPlan>[]): ArchivoPlan {
       const ya = new Set(p.adelantado.map(claveAdelantado));
       junto.adelantado = [...(junto.adelantado ?? []).filter((a) => !ya.has(claveAdelantado(a))), ...p.adelantado];
     }
+    if (p.previstas) {
+      const ya = new Set(p.previstas.map(clavePrevista));
+      junto.previstas = [...(junto.previstas ?? []).filter((x) => !ya.has(clavePrevista(x))), ...p.previstas];
+    }
   }
   return junto;
 }
@@ -691,6 +716,8 @@ export function partirArchivoPorMes(archivo: ArchivoPlan, previo?: Partial<Archi
   for (const p of archivo.pedidos ?? []) if (!enPrevio(previo?.pedidos, p)) (de(mesDelArchivo(p.hecho?.cuando)).pedidos ??= []).push(p);
   const yaAntes = new Set((previo?.adelantado ?? []).map(claveAdelantado));
   for (const a of archivo.adelantado ?? []) if (!yaAntes.has(claveAdelantado(a))) (de(SIN_FECHA).adelantado ??= []).push(a);
+  const previstasAntes = new Set((previo?.previstas ?? []).map((p) => `${clavePrevista(p)}\n${p.texto}`));
+  for (const p of archivo.previstas ?? []) if (!previstasAntes.has(`${clavePrevista(p)}\n${p.texto}`)) (de(SIN_FECHA).previstas ??= []).push(p);
   return meses;
 }
 
@@ -716,6 +743,7 @@ export function unirArchivo(plan: Plan, archivo?: Partial<ArchivoPlan> | null): 
     ...(propuestas !== plan.propuestas ? { propuestas: propuestas! } : {}),
     ...(pedidos !== plan.pedidos ? { pedidos } : {}),
     ...(archivo.ejecutadas && Object.keys(archivo.ejecutadas).length ? { ejecutadas: { ...archivo.ejecutadas, ...plan.ejecutadas } } : {}),
+    ...(archivo.previstas?.length && plan.fases ? { fases: conPrevistas(plan.fases, archivo.previstas) } : {}),
   };
 }
 
@@ -739,6 +767,7 @@ export function archivar(plan: Plan, archivo: ArchivoPlan, estado: EstadoDirecto
     ...(archivo.ejecutadas ? { ejecutadas: { ...archivo.ejecutadas } } : {}),
     ...(archivo.pedidos ? { pedidos: [...archivo.pedidos] } : {}),
     ...(archivo.adelantado ? { adelantado: [...archivo.adelantado] } : {}),
+    ...(archivo.previstas ? { previstas: [...archivo.previstas] } : {}),
   };
   // Una misión aprobada antes de `antes` sale entera, con su veredicto: ya no cambia, y el Studio la sigue mostrando
   const aprobadaAntes = (m: Mision) => (completo.revisiones?.[m.id]?.cuando ?? '') < antes && estadoMision(m, completo, estado) === 'aprobada';
@@ -811,6 +840,38 @@ export function archivar(plan: Plan, archivo: ArchivoPlan, estado: EstadoDirecto
     },
     archivo: nuevo,
     movidas,
+  };
+}
+
+/**
+ * La foto inicial (pd_foto_inicial, nota de voz del titular nmvlm61gotit): una sola pasada que deja en el plan solo lo
+ * que está en firme (lo abierto, lo aprobado y lo pedido sin hacer, lo que dice cómo es el proyecto) y lleva al archivo
+ * todo lo cerrado hasta `ahora`, sin esperar al tope de peso ni a la vuelta de más de `archivar`: las misiones aprobadas
+ * y sus veredictos, las respuestas que no son de una misión abierta, las propuestas cerradas, los pedidos hechos, lo
+ * adelantado de las fases cerradas y las misiones previstas de una fase cerrada o ya hechas. Nada se borra: unido con
+ * su archivo, el plan es el mismo de antes.
+ */
+export function fotoInicial(plan: Plan, archivo: ArchivoPlan, estado: EstadoDirector, ahora: string): { plan: Plan; archivo: ArchivoPlan; movidas: number } {
+  const a = archivar(plan, archivo, estado, ahora);
+  const completo = unirArchivo(plan, archivo);
+  const ya = new Set((archivo.previstas ?? []).map(clavePrevista));
+  const salen: PrevistaArchivada[] = [];
+  const fases = (completo.fases ?? []).map((f) => {
+    const quedan: string[] = [];
+    (f.misiones ?? []).forEach((texto, pos) => {
+      if (ya.has(clavePrevista({ fase: f.id, pos, texto }))) return;
+      const o = origenDePrevista(texto, completo, estado);
+      if (estado.cierres[f.id]?.fecha || (o.ids.length > 0 && o.hechos.length === o.ids.length)) salen.push({ fase: f.id, pos, texto });
+      else quedan.push(texto);
+    });
+    const suya = (plan.fases ?? []).find((x) => x.id === f.id)!;
+    return suya.misiones ? { ...suya, misiones: quedan } : suya;
+  });
+  if (!salen.length) return a;
+  return {
+    plan: { ...a.plan, fases },
+    archivo: { ...a.archivo, previstas: [...(a.archivo.previstas ?? []), ...salen] },
+    movidas: a.movidas + salen.length,
   };
 }
 
