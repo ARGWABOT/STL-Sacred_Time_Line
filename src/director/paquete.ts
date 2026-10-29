@@ -7,6 +7,7 @@
 import { appendFileSync, existsSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { format } from 'node:util';
+import { colaDelDirector, documentosDeMision, pendientesDelDirector, type EstadoDirector, type Nota, type PedidoFuera, type Plan } from './director.ts';
 
 /** La carpeta de los registros de los lanzamientos, dentro de la del Studio. */
 export const REVISIONES = '.revisiones';
@@ -62,6 +63,43 @@ export function idsPorFase(cosas: readonly { id: string; fase: string }[], fases
 
 /** Cuántos días atrás llega «Lo que pediste hacer fuera del Studio»: lo de antes ya es historia, y buscar.ts lo encuentra. */
 export const DIAS_FUERA_DEL_STUDIO = 2;
+
+/**
+ * Lo que toca la revisión de hoy, por sus ids (pedido pd_paquete_listo; decisión del titular nmvsptzs9tit, 28 de octubre de
+ * 2026, en «Revisiones más cortas», parte 5: «la bandeja deja de repetir lo que no cambió»): lo de la cola del director y
+ * las notas de cada pedido; las notas sin respuesta y lo que comentan; y las misiones sin aprobar, con su origen, lo que
+ * esperan y sus documentos. Con esto la bandeja decide qué de lo vigente y de lo hecho fuera del Studio va entero. Pura.
+ */
+export function idsDeHoy(plan: Plan, estado: EstadoDirector): Set<string> {
+  const ids = new Set<string>();
+  const sumar = (xs: readonly (string | undefined)[]) => xs.forEach((x) => x && ids.add(x));
+  for (const t of colaDelDirector(plan, estado)) sumar([t.id, ...((plan.pedidos ?? []).find((p) => p.id === t.id)?.notas ?? [])]);
+  for (const n of pendientesDelDirector(plan, estado).notas) sumar([n.id, n.sobre?.id]);
+  for (const m of plan.misiones.filter((m) => plan.revisiones?.[m.id]?.veredicto !== 'aprobada'))
+    sumar([m.id, ...(m.origen ?? []), ...(m.despuesDe ?? []), ...documentosDeMision(m)]);
+  return ids;
+}
+
+/**
+ * Lo vigente, partido en lo que va entero y lo demás (la misma decisión): entera, la decisión que nombra lo de hoy (`hoy`,
+ * de idsDeHoy: su nota o su documento) o que llegó desde la última revisión (`desde`); las demás, solo por su id, juntas
+ * por documento, para cruzarlas con Grep cuando haga falta. Nada se pierde: solo deja de repetirse. Pura.
+ */
+export function vigentesDeHoy(vigentes: readonly Nota[], hoy: ReadonlySet<string>, desde: string | null): { enteras: Nota[]; otras: { doc: string; ids: string[] }[] } {
+  const toca = (n: Nota) => hoy.has(n.id) || hoy.has(n.sobre.id ?? '') || (!!desde && n.cuando > desde);
+  const otras = new Map<string, string[]>();
+  for (const n of vigentes.filter((n) => !toca(n))) otras.set(n.sobre.id ?? '', [...(otras.get(n.sobre.id ?? '') ?? []), n.id]);
+  return { enteras: vigentes.filter(toca), otras: [...otras].map(([doc, ids]) => ({ doc, ids })) };
+}
+
+/**
+ * Lo hecho fuera del Studio, partido igual: entero, el paso de una misión que nombra lo de hoy (la misión, su origen o lo
+ * que la espera); los demás, solo por el id de su misión. Pura.
+ */
+export function fueraDeHoy(fuera: readonly PedidoFuera[], hoy: ReadonlySet<string>): { enteros: PedidoFuera[]; otras: string[] } {
+  const toca = (x: PedidoFuera) => hoy.has(x.mision.id) || (x.mision.origen ?? []).some((o) => hoy.has(o));
+  return { enteros: fuera.filter(toca), otras: [...new Set(fuera.filter((x) => !toca(x)).map((x) => x.mision.id))] };
+}
 
 /** La línea que va antes de cada vez que corre la bandeja en una revisión: con qué opciones y a qué hora. */
 export const separadorDeBandeja = (args: readonly string[], cuando = new Date()) =>

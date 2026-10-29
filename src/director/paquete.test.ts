@@ -2,7 +2,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { archivoDelPaquete, bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, idsPorFase, paqueteDeRegistro, PARTES, REGISTRO, REVISIONES, separadorDeBandeja, tokensEstimados } from './paquete';
+import planPlantilla from '../../plantilla/plan.json';
+import { estadoVacio, pedidoFueraDelStudio, type Plan } from './director';
+import { archivoDelPaquete, bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, fueraDeHoy, idsDeHoy, idsPorFase, paqueteDeRegistro, PARTES, REGISTRO, REVISIONES, separadorDeBandeja, tokensEstimados, vigentesDeHoy } from './paquete';
 
 const base = mkdtempSync(join(tmpdir(), 'estudio-paquete-'));
 afterAll(() => rmSync(base, { recursive: true, force: true }));
@@ -36,6 +38,35 @@ describe('el paquete de cada revisión (pedido del titular del 23 de octubre de 
     expect(idsPorFase([], fases)).toEqual([]);
     // No cambia lo que recibe
     expect(cosas[0].id).toBe('pd_despues');
+  });
+
+  it('la bandeja no repite lo que no cambió: de lo vigente y de lo hecho afuera, entero solo lo que toca lo de hoy (pd_paquete_listo)', () => {
+    const p = structuredClone(planPlantilla) as unknown as Plan;
+    const fase = p.fases[0].id;
+    const e = estadoVacio();
+    p.pedidos = [{ id: 'pd_cola', fase, texto: 'Lo que sigue', notas: ['n_cola'] }];
+    const mision = (id: string, origen: string[]) => ({ id, para: 'titular', fase, frente: 'x', titulo: id, porQue: '', pasos: [{ texto: 'Corre esto', terminal: 'echo' }], entrega: '', xp: 10, origen });
+    p.misiones = [mision('m_abierta', ['n_mision']), mision('m_vieja', ['n_otra']), mision('m_de_cola', ['pd_cola'])];
+    p.revisiones = { m_vieja: { cuando: '2026-10-27T00:00:00Z', veredicto: 'aprobada', comentario: '' }, m_de_cola: { cuando: '2026-10-27T00:00:00Z', veredicto: 'aprobada', comentario: '' } };
+    e.notas = [{ id: 'n_nueva', cuando: '2026-10-28T10:00:00Z', quien: 'titular', sobre: { tipo: 'documento', id: 'docs/director/b.md' }, texto: 'Sin respuesta' }];
+    const hoy = idsDeHoy(p, e);
+    // La cola y las notas de sus pedidos, las notas sin respuesta y lo que comentan, y las misiones sin aprobar con su origen
+    for (const id of ['pd_cola', 'n_cola', 'n_nueva', 'docs/director/b.md', 'm_abierta', 'n_mision']) expect(hoy.has(id)).toBe(true);
+    expect(hoy.has('m_vieja')).toBe(false);
+    const decision = (id: string, doc: string, cuando = '2026-10-20T00:00:00Z') => ({ id, cuando, quien: 'titular', sobre: { tipo: 'documento' as const, id: doc, seccion: '1. Algo', decision: id, postura: 'aprueba' as const } });
+    const vigentes = [decision('n_cola', 'docs/director/a.md'), decision('n_doc', 'docs/director/b.md'), decision('n_suelta', 'docs/director/c.md'), decision('n_suelta_2', 'docs/director/c.md'), decision('n_reciente', 'docs/director/d.md', '2026-10-28T12:00:00Z')];
+    const { enteras, otras } = vigentesDeHoy(vigentes, hoy, '2026-10-28T00:00:00Z');
+    // Entera: la que nombra un pedido de la cola, la de un documento que comenta una nota sin respuesta y la nueva
+    expect(enteras.map((n) => n.id)).toEqual(['n_cola', 'n_doc', 'n_reciente']);
+    // Las demás no se pierden: van por su id, juntas por documento
+    expect(otras).toEqual([{ doc: 'docs/director/c.md', ids: ['n_suelta', 'n_suelta_2'] }]);
+    // Sin la última revisión, ninguna entra solo por nueva
+    expect(vigentesDeHoy(vigentes, hoy, null).enteras.map((n) => n.id)).toEqual(['n_cola', 'n_doc']);
+    // Lo hecho afuera: entera la misión cuyo origen está en la cola; la otra, solo por su id
+    const fuera = pedidoFueraDelStudio(p, e.notas, '2026-10-26T00:00:00Z');
+    const partido = fueraDeHoy(fuera, hoy);
+    expect(partido.enteros.map((x) => x.mision.id)).toEqual(['m_de_cola']);
+    expect(partido.otras).toEqual(['m_vieja']);
   });
 
   it('lo pedido fuera del Studio llega solo de los últimos días', () => {

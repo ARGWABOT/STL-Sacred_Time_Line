@@ -102,7 +102,7 @@ import { aplicarParche } from '../../src/director/parche.ts';
 import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, guardarHuella, planCambiadoTrasCierre, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, reintentoDe, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { archivoDelCandado, MIN_CANDADO_SESION, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado.ts';
 import { audioBorrable, borrarSiTranscrito, comandoTranscripcion, limpiarTranscrito, quitarSiVacia, txtDeAudio } from '../../src/director/transcripcion.ts';
-import { bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, idsPorFase, separadorDeBandeja, VARIABLE_REGISTRO } from '../../src/director/paquete.ts';
+import { bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, fueraDeHoy, idsDeHoy, idsPorFase, separadorDeBandeja, VARIABLE_REGISTRO, vigentesDeHoy } from '../../src/director/paquete.ts';
 import { historialDeDecisiones, lineasDelHistorial } from '../../src/director/historial.ts';
 import { lineasDeMedicion, type Corrida } from '../../src/director/corrida.ts';
 import { PROCEDIMIENTOS, procedimientosDeLaRevision } from '../../src/director/procedimientos.ts';
@@ -913,14 +913,18 @@ try {
 
 // ── Lo vigente, el primer bloque del paquete (pd_lo_vigente; «El paquete de cada revisión», parte 10): las decisiones de
 // los documentos que siguen en firme, calculadas por el código. Lo reemplazado no entra: se busca por su id ──
+// Solo entero lo que toca lo de hoy o llegó desde la última revisión; lo demás, por su id (pd_paquete_listo)
 const vigentes = decisionesVigentes(plan.respuestas ?? {}, estado.notas);
+const hoy = idsDeHoy(plan, estado);
 if (vigentes.length) {
-  linea(`\n## Lo vigente: las decisiones en firme de los documentos (${vigentes.length})`);
-  linea('Lo decidido que rige hoy, una línea por decisión, de la más vieja a la más nueva: el documento, su parte, la decisión y cómo se decidió. Antes de proponer, pedir o construir algo, cruza con esto. Si una decisión nueva deja sin efecto una de aquí, dilo en su respuesta (`reemplaza`: los ids de las notas que reemplaza) y sale de esta lista; una nota nueva sobre la misma decisión la reemplaza sola. El texto entero está en su documento y en su nota.');
-  for (const n of vigentes) {
+  const { enteras, otras } = vigentesDeHoy(vigentes, hoy, desde || null);
+  linea(`\n## Lo vigente: las decisiones en firme de los documentos (${vigentes.length}; ${enteras.length} tocan lo de hoy)`);
+  linea('Lo decidido que rige hoy: entera, una línea por decisión y de la más vieja a la más nueva, la que toca lo de hoy (tu cola, las notas, las misiones abiertas) o llegó desde la última revisión; las demás, solo por su id. Antes de proponer, pedir o construir algo, cruza con esto (una de las demás, con Grep por su id en el Buzón o en su documento). Si una decisión nueva deja sin efecto una de aquí, dilo en su respuesta (`reemplaza`: los ids de las notas que reemplaza) y sale de esta lista; una nota nueva sobre la misma decisión la reemplaza sola. El texto entero está en su documento y en su nota.');
+  for (const n of enteras) {
     const como = n.sobre.postura === 'aprueba' ? 'aprobó la recomendación' : `decidió: «${enUnaLinea(n.texto ?? transcripcion(n.audio) ?? '(sin transcribir)', 160)}»`;
     linea(`- [${n.id}] ${n.cuando.slice(0, 10)} · ${n.sobre.id} › ${n.sobre.seccion ?? ''} › ${n.sobre.decision} · ${como}`);
   }
+  if (otras.length) linea(`- Las demás, que no tocan lo de hoy: ${otras.map((o) => `${o.doc} (${o.ids.join(', ')})`).join('; ')}`);
 }
 
 // El historial de decisiones de este proyecto (pr_nucleo_medido, punto 1): lo que recomendaste y cómo salió, sacado sin
@@ -1157,9 +1161,11 @@ if (adelantadoPendiente.length) {
 // ello. Solo lo reciente: lo de antes ya es historia, y buscar.ts lo encuentra (pr_encargo_a_medida)
 const fuera = pedidoFueraDelStudio(plan, estado.notas, new Date(Date.now() - DIAS_FUERA_DEL_STUDIO * 864e5).toISOString());
 if (fuera.length) {
+  const { enteros, otras } = fueraDeHoy(fuera, hoy);
   linea(`\n## Lo que pediste hacer fuera del Studio (misiones aprobadas, últimos ${DIAS_FUERA_DEL_STUDIO} días)`);
-  linea('Lo hicieron porque tú lo pediste: si hablas de ello, dilo como tuyo. Es lo que cambió afuera (ramas, cuentas, configuración, lo subido); lo de antes, con buscar.ts.');
-  for (const x of fuera) linea(`- ${x.aprobada.slice(0, 10)} · ${x.mision.id}, paso ${x.paso + 1}: ${x.texto.replace(/\s+/g, ' ').slice(0, 160)}${x.eleccion === YA_LO_DIJE ? ' → lo respondió con su comentario del paso' : x.eleccion ? ` → eligió «${x.eleccion}»` : ''}`);
+  linea('Lo hicieron porque tú lo pediste: si hablas de ello, dilo como tuyo. Es lo que cambió afuera (ramas, cuentas, configuración, lo subido). Entero, lo que toca lo de hoy; lo demás, por su misión, y lo de antes, con buscar.ts.');
+  if (otras.length) linea(`- Sin relación con lo de hoy: ${otras.join(', ')}`);
+  for (const x of enteros) linea(`- ${x.aprobada.slice(0, 10)} · ${x.mision.id}, paso ${x.paso + 1}: ${x.texto.replace(/\s+/g, ' ').slice(0, 160)}${x.eleccion === YA_LO_DIJE ? ' → lo respondió con su comentario del paso' : x.eleccion ? ` → eligió «${x.eleccion}»` : ''}`);
 }
 
 // El freno del director: lo revisado queda sellado. Si cambió, va un documento nuevo con lo que cambió, como paso siguiente.
