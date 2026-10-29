@@ -132,6 +132,7 @@ import { icono, type Icono } from './iconos';
 import { pedirProyectoNuevo } from './nuevo_proyecto';
 import { cerrarConClicFuera, confirmar } from './modal';
 import { abrirPreguntas } from './preguntas';
+import { lineasDeRespuestas, NOMBRE_PESTANA_DQ, ORDEN_PESTANAS_DQ, pestanaActiva, pestanaDeSeccion, type PestanaDq } from './pestanasDq';
 import { antesDeCerrarConClicFuera, antesDeOtroSobre, Grabadora, marcaDeCampos, repartirDictado, type Marca } from './grabadora';
 import { borradoresDe, guardarBorrador, leerBorrador, lineaDeBorrador, quitarBorrador, type Borrador, type SobreBorrador } from './borradores';
 import { probarDialogo, vigilarPermisos } from './dialogoPermiso';
@@ -1681,6 +1682,7 @@ async function mostrarDondeQuedamos() {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
       if (!b) return;
       if (b.classList.contains('dq-item')) return tocarDq(dlg, b, est);
+      if (b.dataset.dqPestana) return mostrarPestanaDq(dlg, b.dataset.dqPestana as PestanaDq);
       if (b.classList.contains('dq-mas')) return masDq(dlg, est);
       if (b.dataset.dqComentar) return void comentarDq(b.dataset.dqComentar, est);
       // Siempre a la tarjeta de la misión (no al documento del paso): el resumen da contexto y la misión dice el paso
@@ -1727,7 +1729,17 @@ interface EstadoDq { proyecto: string; archivo: LineaDq[]; total: number; leidas
 
 // Dos cosas distintas, cada una una sola vez: lo que se hizo (con su resultado) y lo que el director comenta (por qué
 // decidió algo, lo que no pudo, lo que conviene saber). En este orden: primero lo avanzado
-const TITULOS_DQ: Record<string, string> = { avanzamos: 'Lo que avanzamos', director: 'Comentarios del director' };
+// Y, en su pestaña cada una, las respuestas a tus notas por su tipo (pestanasDq.ts; pd_pestanas_donde_quedamos)
+const TITULOS_DQ: Record<string, string> = {
+  avanzamos: 'Lo que avanzamos',
+  director: 'Comentarios del director',
+  'r-pregunta': 'Lo que respondí a tus preguntas',
+  'r-ajuste': 'Lo que pediste cambiar',
+  'r-falla': 'Lo que fallaba',
+  'r-respuesta': 'Lo que me respondiste',
+  'r-idea': 'Tus ideas',
+  'r-otras': 'Tus otras notas',
+};
 const LEIDAS_A_LA_VISTA = 20;
 const LEIDAS_GUARDADAS = 300;
 
@@ -1737,15 +1749,20 @@ const LEIDAS_GUARDADAS = 300;
  */
 function seccionesDq(): SeccionDq[] {
   const r = d.plan.resumen;
+  // Lo respondido desde tu última visita (la primera vez, lo del día del resumen), cada nota en la pestaña de su tipo
+  const visto = localStorage.getItem(claveVisto(d.activo));
+  const desde = visto ?? (r ? new Date(new Date(r.fecha).getTime() - 24 * 3600_000).toISOString() : new Date().toISOString());
+  const respondidas = lineasDeRespuestas(d.estado.notas.filter((n) => seVe(n.de)), d.plan.respuestas, desde);
   return [
+    ...Object.keys(TITULOS_DQ).filter((id) => id.startsWith('r-')).map((id) => ({ id, titulo: TITULOS_DQ[id], items: respondidas.filter((x) => x.seccion === id).map((x) => x.texto) })),
     { id: 'avanzamos', titulo: TITULOS_DQ.avanzamos, items: r?.avanzamos ?? [] },
     { id: 'director', titulo: TITULOS_DQ.director, items: temasDelMensaje(d.plan.mensaje?.texto ?? '') },
   ].filter((s) => s.items.length);
 }
 
-/** Una línea de «Dónde quedamos»: los comentarios del director traen su tema en negrilla (Markdown en línea). */
+/** Una línea de «Dónde quedamos»: los comentarios del director y sus respuestas traen negrilla (Markdown en línea). */
 // Sin enlaces a los archivos: cada línea ya es un botón, y un enlace no va dentro de otro
-const textoDq = (l: LineaDq) => (l.s === 'director' ? limpio(marked.parseInline(l.t, { async: false }) as string, false) : esc(l.t));
+const textoDq = (l: LineaDq) => (l.s === 'director' || l.s.startsWith('r-') ? limpio(marked.parseInline(l.t, { async: false }) as string, false) : esc(l.t));
 
 /** Para el botón «¿Dónde quedamos?»: cuántas líneas faltan por leer y si el director dejó algo desde tu última visita. */
 function novedadesDq(): { sinLeer: number; nuevo: boolean } {
@@ -1848,8 +1865,14 @@ function lecturaDq(est: EstadoDq): string {
   if (!est.archivo.length) return '';
   const ids = Object.keys(TITULOS_DQ).filter((id) => est.archivo.some((l) => l.s === id));
   const leidas = leidasDq(est);
+  // Una pestaña por tipo de lo respondido, y «La ruta»; cada una con sus secciones (también la que ya no trae nada por
+  // leer, para que una línea vuelva a su lugar), y sus botones solo donde hay algo (pintarProgresoDq)
+  const pestanas = ORDEN_PESTANAS_DQ.filter((p) => ids.some((id) => pestanaDeSeccion(id) === p));
+  const activa = pestanaActiva(ids.filter((id) => pendientesDq(est, id).length).map(pestanaDeSeccion));
+  const seccion = (id: string) => `<section class="dq-seccion" data-seccion="${id}"><h3>${esc(TITULOS_DQ[id])}</h3><ul class="dq-lista">${pendientesDq(est, id).map((l, i) => itemDq(l, i, false)).join('')}</ul></section>`;
   return `<div class="dq-progreso" aria-live="polite"><div class="dq-barra"><i></i></div><span class="dq-cuenta"></span></div>
-    ${ids.map((id) => `<section class="dq-seccion" data-seccion="${id}"><h3>${esc(TITULOS_DQ[id])}</h3><ul class="dq-lista">${pendientesDq(est, id).map((l, i) => itemDq(l, i, false)).join('')}</ul></section>`).join('')}
+    <div class="filtro-tipo dq-pestanas" role="tablist" aria-label="Lo que hay, por tipo">${pestanas.map((p) => `<button type="button" role="tab" class="chip-tipo${p === activa ? ' activo' : ''}" data-dq-pestana="${p}" aria-selected="${p === activa}">${esc(NOMBRE_PESTANA_DQ[p])} · <span class="cifra"></span></button>`).join('')}</div>
+    ${pestanas.map((p) => `<div class="dq-panel" role="tabpanel" data-pestana="${p}"${p === activa ? '' : ' hidden'}>${ids.filter((id) => pestanaDeSeccion(id) === p).map(seccion).join('')}</div>`).join('')}
     <p class="dq-al-dia" hidden>¡Al día! Ya leíste todo lo nuevo. Lo que sigue es tu misión.</p>
     <details class="dq-leidas"${leidas.length ? '' : ' hidden'}><summary>Ya leído <span class="cifra">${leidas.length}</span></summary><ul class="dq-lista">${leidas.slice(0, est.mostradas).map((l) => itemDq(l, Infinity, true)).join('')}</ul><button type="button" class="enlace dq-mas" hidden></button></details>`;
 }
@@ -1873,6 +1896,19 @@ function pintarProgresoDq(dlg: HTMLElement, est: EstadoDq, celebrar = false) {
   dlg.querySelector<HTMLElement>('.dq-barra i')!.style.width = `${total ? Math.round((leidas / total) * 100) : 0}%`;
   cuenta.textContent = !leidas ? 'Toca cada línea cuando la leas' : !falta ? `¡Leíste las ${total}!` : `Leíste ${leidas} de ${total}${falta <= 2 ? ' · ¡ya casi!' : leidas === Math.ceil(total / 2) ? ' · ¡vas por la mitad!' : ''}`;
   dlg.querySelectorAll<HTMLElement>('.dq-seccion').forEach((s) => (s.hidden = !s.querySelector('li')));
+  // Las pestañas: solo las que traen algo por leer, con cuántas; al terminar una, se pasa sola a la siguiente
+  const paneles = [...dlg.querySelectorAll<HTMLElement>('.dq-panel')];
+  const cuantas = new Map(paneles.map((p) => [p.dataset.pestana as PestanaDq, p.querySelectorAll('.dq-seccion li').length]));
+  const conAlgo = [...cuantas].filter(([, k]) => k).map(([p]) => p);
+  dlg.querySelectorAll<HTMLButtonElement>('[data-dq-pestana]').forEach((b) => {
+    const k = cuantas.get(b.dataset.dqPestana as PestanaDq) ?? 0;
+    b.hidden = !k;
+    b.querySelector('.cifra')!.textContent = String(k);
+  });
+  const barra = dlg.querySelector<HTMLElement>('.dq-pestanas');
+  if (barra) barra.hidden = conAlgo.length < 2;
+  const abierta = paneles.find((p) => !p.hidden)?.dataset.pestana as PestanaDq | undefined;
+  mostrarPestanaDq(dlg, pestanaActiva(conAlgo, abierta) ?? abierta ?? null);
   const yaLeido = dlg.querySelector<HTMLDetailsElement>('.dq-leidas')!;
   const todasLeidas = est.archivo.filter((l) => l.leida).length;
   yaLeido.hidden = !todasLeidas;
@@ -1891,6 +1927,17 @@ function pintarProgresoDq(dlg: HTMLElement, est: EstadoDq, celebrar = false) {
     dlg.querySelector('form')?.append(confeti);
     setTimeout(() => confeti.remove(), 2600);
   }
+}
+
+/** Abre una pestaña de «¿Dónde quedamos?» y esconde las demás. */
+function mostrarPestanaDq(dlg: HTMLElement, pestana: PestanaDq | null) {
+  if (!pestana) return;
+  dlg.querySelectorAll<HTMLElement>('.dq-panel').forEach((p) => (p.hidden = p.dataset.pestana !== pestana));
+  dlg.querySelectorAll<HTMLButtonElement>('[data-dq-pestana]').forEach((b) => {
+    const si = b.dataset.dqPestana === pestana;
+    b.classList.toggle('activo', si);
+    b.setAttribute('aria-selected', String(si));
+  });
 }
 
 const quieto = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
