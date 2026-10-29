@@ -474,6 +474,25 @@ export class Grabadora {
     await this.cerrar();
   }
 
+  /**
+   * Trae el audio de un borrador (borradores.ts): queda listo para oírlo, enviarlo o quitarlo, como recién grabado. Si ya
+   * hay algo grabado o grabando, no lo toca.
+   */
+  async cargar(audio: string, segundos = 0): Promise<void> {
+    if (this.grabador || this.blob || this.terminada) return;
+    const blob = await fetch(audio).then((r) => r.blob()).catch(() => null);
+    if (!blob?.size || this.grabador || this.blob || this.terminada) return;
+    this.blob = blob;
+    this.fragmentos = 1;
+    this.segundos = this.previos = segundos;
+    this.pintar();
+  }
+
+  /** Cuánto dura lo grabado, en segundos (para guardarlo con su borrador). */
+  get duracion(): number {
+    return this.segundos;
+  }
+
   /** El audio como data URL (sin el parámetro de códec, que el servidor no necesita), o null si no hay. */
   async datos(): Promise<string | null> {
     // Se cierra la grabación, no la grabadora: si el envío no sigue (falta algo), se puede volver a grabar

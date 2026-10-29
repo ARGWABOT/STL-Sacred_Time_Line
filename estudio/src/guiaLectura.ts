@@ -329,7 +329,7 @@ const FUERA = [
   '.esperando, .quedo-en, .cabeza-parte, .pide-decision, .transcripcion, .leido-doc, .vacio-m, .todas-hechas, .aviso, .urgente-n',
   '.nota-entrega, .sube-nivel, .logros-nuevos, p.pista-varias, p.intro, p.etiqueta, p.titulo-menu, p.titulo-grupo',
   'p.filtro-equipo, p.bien-repo, p.nota-rol, p.etiqueta-boletin, p.modo-permisos, p.aviso-modelo, p.aviso-ajustes-nuevas, p.cuenta-propuestas',
-  'p.leyenda-d, p.error-explorador, p.negados-dq',
+  'p.leyenda-d, p.error-explorador, p.negados-dq, p.borrador-guardado',
   // La línea «Entrega» de una misión es un aviso del sistema, corto, que no hay que destapar para seguir (nota de voz
   // del titular nmvoqthgutit, 25 de octubre de 2026)
   'p.entrega',

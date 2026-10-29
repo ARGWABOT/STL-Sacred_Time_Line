@@ -99,7 +99,8 @@ describe('nada se corta: la nota se guarda antes de cerrar su diálogo (pedido d
   });
 
   it('el comentario del director flotante, seguir una conversación y contar una elección también guardan con el diálogo abierto', () => {
-    guardaDentro(tramo('async function escribirAlDirector(', '\n}\n'));
+    // El comentario general es el mismo diálogo único (pd_dialogo_unico): pasa por comentar, que guarda dentro
+    expect(tramo('async function escribirAlDirector(', '\n}\n')).toMatch(/await comentar\(\{ tipo: 'general' \}/);
     guardaDentro(tramo('} else if (ds.seguirHilo) {', '} else if (ds.fase) {'));
     // Una opción o varias juntas (un paso con `varias`): las dos pasan por elegirEnPaso
     guardaDentro(tramo('async function elegirEnPaso(', '\n}\n').split('b.setAttribute(')[0]);

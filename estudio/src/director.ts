@@ -129,6 +129,7 @@ import { pedirProyectoNuevo } from './nuevo_proyecto';
 import { cerrarConClicFuera, confirmar } from './modal';
 import { abrirPreguntas } from './preguntas';
 import { antesDeCerrarConClicFuera, antesDeOtroSobre, Grabadora, repartirDictado } from './grabadora';
+import { borradoresDe, guardarBorrador, leerBorrador, lineaDeBorrador, quitarBorrador, type Borrador, type SobreBorrador } from './borradores';
 import { probarDialogo, vigilarPermisos } from './dialogoPermiso';
 import { Adjuntos } from './adjuntos';
 import { activarDibujos } from './dibujos';
@@ -1337,7 +1338,7 @@ const SIGUE_AQUI = 'Lo que escribiste, grabaste o adjuntaste sigue aquí: vuelve
  * (pedido del titular pd_nada_se_corta): mientras guarda, ni Cancelar, ni Esc, ni un clic fuera lo cierran; si no se
  * guardó, queda abierto con todo lo escrito, grabado y adjunto, y lo dice. `guardar` devuelve true si quedó guardado.
  */
-function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: string; cancelar?: string; audio?: boolean; vacioVale?: boolean; adjuntos?: boolean; actuales?: Adjunto[]; urgente?: boolean; guardar?: (r: Dicho) => Promise<boolean> }): Promise<(Record<string, string> & { audio?: string; adjuntos?: { nombre: string; datos: string }[] }) | null> {
+function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: string; cancelar?: string; audio?: boolean; vacioVale?: boolean; adjuntos?: boolean; actuales?: Adjunto[]; urgente?: boolean; guardar?: (r: Dicho) => Promise<boolean>; borrador?: { proyecto: string; sobre: SobreBorrador } }): Promise<(Record<string, string> & { audio?: string; adjuntos?: { nombre: string; datos: string }[] }) | null> {
   const dlg = $('dialogo') as HTMLDialogElement;
   // El ✉ es uno solo: si sigue abierto (graba a un lado y la página quedó con clics), no se rehace encima de lo grabado.
   // Queda como está y la persona lee por qué en su pastilla, que siempre está a la vista (grabadora.ts › antesDeOtroSobre)
@@ -1347,8 +1348,11 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
     else avisar(ocupado);
     return Promise.resolve(null);
   }
+  // Lo que quedó sin enviar sobre lo mismo vuelve como estaba, y lo dice (borradores.ts; pd_dialogo_unico)
+  const previo = o.borrador ? leerBorrador(localStorage, o.borrador.proyecto, o.borrador.sobre) : null;
+  if (previo) o = { ...o, campos: o.campos.map((c) => (c.id === 'texto' ? { ...c, valor: previo.texto } : c.id === 'tipoNota' && previo.tipoNota ? { ...c, valor: previo.tipoNota } : c)) };
   dlg.innerHTML = `<form method="dialog">
-    <header class="cabeza-dialogo">${o.urgente ? `<div class="titulo-con-urgente"><h2>${esc(o.titulo)}</h2>${botonUrgente()}</div>` : `<h2>${esc(o.titulo)}</h2>`}${o.ayuda ? `<p>${o.ayuda}</p>` : ''}</header>
+    <header class="cabeza-dialogo">${o.urgente ? `<div class="titulo-con-urgente"><h2>${esc(o.titulo)}</h2>${botonUrgente()}</div>` : `<h2>${esc(o.titulo)}</h2>`}${o.ayuda ? `<p>${o.ayuda}</p>` : ''}${previo ? '<p class="borrador-guardado" role="status">Borrador guardado: está como lo dejaste. <button type="button" class="enlace" data-borrar-borrador>Borrarlo</button></p>' : ''}</header>
     ${o.campos
       .map((c) => {
         // Con audio, lo obligatorio de escribir también se puede decir: lo comprueba el envío, no el navegador
@@ -1375,6 +1379,7 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
     <div class="botones"><button type="button" data-cancelar>${esc(o.cancelar ?? 'Cancelar')}</button><button type="submit" class="primario">${esc(o.boton)}</button></div>
   </form>`;
   const grabadora = (grabadoraDelSobre = o.audio ? new Grabadora(dlg.querySelector('[data-grabadora]') as HTMLElement) : null);
+  if (previo?.audio) void grabadora?.cargar(previo.audio, previo.segundos);
   const adjuntos = o.adjuntos ? new Adjuntos(dlg.querySelector('[data-adjuntos]') as HTMLElement, dlg.querySelector('form')!, (t) => avisar(t)) : null;
   return new Promise((ok) => {
     const form = dlg.querySelector('form')!;
@@ -1385,15 +1390,22 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
     // Un envío a la vez (con «Enviar ya» o un doble clic, la nota no queda dos veces) y, con `guardar`, mientras guarda
     let enviando = false;
     let guardando = false;
+    // «Borrarlo»: el borrador se va y el diálogo se cierra sin guardar otro
+    let borrado = false;
     const terminar = (resultado: (Record<string, string> & { audio?: string; adjuntos?: { nombre: string; datos: string }[] }) | null) => {
       if (listo) return;
       listo = true;
       dlg.removeEventListener('close', alCerrar);
       dlg.removeEventListener('cancel', alCancelar);
-      void grabadora?.terminar();
+      // Lo escrito y lo elegido se leen antes de cerrar; lo grabado, cuando la grabación termina
+      const escrito = o.borrador && !resultado && !borrado ? { texto: String(new FormData(form).get('texto') ?? ''), tipoNota: String(new FormData(form).get('tipoNota') ?? '') || undefined } : null;
+      const fin = grabadora?.terminar();
       adjuntos?.terminar();
       if (dlg.open) dlg.close();
       ok(resultado);
+      if (o.borrador && (resultado || borrado)) quitarBorrador(localStorage, o.borrador.proyecto, o.borrador.sobre);
+      // Cerrado sin enviar: queda como borrador, en silencio (pd_dialogo_unico); solo se dice si algo no cupo
+      if (o.borrador && escrito) void guardarAlCerrar(o.borrador, o.titulo, escrito, fin, grabadora);
     };
     // Mientras guarda, nada lo cierra ni lo cambia: ni sus botones, ni lo escrito, ni la grabadora, ni lo adjunto
     const marcarGuardando = (si: boolean) => {
@@ -1406,6 +1418,11 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
     dlg.querySelector('[data-cancelar]')!.addEventListener('click', () => { if (!guardando) terminar(null); });
     // Las carpetas se buscan en el explorador del computador
     form.addEventListener('click', async (e) => {
+      if ((e.target as HTMLElement).closest('[data-borrar-borrador]') && !guardando) {
+        borrado = true;
+        terminar(null);
+        return avisar('Borraste el borrador.', true);
+      }
       // El primer paso de la urgencia: abre (o cierra) su panel; al cerrarlo, deja de estar marcada
       const u = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-abrir-urgente]');
       if (u) {
@@ -1474,6 +1491,18 @@ function pedir(o: { titulo: string; ayuda?: string; campos: Campo[]; boton: stri
     dlg.showModal();
     (dlg.querySelector('textarea, input, select') as HTMLElement | null)?.focus();
   });
+}
+
+/**
+ * Guarda como borrador lo que quedó sin enviar al cerrar el diálogo (borradores.ts; pd_dialogo_unico): lo escrito, el
+ * tipo elegido y, cuando su grabación termina, el audio. En silencio, salvo que el audio no quepa en este navegador.
+ */
+async function guardarAlCerrar(donde: { proyecto: string; sobre: SobreBorrador }, titulo: string, escrito: { texto: string; tipoNota?: string }, fin: Promise<void> | undefined, grabadora: Grabadora | null) {
+  await fin?.catch(() => undefined);
+  const audio = (await grabadora?.datos().catch(() => null)) ?? undefined;
+  const como = guardarBorrador(localStorage, { ...donde, titulo, ...escrito, ...(audio ? { audio, segundos: grabadora?.duracion } : {}), cuando: new Date().toISOString() });
+  if (como === 'sin_audio') avisar('Lo que escribiste quedó como borrador, pero el audio no cupo en este navegador: grábalo de nuevo al volver.');
+  else if (como === 'no') avisar('No se pudo guardar el borrador en este navegador: lo que escribiste o grabaste no quedó.');
 }
 
 /**
@@ -2645,6 +2674,8 @@ async function pedirLaRevision(pedir: boolean, origen?: 'cabecera' | 'falla' | '
     avisar(ocupado ? `${ocupado.corto}. ${ocupado.porque}` : 'El director ya está revisando: trabaja un director a la vez, y «Pedir revisión» vuelve en cuanto termine.');
     return false;
   }
+  // Lo que quedó sin enviar no le llega al director: primero se muestra (pd_dialogo_unico)
+  if (pedir && !callada && !(await antesDeLosBorradores())) return false;
   // Con el límite de cada cinco horas casi lleno, primero cuánto queda y cuándo se renueva (pr_procesos_vista, punto 4)
   if (pedir && !(await seguirCercaDelLimite())) return false;
   const r = await fetch('/__estudio/director/revision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pedir, ...(pedir ? { origen } : {}) }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
@@ -5859,15 +5890,25 @@ $('mando').addEventListener('click', (e) => {
   }
 });
 
+/**
+ * El diálogo único para hablarle al director (pedido pd_dialogo_unico, tu elección nmvj2fac5tit): el ✉ de cada lugar,
+ * «Decido otra cosa» y «Agregar a esta decisión», el comentario general (el director flotante y el Buzón) y la tecla N
+ * abren este mismo, que ya sabe sobre qué es la nota, pide su tipo donde hace falta y trae la grabación y los adjuntos.
+ * Lo que se cierra sin enviar queda como borrador en este navegador (borradores.ts).
+ */
 async function comentar(sobre: { tipo: string; id?: string; seccion?: string; decision?: string; fragmento?: string; postura?: string },titulo: string) {
+  const general = sobre.tipo === 'general' && !sobre.seccion;
   const r = await pedir({
     titulo,
-    ayuda: avisoRevisando() + 'Tu comentario queda en el <b>Buzón del director</b>, donde lo puedes corregir o borrar. Cuando se pida la revisión, él lo lee junto con todo lo demás y te responde ahí y debajo de este mismo lugar, con su recomendación; el titular decide.',
-    campos: [...(pideTipo(sobre as Nota['sobre']) ? [campoTipo()] : []), { id: 'texto', etiqueta: 'Tu comentario (o graba un audio, o pega una imagen)', tipo: 'area' }],
+    ayuda: avisoRevisando() + (general
+      ? 'Plantéale un comentario o una idea que quieras que tenga en cuenta. No entra de golpe al proyecto: el director decide <b>cómo y dónde</b> administrarlo según lo que le digas (una misión, una propuesta, un documento o la ruta) y te responde en el <b>Buzón</b>. Hasta que lo lea, lo puedes corregir o borrar.'
+      : 'Tu comentario queda en el <b>Buzón del director</b>, donde lo puedes corregir o borrar. Cuando se pida la revisión, él lo lee junto con todo lo demás y te responde ahí y debajo de este mismo lugar, con su recomendación; el titular decide.'),
+    campos: [...(pideTipo(sobre as Nota['sobre']) ? [campoTipo()] : []), { id: 'texto', etiqueta: general ? 'Tu comentario o idea (o graba un audio, o pega una imagen)' : 'Tu comentario (o graba un audio, o pega una imagen)', tipo: 'area' }],
     boton: 'Dejarlo en el Buzón',
     audio: true,
     adjuntos: true,
     urgente: true,
+    borrador: { proyecto: d.activo, sobre },
     // Se guarda con el ✉ abierto: si el servidor falla, lo escrito, lo grabado y lo adjunto siguen ahí (pd_nada_se_corta)
     guardar: (dicho) => dejarNota(sobre, dicho.texto, dicho.audio, !!dicho.urgente, dicho.adjuntos, dicho.tipoNota),
   });
@@ -6611,19 +6652,57 @@ document.addEventListener('click', async (e) => {
   await escribirAlDirector();
 });
 
-/** El comentario al director: lo único que se le escribe en general (el Buzón ya no tiene su propio formulario). */
+/** El comentario al director en general (el director flotante, el Buzón): el mismo diálogo único, sobre nada en particular. */
 async function escribirAlDirector() {
-  await pedir({
-    titulo: 'Un comentario para el director',
-    ayuda: avisoRevisando() + 'Plantéale un comentario o una idea que quieras que tenga en cuenta. No entra de golpe al proyecto: el director decide <b>cómo y dónde</b> administrarlo según lo que le digas (una misión, una propuesta, un documento o la ruta) y te responde en el <b>Buzón</b>. Hasta que lo lea, lo puedes corregir o borrar.',
-    campos: [campoTipo(), { id: 'texto', etiqueta: 'Tu comentario o idea (o graba un audio, o pega una imagen)', tipo: 'area' }],
-    boton: 'Dejarlo en el Buzón',
-    audio: true,
-    adjuntos: true,
-    urgente: true,
-    // Se guarda con el ✉ abierto: si el servidor falla, lo escrito, lo grabado y lo adjunto siguen ahí (pd_nada_se_corta)
-    guardar: (r) => dejarNota({ tipo: 'general' }, r.texto, r.audio, !!r.urgente, r.adjuntos, r.tipoNota),
+  await comentar({ tipo: 'general' }, 'Un comentario para el director');
+}
+
+/**
+ * La tecla N abre el diálogo único sobre lo que estás mirando (tu elección del 26 de octubre de 2026): el ✉ que está más
+ * cerca del centro de la pantalla (una idea, una parte, un paso), como si lo oprimieras; sin ninguno a la vista, el
+ * comentario general. Solo cuando no escribes en un campo ni hay otro diálogo abierto, y sin Ctrl, Alt ni Cmd.
+ */
+document.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() !== 'n' || e.ctrlKey || e.metaKey || e.altKey || e.repeat || !d) return;
+  const foco = document.activeElement as HTMLElement | null;
+  if (foco && (foco.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName))) return;
+  if (document.querySelector('dialog[open]')) return;
+  e.preventDefault();
+  const sobre = sobreLoQueMiras();
+  if (sobre) sobre.click();
+  else void escribirAlDirector();
+});
+
+/** El ✉ de lo que se mira: el visible más cerca del centro, sin los de una decisión (esos deciden, no comentan). */
+function sobreLoQueMiras(): HTMLElement | null {
+  const centro = window.innerHeight / 2;
+  let mejor: { b: HTMLElement; dist: number } | null = null;
+  for (const b of document.querySelectorAll<HTMLElement>('#vista [data-comentar]')) {
+    if (b.closest('[hidden]') || (b.dataset.comentar ?? '').split('|')[3]) continue;
+    const r = b.getBoundingClientRect();
+    if (!r.width || r.bottom < 0 || r.top > window.innerHeight) continue;
+    const dist = Math.abs((r.top + r.bottom) / 2 - centro);
+    if (!mejor || dist < mejor.dist) mejor = { b, dist };
+  }
+  return mejor?.b ?? null;
+}
+
+/**
+ * Antes de pedir la revisión, los borradores sin enviar de este proyecto (pd_dialogo_unico, tu propuesta del 26 de
+ * octubre de 2026): el director no los ve, porque nunca le llegan. true si se sigue pidiendo; si eliges «Ver mis
+ * borradores», se abre el primero, para enviarlo, terminarlo o borrarlo, y la revisión se pide después, con el botón.
+ */
+async function antesDeLosBorradores(): Promise<boolean> {
+  const lista: Borrador[] = borradoresDe(localStorage, d.activo);
+  if (!lista.length) return true;
+  const sigue = await confirmar({
+    titulo: lista.length === 1 ? 'Tienes un borrador sin enviar' : `Tienes ${lista.length} borradores sin enviar`,
+    texto: `El director no los lee: solo lo enviado le llega.\n\n${lista.map((b) => `• ${lineaDeBorrador(b)}`).join('\n')}\n\n¿Pides la revisión sin ${lista.length === 1 ? 'él' : 'ellos'}, o lo${lista.length === 1 ? '' : 's'} ves antes?`,
+    boton: 'Pedir la revisión sin ellos',
+    cancelar: lista.length === 1 ? 'Ver mi borrador' : 'Ver el primero',
   });
+  if (!sigue) void comentar(lista[0].sobre, lista[0].titulo);
+  return sigue;
 }
 
 async function registrarExcepcion() {

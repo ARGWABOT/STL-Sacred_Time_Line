@@ -415,6 +415,8 @@ body.sin-servidor.director-trabajando .cabeza-proyecto::before { content: '↻ E
 .icono-titulo { width: 22px; height: 22px; color: var(--acento); }
 .error-explorador { color: var(--peligro) !important; font-size: 13.5px; margin: 0; }
 .error-explorador:empty { display: none; }
+/* El borrador que vuelve al abrir el diálogo único sobre lo mismo (pd_dialogo_unico) */
+.borrador-guardado { font-size: 13.5px; color: var(--suave, inherit); margin: 4px 0 0; }
 
 /* ── Pantallas medianas y angostas ── */
 @media (max-width: 1100px) {

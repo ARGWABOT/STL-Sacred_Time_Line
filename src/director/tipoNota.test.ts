@@ -69,7 +69,9 @@ describe('cada nota con su tipo', () => {
     expect(comentar.indexOf('pideTipo(donde)')).toBeLessThan(comentar.indexOf('guardarAudio('));
     const pagina = readFileSync(join(__dirname, '..', '..', 'estudio', 'src', 'director.ts'), 'utf-8');
     expect(pagina).toContain("campos: [...(pideTipo(sobre as Nota['sobre']) ? [campoTipo()] : []),");
-    expect(pagina).toContain('campos: [campoTipo(), {');
+    // El comentario general es el mismo diálogo único (pd_dialogo_unico): sobre «general», pideTipo lo pide
+    expect(pagina).toContain("await comentar({ tipo: 'general' }");
+    expect(pideTipo({ tipo: 'general' })).toBe(true);
     const bandeja = readFileSync(join(__dirname, '..', '..', 'tools', 'director', 'bandeja.ts'), 'utf-8');
     expect(bandeja).toContain('const sinTipo = respuestasSinTipo(plan, estado.notas, desde);');
   });
