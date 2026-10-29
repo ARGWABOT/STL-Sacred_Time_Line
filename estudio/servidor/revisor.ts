@@ -26,6 +26,7 @@ import { PROCEDIMIENTOS } from '../../src/director/procedimientos.ts';
 import { INVENTARIO_EN_EL_ENCARGO } from '../../src/director/modelos.ts';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, prorrogarRevision, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos.ts';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora.ts';
+import { buscarProcesoReal, type Proceso } from './unico.ts';
 import { anotarDirector, archivoDelCandado, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado.ts';
 import { guardarLineasDeRevision } from '../../src/director/lineasDeRevision.ts';
 import { esFinEscrito, type FinEscrito, type QuienTermino } from '../../src/director/finDeLanzamiento.ts';
@@ -1644,6 +1645,9 @@ export function entornoDelDirector(base: NodeJS.ProcessEnv, registro?: string, m
   return env;
 }
 
+/** Si Claude Code corre dentro de una consola: el .cmd de npm, en Windows. */
+const envuelto = (programa: string) => process.platform === 'win32' && /\.cmd$/i.test(programa);
+
 /**
  * Lanza Claude Code. El .cmd de npm, en Windows, solo corre dentro de una consola. `registro` y `modelo`:
  * entornoDelDirector. `extra`: variables que se suman a esas, encima.
@@ -1651,7 +1655,7 @@ export function entornoDelDirector(base: NodeJS.ProcessEnv, registro?: string, m
 export function lanzarClaude(programa: string, args: string[], opciones: Parameters<typeof spawn>[2], registro?: string, modelo?: string | null, extra?: NodeJS.ProcessEnv, todoConElModelo = false) {
   // `extra`: lo que se suma a las variables del director (la dirección a que pregunta el gancho de permisos, si pregunta)
   const env = { ...entornoDelDirector(process.env, registro, modelo, todoConElModelo), ...extra };
-  return process.platform === 'win32' && /\.cmd$/i.test(programa)
+  return envuelto(programa)
     ? spawn(conComillas(programa), args.map(conComillas), { ...opciones, env, shell: true, windowsHide: true })
     : spawn(programa, args, { ...opciones, env, windowsHide: true });
 }
@@ -2309,6 +2313,8 @@ export class Revisor {
     // candado del proyecto, también para las otras copias del Studio y la sesión del director
     anotarHijo(turno, p.pid, proyecto, relative(this.raiz, archivo));
     anotarDirector(candado, archivo, p.pid);
+    // En Windows, con el .cmd de npm, ese número es el de la consola: el de Claude Code, debajo, se anota en cuanto aparece
+    if (envuelto(programa) && p.pid) void anotarProcesoReal(turno, candado, p.pid, proyecto, relative(this.raiz, archivo), archivo, () => p.exitCode === null);
     // A la bitácora: qué lanzó el Studio y por pedido de quién, con su botón (así se sabe siempre qué disparó una revisión)
     const pidio = antes.revision?.proyecto === proyecto ? antes.revision : null;
     await anotar(this.raiz, {
@@ -2580,6 +2586,20 @@ function anotarHijo(turno: string, hijo: number | undefined, proyecto: string, r
   } catch {
     // sin turno: no hay a quién anotar
   }
+}
+
+/**
+ * El número real de Claude Code, en el turno y en el candado del proyecto, cuando corre dentro de la consola del .cmd de
+ * npm (pedido pd_un_director): así, si este servidor se reinicia, o si alguien cierra la consola, un director que quedó
+ * sin quién lo vigile cuenta como vivo y no se lanza otro a su lado. `sigue`: si la envoltura no terminó mientras se
+ * buscaba (si terminó, no hay nada que anotar). Devuelve el número anotado, o null.
+ */
+export async function anotarProcesoReal(turno: string, candado: string | null, envoltura: number, proyecto: string, registroRelativo: string, registro: string, sigue: () => boolean = () => true, leer?: () => Promise<Proceso[] | null>): Promise<number | null> {
+  const real = await buscarProcesoReal(envoltura, leer);
+  if (!real || !sigue()) return null;
+  anotarHijo(turno, real, proyecto, registroRelativo);
+  anotarDirector(candado, registro, real);
+  return real;
 }
 
 /** Si un proceso existe (solo lo pregunta). EPERM: existe, pero es de otro usuario. */

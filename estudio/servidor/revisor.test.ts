@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { INVENTARIO_EN_EL_ENCARGO } from '../../src/director/modelos.ts';
-import { POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, planDeProyecto, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso, paqueteListoDe } from './revisor';
+import { tomarCandado as tomarCandadoProyecto } from '../../src/director/candado.ts';
+import { buscarProcesoReal, procesoReal, type Proceso } from './unico';
+import { anotarProcesoReal, POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, planDeProyecto, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso, paqueteListoDe } from './revisor';
 
 describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», confirmada con 15 días)', () => {
   it('borra lo de más de quince días con su paquete, y conserva el último de cada proyecto y de cada tipo', () => {
@@ -311,6 +313,54 @@ describe('el director que lanza el Studio', () => {
       // pasado el límite de una revisión se toma aunque el número siga vivo (puede ser ya de otro programa)
       writeFileSync(turno, JSON.stringify({ pid: 111, hijo: 222, cuando: '2026-01-01T00:00:00.000Z' }));
       expect(tomarTurno(turno, ahora, () => true)).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('con el .cmd de npm en Windows anota el número real de Claude Code, y ese director vivo impide lanzar otro (pd_un_director)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stl-real-'));
+    try {
+      const turno = join(dir, 'lanzando.json');
+      const candado = join(dir, 'stl-director.json');
+      const registro = join(dir, 'golf.log');
+      const ahora = Date.now();
+      // la consola del .cmd (500) lanza a conhost y, un instante después, a node: el primer vistazo aún no lo ve
+      const arbol: Proceso[] = [
+        { pid: 100, padre: 4, nombre: 'node.exe' },
+        { pid: 500, padre: 100, nombre: 'cmd.exe' },
+        { pid: 501, padre: 500, nombre: 'conhost.exe' },
+      ];
+      expect(procesoReal(arbol, 500)).toBeNull();
+      const conClaude = [...arbol, { pid: 502, padre: 500, nombre: 'node.exe' }, { pid: 503, padre: 502, nombre: 'node.exe' }];
+      // el primero que desciende de la consola, no el servidor que la lanzó ni un ayudante de más abajo
+      expect(procesoReal(conClaude, 500)).toBe(502);
+      expect(procesoReal([{ pid: 500, padre: 100, nombre: 'cmd.exe' }, { pid: 510, padre: 500, nombre: 'claude.exe' }], 500)).toBe(510);
+      let vistazos = 0;
+      const leer = async () => (++vistazos === 1 ? arbol : conClaude);
+      expect(await buscarProcesoReal(500, leer, 3, 1)).toBe(502);
+      expect(vistazos).toBe(2);
+      // sin forma de leer los procesos, o sin que aparezca, vale el de la envoltura, como antes
+      expect(await buscarProcesoReal(500, async () => null, 3, 1)).toBeNull();
+      expect(await buscarProcesoReal(500, async () => arbol, 3, 1)).toBeNull();
+
+      // lanzado: el turno y el candado tienen la consola; al encontrarlo, el número real
+      writeFileSync(turno, JSON.stringify({ pid: process.pid, cuando: new Date(ahora).toISOString(), hijo: 500, proyecto: 'golf', registro: 'golf.log' }));
+      writeFileSync(candado, JSON.stringify({ quien: 'studio', estudio: dir, proyecto: 'golf', tipo: 'revision', desde: new Date(ahora).toISOString(), hasta: new Date(ahora + 90 * 60_000).toISOString(), pid: process.pid, hijo: 500, registro }));
+      expect(await anotarProcesoReal(turno, candado, 500, 'golf', 'golf.log', registro, () => true, async () => conClaude)).toBe(502);
+      expect(JSON.parse(readFileSync(turno, 'utf-8')).hijo).toBe(502);
+      expect(JSON.parse(readFileSync(candado, 'utf-8')).hijo).toBe(502);
+      // el servidor se reinició y alguien cerró la consola: solo vive Claude Code, y nadie lanza otro director
+      const soloClaude = (p: number) => p === 502;
+      expect(tomarTurno(turno, ahora, soloClaude)).toBe(false);
+      expect(estadoDelLanzado(turno, 'golf', soloClaude)).toEqual({ estado: 'director', hijo: 502 });
+      expect(tomarCandadoProyecto(candado, { quien: 'studio', estudio: join(dir, 'otra-copia'), proyecto: 'golf', tipo: 'revision', desde: new Date(ahora).toISOString(), hasta: new Date(ahora + 60 * 60_000).toISOString() }, ahora, soloClaude).tomado).toBe(false);
+      // cuando también terminó, se toma
+      expect(tomarTurno(turno, ahora, () => false)).toBe(true);
+      // si la envoltura ya terminó mientras se buscaba, no anota nada
+      writeFileSync(turno, JSON.stringify({ pid: process.pid, cuando: new Date(ahora).toISOString(), hijo: 500, proyecto: 'golf', registro: 'golf.log' }));
+      expect(await anotarProcesoReal(turno, null, 500, 'golf', 'golf.log', registro, () => false, async () => conClaude)).toBeNull();
+      expect(JSON.parse(readFileSync(turno, 'utf-8')).hijo).toBe(500);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

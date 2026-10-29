@@ -3,7 +3,7 @@
 // servidores son dos lanzadores de revisiones, dos traídas de GitHub y dos guardados a la vez. El 20 de octubre, un
 // reinicio de Vite dejó un servidor en el 5180 y otro en el 5181 (en el mismo proceso), y la revisión del 21 se lanzó
 // dos veces. El candado vive en .estudio/servidor.json (solo de este computador, fuera de git).
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { join } from 'node:path';
@@ -51,6 +51,64 @@ export function comandoDe(pid: number): string | null {
   } catch {
     return null;
   }
+}
+
+/** Un proceso del computador: su número, el de quien lo lanzó y su programa. */
+export interface Proceso {
+  pid: number;
+  padre: number;
+  nombre: string;
+}
+
+/** El programa de Claude Code: node (el .cmd de npm lo corre con node) o su ejecutable propio. */
+const CLAUDE_REAL = /^(node|claude)(\.exe)?$/i;
+
+/**
+ * El número real de Claude Code dentro del árbol de una envoltura (pedido pd_un_director): en Windows, el .cmd de npm
+ * corre dentro de una consola (cmd.exe), y Claude Code es un node debajo de ella. Si alguien cierra solo la consola, o
+ * el número de la consola pasa a otro programa, el director sigue vivo con el suyo: ese es el que se anota. El primero
+ * que desciende de la envoltura, o null si aún no está. Pura.
+ */
+export function procesoReal(arbol: Proceso[], envoltura: number): number | null {
+  const hijos = (pid: number) => arbol.filter((p) => p.padre === pid && p.pid !== pid);
+  const vistos = new Set<number>([envoltura]);
+  let nivel = hijos(envoltura);
+  while (nivel.length) {
+    const real = nivel.find((p) => CLAUDE_REAL.test(p.nombre));
+    if (real) return real.pid;
+    nivel = nivel.filter((p) => !vistos.has(p.pid) && vistos.add(p.pid)).flatMap((p) => hijos(p.pid));
+  }
+  return null;
+}
+
+/** Los procesos del computador, en Windows (sin esperar al servidor: lo pregunta aparte), o null si no se puede. */
+function leerProcesos(): Promise<Proceso[] | null> {
+  if (process.platform !== 'win32') return Promise.resolve(null);
+  const orden = 'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId) $($_.ParentProcessId) $($_.Name)" }';
+  return new Promise((listo) => {
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', orden], { encoding: 'utf8', windowsHide: true, timeout: 15_000, maxBuffer: 4 * 1024 * 1024 }, (e, salida) => {
+      if (e) return listo(null);
+      listo(salida.split(/\r?\n/).flatMap((l) => {
+        const m = /^(\d+) (\d+) (.+)$/.exec(l.trim());
+        return m ? [{ pid: Number(m[1]), padre: Number(m[2]), nombre: m[3] }] : [];
+      }));
+    });
+  });
+}
+
+/**
+ * Busca el número real de Claude Code debajo de su envoltura, unas veces, mientras arranca (la consola lanza a node un
+ * instante después). null si no apareció: entonces vale el de la envoltura, como antes.
+ */
+export async function buscarProcesoReal(envoltura: number, leer: () => Promise<Proceso[] | null> = leerProcesos, intentos = 10, esperaMs = 1000): Promise<number | null> {
+  for (let i = 0; i < intentos; i++) {
+    const arbol = await leer();
+    if (!arbol) return null;
+    const real = procesoReal(arbol, envoltura);
+    if (real) return real;
+    if (i < intentos - 1) await new Promise((r) => setTimeout(r, esperaMs));
+  }
+  return null;
 }
 
 /** ¿Algo escucha en ese puerto de este computador? (localhost: Vite escucha en IPv6 o en IPv4, según el sistema.) */
