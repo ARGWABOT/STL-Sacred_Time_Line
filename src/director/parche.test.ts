@@ -38,6 +38,13 @@ describe('el plan, con cambios puntuales', () => {
     expect(plan.reservaCorta).toHaveProperty('titular');
   });
 
+  it('la pieza siguiente de la cola se escribe entera, como el tramo (pd_paquete_listo)', () => {
+    const pieza = { cuando: '2026-10-29T00:20:00.000Z', id: 'pd_x', archivos: [{ ruta: 'src/a.ts', parte: 'hacerA' }], comprueba: 'npm test' };
+    const r = aplicarParche(plan, { piezaSiguiente: pieza });
+    expect(r.errores).toEqual([]);
+    expect(r.plan.piezaSiguiente).toEqual(pieza);
+  });
+
   it('cambiar unos campos por id (con null el campo sale) y quitar por id, también de lo que el mismo parche sumó', () => {
     const r = aplicarParche(plan, {
       misiones: [{ id: 't_c', para: 'titular', fase: 'replicable', titulo: 'C' }],

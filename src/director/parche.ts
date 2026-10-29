@@ -18,7 +18,7 @@ import type { Plan } from './director.ts';
  */
 const POR_CLAVE = ['respuestas', 'revisiones', 'evaluacion', 'ejecutadas', 'reservaCorta'];
 const POR_ID = { misiones: 'id', propuestas: 'id', pedidos: 'id', fases: 'id', frentes: 'id', documentos: 'ruta' } as const;
-const ENTEROS = ['mensaje', 'resumen', 'tramo', 'alDia', 'colaAutorizada', 'colaDirector', 'boletin', 'ritmo', 'detectado', 'diagnostico', 'objetivos', 'lecciones', 'adelantado', 'nota', 'mision', 'actualizado'];
+const ENTEROS = ['mensaje', 'resumen', 'tramo', 'piezaSiguiente', 'alDia', 'colaAutorizada', 'colaDirector', 'boletin', 'ritmo', 'detectado', 'diagnostico', 'objetivos', 'lecciones', 'adelantado', 'nota', 'mision', 'actualizado'];
 
 type Registro = Record<string, unknown>;
 const esObjeto = (x: unknown): x is Registro => !!x && typeof x === 'object' && !Array.isArray(x);
