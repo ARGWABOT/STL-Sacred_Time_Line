@@ -19,9 +19,9 @@ import { aprobadoEnVivo, aprobadosSolos, conLoAprobado, lineaAutomatico, type En
 import { lineasDeNegadosSinDecidir } from './permisoAlMomento.ts';
 import { permisosEnEspera } from './permisosEnEspera.ts';
 import { fuentesDeEscaneo } from './escaneo.ts';
-import { colaDeDiagnosticos, limiteDelTramo, MAX_MIN_REVISION, negacionesDe, negadosEnVivo, POR_REVISION, type CandidatoDeCola, type Tramo } from '../../src/director/director.ts';
+import { colaDeDiagnosticos, limiteDelTramo, MAX_MIN_REVISION, negacionesDe, negadosEnVivo, POR_REVISION, type CandidatoDeCola, type PiezaSiguiente, type Tramo } from '../../src/director/director.ts';
 import { leerEstadoDelEquipo, leerJsonFresco, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria.ts';
-import { archivoDeEncargos, bandejaParaElEncargo, conElPlanDeLaRevision, conLaBandejaLista, encargoDelPrimerTiempo, MAX_MIN_BANDEJA_LISTA, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, registroDelPrimerTiempo, saltaPrimerTiempo, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
+import { archivoDeEncargos, bandejaParaElEncargo, conElPaqueteListo, conElPlanDeLaRevision, conLaBandejaLista, encargoDelPrimerTiempo, MAX_MIN_BANDEJA_LISTA, encargosDeLaRespuesta, finDelPrimerTiempo, lecturasDeLaPieza, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, procedimientosNombrados, registroDelPrimerTiempo, saltaPrimerTiempo, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
 import { PROCEDIMIENTOS } from '../../src/director/procedimientos.ts';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, prorrogarRevision, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos.ts';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora.ts';
@@ -1498,6 +1498,36 @@ function tramoDelPlan(raiz: string, proyecto: string): Tramo | null {
   }
 }
 
+/** `plan.piezaSiguiente` del proyecto, leída de su memoria: la pieza que sigue en la cola del director; null si no está. */
+function piezaDelPlan(raiz: string, proyecto: string): PiezaSiguiente | null {
+  try {
+    const pieza = JSON.parse(readFileSync(enDisco(raiz, rutasDe(proyecto).plan), 'utf-8'))?.piezaSiguiente;
+    return pieza && typeof pieza === 'object' && Array.isArray(pieza.archivos) ? (pieza as PiezaSiguiente) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * El resto del paquete listo (pd_paquete_listo), leído sin modelo: los procedimientos que nombra la bandeja, de la carpeta
+ * del Studio, y las partes de los archivos de la pieza siguiente, del repositorio del proyecto. Solo rutas de adentro:
+ * nunca un .env ni lo de .git, ni algo fuera de su carpeta. Lo que no se puede leer va sin texto y el director lo lee.
+ */
+export function paqueteListoDe(raiz: string, repositorio: string, bandeja: string, pieza: PiezaSiguiente | null): string {
+  const leerDentro = (carpeta: string, ruta: string): string | null => {
+    const archivo = resolve(carpeta, ruta);
+    const dentro = relative(carpeta, archivo);
+    if (!dentro || dentro.startsWith('..') || isAbsolute(dentro) || /(^|[\\/])\.git([\\/]|$)/.test(dentro) || /(^|[\\/])\.env/.test(dentro)) return null;
+    try {
+      return readFileSync(archivo, 'utf-8');
+    } catch {
+      return null;
+    }
+  };
+  const procedimientos = procedimientosNombrados(bandeja).map((ruta) => ({ ruta, texto: leerDentro(raiz, ruta) }));
+  return conElPaqueteListo(procedimientos, pieza, pieza ? lecturasDeLaPieza(pieza, (ruta) => leerDentro(repositorio, ruta)) : []);
+}
+
 /** Ordena versiones «1.2.10» de menor a mayor. */
 export const compararVersion = (a: string, b: string) => {
   const x = a.split('.').map(Number);
@@ -2268,7 +2298,7 @@ export class Revisor {
     const delStudio = esElStudio(repositorio, this.raiz);
     // Con su plan, si el primer tiempo dejó uno válido (pd_dos_tiempos)
     const elEncargo = aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u, delStudio)
-      : encargo(proyecto, reintento, cola, delStudio, historial, minutos) + (planDeLaRevision ? conElPlanDeLaRevision(proyecto, planDeLaRevision) : '') + (bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) : '');
+      : encargo(proyecto, reintento, cola, delStudio, historial, minutos) + (planDeLaRevision ? conElPlanDeLaRevision(proyecto, planDeLaRevision) : '') + (bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) + paqueteListoDe(this.raiz, repositorio, bandejaLista, piezaDelPlan(this.raiz, proyecto)) : '');
     // El paquete de la revisión: el encargo, tal como se envía, junto a su registro (se abre en «Lo que gastó el director»)
     try {
       writeFileSync(paqueteDeRegistro(archivo).encargo, elEncargo, 'utf8');

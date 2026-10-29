@@ -1,6 +1,7 @@
 // La revisión en dos tiempos (pd_dos_tiempos): el formato de la lista de encargos del primer tiempo, su validación, cuándo
 // se salta y cómo se mide, antes y después, con las revisiones de verdad.
 import { describe, expect, it } from 'vitest';
+import { lecturasDeLaPieza, MAX_KB_PARTE, parteDeArchivo, piezaPorCerrar, procedimientosNombrados, conElPaqueteListo } from './dosTiempos';
 import { antesYDespues, archivoDeEncargos, bandejaParaElEncargo, conElPlanDeLaRevision, conEncargoHecho, conLaBandejaLista, MAX_KB_BANDEJA_LISTA, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MARGEN_DE_VENTANA, ordenDeHecho, registroDelPrimerTiempo, resumirRevisiones, saltaPrimerTiempo, ultimaListaDe, validarEncargos, VENTANAS, type EncargoDeRevision } from './dosTiempos';
 import { lineaDeRegistro, type LineaDeRevision } from './lineasDeRevision';
 import { PROCEDIMIENTOS } from './procedimientos';
@@ -86,6 +87,53 @@ describe('el primer tiempo, conectado al lanzador', () => {
     expect(bandejaParaElEncargo('  \n')).toBeNull();
     expect(bandejaParaElEncargo(null)).toBeNull();
     expect(bandejaParaElEncargo('x'.repeat(MAX_KB_BANDEJA_LISTA * 1024 + 1))).toBeNull();
+  });
+
+  it('el paquete listo: la pieza siguiente se deja escrita al cerrar, de la cola y con sus archivos (pd_paquete_listo)', () => {
+    const desde = '2026-10-29T00:00:00Z';
+    const pieza = { cuando: '2026-10-29T01:00:00Z', id: 'pd_b', archivos: [{ ruta: 'src/b.ts', parte: 'hacerB' }], comprueba: 'npx vitest run src/b.test.ts' };
+    // Sin cola, nada que pedir
+    expect(piezaPorCerrar(undefined, desde, [])).toBeNull();
+    expect(piezaPorCerrar(pieza, desde, ['pd_a', 'pd_b'])).toBeNull();
+    // Sin ella, o la de una revisión anterior, no cierra
+    expect(piezaPorCerrar(undefined, desde, ['pd_a'])).toContain('deja escrita la pieza que sigue');
+    expect(piezaPorCerrar({ ...pieza, cuando: '2026-10-28T00:00:00Z' }, desde, ['pd_b'])).toContain('deja escrita la pieza que sigue');
+    // De su cola, con sus archivos y cómo se comprueba
+    expect(piezaPorCerrar(pieza, desde, ['pd_a'])).toContain('no está en tu cola');
+    expect(piezaPorCerrar({ ...pieza, archivos: [] }, desde, ['pd_b'])).toContain('no dice bien sus archivos');
+    expect(piezaPorCerrar({ ...pieza, comprueba: ' ' }, desde, ['pd_b'])).toContain('no dice cómo se comprueba');
+  });
+
+  it('el paquete listo: la parte de cada archivo, en código y en Markdown, con su tope (pd_paquete_listo)', () => {
+    const codigo = "import x from 'y';\n\n// La primera\nexport function hacerA() {\n  return 1;\n}\n\n/**\n * La segunda.\n */\nexport const hacerB = () => {\n  return 2;\n};\n\nexport function hacerC() {}\n";
+    const b = parteDeArchivo(codigo, 'src/b.ts', 'hacerB')!;
+    expect(b.startsWith('/**\n * La segunda.')).toBe(true);
+    expect(b).toContain('return 2;');
+    expect(b).not.toContain('hacerA');
+    expect(b).not.toContain('hacerC');
+    const md = '# Título\n\n## 1. Lo que entendí\nUno.\n\n## 2. El alcance\nDos.\n### 2.1 Detalle\nMás.\n\n## 3. Otra\nTres.\n';
+    expect(parteDeArchivo(md, 'docs/x.md', 'el alcance')).toBe('## 2. El alcance\nDos.\n### 2.1 Detalle\nMás.\n');
+    // Sin parte, o si no la encuentra, entero; si no cabe, null (se lee aparte)
+    expect(parteDeArchivo(md, 'docs/x.md')).toBe(md);
+    expect(parteDeArchivo(codigo, 'src/b.ts', 'noExiste')).toBe(codigo);
+    expect(parteDeArchivo('x'.repeat(MAX_KB_PARTE * 1024 + 1), 'a.txt')).toBeNull();
+    // Entre todas, con su tope: la que no cabe va sin texto
+    const grande = 'y'.repeat((MAX_KB_PARTE - 1) * 1024);
+    const lecturas = lecturasDeLaPieza({ cuando: '', id: 'pd_b', comprueba: '', archivos: [1, 2, 3, 4].map((i) => ({ ruta: `f${i}.txt` })).concat({ ruta: 'no.txt' }) }, (r) => (r === 'no.txt' ? null : grande));
+    expect(lecturas.map((l) => l.texto !== null)).toEqual([true, true, false, false, false]);
+  });
+
+  it('el paquete listo: los procedimientos que nombra la bandeja y la pieza siguiente van al final del encargo (pd_paquete_listo)', () => {
+    const bandeja = `Los procedimientos: ${PROCEDIMIENTOS.ciclo.archivo} (el ciclo); ${PROCEDIMIENTOS.formatos.archivo} (los formatos).`;
+    expect(procedimientosNombrados(bandeja)).toEqual([PROCEDIMIENTOS.ciclo.archivo, PROCEDIMIENTOS.formatos.archivo].sort((a, b) => Object.values(PROCEDIMIENTOS).findIndex((p) => p.archivo === a) - Object.values(PROCEDIMIENTOS).findIndex((p) => p.archivo === b)));
+    const pieza = { cuando: '2026-10-29T01:00:00Z', id: 'pd_b', archivos: [{ ruta: 'src/b.ts', parte: 'hacerB' }, { ruta: 'grande.ts' }], comprueba: 'npx vitest run src/b.test.ts' };
+    const s = conElPaqueteListo([{ ruta: PROCEDIMIENTOS.ciclo.archivo, texto: '# El ciclo' }, { ruta: 'falta.md', texto: null }], pieza, [{ ruta: 'src/b.ts', parte: 'hacerB', texto: 'export const hacerB = 1;' }, { ruta: 'grande.ts', texto: null }]);
+    expect(s).toContain(`do not read them again.\n\n<<< ${PROCEDIMIENTOS.ciclo.archivo}\n# El ciclo\n>>>`);
+    expect(s).not.toContain('falta.md');
+    expect(s).toContain('The next piece of your queue, as you left it written when closing the last review (2026-10-29T01:00:00Z): pd_b. How it is checked: npx vitest run src/b.test.ts');
+    expect(s).toContain('<<< src/b.ts › hacerB\nexport const hacerB = 1;\n>>>');
+    expect(s).toContain('Read apart, they did not fit: grande.ts.');
+    expect(conElPaqueteListo([], null, [])).toBe('');
   });
 
   it('lee la lista de su respuesta final, suelta o en un bloque de código, y la valida', () => {

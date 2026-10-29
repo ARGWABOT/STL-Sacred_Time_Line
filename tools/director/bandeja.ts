@@ -102,6 +102,7 @@ import { aplicarParche } from '../../src/director/parche.ts';
 import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, guardarHuella, planCambiadoTrasCierre, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, reintentoDe, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
 import { archivoDelCandado, MIN_CANDADO_SESION, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado.ts';
 import { audioBorrable, borrarSiTranscrito, comandoTranscripcion, limpiarTranscrito, quitarSiVacia, txtDeAudio } from '../../src/director/transcripcion.ts';
+import { piezaPorCerrar } from '../../src/director/dosTiempos.ts';
 import { bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, fueraDeHoy, idsDeHoy, idsPorFase, separadorDeBandeja, VARIABLE_REGISTRO, vigentesDeHoy } from '../../src/director/paquete.ts';
 import { historialDeDecisiones, lineasDelHistorial } from '../../src/director/historial.ts';
 import { lineasDeMedicion, type Corrida } from '../../src/director/corrida.ts';
@@ -507,12 +508,21 @@ if (args.includes('--listo')) {
   }
   // Las revisiones seguidas (pedido pd_revisiones_seguidas): con la cadena en marcha, el director dice al cerrar si su cola
   // sigue y cuánto estima que dura la siguiente (`tramo`); el de una revisión anterior sale: vale solo para la que sigue
-  const delTramo = tramoPorCerrar(plan.tramo, desde, seguidasActivas((await leerLocal(raiz)).seguidas, elegido), colaDelDirector(completo, estado).length);
+  const encadenadas = seguidasActivas((await leerLocal(raiz)).seguidas, elegido);
+  const delTramo = tramoPorCerrar(plan.tramo, desde, encadenadas, colaDelDirector(completo, estado).length);
   if (delTramo) {
     console.error(`No se cerró la revisión: ${delTramo}`);
     process.exit(1);
   }
   if (plan.tramo && !(Date.parse(plan.tramo.cuando) >= Date.parse(desde))) delete plan.tramo;
+  // El paquete listo (pd_paquete_listo): la pieza que sigue en la cola, con sus archivos, para que el Studio lance la
+  // revisión siguiente con ellos ya dentro del encargo. Se exige con las revisiones seguidas, donde la siguiente sale sola
+  const dePieza = encadenadas ? piezaPorCerrar(plan.piezaSiguiente, desde, colaDelDirector(completo, estado).map((t) => t.id)) : null;
+  if (dePieza) {
+    console.error(`No se cerró la revisión: ${dePieza}`);
+    process.exit(1);
+  }
+  if (plan.piezaSiguiente && !colaDelDirector(completo, estado).length) delete plan.piezaSiguiente;
   // «Dónde quedamos» es de esta revisión y no pasa de seis líneas (propuesta aceptada «El cierre no deja nada sin atender»)
   const delResumen = resumenPorCerrar(plan.resumen, desde);
   if (delResumen.length) {
@@ -1136,6 +1146,7 @@ if (tuCola.length && plan.colaAutorizada) linea(`La persona autorizó tu cola en
 // Las revisiones seguidas y el límite de cada una (pedido pd_revisiones_seguidas; nota de voz del titular nmvqwclpitit)
 if (seguidasActivas(local.seguidas, id)) linea(`Van revisiones seguidas (las pidió ${local.seguidas.quien}): al cerrar, el Studio lanza la siguiente solo si dices que tu cola sigue. Antes de --listo escribe \`"tramo": { "cuando": "<ISO ahora>", "seguir": true | false, "razon": "…", "minutos": <cuánto estimas que dura la siguiente> }\`: \`seguir\` falso si algo de verdad necesita a la persona antes de seguir, o si tu cola se acabó. Sin eso, --listo no cierra.`);
 if (tuCola.length) linea(`El límite de la revisión que sigue lo estimas tú: \`tramo.minutos\` (de ${MAX_MIN_REVISION} a ${TOPE_MIN_TRAMO}), si lo que sigue en tu cola es una ejecución larga. Sin él, ${MAX_MIN_REVISION} minutos.`);
+if (tuCola.length) linea('Y deja escrita la pieza que sigue (`"piezaSiguiente": { "cuando", "id": "<de tu cola>", "archivos": [{ "ruta", "parte"? }], "comprueba" }`): el Studio lanza la revisión siguiente con esas partes, y los procedimientos que nombra la bandeja, ya dentro del encargo. Con revisiones seguidas, sin ella --listo no cierra.');
 // El plan que viene no es estático (notas de voz del titular, 22 de octubre de 2026): lo hecho se cruza con lo pendiente
 if (tuCola.length) linea(`Antes de ejecutar algo de tu cola o de pedirle algo a una persona, búscalo: node tools/director/buscar.ts "<palabras>" --proyecto ${id} dice si ya está hecho, de ahora, previsto o respondido, con su hilo (pr_memoria_consultable).`);
 if (porEjecutar.length || pedidos.length) linea('Lo hecho, contra lo pendiente: si desde la última revisión hubo trabajo (commits del repositorio, también los que hagas en esta, o «Hazlo tú»), cruza con él cada propuesta y cada pedido de estas dos listas y las misiones previstas de cada fase (`fases[].misiones`): lo hecho va en `ejecutadas` o lleva `hecho`, lo que cambió se pone al día y lo que ya no va sale. Después deja dicho qué comprobaste en `alDia` (`{ "cuando": "<ISO ahora>", "nota": "…" }`). Sin eso, --listo no cierra.');

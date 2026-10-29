@@ -1342,6 +1342,21 @@ export interface Plan {
    * Vale solo para la revisión que sigue: `bandeja.ts --listo` quita el de una revisión anterior.
    */
   tramo?: Tramo;
+  /**
+   * La pieza que sigue en la cola del director, como la deja escrita él al cerrar (pedido pd_paquete_listo; decisión del
+   * titular nmvsptzs9tit, 28 de octubre de 2026, en «Revisiones más cortas», parte 5): cuál es (`id`, de su cola), qué
+   * archivos y qué parte de cada uno necesita (una función, una sección) y cómo se comprueba. El Studio, sin modelo, la
+   * lanza con esas partes ya dentro del encargo de la revisión siguiente (dosTiempos.ts › conElPaqueteListo).
+   */
+  piezaSiguiente?: PiezaSiguiente;
+}
+
+/** La pieza que sigue en la cola del director (`Plan.piezaSiguiente`). */
+export interface PiezaSiguiente {
+  cuando: string;
+  id: string;
+  archivos: { ruta: string; parte?: string }[];
+  comprueba: string;
 }
 
 /** El tramo que sigue de la cola del director (`Plan.tramo`). */

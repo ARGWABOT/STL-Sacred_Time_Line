@@ -8,7 +8,7 @@
 // gastan y si cierran), con lo que el Studio ya anota de cada una (lineasDeRevision.ts), sin gastar nada aparte. Aquí, lo
 // puro: el formato, su validación, cuándo se salta, el encargo del primer tiempo, cómo se lee su respuesta, lo que recibe
 // el segundo y la comparación. El lanzador (estudio/servidor/revisor.ts › primerTiempo) lo usa en cada revisión.
-import { colaDelDirector, pendientesDelDirector, type EstadoDirector, type Plan } from './director.ts';
+import { colaDelDirector, pendientesDelDirector, type EstadoDirector, type PiezaSiguiente, type Plan } from './director.ts';
 import { PROCEDIMIENTOS } from './procedimientos.ts';
 import type { LineaDeRevision } from './lineasDeRevision.ts';
 
@@ -159,6 +159,100 @@ export const conLaBandejaLista = (proyecto: string, bandeja: string): string =>
   `--proyecto ${proyecto}): lo que imprimió va al final de este encargo, tal cual. No la corras otra vez para leerla: ` +
   `empieza trabajando, con los procedimientos que nombra. Córrela de nuevo solo si necesitas lo que cambió después; ` +
   `--aplicar y --listo, como siempre.\n\nLa bandeja:\n<<<\n${bandeja.trimEnd()}\n>>>`;
+
+/**
+ * Lo que impide cerrar por la pieza siguiente (pd_paquete_listo): con algo en la cola del director (`cola`, sus ids en su
+ * orden), el director deja escrita en esta revisión (desde `desde`) cuál es la pieza que sigue, de su cola, con sus
+ * archivos y cómo se comprueba. Sin cola, nada. null si está bien; si no, por qué, en una frase. Pura.
+ */
+export function piezaPorCerrar(pieza: PiezaSiguiente | undefined, desde: string, cola: readonly string[]): string | null {
+  if (!cola.length) return null;
+  const como = `\`"piezaSiguiente": { "cuando": "<ISO ahora>", "id": "<de tu cola>", "archivos": [{ "ruta": "<ruta en el repositorio>", "parte": "<función o sección, si no es entero>" }], "comprueba": "<cómo se comprueba al terminarla>" }\``;
+  if (!pieza || !(Date.parse(pieza.cuando) >= Date.parse(desde))) return `deja escrita la pieza que sigue en tu cola, para que el Studio lance la revisión siguiente con lo que necesita dentro del encargo: ${como}.`;
+  if (!cola.includes(pieza.id)) return `la pieza siguiente (\`piezaSiguiente.id\`: «${pieza.id}») no está en tu cola: elige una de ella (la primera es ${cola[0]}).`;
+  if (!Array.isArray(pieza.archivos) || !pieza.archivos.length || !pieza.archivos.every((a) => texto(a?.ruta))) return `la pieza siguiente no dice bien sus archivos (cada uno con su \`ruta\`): ${como}.`;
+  if (!texto(pieza.comprueba)) return 'la pieza siguiente no dice cómo se comprueba (`piezaSiguiente.comprueba`).';
+  return null;
+}
+
+/** Lo más que pesa cada parte de un archivo que va dentro del encargo, y todas juntas (en KB de texto). */
+export const MAX_KB_PARTE = 24;
+const MAX_KB_PARTES = 64;
+
+/**
+ * La parte de un archivo que nombra la pieza siguiente: en Markdown, la sección cuyo título la contiene; en código, la
+ * declaración con ese nombre, con su comentario de arriba, hasta la declaración siguiente. Sin parte, o si no la encuentra,
+ * el archivo entero. null si lo que sale pasa de MAX_KB_PARTE (se lee aparte). Pura.
+ */
+export function parteDeArchivo(contenido: string, ruta: string, parte?: string): string | null {
+  const lineas = contenido.split('\n');
+  const cabe = (t: string) => (t.length <= MAX_KB_PARTE * 1024 ? t : null);
+  if (!parte?.trim()) return cabe(contenido);
+  const buscada = parte.trim().toLowerCase();
+  if (/\.mdx?$/i.test(ruta)) {
+    const ini = lineas.findIndex((l) => /^#{1,6} /.test(l) && l.toLowerCase().includes(buscada));
+    if (ini < 0) return cabe(contenido);
+    const nivel = /^#+/.exec(lineas[ini])![0].length;
+    const fin = lineas.findIndex((l, i) => i > ini && new RegExp(`^#{1,${nivel}} `).test(l));
+    return cabe(lineas.slice(ini, fin < 0 ? undefined : fin).join('\n'));
+  }
+  const nombre = parte.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const decl = lineas.findIndex((l) => new RegExp(`^(export\\s+)?(default\\s+)?(async\\s+)?(function\\*?|const|let|class|interface|type|enum)\\s+${nombre}\\b`).test(l));
+  if (decl < 0) return cabe(contenido);
+  let ini = decl;
+  while (ini > 0 && /^(\/\*\*|\s\*|\/\/)/.test(lineas[ini - 1])) ini--;
+  const fin = lineas.findIndex((l, i) => i > decl && /^(export |function |async |const |let |class |interface |type |enum |\/\*\*|\/\/)/.test(l));
+  return cabe(lineas.slice(ini, fin < 0 ? undefined : fin).join('\n'));
+}
+
+/** Un procedimiento, o la parte de un archivo de la pieza siguiente, leído para ir dentro del encargo (null: no cupo). */
+export interface Lectura {
+  ruta: string;
+  parte?: string;
+  texto: string | null;
+}
+
+/**
+ * El resto del paquete listo, al final del encargo del segundo tiempo, después de la bandeja (pd_paquete_listo): los
+ * procedimientos que nombra la bandeja, enteros, para no leerlos; y la pieza siguiente de la cola, como la dejó escrita
+ * el director al cerrar, con las partes de sus archivos ya leídas (lo que no cupo, se nombra para leerlo aparte). Nace en
+ * inglés, como lo que lee el modelo. Sin nada, vacío. Pura.
+ */
+export function conElPaqueteListo(procedimientos: readonly Lectura[], pieza: PiezaSiguiente | null, partes: readonly Lectura[]): string {
+  const bloques: string[] = [];
+  const leidos = procedimientos.filter((p) => p.texto);
+  if (leidos.length)
+    bloques.push(`The procedures the inbox names, whole, as they are today: do not read them again.\n\n${leidos.map((p) => `<<< ${p.ruta}\n${p.texto!.trimEnd()}\n>>>`).join('\n\n')}`);
+  if (pieza) {
+    const enteras = partes.filter((p) => p.texto);
+    const aparte = partes.filter((p) => !p.texto);
+    bloques.push(
+      `The next piece of your queue, as you left it written when closing the last review (${pieza.cuando}): ${pieza.id}. How it is checked: ${pieza.comprueba}` +
+        (enteras.length ? ` Its files, already read (check them against the repository only if a commit since then touched them):\n\n${enteras.map((p) => `<<< ${p.ruta}${p.parte ? ` › ${p.parte}` : ''}\n${p.texto!.trimEnd()}\n>>>`).join('\n\n')}` : '') +
+        (aparte.length ? `\n\nRead apart, they did not fit: ${aparte.map((p) => (p.parte ? `${p.ruta} (${p.parte})` : p.ruta)).join(', ')}.` : ''),
+    );
+  }
+  return bloques.length ? `\n\n${bloques.join('\n\n')}` : '';
+}
+
+/**
+ * Las lecturas de la pieza siguiente, con su tope entre todas (MAX_KB_PARTES): `leer` da el contenido de una ruta del
+ * repositorio del proyecto, o null si no se puede leer. Pura, salvo `leer`.
+ */
+export function lecturasDeLaPieza(pieza: PiezaSiguiente, leer: (ruta: string) => string | null): Lectura[] {
+  let usado = 0;
+  return pieza.archivos.map((a) => {
+    const contenido = leer(a.ruta);
+    const t = contenido === null ? null : parteDeArchivo(contenido, a.ruta, a.parte);
+    const cabe = t !== null && usado + t.length <= MAX_KB_PARTES * 1024;
+    if (cabe) usado += t.length;
+    return { ruta: a.ruta, ...(a.parte ? { parte: a.parte } : {}), texto: cabe ? t : null };
+  });
+}
+
+/** Los procedimientos que nombra la salida de la bandeja (por su archivo), en el orden de PROCEDIMIENTOS. Pura. */
+export const procedimientosNombrados = (bandeja: string): string[] =>
+  Object.values(PROCEDIMIENTOS).map((p) => p.archivo).filter((a) => bandeja.includes(a));
 
 /**
  * La lista de encargos de la respuesta final del primer tiempo: el arreglo JSON, solo o dentro de un bloque de código, y

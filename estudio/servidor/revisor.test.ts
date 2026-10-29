@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realp
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, planDeProyecto, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso } from './revisor';
+import { POLITICA_DE_MODELOS, actividadDeProyecto, agruparPasos, carpetaDeSesiones, cerroSegunPlan, colaDeLaRevision, COMO_ORDENES, compararVersion, conElHistorial, historialDelActivo, detenerTrasCierre, entornoDelDirector, esElStudio, GRACIA_CIERRE_MIN, negado, SUBIR_PAGINA, SUBIR_CON_PERMISO, revisadoDelPlan, consumoDe, consumoDeRevisiones, diagnosticarFalla, estadoDelLanzado, fallaDeProyecto, finDelRegistro, finEscrito, inicioDeRegistro, lineaDeFin, encargo, encargoAclaracion, encargoUrgencia, MAX_MIN, MAX_MIN_ACLARAR, MAX_MIN_URGENCIA, SIN_ESPERAS, SIN_PERMISO, QUIEN_MANDA, modeloDeLosAyudantes, fallaDelEsfuerzo, fallaDelModelo, historialAbrible, lanzamientosDelDirector, lineaPedido, modelosDe, permitido, planDeProyecto, POR_DENTRO, progresoDe, progresoDeProyecto, DIAS_REGISTROS, registrosParaPodar, soltarTurno, tokensDe, tokensDeProyecto, negadosDeProyecto, tomarTurno, trabajoConElPedido, usoDe, herramientaEnCurso, paqueteListoDe } from './revisor';
 
 describe('la poda de los registros (punto 6 de «Limpieza antes de publicar», confirmada con 15 días)', () => {
   it('borra lo de más de quince días con su paquete, y conserva el último de cada proyecto y de cada tipo', () => {
@@ -777,6 +777,27 @@ describe('el director que lanza el Studio', () => {
       expect(metodo).toContain('q.stdin?.end(encargoDelPrimerTiempo(proyecto, minutos, bandeja))');
     });
 
+    it('el paquete listo: los procedimientos y las partes de la pieza siguiente se leen solo de adentro, nunca un .env ni .git (pd_paquete_listo)', () => {
+      const raiz = mkdtempSync(join(tmpdir(), 'estudio-paquete-listo-'));
+      const repo = join(raiz, 'repo');
+      mkdirSync(join(raiz, 'docs', 'metodo', 'director'), { recursive: true });
+      mkdirSync(join(repo, 'src'), { recursive: true });
+      writeFileSync(join(raiz, 'docs', 'metodo', 'director', 'review-cycle.md'), '# El ciclo\nLo que dice el ciclo.\n');
+      writeFileSync(join(repo, 'src', 'a.ts'), "const x = 1;\n\n/** La que sigue. */\nexport function siguiente() {\n  return 2;\n}\n\nexport const otra = 3;\n");
+      writeFileSync(join(repo, '.env'), 'SECRETO=1\n');
+      try {
+        const pieza = { cuando: '2026-10-29T00:00:00Z', id: 'pd_x', comprueba: 'npm test', archivos: [{ ruta: 'src/a.ts', parte: 'siguiente' }, { ruta: '.env' }, { ruta: '../fuera.txt' }] };
+        const paquete = paqueteListoDe(raiz, repo, 'Lee docs/metodo/director/review-cycle.md antes de todo.', pieza);
+        expect(paquete).toContain('Lo que dice el ciclo.');
+        expect(paquete).toContain('export function siguiente()');
+        expect(paquete).not.toContain('export const otra');
+        expect(paquete).not.toContain('SECRETO');
+        expect(paquete).toContain('Read apart, they did not fit: .env, ../fuera.txt.');
+      } finally {
+        rmSync(raiz, { recursive: true, force: true });
+      }
+    });
+
     it('el paquete listo: la bandeja la corre el Studio antes que nada, sin modelo, y va dentro del encargo (pd_paquete_listo)', () => {
       const revisor = readFileSync(new URL('./revisor.ts', import.meta.url), 'utf8');
       const lanzar = revisor.slice(revisor.indexOf('private async lanzar('), revisor.indexOf('function anotarHijo('));
@@ -785,7 +806,8 @@ describe('el director que lanza el Studio', () => {
       expect(corre).toBeGreaterThan(0);
       expect(corre).toBeLessThan(lanzar.indexOf('await this.primerTiempo('));
       expect(lanzar).toContain('elegido.todoConElModelo === true, bandejaLista)');
-      expect(lanzar).toContain("(bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) : '')");
+      // Con los procedimientos que nombra y la pieza siguiente que dejó escrita el director, leídos sin modelo
+      expect(lanzar).toContain("(bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) + paqueteListoDe(this.raiz, repositorio, bandejaLista, piezaDelPlan(this.raiz, proyecto)) : '')");
       // Con la ruta del registro (el candado del lanzador y el paquete de la revisión), con su tope, y sin modelo
       const metodo = revisor.slice(revisor.indexOf('export function correrLaBandeja('), revisor.indexOf('function sinSesion('));
       expect(metodo).toContain("spawn(process.execPath, ['tools/director/bandeja.ts', '--proyecto', proyecto]");
