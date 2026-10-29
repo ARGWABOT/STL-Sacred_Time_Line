@@ -75,6 +75,8 @@ import {
 } from '../../src/director/director.ts';
 import { leerFresco, leerFrescosTexto, leerFrescoTexto, listarRemoto, Traedor } from '../../src/director/fresco.ts';
 import { leerEstadoDelEquipo, leerPlanParaVer, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria.ts';
+import { medidaPorRevision } from '../../src/director/historial.ts';
+import { leerLineasDeRevision } from '../../src/director/lineasDeRevision.ts';
 import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, pararSeguidas, seguidasActivas, retomarAparte, planCambiadoTrasCierre, guardarTodoConElModelo, type AclaracionPedida, empezarSeguidas, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos.ts';
 import { anotar, EL_STUDIO, eventoDeAccion, leerBitacora } from '../../src/director/bitacora.ts';
 import { archivoDelPaquete } from '../../src/director/paquete.ts';
@@ -1146,6 +1148,9 @@ export function servidorDirector(): Plugin {
               // Lo que gastó cada lanzamiento que terminó (`consumo`) y, aparte, los que no terminaron con su resultado,
               // con su paquete para abrirlo igual (`sinTerminar`)
               ...lanzamientos,
+              // La medida del criterio del director en este proyecto, por revisión (pr_criterio_director, punto 3): lo
+              // que salió de lo que dejó cada una, con si cerró y lo que gastó, de las líneas de este computador
+              medidaDelDirector: medidaPorRevision(plan, estado, leerLineasDeRevision(raiz).filter((l) => l.proyecto === id && l.tipo === 'revision')),
               // La medición del núcleo con casos fijos (pr_nucleo_medido): la de ahora o la última, y lo que costaría otra,
               // por lo que costaron las revisiones si aún no hay una terminada
               medicion: estadoDeMedicion(raiz, lanzamientos.consumo.filter((c) => c.tipo === 'revision').map((c) => c.costo), lanzamientos.consumo.filter((c) => c.tipo !== 'revision').map((c) => c.costo)),

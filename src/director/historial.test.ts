@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { estadoVacio, type EstadoDirector, type Nota, type Plan } from './director';
-import { historialDeDecisiones, lineasDelHistorial, MAX_DISTINTO } from './historial';
+import { historialDeDecisiones, lineaDeLaMedida, lineasDelHistorial, MAX_DISTINTO, medidaPorRevision } from './historial';
 
 // El historial de decisiones de cada proyecto (pr_nucleo_medido, punto 1): lo que recomendó el director y cómo salió,
 // sacado sin modelo de lo que el Studio ya guarda
@@ -75,5 +75,47 @@ describe('el historial de decisiones de un proyecto', () => {
     const bandeja = readFileSync(join(__dirname, '..', '..', 'tools', 'director', 'bandeja.ts'), 'utf-8');
     expect(bandeja).toContain('lineasDelHistorial(historialDeDecisiones(plan, estado');
     expect(bandeja.indexOf('## Tu historial en este proyecto')).toBeGreaterThan(bandeja.indexOf('## Lo vigente'));
+  });
+});
+
+// La medida del criterio del director, por revisión (pr_criterio_director, punto 3)
+describe('la medida por revisión', () => {
+  const revisiones = [
+    { cuando: '2026-10-21T00:00:00.000Z', cerro: true, costo: 5 },
+    { cuando: '2026-10-19T00:00:00.000Z', cerro: true, costo: 3.5 },
+    { cuando: '2026-10-23T05:00:00.000Z', cerro: true, costo: null },
+    { cuando: '2026-10-22T12:00:00.000Z', cerro: false, costo: 2 },
+  ];
+
+  it('lo que la persona hace hasta la revisión siguiente cuenta para la anterior; una misión para rehacer, para la que la dejó', () => {
+    const m = medidaPorRevision(plan, estado, revisiones);
+    expect(m.map((x) => x.cuando)).toEqual(['2026-10-23T05:00:00.000Z', '2026-10-22T12:00:00.000Z', '2026-10-21T00:00:00.000Z', '2026-10-19T00:00:00.000Z']);
+    // La propuesta descartada el 24, después de la última
+    expect(m[0]).toMatchObject({ talCual: 0, cambiadas: 1, rehacer: 0, aclaraciones: 0, costo: null });
+    // t_b se juzgó el 23 a las 10, en la revisión de las 5: la dejó la del 22
+    expect(m[1]).toMatchObject({ talCual: 0, cambiadas: 0, rehacer: 1, aclaraciones: 0, cerro: false });
+    // «1. El orden» con sus palabras, «2. La voz» aprobada y los dos «No lo entiendo»; un comentario no cuenta
+    expect(m[2]).toMatchObject({ talCual: 1, cambiadas: 1, rehacer: 0, aclaraciones: 2 });
+    // La decisión aprobada del 20 y la propuesta aceptada del 19; la que sigue en estudio no cuenta
+    expect(m[3]).toMatchObject({ talCual: 2, cambiadas: 0, rehacer: 0, aclaraciones: 0 });
+    // Solo las últimas, y nada sin revisiones
+    expect(medidaPorRevision(plan, estado, revisiones, 2)).toHaveLength(2);
+    expect(medidaPorRevision(plan, estado, [])).toEqual([]);
+  });
+
+  it('en la bandeja, una línea: cuántas cerraron, lo gastado, lo que salió y la que más falló', () => {
+    expect(lineaDeLaMedida(medidaPorRevision(plan, estado, revisiones))).toBe(
+      '- Por revisión, las últimas 4 de este computador: 3 cerraron y 1 no · 10.5 USD a precio de API; después de ellas, 3 recomendaciones aprobadas tal cual y 2 cambiadas, 1 misiones para rehacer y 2 «No lo entiendo»; la que más: la del 2026-10-21 00:00 UTC (1 cambiadas, 0 para rehacer, 2 «No lo entiendo»). La tabla, en «Modelo y consumo» › «Lo que gasta».',
+    );
+    expect(lineaDeLaMedida([])).toBeNull();
+  });
+
+  it('la bandeja la sirve con las revisiones de este computador, y «Modelo y consumo» la muestra como tabla', () => {
+    const bandeja = readFileSync(join(__dirname, '..', '..', 'tools', 'director', 'bandeja.ts'), 'utf-8');
+    expect(bandeja).toContain('lineaDeLaMedida(medidaPorRevision(plan, estado');
+    const servidor = readFileSync(join(__dirname, '..', '..', 'estudio', 'servidor', 'director.ts'), 'utf-8');
+    expect(servidor).toContain('medidaDelDirector: medidaPorRevision(');
+    const pagina = readFileSync(join(__dirname, '..', '..', 'estudio', 'src', 'director.ts'), 'utf-8');
+    expect(pagina).toContain('class="tabla-medida"');
   });
 });

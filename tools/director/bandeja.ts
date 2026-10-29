@@ -104,7 +104,8 @@ import { archivoDelCandado, MIN_CANDADO_SESION, quienLoTiene, renovarCandado, so
 import { audioBorrable, borrarSiTranscrito, comandoTranscripcion, limpiarTranscrito, quitarSiVacia, txtDeAudio } from '../../src/director/transcripcion.ts';
 import { piezaPorCerrar } from '../../src/director/dosTiempos.ts';
 import { bandejaDelPaquete, copiarSalida, DIAS_FUERA_DEL_STUDIO, fueraDeHoy, idsDeHoy, idsPorFase, separadorDeBandeja, VARIABLE_REGISTRO, vigentesDeHoy } from '../../src/director/paquete.ts';
-import { historialDeDecisiones, lineasDelHistorial } from '../../src/director/historial.ts';
+import { historialDeDecisiones, lineaDeLaMedida, lineasDelHistorial, medidaPorRevision } from '../../src/director/historial.ts';
+import { leerLineasDeRevision } from '../../src/director/lineasDeRevision.ts';
 import { lineasDeMedicion, type Corrida } from '../../src/director/corrida.ts';
 import { PROCEDIMIENTOS, procedimientosDeLaRevision } from '../../src/director/procedimientos.ts';
 import { firmaDelProyecto, FORMATO_LOG, sinFirmaPorAtender, type Firma } from '../firma.ts';
@@ -940,6 +941,11 @@ if (vigentes.length) {
 // El historial de decisiones de este proyecto (pr_nucleo_medido, punto 1): lo que recomendaste y cómo salió, sacado sin
 // modelo de su memoria; solo el de este proyecto, para ver tus fallas y no repetirlas
 const historial = lineasDelHistorial(historialDeDecisiones(plan, estado, (n) => [n.texto?.trim(), n.audio ? transcripcion(n.audio) : ''].filter(Boolean).join(' · ')));
+// Y la medida de tu criterio, por revisión (pr_criterio_director, punto 3), con las revisiones de este computador
+const medida = lineaDeLaMedida(medidaPorRevision(plan, estado, leerLineasDeRevision(raiz).filter((l) => l.proyecto === id && l.tipo === 'revision')));
+// Después de las cifras, antes de lo último que salió distinto
+const trasLasCifras = historial.findIndex((l) => !l.startsWith('- '));
+if (medida) historial.splice(trasLasCifras < 0 ? historial.length : trasLasCifras, 0, medida);
 if (historial.length) {
   linea('\n## Tu historial en este proyecto: lo que recomendaste y cómo salió');
   for (const l of historial) linea(l);

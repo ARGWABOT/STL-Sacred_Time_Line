@@ -105,6 +105,7 @@ import type { FallaRevision, ModoPermisos } from '../../src/director/proyectos';
 import type { EventoBitacora } from '../../src/director/bitacora';
 import { duracionAprox, type Alcance as AlcanceMedicion } from '../../src/director/corrida';
 import { contarFinales, NOMBRE_FIN, type FinEscrito } from '../../src/director/finDeLanzamiento';
+import type { MedidaDeRevision } from '../../src/director/historial';
 import { limiteCasiLleno, tiempoDeRevision } from '../../src/director/limites';
 import { avisoDelInventario, fichaDe, INVENTARIO, modeloDelInventario } from '../../src/director/modelos';
 import { enTuPlan, esPlanDeClaude, PLANES_DE_CLAUDE, semanaDeCadaUno, type PlanDeClaude } from '../../src/director/costoDelPlan';
@@ -268,6 +269,8 @@ interface Datos {
   sinTerminar?: { cuando: string; proyecto: string; tipo: 'revision' | 'aclaracion' | 'urgencia'; modelo: string | null; enCurso: boolean; paquete?: Paquete; fin?: FinEscrito }[];
   /** La medición del núcleo con casos fijos (estudio/servidor/medidor.ts › estadoDeMedicion): la de ahora o la última, y lo que costaría otra. */
   medicion?: EstadoMedicion;
+  /** La medida del criterio del director en este proyecto, por revisión (pr_criterio_director, punto 3). */
+  medidaDelDirector?: MedidaDeRevision[];
   /**
    * Lo que va haciendo el director que lanzó el Studio, mientras revisa (estudio/servidor/revisor.ts › progresoDe), con
    * las líneas iguales seguidas en una sola y su cuenta (`veces`, agruparPasos).
@@ -5082,6 +5085,17 @@ function vistaModelo() {
   const comoTerminaron = finales.length
     ? `<p class="como consumo-finales">Cómo terminaron en los últimos 7 días: ${finales.map((f) => `${f.n} ${NOMBRE_FIN[f.quien]}`).join(' · ')}. Cuentan los que el Studio anotó al terminar, también los que se cortaron sin lo gastado.</p>`
     : '';
+  // La medida del criterio del director en este proyecto, por revisión (pr_criterio_director, punto 3): lo que salió de lo
+  // que dejó cada una, para que se vean sus fallas y si mejora
+  const medida = d.medidaDelDirector ?? [];
+  const celda = (n: number) => `<td${n ? ' class="hay"' : ''}>${n.toLocaleString('es')}</td>`;
+  const tablaMedida = medida.length
+    ? `<details class="detalles-repo"${plegable('consumo-medida')}><summary>Cómo salió lo que recomendó, por revisión (este proyecto)</summary>
+        <table class="tabla-medida"><thead><tr><th>Revisión</th><th>Cerró</th><th>Gastó</th><th>Aprobadas tal cual</th><th>Cambiadas</th><th>Para rehacer</th><th>«No lo entiendo»</th></tr></thead>
+          <tbody>${medida.map((m) => `<tr><td>${fecha(m.cuando)} ${hora(m.cuando)}</td><td>${m.cerro ? 'Sí' : '<b>No</b>'}</td><td>${m.costo != null ? dolares(m.costo) : '—'}</td><td>${m.talCual.toLocaleString('es')}</td>${celda(m.cambiadas)}${celda(m.rehacer)}${celda(m.aclaraciones)}</tr>`).join('')}</tbody></table>
+        <p class="como">Cada fila es una revisión de este computador y lo que hiciste con lo que dejó, hasta la siguiente: las decisiones y propuestas que aprobaste tal cual o cambiaste, y los pasos que no entendiste; una misión para rehacer cuenta para la revisión que la dejó. Una recomendación cambiada, una misión rehecha o un «No lo entiendo» son fallas del director, no tuyas: él las mira antes de ordenar y recomendar. Lo gastado, a precio de API.</p>
+      </details>`
+    : '';
   // Con cuál trabajó de verdad: Claude Code lo dice al empezar cada lanzamiento, y el Studio anota lo que pidió
   const ultimo = lista.find((x) => x.modelo);
   const cuandoUltimo = ultimo ? `${fecha(ultimo.cuando)} ${hora(ultimo.cuando)}` : '';
@@ -5140,6 +5154,7 @@ function vistaModelo() {
         ${lista.length ? `<div class="consumo-cifras">${cifra('Hoy', deHoy)}${cifra('Últimos 7 días', deSemana)}</div>
           ${porProyecto.length > 1 ? `<ul class="consumo-proyectos" aria-label="Por proyecto, en los últimos 7 días">${porProyecto.map((p) => `<li><span>${esc(nombreProyecto(p.id))}</span><span>${conPlan ? gastado(p.costo, p.semana) : dolares(p.costo)} · ${p.n} ${p.n === 1 ? 'lanzamiento' : 'lanzamientos'}</span></li>`).join('')}</ul>` : ''}` : ''}
         ${comoTerminaron}
+        ${tablaMedida}
         ${filas ? `<details class="detalles-repo"${plegable('consumo-lanzamientos')}><summary>Cada lanzamiento (últimos 35 días)</summary>
             <ul class="consumo-lista">${filas}</ul>
           </details>` : '<p class="como">Todavía no hay lanzamientos del director en este computador.</p>'}
