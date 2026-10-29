@@ -12,7 +12,7 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { basename, delimiter, isAbsolute, join, relative, resolve } from 'node:path';
-import { archivoAjustesClaude, conMaximo, conNucleoExplicito, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude, nucleoExplicito, textoDelNucleo } from './ajustesClaude.ts';
+import { archivoAjustesClaude, conMaximo, conNucleoExplicito, conSkillsDelPlan, guardarEsfuerzoClaude, guardarModeloClaude, leerAjustesClaude, nucleoExplicito, skillsDisponibles, textoDelNucleo } from './ajustesClaude.ts';
 import { conservadosDeTusAjustes, todosDeTusAjustes } from './ajustesPropios.ts';
 import { admiteAutomatico, modosDeLaAyuda, nombreDelModoQuePregunta, permisosDelModo, puertoDelStudio, rutaDelGancho, urlDelGancho } from './modoPermisos.ts';
 import { aprobadoEnVivo, aprobadosSolos, conLoAprobado, lineaAutomatico, type EnVivo } from './aprobadosSolos.ts';
@@ -21,7 +21,7 @@ import { permisosEnEspera } from './permisosEnEspera.ts';
 import { fuentesDeEscaneo } from './escaneo.ts';
 import { colaDeDiagnosticos, limiteDelTramo, MAX_MIN_REVISION, negacionesDe, negadosEnVivo, POR_REVISION, type CandidatoDeCola, type PiezaSiguiente, type Tramo } from '../../src/director/director.ts';
 import { leerEstadoDelEquipo, leerJsonFresco, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria.ts';
-import { archivoDeEncargos, bandejaParaElEncargo, conElPaqueteListo, conElPlanDeLaRevision, conLaBandejaLista, encargoDelPrimerTiempo, MAX_MIN_BANDEJA_LISTA, encargosDeLaRespuesta, finDelPrimerTiempo, lecturasDeLaPieza, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, procedimientosNombrados, registroDelPrimerTiempo, saltaPrimerTiempo, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
+import { archivoDeEncargos, bandejaParaElEncargo, conElPaqueteListo, conElPlanDeLaRevision, conLaBandejaLista, encargoDelPrimerTiempo, MAX_MIN_BANDEJA_LISTA, encargosDeLaRespuesta, finDelPrimerTiempo, lecturasDeLaPieza, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, procedimientosNombrados, registroDelPrimerTiempo, saltaPrimerTiempo, skillsDelPlan, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
 import { PROCEDIMIENTOS } from '../../src/director/procedimientos.ts';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, prorrogarRevision, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos.ts';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora.ts';
@@ -2246,6 +2246,8 @@ export class Revisor {
       if ('encargos' in primero) {
         planDeLaRevision = primero.encargos;
         writeFileSync(archivoDeEncargos(archivo), `${JSON.stringify(planDeLaRevision, null, 2)}\n`, 'utf8');
+        // El segundo tiempo arranca solo con las skills que nombra su plan (skillsDelSegundoTiempo); sin plan, como hoy
+        writeFileSync(ajustes, conSkillsDelPlan(conNucleoExplicito(permisos.ajustes, this.raiz), skillsDelPlan(planDeLaRevision), skillsDisponibles([this.raiz, repositorio, homedir()])));
       }
       await anotar(this.raiz, {
         quien: EL_STUDIO,

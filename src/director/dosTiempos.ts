@@ -67,6 +67,7 @@ export function validarEncargos(lista: unknown, ventanas: Record<ModeloDelEncarg
     const procs = Array.isArray(e?.procedimientos) ? e.procedimientos : null;
     if (!procs) errores.push(`${quien} no dice qué procedimientos necesita (puede ser una lista vacía).`);
     else for (const p of procs.filter((x) => !Object.hasOwn(PROCEDIMIENTOS, x))) errores.push(`${quien} pide el procedimiento «${p}», que no existe: ${Object.keys(PROCEDIMIENTOS).join(', ')}.`);
+    if (e?.skills !== undefined && !(Array.isArray(e.skills) && e.skills.every(texto))) errores.push(`${quien} no dice bien sus skills (\`skills\`: los nombres de las que necesita, o una lista vacía).`);
     if (!MODELOS.includes(e?.modelo as ModeloDelEncargo)) errores.push(`${quien} no dice con qué modelo va: ${MODELOS.join(', ')}.`);
     else if (typeof e.contexto !== 'number' || !(e.contexto > 0)) errores.push(`${quien} no calcula cuánto contexto necesita (\`contexto\`, en tokens).`);
     else if (e.contexto > ventanas[e.modelo!] * MARGEN_DE_VENTANA)
@@ -126,7 +127,9 @@ export const encargoDelPrimerTiempo = (proyecto: string, minutos: number, bandej
   `{ "id": "<short and unique>", "que": "<what to do, in one or two sentences>", "origen": ["<ids of the notes, ` +
   `deliveries, proposals, requests or missions it comes from>"], "archivos": [{ "ruta": "<path>", "parte": "<function ` +
   `or section, if not the whole file>" }], "espera": "<what is expected at the end and how it is checked>", ` +
-  `"procedimientos": [<keys among ${Object.keys(PROCEDIMIENTOS).map((k) => `"${k}"`).join(', ')}>], "skills": [], ` +
+  `"procedimientos": [<keys among ${Object.keys(PROCEDIMIENTOS).map((k) => `"${k}"`).join(', ')}>], "skills": [<the names ` +
+  `of the skills listed to you that the task needs; the second time starts with only the skills the plan names, so leave ` +
+  `it empty if it needs none>], ` +
   `"herramientas": [], "modelo": "director" | "sonnet" | "haiku", "contexto": <tokens it reads plus writes> }. Use ` +
   `"sonnet" or "haiku" only for routine and checkable work (a long reading, a bounded change with its test); the core of ` +
   `the Studio, permissions and what deletes or costs go with "director". The Studio validates the list: a task that a ` +
@@ -287,8 +290,16 @@ export const conElPlanDeLaRevision = (proyecto: string, encargos: readonly Encar
   `la persona ve la lista en «Lo que va haciendo el director». Lo que la bandeja pide y el plan no previó sigue siendo ` +
   `tuyo: el cierre exige todo, como siempre. Los encargos: ` +
   encargos
-    .map((e, i) => `(${i + 1}) «${e.id}»: ${e.que} De: ${e.origen.join(', ')}. Archivos: ${e.archivos.length ? e.archivos.map((a) => (a.parte ? `${a.ruta} (${a.parte})` : a.ruta)).join(', ') : 'ninguno'}. Se espera: ${e.espera}${e.procedimientos.length ? ` Procedimientos: ${e.procedimientos.map((p) => (PROCEDIMIENTOS as Record<string, { archivo: string } | undefined>)[p]?.archivo ?? p).join(', ')}.` : ''}${e.modelo === 'director' ? '' : ` Con un ayudante (${e.modelo}), si lo vale.`}`)
+    .map((e, i) => `(${i + 1}) «${e.id}»: ${e.que} De: ${e.origen.join(', ')}. Archivos: ${e.archivos.length ? e.archivos.map((a) => (a.parte ? `${a.ruta} (${a.parte})` : a.ruta)).join(', ') : 'ninguno'}. Se espera: ${e.espera}${e.procedimientos.length ? ` Procedimientos: ${e.procedimientos.map((p) => (PROCEDIMIENTOS as Record<string, { archivo: string } | undefined>)[p]?.archivo ?? p).join(', ')}.` : ''}${e.skills?.length ? ` Skills: ${e.skills.join(', ')}.` : ''}${e.modelo === 'director' ? '' : ` Con un ayudante (${e.modelo}), si lo vale.`}`)
     .join(' ');
+
+/**
+ * Las skills que nombra el plan de la revisión, sin repetir y en orden: el segundo tiempo arranca solo con ellas
+ * (pd_dos_tiempos; decisión del titular nmvm0r0rstit, 24 de octubre de 2026, «El paquete de cada revisión», parte 12,
+ * punto 2; ajustesClaude.ts › skillsDelSegundoTiempo). Pura.
+ */
+export const skillsDelPlan = (encargos: readonly EncargoDeRevision[]): string[] =>
+  [...new Set(encargos.flatMap((e) => (Array.isArray(e.skills) ? e.skills.filter(texto).map((s) => s.trim()) : [])))].sort();
 
 /** Dónde queda la lista de encargos de una revisión: junto a su registro, como su paquete (paquete.ts). */
 export const archivoDeEncargos = (registro: string) => `${registro.replace(/\.log$/, '')}.encargos.json`;

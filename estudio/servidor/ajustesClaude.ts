@@ -9,7 +9,7 @@
 // modelos posteriores; y «max» no se guarda nunca (Claude Code lo aplica solo a una sesión y rechaza el archivo que lo
 // tenga), así que el Studio lo recuerda aparte (estudio.local.json › esfuerzoMaximo) y lo pasa con --effort a lo que lanza.
 // Lo encontró el titular el 21 de octubre de 2026: con Sonnet y «Máximo», Claude Code seguía en medio.
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -194,6 +194,68 @@ export function arranqueLimpio(home: string) {
     includeGitInstructions: false,
   };
 }
+
+/**
+ * Las skills del segundo tiempo de la revisión (pd_dos_tiempos; decisión del titular nmvm0r0rstit, 24 de octubre de 2026,
+ * «El paquete de cada revisión», parte 12, punto 2): arranca solo con las que nombra su plan (dosTiempos.ts ›
+ * skillsDelPlan), y así no carga en su contexto la lista de las demás. Las que el Studio encuentra en sus carpetas
+ * (`disponibles`, skillsDisponibles) y el plan no nombra se apagan con `skillOverrides` en «off» (ni el modelo ni el menú
+ * las ven), y las que trae Claude Code, con `disableBundledSkills`, salvo que el plan nombre una que no está entre las
+ * disponibles (puede ser de las que trae: la guía de los flujos, por ejemplo). Las dos claves están en la referencia de
+ * ajustes de Claude Code. Sin plan (`nombradas` null), nada: arranca como hoy. Pura.
+ */
+export function skillsDelSegundoTiempo(nombradas: readonly string[] | null, disponibles: readonly string[]): { skillOverrides?: Record<string, 'off'>; disableBundledSkills?: true } {
+  if (!nombradas) return {};
+  const apagadas = [...new Set(disponibles)].filter((s) => !nombradas.includes(s)).sort();
+  const deClaude = nombradas.some((s) => !disponibles.includes(s));
+  return { ...(apagadas.length ? { skillOverrides: Object.fromEntries(apagadas.map((s) => [s, 'off' as const])) } : {}), ...(deClaude ? {} : { disableBundledSkills: true as const }) };
+}
+
+/** Los ajustes del director (su JSON) con las skills de su plan (skillsDelSegundoTiempo), sobre lo que ya traían. Pura. */
+export function conSkillsDelPlan(ajustes: string, nombradas: readonly string[] | null, disponibles: readonly string[]): string {
+  const a = JSON.parse(ajustes) as Record<string, unknown>;
+  const s = skillsDelSegundoTiempo(nombradas, disponibles);
+  if (!Object.keys(s).length) return ajustes;
+  const antes = a.skillOverrides && typeof a.skillOverrides === 'object' ? (a.skillOverrides as Record<string, unknown>) : {};
+  return JSON.stringify({ ...a, ...s, ...(s.skillOverrides ? { skillOverrides: { ...antes, ...s.skillOverrides } } : {}) });
+}
+
+/**
+ * Los nombres de las skills y los comandos que Claude Code encuentra en unas carpetas (la del Studio, la del proyecto y la
+ * de la persona): cada `.claude/skills/<nombre>/SKILL.md` (con el `name:` de su cabecera, si lo trae) y cada
+ * `.claude/commands/<nombre>.md`. Sin repetir y en orden; lo que no se puede leer no cuenta.
+ */
+export function skillsDisponibles(carpetas: readonly string[]): string[] {
+  const nombres = new Set<string>();
+  for (const c of carpetas) {
+    const skills = join(c, '.claude', 'skills');
+    if (existsSync(skills)) {
+      for (const d of leerCarpeta(skills)) {
+        const archivo = join(skills, d, 'SKILL.md');
+        if (!existsSync(archivo)) continue;
+        let nombre = d;
+        try {
+          const cabecera = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(archivo, 'utf8'))?.[1] ?? '';
+          nombre = /^name:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(cabecera)?.[1] ?? d;
+        } catch {
+          // sin leerla, su carpeta dice su nombre
+        }
+        nombres.add(nombre.trim());
+      }
+    }
+    const comandos = join(c, '.claude', 'commands');
+    if (existsSync(comandos)) for (const f of leerCarpeta(comandos)) if (f.endsWith('.md')) nombres.add(f.slice(0, -3));
+  }
+  return [...nombres].sort();
+}
+
+const leerCarpeta = (carpeta: string): string[] => {
+  try {
+    return readdirSync(carpeta);
+  } catch {
+    return [];
+  }
+};
 
 /**
  * El núcleo del director, explícito (propuesta aceptada «Las reglas, a la medida de cada encargo», pr_reglas_por_encargo,

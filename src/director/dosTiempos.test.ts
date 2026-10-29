@@ -2,7 +2,7 @@
 // se salta y cómo se mide, antes y después, con las revisiones de verdad.
 import { describe, expect, it } from 'vitest';
 import { lecturasDeLaPieza, MAX_KB_PARTE, parteDeArchivo, piezaPorCerrar, procedimientosNombrados, conElPaqueteListo } from './dosTiempos';
-import { antesYDespues, archivoDeEncargos, bandejaParaElEncargo, conElPlanDeLaRevision, conEncargoHecho, conLaBandejaLista, MAX_KB_BANDEJA_LISTA, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MARGEN_DE_VENTANA, ordenDeHecho, registroDelPrimerTiempo, resumirRevisiones, saltaPrimerTiempo, ultimaListaDe, validarEncargos, VENTANAS, type EncargoDeRevision } from './dosTiempos';
+import { antesYDespues, archivoDeEncargos, bandejaParaElEncargo, conElPlanDeLaRevision, conEncargoHecho, conLaBandejaLista, MAX_KB_BANDEJA_LISTA, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MARGEN_DE_VENTANA, ordenDeHecho, registroDelPrimerTiempo, resumirRevisiones, saltaPrimerTiempo, skillsDelPlan, ultimaListaDe, validarEncargos, VENTANAS, type EncargoDeRevision } from './dosTiempos';
 import { lineaDeRegistro, type LineaDeRevision } from './lineasDeRevision';
 import { PROCEDIMIENTOS } from './procedimientos';
 import { REGISTRO } from './paquete';
@@ -158,6 +158,18 @@ describe('el primer tiempo, conectado al lanzador', () => {
     expect(t).toContain(PROCEDIMIENTOS.formatos.archivo);
     expect(t).toContain('Con un ayudante (sonnet)');
     expect(t).toContain('Archivos: ninguno');
+  });
+
+  it('cada encargo nombra sus skills, y el segundo tiempo arranca solo con las del plan (pd_dos_tiempos, nmvm0r0rstit)', () => {
+    expect(encargoDelPrimerTiempo('golf', 60)).toContain('the second time starts with only the skills the plan names');
+    expect(validarEncargos([{ ...bien, skills: ['sitio-3d-scroll'] }, { ...bien, id: 'e2', skills: [] }])).toEqual([]);
+    expect(validarEncargos([{ ...bien, skills: [''] }])[0]).toContain('no dice bien sus skills');
+    expect(validarEncargos([{ ...bien, skills: 'dataviz' as unknown as string[] }])[0]).toContain('no dice bien sus skills');
+    expect(skillsDelPlan([{ ...bien, skills: ['vigila', ' dataviz '] }, { ...bien, id: 'e2', skills: ['dataviz'] }, { ...bien, id: 'e3' }])).toEqual(['dataviz', 'vigila']);
+    expect(skillsDelPlan([bien])).toEqual([]);
+    const t = conElPlanDeLaRevision('golf', [{ ...bien, skills: ['dataviz'] }]);
+    expect(t).toContain('Skills: dataviz.');
+    expect(conElPlanDeLaRevision('golf', [bien])).not.toContain('Skills:');
   });
 
   it('la lista y el registro del primer tiempo van junto al de la revisión, sin parecer otro lanzamiento', () => {

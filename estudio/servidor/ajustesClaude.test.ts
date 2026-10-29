@@ -1,8 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AJUSTES_DEL_DIRECTOR, ajustesDelDirector, arranqueLimpio, clavesDeTusAjustes, conNucleoExplicito, fuentesDelDirector, nucleoExplicito, SIN_CONECTORES, archivoAjustesClaude, conMaximo, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, ignoraEsfuerzoGeneral, leerAjustesClaude, nombreCanonico, textoDelNucleo } from './ajustesClaude';
+import { AJUSTES_DEL_DIRECTOR, ajustesDelDirector, arranqueLimpio, clavesDeTusAjustes, conNucleoExplicito, conSkillsDelPlan, fuentesDelDirector, nucleoExplicito, SIN_CONECTORES, skillsDelSegundoTiempo, skillsDisponibles, archivoAjustesClaude, conMaximo, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, ignoraEsfuerzoGeneral, leerAjustesClaude, nombreCanonico, textoDelNucleo } from './ajustesClaude';
 import { ordenAbrirClaude } from './revisor';
 
 let carpeta: string;
@@ -187,6 +187,36 @@ describe('la configuración de Claude Code (lo mismo que /model y /effort)', () 
     expect(revisor).toContain('...permisos.argumentos, ...nucleo.argumentos, ');
     expect(revisor).toContain('writeFileSync(ajustes, conNucleoExplicito(permisos.ajustes, this.raiz));');
     expect(revisor).not.toMatch(/writeFileSync\(ajustes, permisos\.ajustes\)/);
+  });
+
+  it('el segundo tiempo arranca solo con las skills que nombra su plan; sin plan, como hoy (pd_dos_tiempos, nmvm0r0rstit)', async () => {
+    const disponibles = ['revisa', 'sitio-3d-scroll', 'vigila'];
+    // Sin plan, nada cambia
+    expect(skillsDelSegundoTiempo(null, disponibles)).toEqual({});
+    const base = JSON.stringify(ajustesDelDirector(false, false, 'C:\\Users\\ana').ajustes);
+    expect(conSkillsDelPlan(base, null, disponibles)).toBe(base);
+    // Un plan sin skills: todas apagadas, también las que trae Claude Code
+    expect(skillsDelSegundoTiempo([], disponibles)).toEqual({ skillOverrides: { revisa: 'off', 'sitio-3d-scroll': 'off', vigila: 'off' }, disableBundledSkills: true });
+    // Las que nombra quedan; si nombra una que no está en las carpetas (de las que trae Claude Code), esas siguen
+    expect(skillsDelSegundoTiempo(['sitio-3d-scroll'], disponibles)).toEqual({ skillOverrides: { revisa: 'off', vigila: 'off' }, disableBundledSkills: true });
+    expect(skillsDelSegundoTiempo(['workflow-authoring'], disponibles)).toEqual({ skillOverrides: { revisa: 'off', 'sitio-3d-scroll': 'off', vigila: 'off' } });
+    // Sobre los ajustes del director, sin tocar lo demás y sumando a lo que ya traían
+    const con = JSON.parse(conSkillsDelPlan(JSON.stringify({ ...JSON.parse(base), skillOverrides: { otra: 'name-only' } }), ['vigila'], disponibles));
+    expect(con.skillOverrides).toEqual({ otra: 'name-only', revisa: 'off', 'sitio-3d-scroll': 'off' });
+    expect(con.disableBundledSkills).toBe(true);
+    expect(con.disableAllHooks).toBe(true);
+    // Las que encuentra en las carpetas: skills con su nombre (el de su cabecera, si lo trae) y comandos
+    await mkdir(join(carpeta, '.claude', 'skills', 'mirar'), { recursive: true });
+    await writeFile(join(carpeta, '.claude', 'skills', 'mirar', 'SKILL.md'), '---\nname: mirar-pantalla\ndescription: x\n---\nname: no-es-esta\n');
+    await mkdir(join(carpeta, '.claude', 'skills', 'sin-skill'), { recursive: true });
+    await mkdir(join(carpeta, '.claude', 'commands'), { recursive: true });
+    await writeFile(join(carpeta, '.claude', 'commands', 'revisa.md'), '# revisa');
+    await writeFile(join(carpeta, '.claude', 'commands', 'nota.txt'), 'x');
+    expect(skillsDisponibles([carpeta, join(carpeta, 'no-existe'), carpeta])).toEqual(['mirar-pantalla', 'revisa']);
+    // El lanzador lo usa al tener el plan del primer tiempo, antes de lanzar el segundo
+    const revisor = (await readFile(join(__dirname, 'revisor.ts'), 'utf-8')).replace(/\r\n/g, '\n');
+    expect(revisor).toContain('writeFileSync(ajustes, conSkillsDelPlan(conNucleoExplicito(permisos.ajustes, this.raiz), skillsDelPlan(planDeLaRevision), skillsDisponibles([this.raiz, repositorio, homedir()])));');
+    expect(revisor.indexOf('conSkillsDelPlan(')).toBeLessThan(revisor.indexOf('p = lanzarClaude(programa, args'));
   });
 
   it('el director lanzado nunca carga los conectores de claude.ai, con ultracode o sin él (pedido del titular del 23 de octubre)', () => {
