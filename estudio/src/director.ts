@@ -179,7 +179,9 @@ function gruposNav(): { titulo: string; vistas: Vista[]; plegable?: boolean }[] 
   const conAlgo = seccionesConAlgo({ plan: d.plan, estado: d.estado }) as Vista[];
   const sirve = (v: Vista) => !(v in PARA_QUE_SIRVE) || conAlgo.includes(v) || vista === v;
   return [
-    { titulo: '', vistas: (['misiones', 'buzon', 'preguntas'] as Vista[]).filter(sirve) },
+    // «Preguntas» ya no va en la barra (tu decisión del 26 de octubre, pedido pd_preguntas_buzon): están en el Buzón, con
+    // su filtro, y su informe se abre desde ahí; mientras lo lees, se ve aquí para saber dónde estás
+    { titulo: '', vistas: (['misiones', 'buzon', ...(vista === 'preguntas' ? ['preguntas'] : [])] as Vista[]).filter(sirve) },
     { titulo: 'El proyecto', vistas: (['ruta', 'documentos', 'propuestas', ...(arranca ? ['proyecto'] : [])] as Vista[]).filter(sirve) },
   ];
 }
@@ -3487,7 +3489,7 @@ function vistaBuzon() {
       <summary>¿Qué es el Buzón del director?</summary>
       <p>Es donde llega <b>todo lo que le dicen al director</b>: el comentario junto a la cara del director (su globo, «Comentario») y cada <span class="al-director-chip">✉ Comentar al director</span> de las misiones, las propuestas, los criterios, el diagnóstico y las partes de los documentos.</p>
       <p><b>Piensa, corrige y luego envía:</b> lo que dejas espera, y lo puedes corregir o borrar. El director solo lo lee cuando se pide la revisión (<b>«Pedir revisión»</b>, arriba): entonces transcribe los audios, lee todo junto, responde en cada nota y, si hace falta, cambia la ruta o las misiones.</p>
-      <p>Cada nota se ve en una línea: ábrela para leerla con su respuesta. Para encontrar una, escribe en <b>«Buscar en el Buzón»</b> palabras de lo que dijiste o de lo que respondió el director. Las <b>preguntas</b> van aparte, en <button type="button" class="enlace" data-vista="preguntas">Preguntas</button>: allí el director te las responde todas juntas, como un informe.</p>
+      <p>Cada nota se ve en una línea: ábrela para leerla con su respuesta. Para encontrar una, escribe en <b>«Buscar en el Buzón»</b> palabras de lo que dijiste o de lo que respondió el director. Tus <b>preguntas</b> también están aquí, con su filtro «Pregunta»; el director las responde todas juntas, y se leen como un informe en <button type="button" class="enlace" data-vista="preguntas">Tus preguntas, como informe</button>.</p>
     </details>
     ${filtroVisible()}<div class="buscar-buzon" role="search">
       <label for="buscar-buzon">Buscar en el Buzón</label>
@@ -3515,7 +3517,8 @@ function textosDeNota(n: Nota, conRespuesta = true) {
  * escribir, sin tocar el campo de búsqueda.
  */
 function notasDelBuzon() {
-  const todas = [...d.estado.notas].reverse().filter((n) => seVe(n.de) && !esPregunta(n));
+  // Las preguntas también (pedido pd_preguntas_buzon): un solo centro de lo que hablas con el director, con su filtro
+  const todas = [...d.estado.notas].reverse().filter((n) => seVe(n.de));
   // El filtro por tipo: uno por tipo que tenga notas, con su cuenta; las de antes, en «Sin tipo» (tu decisión nmvsv9nuytit)
   const tipos = tiposEnBuzon(todas, d.plan.respuestas);
   if (tipoBuzon && !tipos.some(([t]) => t === tipoBuzon)) tipoBuzon = '';
@@ -3533,15 +3536,15 @@ function notasDelBuzon() {
     : '';
   const notas = notasQueQuedaron(deTipo, d.plan.respuestas, comoBuzon);
   filtro += filtroComo;
+  // Con las preguntas a la vista, las respuestas se siguen leyendo juntas, como un informe (su sección ya no va en la barra)
+  if (tipoBuzon === 'pregunta' && todas.some(esPregunta)) filtro += `<p class="como informe-preguntas">Mis respuestas a tus preguntas también se leen juntas, como un informe, con cada conversación: <button type="button" class="enlace" data-vista="preguntas">Leerlas como informe</button></p>`;
   const aqui: Lugar = { vista: 'buzon' };
   if (palabrasDeBusqueda(busquedaBuzon).length) {
     const halladas = notas.filter((n) => coincideBusqueda(textosDeNota(n), busquedaBuzon));
-    const enPreguntas = d.estado.notas.filter((n) => seVe(n.de) && esPregunta(n) && coincideBusqueda(textosDeNota(n), busquedaBuzon)).length;
-    const tambien = enPreguntas ? ` ${enPreguntas === 1 ? 'Hay una' : `Hay ${enPreguntas}`} en <button type="button" class="enlace" data-vista="preguntas">Preguntas</button>, que van aparte.` : '';
     return `${filtro}<h3>Lo que encontré <small>· ${halladas.length}</small></h3>
       ${halladas.length
-        ? `${tambien ? `<p class="como">${tambien.trim()}</p>` : ''}<ul class="notas-lista">${halladas.map((n) => tarjetaNota(n, true, true, !coincideBusqueda(textosDeNota(n, false), busquedaBuzon), aqui)).join('')}</ul>`
-        : `<p class="intro">Ninguna nota del Buzón dice «${esc(busquedaBuzon.trim())}», ni en lo que se dijo ni en lo que respondió el director. Prueba con menos palabras o con otras.${tambien}</p>`}`;
+        ? `<ul class="notas-lista">${halladas.map((n) => tarjetaNota(n, true, true, !coincideBusqueda(textosDeNota(n, false), busquedaBuzon), aqui)).join('')}</ul>`
+        : `<p class="intro">Ninguna nota del Buzón dice «${esc(busquedaBuzon.trim())}», ni en lo que se dijo ni en lo que respondió el director. Prueba con menos palabras o con otras.</p>`}`;
   }
   const esperando = notas.filter((n) => !d.plan.respuestas[n.id]);
   const respondidas = notas.filter((n) => d.plan.respuestas[n.id]);
@@ -6732,7 +6735,7 @@ document.addEventListener('click', async (e) => {
   cerrarMenuMovil();
   await formularPreguntas();
 });
-// Junto a la cara del director, dos atajos: un comentario (va al Buzón) y las preguntas (van aparte, respondidas como un informe)
+// Junto a la cara del director, dos atajos: un comentario y las preguntas (las dos van al Buzón; las preguntas se responden como un informe)
 document.addEventListener('click', async (e) => {
   if (!(e.target as HTMLElement).closest('[data-escribir]') || !d) return;
   cerrarMenuMovil();

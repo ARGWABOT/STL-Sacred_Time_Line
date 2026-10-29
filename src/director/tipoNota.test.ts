@@ -57,6 +57,15 @@ describe('cada nota con su tipo', () => {
     expect(pagina).toContain('const notas = notasQueQuedaron(deTipo, d.plan.respuestas, comoBuzon);');
   });
 
+  it('las preguntas están en el Buzón, con su filtro, y su sección sale de la barra (pedido pd_preguntas_buzon)', () => {
+    const pagina = readFileSync(join(__dirname, '..', '..', 'estudio', 'src', 'director.ts'), 'utf-8');
+    expect(pagina).toContain('const todas = [...d.estado.notas].reverse().filter((n) => seVe(n.de));');
+    expect(pagina).toContain("vistas: (['misiones', 'buzon', ...(vista === 'preguntas' ? ['preguntas'] : [])] as Vista[])");
+    // Con el filtro «Pregunta», el informe de sus respuestas a un clic
+    expect(pagina).toContain("if (tipoBuzon === 'pregunta' && todas.some(esPregunta))");
+    expect(tipoDeNota(nota('n1', { tipo: 'pregunta' }))).toBe('pregunta');
+  });
+
   it('el cierre exige el tipo en la respuesta a una nota que dejó «No sé: elígelo tú»; a una de antes, sin tipo, no', () => {
     const desde = '2026-10-29T01:00:00.000Z';
     const notas = [nota('n_duda', { tipo: 'general' }, TIPO_ELIGE), nota('n_vieja', { tipo: 'general' }), nota('n_con', { tipo: 'general' }, 'ajuste'), nota('n_eligio', { tipo: 'mision', id: 't_a', eleccion: 'Sí' })];
