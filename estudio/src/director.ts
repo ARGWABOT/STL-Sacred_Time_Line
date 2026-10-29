@@ -106,6 +106,7 @@ import type { EventoBitacora } from '../../src/director/bitacora';
 import { duracionAprox, type Alcance as AlcanceMedicion } from '../../src/director/corrida';
 import { contarFinales, NOMBRE_FIN, type FinEscrito } from '../../src/director/finDeLanzamiento';
 import { limiteCasiLleno, tiempoDeRevision } from '../../src/director/limites';
+import { avisoDelInventario, fichaDe, INVENTARIO, modeloDelInventario } from '../../src/director/modelos';
 import { enTuPlan, esPlanDeClaude, PLANES_DE_CLAUDE, semanaDeCadaUno, type PlanDeClaude } from '../../src/director/costoDelPlan';
 import type { ResumenProyecto } from '../servidor/director';
 import type { OpcionAjuste } from '../servidor/ajustesPropios';
@@ -4688,6 +4689,16 @@ const MODELOS: { id: string; nombre: string; que: string; grupo?: string }[] = [
   { id: 'haiku', nombre: 'Haiku, el más nuevo', grupo: 'Siempre el más nuevo', que: 'El Haiku más nuevo que tenga Claude Code: cambia solo cuando sale una versión.' },
 ];
 
+/**
+ * Lo que dice de Anthropic la tabla de modelos del Studio sobre el elegido, con su fuente y su fecha, y su aviso si no
+ * está en ella o si la tabla quedó vieja (pr_modelos_por_tarea, punto 1; opción B, elegida el 28 de octubre de 2026).
+ */
+function lineaInventario(actual: string) {
+  const m = modeloDelInventario(actual);
+  const aviso = avisoDelInventario(actual, new Date());
+  return `${m ? `<p class="como inventario-modelo" title="${esc(`Fuente: ${INVENTARIO.fuente}.`)}">Según Anthropic (la tabla del Studio, del ${esc(INVENTARIO.fecha)}): ${esc(fichaDe(m))}</p>` : ''}${aviso ? `<p class="aviso-modelo">${esc(aviso)}</p>` : ''}`;
+}
+
 /** Cuánto piensa el director antes de responder (`claude --effort`). */
 const ESFUERZOS: { id: string; nombre: string; que: string }[] = [
   { id: '', nombre: 'El de tu cuenta', que: 'El que trae el modelo por defecto (en Opus, Sonnet y Haiku 5.5, medio).' },
@@ -5101,6 +5112,7 @@ function vistaModelo() {
         <p class="como">Con qué modelo te revisa el director cuando el Studio lo llama (la revisión, «No lo entiendo» y lo urgente), en cualquiera de tus proyectos. Lo que elijas aquí vale también para tus sesiones nuevas de Claude Code, y lo que cambies allá con <code>/model</code> o <code>/effort</code> se ve aquí.</p>
         <label class="campo-modelo">Modelo<select data-modelo>${opcionesDe(opciones, actual)}</select></label>
         <p class="como">${esc(opciones.find((m) => m.id === actual)?.que ?? '')} Si tu cuenta no acepta el que elijas, el lanzamiento falla antes de trabajar, el Studio lo quita de la configuración de Claude Code, vuelve al de tu cuenta y lo dice.</p>
+        ${lineaInventario(actual)}
         ${trabajo}
         <label class="campo-modelo">Esfuerzo<select data-esfuerzo>${opcionesDe(ESFUERZOS, d.esfuerzo ?? '')}</select></label>
         <p class="como">${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzo ?? ''))?.que ?? '')} ${d.esfuerzo === 'max' ? `Claude Code no guarda «Máximo» en su configuración (lo aplica solo a una sesión): el Studio lo recuerda y lo usa para el director y para la terminal que abres aquí abajo. Tus otras sesiones de Claude Code siguen con ${esc(ESFUERZOS.find((x) => x.id === (d.esfuerzoGuardado ?? ''))?.nombre.toLowerCase() ?? 'el de tu cuenta')}; en ellas, <code>/effort max</code>. ` : 'Cada modelo guarda su propio esfuerzo, como en Claude Code: al cambiar de modelo, aquí se ve el suyo. '}Cambiar el modelo o el esfuerzo no cambia las reglas del director ni lo que puede hacer: solo qué tan bien piensa, cuánto tarda y cuánto gasta. Claude Code no informa el esfuerzo con que trabajó: si no acepta el elegido, falla al empezar y el Studio vuelve al de tu cuenta.</p>

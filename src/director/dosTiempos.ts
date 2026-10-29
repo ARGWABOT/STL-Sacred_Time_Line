@@ -10,6 +10,7 @@
 // el segundo y la comparación. El lanzador (estudio/servidor/revisor.ts › primerTiempo) lo usa en cada revisión.
 import { colaDelDirector, pendientesDelDirector, type EstadoDirector, type PiezaSiguiente, type Plan } from './director.ts';
 import { PROCEDIMIENTOS } from './procedimientos.ts';
+import { modeloDelInventario, ventanaDe } from './modelos.ts';
 import type { LineaDeRevision } from './lineasDeRevision.ts';
 
 /** Con qué modelo va un encargo: el del director, o uno de los de los ayudantes (revisor.ts › modeloDeLosAyudantes). */
@@ -37,8 +38,15 @@ export interface EncargoDeRevision {
   hecho?: string;
 }
 
-/** La ventana de cada modelo, en tokens (el de los ayudantes, Sonnet, con la misma de un millón que el director). */
-export const VENTANAS: Record<ModeloDelEncargo, number> = { director: 1_000_000, sonnet: 1_000_000, haiku: 200_000 };
+/**
+ * La ventana de cada modelo, en tokens: la del director, de un millón (el lanzador la cambia por la que informa Claude
+ * Code), y la de los ayudantes, de la tabla de modelos (modelos.ts › INVENTARIO, con la que les da Claude Code).
+ */
+export const VENTANAS: Record<ModeloDelEncargo, number> = {
+  director: 1_000_000,
+  sonnet: ventanaDe(modeloDelInventario('sonnet')!),
+  haiku: ventanaDe(modeloDelInventario('haiku')!),
+};
 
 /** Lo más de su ventana que puede pedir un encargo: el resto es margen para lo que no se calculó. */
 export const MARGEN_DE_VENTANA = 0.6;

@@ -23,6 +23,7 @@ import { colaDeDiagnosticos, limiteDelTramo, MAX_MIN_REVISION, negacionesDe, neg
 import { leerEstadoDelEquipo, leerJsonFresco, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria.ts';
 import { archivoDeEncargos, ayudantesDelPlan, bandejaParaElEncargo, conElPaqueteListo, conElPlanDeLaRevision, conLosAyudantesDelPlan, conLaBandejaLista, encargoDelPrimerTiempo, MAX_MIN_BANDEJA_LISTA, encargosDeLaRespuesta, finDelPrimerTiempo, lecturasDeLaPieza, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, procedimientosNombrados, registroDelPrimerTiempo, saltaPrimerTiempo, skillsDelPlan, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
 import { PROCEDIMIENTOS } from '../../src/director/procedimientos.ts';
+import { INVENTARIO_EN_EL_ENCARGO } from '../../src/director/modelos.ts';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, prorrogarRevision, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos.ts';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora.ts';
 import { anotarDirector, archivoDelCandado, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado.ts';
@@ -242,7 +243,9 @@ export const POLITICA_DE_MODELOS =
   `y comprueba tú lo que te devuelva. Lo delicado (el núcleo del Studio, los permisos, lo que borra o cuesta) lo haces o ` +
   `lo verificas tú. Un flujo de varios agentes, solo con muchas piezas independientes o algo delicado que verificar ` +
   `desde varios ángulos; lo simple, sin ayudantes. Tus ayudantes trabajan con el modelo que pone el Studio, más barato ` +
-  `que el tuyo salvo que el titular elija «Todo con el modelo que elegí».`;
+  `que el tuyo salvo que el titular elija «Todo con el modelo que elegí».` +
+  // Y lo que Anthropic dice de cada modelo, de la tabla del código (pr_modelos_por_tarea, punto 1; opción B)
+  INVENTARIO_EN_EL_ENCARGO;
 
 /**
  * Un proyecto de la cola de diagnósticos que una revisión va a atender, con lo que el Studio le abre al director de él
