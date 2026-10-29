@@ -294,6 +294,22 @@ export const conElPlanDeLaRevision = (proyecto: string, encargos: readonly Encar
     .join(' ');
 
 /**
+ * El modelo de los ayudantes del segundo tiempo, con el que su plan pide para cada encargo (propuesta aceptada
+ * pr_modelos_por_tarea): el Studio lo fija al lanzarlo (revisor.ts › CLAUDE_CODE_SUBAGENT_MODEL, que ni el director ni la
+ * definición del ayudante cambian), así que vale uno para todos. Si todo lo que el plan delega va con Haiku, Haiku; si algo
+ * va con Sonnet, o nada se delega, el de siempre (`porDefecto`, modeloDeLosAyudantes): nunca uno menor que el que pide un
+ * encargo, ni uno mayor que el de siempre. Pura.
+ */
+export function ayudantesDelPlan(encargos: readonly EncargoDeRevision[], porDefecto: string): string {
+  const delegados = new Set(encargos.map((e) => e.modelo).filter((m) => m !== 'director'));
+  return delegados.size === 1 && delegados.has('haiku') ? 'haiku' : porDefecto;
+}
+
+/** Lo que el segundo tiempo sabe del modelo de sus ayudantes, al final de su plan, en el idioma del encargo. Pura. */
+export const conLosAyudantesDelPlan = (modelo: string) =>
+  ` Tus ayudantes de esta revisión trabajan con «${modelo}»: el Studio lo fijó con lo que tu plan pide de cada encargo.`;
+
+/**
  * Las skills que nombra el plan de la revisión, sin repetir y en orden: el segundo tiempo arranca solo con ellas
  * (pd_dos_tiempos; decisión del titular nmvm0r0rstit, 24 de octubre de 2026, «El paquete de cada revisión», parte 12,
  * punto 2; ajustesClaude.ts › skillsDelSegundoTiempo). Pura.

@@ -763,6 +763,14 @@ describe('el director que lanza el Studio', () => {
       expect(primero).toBeGreaterThan(0);
       expect(primero).toBeLessThan(lanzar.indexOf('p = lanzarClaude('));
       expect(lanzar).toContain('conElPlanDeLaRevision(proyecto, planDeLaRevision)');
+      // El modelo de cada encargo se aplica al lanzar el segundo tiempo: el de sus ayudantes, salvo «Todo con el modelo que
+      // elegí», y el encargo lo dice (pr_modelos_por_tarea)
+      expect(lanzar).toContain('const ayudantes = planDeLaRevision && elegido.todoConElModelo !== true ? ayudantesDelPlan(planDeLaRevision, modeloDeLosAyudantes(modelo)) : null;');
+      expect(lanzar).toContain('...(ayudantes ? { CLAUDE_CODE_SUBAGENT_MODEL: ayudantes } : {})');
+      expect(lanzar).toContain('(ayudantes ? conLosAyudantesDelPlan(ayudantes) : \'\')');
+      expect(lanzar.indexOf('const ayudantes = ')).toBeLessThan(lanzar.indexOf('p = lanzarClaude('));
+      // Lo que va en `extra` gana sobre lo que pone entornoDelDirector
+      expect(revisor).toContain('const env = { ...entornoDelDirector(process.env, registro, modelo, todoConElModelo), ...extra };');
       // Con su mismo modelo y esfuerzo bajo, siempre en «Solo lo autorizado», y solo leer y correr la bandeja
       expect(lanzar).toContain("permisosDelModo('autorizado', { ...entradaDePermisos, archivo: ajustesPrimero })");
       expect(lanzar).toContain("...(modelo ? ['--model', modelo] : []), '--effort', 'low'");

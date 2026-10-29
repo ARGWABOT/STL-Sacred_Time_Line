@@ -21,7 +21,7 @@ import { permisosEnEspera } from './permisosEnEspera.ts';
 import { fuentesDeEscaneo } from './escaneo.ts';
 import { colaDeDiagnosticos, limiteDelTramo, MAX_MIN_REVISION, negacionesDe, negadosEnVivo, POR_REVISION, type CandidatoDeCola, type PiezaSiguiente, type Tramo } from '../../src/director/director.ts';
 import { leerEstadoDelEquipo, leerJsonFresco, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria.ts';
-import { archivoDeEncargos, bandejaParaElEncargo, conElPaqueteListo, conElPlanDeLaRevision, conLaBandejaLista, encargoDelPrimerTiempo, MAX_MIN_BANDEJA_LISTA, encargosDeLaRespuesta, finDelPrimerTiempo, lecturasDeLaPieza, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, procedimientosNombrados, registroDelPrimerTiempo, saltaPrimerTiempo, skillsDelPlan, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
+import { archivoDeEncargos, ayudantesDelPlan, bandejaParaElEncargo, conElPaqueteListo, conElPlanDeLaRevision, conLosAyudantesDelPlan, conLaBandejaLista, encargoDelPrimerTiempo, MAX_MIN_BANDEJA_LISTA, encargosDeLaRespuesta, finDelPrimerTiempo, lecturasDeLaPieza, lineaDelPrimerTiempo, MAX_MIN_PRIMER_TIEMPO, procedimientosNombrados, registroDelPrimerTiempo, saltaPrimerTiempo, skillsDelPlan, trabajoDe, VENTANAS, type EncargoDeRevision, type PrimerTiempoEscrito, type TrabajoDeLaRevision } from '../../src/director/dosTiempos.ts';
 import { PROCEDIMIENTOS } from '../../src/director/procedimientos.ts';
 import { cambiarAutorizados, encadenarRevision, enDisco, guardarEsfuerzoMaximo, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarLanzada, marcarRevision, marcarUrgencia, MEMORIA, ORIGENES_REVISION, pararSeguidas, prorrogarRevision, proyectosLocales, rutasDe, seguidasActivas, siguienteDeLaCadena, urgenciaActiva, type AclaracionPedida, type FallaRevision, type UrgenciaPedida } from '../../src/director/proyectos.ts';
 import { anotar, EL_STUDIO } from '../../src/director/bitacora.ts';
@@ -2270,7 +2270,10 @@ export class Revisor {
     // «Me pregunta en el Studio»: la revisión pregunta desde ahora, con una clave que solo conoce su gancho (por la variable
     // con la dirección del servidor), y deja de preguntar al terminar el director, de la forma que sea (fin)
     const clavePermiso = permisos.pregunta ? randomUUID() : null;
-    const entornoDelPermiso = clavePermiso ? { STL_PERMISO_URL: urlDelGancho(puertoDelStudio(this.raiz), clavePermiso) } : undefined;
+    // Con su plan, el modelo de los ayudantes sale de lo que pide cada encargo (ayudantesDelPlan; pr_modelos_por_tarea),
+    // salvo con «Todo con el modelo que elegí», que manda
+    const ayudantes = planDeLaRevision && elegido.todoConElModelo !== true ? ayudantesDelPlan(planDeLaRevision, modeloDeLosAyudantes(modelo)) : null;
+    const entornoDelPermiso = clavePermiso || ayudantes ? { ...(clavePermiso ? { STL_PERMISO_URL: urlDelGancho(puertoDelStudio(this.raiz), clavePermiso) } : {}), ...(ayudantes ? { CLAUDE_CODE_SUBAGENT_MODEL: ayudantes } : {}) } : undefined;
     if (clavePermiso) permisosEnEspera.abrir(clavePermiso, proyecto, prohibidas, homedir(), permitidas);
     // Con la ruta de su registro: la bandeja que corra guarda junto a él lo que le imprime (el paquete de la revisión)
     let p: ReturnType<typeof lanzarClaude>;
@@ -2300,7 +2303,7 @@ export class Revisor {
     const delStudio = esElStudio(repositorio, this.raiz);
     // Con su plan, si el primer tiempo dejó uno válido (pd_dos_tiempos)
     const elEncargo = aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u, delStudio)
-      : encargo(proyecto, reintento, cola, delStudio, historial, minutos) + (planDeLaRevision ? conElPlanDeLaRevision(proyecto, planDeLaRevision) : '') + (bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) + paqueteListoDe(this.raiz, repositorio, bandejaLista, piezaDelPlan(this.raiz, proyecto)) : '');
+      : encargo(proyecto, reintento, cola, delStudio, historial, minutos) + (planDeLaRevision ? conElPlanDeLaRevision(proyecto, planDeLaRevision) + (ayudantes ? conLosAyudantesDelPlan(ayudantes) : '') : '') + (bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) + paqueteListoDe(this.raiz, repositorio, bandejaLista, piezaDelPlan(this.raiz, proyecto)) : '');
     // El paquete de la revisión: el encargo, tal como se envía, junto a su registro (se abre en «Lo que gastó el director»)
     try {
       writeFileSync(paqueteDeRegistro(archivo).encargo, elEncargo, 'utf8');

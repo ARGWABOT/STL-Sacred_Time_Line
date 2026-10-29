@@ -2,7 +2,7 @@
 // se salta y cómo se mide, antes y después, con las revisiones de verdad.
 import { describe, expect, it } from 'vitest';
 import { lecturasDeLaPieza, MAX_KB_PARTE, parteDeArchivo, piezaPorCerrar, procedimientosNombrados, conElPaqueteListo } from './dosTiempos';
-import { antesYDespues, archivoDeEncargos, bandejaParaElEncargo, conElPlanDeLaRevision, conEncargoHecho, conLaBandejaLista, MAX_KB_BANDEJA_LISTA, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MARGEN_DE_VENTANA, ordenDeHecho, registroDelPrimerTiempo, resumirRevisiones, saltaPrimerTiempo, skillsDelPlan, ultimaListaDe, validarEncargos, VENTANAS, type EncargoDeRevision } from './dosTiempos';
+import { antesYDespues, archivoDeEncargos, ayudantesDelPlan, conLosAyudantesDelPlan, bandejaParaElEncargo, conElPlanDeLaRevision, conEncargoHecho, conLaBandejaLista, MAX_KB_BANDEJA_LISTA, encargoDelPrimerTiempo, encargosDeLaRespuesta, finDelPrimerTiempo, lineaDelPrimerTiempo, MARGEN_DE_VENTANA, ordenDeHecho, registroDelPrimerTiempo, resumirRevisiones, saltaPrimerTiempo, skillsDelPlan, ultimaListaDe, validarEncargos, VENTANAS, type EncargoDeRevision } from './dosTiempos';
 import { lineaDeRegistro, type LineaDeRevision } from './lineasDeRevision';
 import { PROCEDIMIENTOS } from './procedimientos';
 import { REGISTRO } from './paquete';
@@ -170,6 +170,20 @@ describe('el primer tiempo, conectado al lanzador', () => {
     const t = conElPlanDeLaRevision('golf', [{ ...bien, skills: ['dataviz'] }]);
     expect(t).toContain('Skills: dataviz.');
     expect(conElPlanDeLaRevision('golf', [bien])).not.toContain('Skills:');
+  });
+
+  it('el modelo de cada encargo se aplica a los ayudantes del segundo tiempo, nunca menor ni mayor que el de siempre (pr_modelos_por_tarea)', () => {
+    const director = { ...bien, id: 'd', modelo: 'director' as const };
+    const sonnet = { ...bien, id: 's', modelo: 'sonnet' as const };
+    const haiku = { ...bien, id: 'h', modelo: 'haiku' as const, contexto: 50_000 };
+    // Todo lo que delega va con Haiku: Haiku
+    expect(ayudantesDelPlan([director, haiku], 'sonnet')).toBe('haiku');
+    // Algo con Sonnet, o nada delegado: el de siempre
+    expect(ayudantesDelPlan([haiku, sonnet], 'sonnet')).toBe('sonnet');
+    expect(ayudantesDelPlan([director], 'sonnet')).toBe('sonnet');
+    // Con un director Haiku, nunca uno mayor
+    expect(ayudantesDelPlan([sonnet], 'haiku')).toBe('haiku');
+    expect(conLosAyudantesDelPlan('haiku')).toContain('trabajan con «haiku»');
   });
 
   it('la lista y el registro del primer tiempo van junto al de la revisión, sin parecer otro lanzamiento', () => {
