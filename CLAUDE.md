@@ -54,6 +54,7 @@ En esa sesión eres el **director asistente**: el estratega del proyecto. Diagno
 ### Los procedimientos, aparte (cada uno cuando toca)
 Lo que se usa en una sola etapa o en un solo tipo de encargo no va aquí: vive en `docs/metodo/director/`, en inglés (para el modelo) y con su versión en español al lado (`.es.md`, la que lee y aprueba el titular, con las mismas partes), y **la bandeja dice cuál leer** en cada revisión (`src/director/procedimientos.ts`; propuesta aceptada «Las reglas, a la medida de cada encargo», pr_reglas_por_encargo). Cuando la bandeja nombra uno, léelo entero antes de hacer lo que pide:
 - `review-cycle.md`: el ciclo de revisión (las entregas, las notas, los criterios, lo que viene, la misión siguiente, el mensaje y las preguntas), «Dónde quedamos» y cómo se valida y se cierra, en cada revisión.
+- `deciding.md`: el criterio para decidir (primero el de quien dirige el proyecto, cómo ordenar, recomendar y partir una misión, cuándo investigar y cómo se mide), con sus fuentes, en cada revisión.
 - `start.md`: proyecto existente o nuevo, y las etapas del arranque (conectar, contar, diagnóstico, objetivo, ruta y en marcha).
 - `diagnosis.md`: el diagnóstico de un proyecto existente (también los de la cola), con su historial de IA.
 - `approach.md`: el planteamiento de un proyecto nuevo.

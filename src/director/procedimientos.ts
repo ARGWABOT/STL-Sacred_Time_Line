@@ -17,6 +17,7 @@ export const PROCEDIMIENTOS = {
   mantenimiento: { archivo: `${CARPETA_PROCEDIMIENTOS}/maintenance.md`, para: 'cuando el titular da la meta por lograda, y mientras la fase es de mantenimiento' },
   cola: { archivo: `${CARPETA_PROCEDIMIENTOS}/diagnosis-queue.md`, para: 'la cola de diagnósticos, después del proyecto activo' },
   ciclo: { archivo: `${CARPETA_PROCEDIMIENTOS}/review-cycle.md`, para: 'el ciclo de revisión, «Dónde quedamos» y cómo se valida y se cierra' },
+  decidir: { archivo: `${CARPETA_PROCEDIMIENTOS}/deciding.md`, para: 'el criterio para decidir: cómo ordenar, recomendar y partir una misión, y cuándo investigar' },
   formatos: { archivo: `${CARPETA_PROCEDIMIENTOS}/plan-formats.md`, para: 'los formatos del plan, antes de escribir en él' },
   documentos: { archivo: `${CARPETA_PROCEDIMIENTOS}/documents.md`, para: 'los documentos del director, antes de escribir o cambiar uno' },
 } as const;
@@ -45,7 +46,7 @@ export interface SituacionDeLaRevision {
 /**
  * Los procedimientos que tocan, sin repetir, en el orden en que se leen. Una urgencia o una aclaración atienden solo lo
  * suyo: los formatos del plan, para escribir su respuesta o su paso, y el del Studio si es el mismo Studio. Una revisión,
- * además, los de su etapa, el ciclo de revisión y los documentos del director.
+ * además, los de su etapa, el ciclo de revisión, el criterio para decidir y los documentos del director.
  */
 export function procedimientosDeLaRevision(s: SituacionDeLaRevision): Procedimiento[] {
   const p: Procedimiento[] = [];
@@ -56,7 +57,7 @@ export function procedimientosDeLaRevision(s: SituacionDeLaRevision): Procedimie
   if (s.etapa === 'ruta' || s.replanteada) p.push('ruta');
   if (s.mantenimiento) p.push('mantenimiento');
   if (s.hayCola) p.push('cola', 'diagnostico');
-  p.push('ciclo', 'formatos', 'documentos');
+  p.push('ciclo', 'decidir', 'formatos', 'documentos');
   return [...new Set(p)];
 }
 

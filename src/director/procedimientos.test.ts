@@ -62,7 +62,7 @@ describe('los procedimientos del director, aparte de CLAUDE.md', () => {
   });
 
   it('cada revisión recibe los que le tocan: los del arranque en su etapa, el del Studio en el mismo Studio, y siempre los formatos y los documentos', () => {
-    const siempre = ['ciclo', 'formatos', 'documentos'];
+    const siempre = ['ciclo', 'decidir', 'formatos', 'documentos'];
     expect(procedimientosDeLaRevision({ etapa: 'en_marcha' })).toEqual(siempre);
     expect(procedimientosDeLaRevision({ etapa: 'en_marcha', esElStudio: true })).toEqual(['studio', ...siempre]);
     expect(procedimientosDeLaRevision({ etapa: 'conectar' })).toEqual(['arranque', ...siempre]);
@@ -85,6 +85,19 @@ describe('los procedimientos del director, aparte de CLAUDE.md', () => {
     expect(leer(enEspanol(PROCEDIMIENTOS.cola.archivo))).toContain('## En vueltas, un proyecto a la vez');
     const bandeja = leer('tools/director/bandeja.ts');
     expect(bandeja).toContain('if (cola.length > 1) linea(EN_VUELTAS);');
+  });
+
+  it('el criterio para decidir: el del titular primero, en su orden, cuándo investigar y sus fuentes, en sus dos versiones (pr_criterio_director)', () => {
+    const en = leer(PROCEDIMIENTOS.decidir.archivo);
+    const es = leer(enEspanol(PROCEDIMIENTOS.decidir.archivo));
+    const titulos = (md: string) => [...md.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
+    expect(titulos(en)[0]).toBe("The owner's criterion comes first");
+    expect(titulos(es)[0]).toBe('El criterio del titular va primero');
+    expect(titulos(en)).toEqual(expect.arrayContaining(['When to research', 'Measuring it', 'The sources']));
+    expect(titulos(es)).toEqual(expect.arrayContaining(['Cuándo investigar', 'Medirlo', 'Las fuentes']));
+    const orden = ['Lo que desbloquea lo demás', 'Lo que más riesgo tiene si sale mal', 'Lo que antes le sirve a quien lo usa', 'Lo que se termina rápido'];
+    expect(orden.map((o) => es.indexOf(o))).toEqual([...orden.map((o) => es.indexOf(o))].sort((a, b) => a - b));
+    expect(orden.every((o) => es.includes(o))).toBe(true);
   });
 
   it('las partes de un documento: sus títulos y sus puntos de lista, de cualquier nivel', () => {
