@@ -400,6 +400,12 @@ export interface AclaracionPedida {
   falla?: FallaRevision;
   /** Pedida otra vez con «Retomarla» después de una que no se cerró: cuándo se lanzó esa y su registro. */
   reintento?: RetomaAparte;
+  /**
+   * No es para aclararlo sino para comprobarlo (propuesta aceptada pr_verificar_paso): la persona hizo el paso fuera del
+   * Studio y oprimió «Ya lo hice: compruébalo tú». Va por el mismo camino, corto y aparte, con su encargo
+   * (`bandeja.ts --comprobar`): el director busca la evidencia y responde si se cumplió, qué encontró y qué hacer si no.
+   */
+  comprobar?: boolean;
 }
 
 /** De dónde retoma una aclaración o una urgencia pedida otra vez con «Retomarla» (pr_retoma_automatica, punto 5). */
@@ -849,8 +855,8 @@ export async function marcarRevision(raiz: string, proyecto: string, paso: 'en_c
   });
 }
 
-/** Pide que el director aclare un paso, aparte de la revisión (reemplaza una aclaración anterior ya cerrada o fallida). */
-export async function pedirAclaracion(raiz: string, a: Pick<AclaracionPedida, 'proyecto' | 'mision' | 'paso' | 'nota' | 'quien'>): Promise<AclaracionPedida> {
+/** Pide que el director aclare un paso, o lo compruebe, aparte de la revisión (reemplaza una anterior ya cerrada o fallida). */
+export async function pedirAclaracion(raiz: string, a: Pick<AclaracionPedida, 'proyecto' | 'mision' | 'paso' | 'nota' | 'quien' | 'comprobar'>): Promise<AclaracionPedida> {
   const aclaracion: AclaracionPedida = { ...a, pedida: new Date().toISOString() };
   await cambiarLocal(raiz, (l) => ({ ...l, aclaracion }));
   return aclaracion;
@@ -880,7 +886,7 @@ export async function retomarAparte(raiz: string, proyecto: string, tipo: 'aclar
     const pedida = new Date().toISOString();
     if (tipo === 'aclaracion') {
       const a = x as AclaracionPedida;
-      nueva = { proyecto, mision: a.mision, paso: a.paso, nota: a.nota, quien, pedida, reintento };
+      nueva = { proyecto, mision: a.mision, paso: a.paso, nota: a.nota, quien, pedida, reintento, ...(a.comprobar ? { comprobar: true } : {}) };
       return { ...l, aclaracion: nueva };
     }
     const u = x as UrgenciaPedida;

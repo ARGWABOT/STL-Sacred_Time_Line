@@ -315,6 +315,24 @@ export const encargoAclaracion = (a: AclaracionPedida) =>
   (a.reintento ? RETOMA_APARTE : '') +
   esperar(MAX_MIN_ACLARAR);
 
+/**
+ * Lo que se le encarga al director cuando alguien hizo un paso fuera del Studio y oprimió «Ya lo hice: compruébalo tú»
+ * (propuesta aceptada pr_verificar_paso): comprobar solo ese paso, al instante, con la evidencia que pueda leer, y decir
+ * si se cumplió, qué encontró y qué hacer si no. Va por el camino de la aclaración, con el mismo límite.
+ */
+export const encargoComprobacion = (a: AclaracionPedida) =>
+  `Comprobación pedida desde el Studio para el proyecto «${a.proyecto}»: ${a.quien} hizo fuera del Studio el paso ${a.paso + 1} ` +
+  `de la misión «${a.mision}» y oprimió «Ya lo hice: compruébalo tú». Eres el director asistente de STL Studio y te lanzó ` +
+  `el Studio, sin pantalla: nadie lee esta salida. Es una ida y vuelta corta: NO hagas la revisión completa ni atiendas ` +
+  `nada más (las demás notas, entregas y documentos esperan la revisión siguiente). Corre ` +
+  `node tools/director/bandeja.ts --proyecto ${a.proyecto} --comprobar y sigue lo que dice: busca la evidencia de ese paso ` +
+  `(el repositorio, la herramienta, la página en internet), responde solo esa nota con lo que encontraste y cierra con ` +
+  `node tools/director/bandeja.ts --proyecto ${a.proyecto} --comprobar --listo y el commit en la memoria del proyecto. ` +
+  `No toques el código ni hagas por la persona lo que el paso le pide. Tus permisos no aceptan órdenes encadenadas con &&: ` +
+  `da cd a la carpeta, luego git add y luego git commit, cada una por separado.` +
+  (a.reintento ? RETOMA_APARTE : '') +
+  esperar(MAX_MIN_ACLARAR);
+
 /** Una aclaración o una urgencia pedida otra vez con «Retomarla» (pr_retoma_automatica, punto 5). */
 const RETOMA_APARTE = ' Es un reintento: la anterior no se cerró; retoma lo que dejó, sin rehacerlo (la bandeja lo lista).';
 
@@ -2016,7 +2034,7 @@ export class Revisor {
    */
   private async fallo(a: AclaracionPedida, problema: string, falla?: FallaRevision): Promise<void> {
     await marcarAclaracion(this.raiz, a.nota, { error: problema, ...(falla ? { falla } : {}) });
-    await anotar(this.raiz, { quien: EL_STUDIO, que: `no pudo aclarar el paso ${a.paso + 1} de ${a.mision}: ${problema} La nota espera la revisión.`, desde: 'el lanzador del director', proyecto: a.proyecto });
+    await anotar(this.raiz, { quien: EL_STUDIO, que: `no pudo ${a.comprobar ? 'comprobar' : 'aclarar'} el paso ${a.paso + 1} de ${a.mision}: ${problema} La nota espera la revisión.`, desde: 'el lanzador del director', proyecto: a.proyecto });
   }
 
   /** La urgencia no se pudo: lo dice, y las notas (que ya están en el Buzón) esperan la revisión que pida la persona. */
@@ -2295,7 +2313,7 @@ export class Revisor {
     const pidio = antes.revision?.proyecto === proyecto ? antes.revision : null;
     await anotar(this.raiz, {
       quien: EL_STUDIO,
-      que: (aparte?.tipo === 'aclaracion' ? `lanza al director para aclarar el paso ${aparte.a.paso + 1} de ${aparte.a.mision}, como pidió ${aparte.a.quien}`
+      que: (aparte?.tipo === 'aclaracion' ? `lanza al director para ${aparte.a.comprobar ? 'comprobar' : 'aclarar'} el paso ${aparte.a.paso + 1} de ${aparte.a.mision}, como pidió ${aparte.a.quien}`
         : aparte?.tipo === 'urgencia' ? `lanza al director solo para lo urgente que dejó ${aparte.u.quien}`
         : `lanza al director para la revisión que pidió ${pidio?.quien ?? 'alguien'} a las ${pidio?.pedida ?? '?'}${pidio?.origen ? `, con ${ORIGENES_REVISION[pidio.origen]}` : ''}`) + (permisos.pregunta ? ' (en el modo «Me pregunta en el Studio»: lo que le falte de permisos te lo pregunta)' : '')
         + (permisos.automatico ? ' (en el modo «Automático, vigilado»: lo que le falte lo decide solo Claude Code, y lo que apruebe queda en el panel de «Permisos»)' : '')
@@ -2305,7 +2323,7 @@ export class Revisor {
     });
     const delStudio = esElStudio(repositorio, this.raiz);
     // Con su plan, si el primer tiempo dejó uno válido (pd_dos_tiempos)
-    const elEncargo = aparte?.tipo === 'aclaracion' ? encargoAclaracion(aparte.a) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u, delStudio)
+    const elEncargo = aparte?.tipo === 'aclaracion' ? (aparte.a.comprobar ? encargoComprobacion(aparte.a) : encargoAclaracion(aparte.a)) : aparte?.tipo === 'urgencia' ? encargoUrgencia(aparte.u, delStudio)
       : encargo(proyecto, reintento, cola, delStudio, historial, minutos) + (planDeLaRevision ? conElPlanDeLaRevision(proyecto, planDeLaRevision) + (ayudantes ? conLosAyudantesDelPlan(ayudantes) : '') : '') + (bandejaLista ? conLaBandejaLista(proyecto, bandejaLista) + paqueteListoDe(this.raiz, repositorio, bandejaLista, piezaDelPlan(this.raiz, proyecto)) : '');
     // El paquete de la revisión: el encargo, tal como se envía, junto a su registro (se abre en «Lo que gastó el director»)
     try {

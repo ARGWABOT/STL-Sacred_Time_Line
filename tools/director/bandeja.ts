@@ -16,6 +16,8 @@
 //                                                         es lo que mira la sesión del director en su ciclo (/vigila).
 //      node tools/director/bandeja.ts --aclarar        → el paso que alguien no entendió («No lo entiendo»): solo eso,
 //                                                         sin el resto de la revisión; con --listo, la cierra.
+//      node tools/director/bandeja.ts --comprobar      → el paso de afuera que alguien hizo y pidió comprobar («Ya lo
+//                                                         hice: compruébalo tú»): solo eso; con --listo, la cierra.
 //      node tools/director/bandeja.ts --urgente        → las notas urgentes que el Studio lanzó solas, al instante: solo
 //                                                         eso; con --listo, la cierra.
 // Corrida por el director que lanzó el Studio (con STL_REGISTRO), lo que imprime, menos el cierre, queda también en el
@@ -25,6 +27,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { dirname, join, resolve } from 'node:path';
 import {
   aclaracionesDe,
+  comprobacionesDe,
   EN_VUELTAS,
   pideUnaRegla,
   archivar,
@@ -94,12 +97,14 @@ import {
   validarPlan,
   validarProyecto,
   YA_LO_DIJE,
+  type Mision,
+  type Paso,
 } from '../../src/director/director.ts';
 import { piezasPendientes, pistasSinAtender, puedeQueYaEsteHecho } from '../../src/director/buscar.ts';
 import { fechaDeCambio, igualQueEntonces, leerFresco, leerFrescosTexto } from '../../src/director/fresco.ts';
 import { lineasDelMapa, sinCommitDeGit } from '../../src/director/mapa.ts';
 import { aplicarParche } from '../../src/director/parche.ts';
-import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, guardarHuella, planCambiadoTrasCierre, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, reintentoDe, rutasDe, seguidasActivas, ubicar, urgenciaActiva } from '../../src/director/proyectos.ts';
+import { CARPETA, corteDeRevision, enDisco as enDiscoDe, escribirDeUnaVez, guardarHuella, planCambiadoTrasCierre, leerLocal, leerRutaRepositorio, marcarAclaracion, marcarRevision, marcarUrgencia, marcarVigilia, reintentoDe, rutasDe, seguidasActivas, ubicar, urgenciaActiva, type AclaracionPedida } from '../../src/director/proyectos.ts';
 import { archivoDelCandado, MIN_CANDADO_SESION, quienLoTiene, renovarCandado, soltarCandado, tomarCandado, type Candado } from '../../src/director/candado.ts';
 import { audioBorrable, borrarSiTranscrito, comandoTranscripcion, limpiarTranscrito, quitarSiVacia, txtDeAudio } from '../../src/director/transcripcion.ts';
 import { piezaPorCerrar } from '../../src/director/dosTiempos.ts';
@@ -217,8 +222,9 @@ if (args.includes('--aplicar')) {
   process.exit(0);
 }
 
-// «No lo entiendo, explícamelo mejor»: solo ese paso, una ida y vuelta corta, sin el resto de la revisión
-if (args.includes('--aclarar')) {
+// «No lo entiendo, explícamelo mejor»: solo ese paso, una ida y vuelta corta, sin el resto de la revisión. Y por el mismo
+// camino, «Ya lo hice: compruébalo tú» (pr_verificar_paso): comprobar un paso de afuera, con su encargo (--comprobar)
+if (args.includes('--aclarar') || args.includes('--comprobar')) {
   const elegido = await proyectoElegido(pedido);
   const { plan, estado, proyecto } = await leerTodo(pedido, false);
   const local = await leerLocal(raiz);
@@ -239,7 +245,7 @@ if (args.includes('--aclarar')) {
     await guardarHuella(raiz, elegido);
     await marcarAclaracion(raiz, a.nota, 'hecha');
     await soltarElCandado(elegido);
-    console.log(`Aclaración hecha: ${a.nota}`);
+    console.log(`${a.comprobar ? 'Comprobación hecha' : 'Aclaración hecha'}: ${a.nota}`);
     process.exit(0);
   }
   await tomarElCandado(elegido, 'aclaracion');
@@ -253,6 +259,10 @@ if (args.includes('--aclarar')) {
   const previas = aclaracionesDe(estado.notas, m.id, a.paso).filter((n) => n.id !== nota.id);
   const marcados = new Set(estado.pasos?.[m.id]?.hechos ?? []);
   const l = (s = '') => console.log(s);
+  if (a.comprobar) {
+    comprobacionDelPaso(elegido, a, m, p, marcados, proyecto.nombre, nota.quien);
+    process.exit(0);
+  }
   l(`# Aclaración de un paso · ${proyecto.nombre} (${elegido})`);
   l(`${nota.quien} no entendió este paso y oprimió «${previas.length ? 'Aún no lo entiendo, detállalo más' : 'No lo entiendo, explícamelo mejor'}». Es una ida y vuelta corta: atiende SOLO esto.`);
   l(`Las demás notas, entregas y documentos esperan la revisión siguiente: no las respondas ni cambies nada más del plan.`);
@@ -282,6 +292,31 @@ if (args.includes('--aclarar')) {
   l('3. No toques el mensaje, el resumen ni nada más: eso es de la revisión.');
   l(`4. Cierra: \`node tools/director/bandeja.ts --proyecto ${elegido} --aclarar --listo\` y el commit en la memoria: cd "${memoria(elegido)}", luego git add director/plan.json, luego git commit -m "Director (${elegido}): aclara el paso ${a.paso + 1} de ${m.id}" -- director/plan.json.`);
   process.exit(0);
+}
+
+/**
+ * «Ya lo hice: compruébalo tú» (propuesta aceptada pr_verificar_paso): lo que el director necesita para comprobar un paso
+ * hecho fuera del Studio, solo ese, sin el resto de la revisión. El paso ya quedó marcado y la persona sigue con su misión
+ * siguiente: si no se cumplió, le vuelve como misión primera, con lo que encontró.
+ */
+function comprobacionDelPaso(elegido: string, a: AclaracionPedida, m: Mision, p: Paso, marcados: Set<number>, nombre: string, quien: string) {
+  const l = (s = '') => console.log(s);
+  l(`# Comprobación de un paso · ${nombre} (${elegido})`);
+  l(`${quien} hizo este paso fuera del Studio y oprimió «Ya lo hice: compruébalo tú». Es una ida y vuelta corta: atiende SOLO esto.`);
+  l('Las demás notas, entregas y documentos esperan la revisión siguiente: no las respondas ni cambies nada más del plan.');
+  if (a.reintento) l(`\nEs un reintento: la que lanzó el Studio el ${new Date(a.reintento.lanzada).toLocaleString('es-CO')} no se cerró${a.reintento.registro ? ` (su registro: ${a.reintento.registro})` : ''}. Lo que dejó está hecho: termina solo lo que falta.`);
+  l(`\n## La misión «${m.titulo}» (${m.id})`);
+  l(`- Por qué: ${m.porQue}`);
+  l(`- Entrega: ${m.entrega}`);
+  m.pasos.forEach((x, i) => l(`- ${i === a.paso ? '→ ' : ''}Paso ${i + 1}${marcados.has(i) ? ' (ya marcado)' : ''}: ${typeof x === 'string' ? x : x.texto}`));
+  l(`\n## El paso que hay que comprobar: el ${a.paso + 1}`);
+  l(JSON.stringify(p, null, 2));
+  l(`\n## Qué hacer (en ${enDiscoDe(raiz, rutasDe(elegido).plan)})`);
+  l('1. Busca la evidencia de que el paso se cumplió, solo leyendo: el repositorio del proyecto (git log, git status, los archivos), lo que dejó la herramienta o la página en internet, y di de dónde salió cada dato. No hagas tú lo que el paso le pide a la persona.');
+  l(`2. En \`respuestas\`, la de la nota ${a.nota}: \`{ "cuando": "<ISO ahora>", "tratamiento": "informada" | "integrada", "texto": "<si se cumplió, lo que encontraste y, si no, qué hacer>", "destino": { "vista": "misiones", "ancla": "mision-<la misión>", "etiqueta": "…" } }\`. Empieza por lo directo («Se cumplió» o «No lo encontré»): el Studio la muestra debajo del paso.`);
+  l(`3. Si se cumplió: \`informada\`, con el destino en su misión (mision-${m.id}). Si no se cumplió, o lo que se ve es otra cosa: \`integrada\`, y ese paso le vuelve como una misión nueva para ${m.para}, primera en su cola, con el paso reescrito con lo que encontraste y qué hacer si sale otra cosa (\`origen\`: ["${m.id}", "${a.nota}"]); el destino lleva a ella. Los formatos, en ${PROCEDIMIENTOS.formatos.archivo}.`);
+  l('4. No toques el mensaje, el resumen ni nada más: eso es de la revisión.');
+  l(`5. Cierra: \`node tools/director/bandeja.ts --proyecto ${elegido} --comprobar --listo\` y el commit en la memoria: cd "${memoria(elegido)}", luego git add director/plan.json, luego git commit -m "Director (${elegido}): comprueba el paso ${a.paso + 1} de ${m.id}" -- director/plan.json.`);
 }
 
 // Lo urgente: solo esas notas, al instante, sin el resto de la revisión. El resultado vuelve como reporte en «Dónde
@@ -1016,7 +1051,8 @@ if (entregadasDespues) linea(`\n(${entregadasDespues === 1 ? 'Una misión se ent
 
 /** Lo marcado a mano que pasa fuera del Studio: el director no lo da por hecho sin evidencia (docs/metodo/director/review-cycle.md › los pasos, paso 1). */
 function avisarPorComprobar(m: (typeof plan.misiones)[number]) {
-  const porComprobar = pasosPorComprobar(m, estado.pasos?.[m.id]?.hechos ?? []);
+  // Lo que el director ya comprobó con «Ya lo hice: compruébalo tú» trae su prueba en su respuesta (pr_verificar_paso)
+  const porComprobar = pasosPorComprobar(m, estado.pasos?.[m.id]?.hechos ?? []).filter((i) => !comprobacionesDe(estado.notas, m.id, i).some((n) => plan.respuestas?.[n.id]));
   if (!porComprobar.length) return;
   const texto = (i: number) => { const x = m.pasos[i]; return (typeof x === 'string' ? x : x.texto).slice(0, 90); };
   linea(`  ⚠ Compruébalo antes de darlo por hecho (marcado a mano, pasa fuera del Studio): ${porComprobar.map((i) => `${i + 1}. «${texto(i)}»`).join('; ')}. Busca la evidencia (el repositorio, la herramienta, lo que haya dejado); si no la hay, no lo apruebes: devuélvele el paso y dile qué no encontraste.`);
@@ -1051,6 +1087,8 @@ for (const n of comentarios) {
   if (s.tipo === 'mision' && s.aclarar) {
     const veces = aclaracionesDe(estado.notas, s.id ?? '', Number(/\d+/.exec(s.seccion ?? '')?.[0] ?? 1) - 1).length;
     linea(`  «No lo entiendo, explícamelo mejor» (${veces === 1 ? 'la primera vez' : `${veces} veces`}): el Studio no pudo aclararlo al instante. Reescribe ese paso con más contexto (\`texto\` y, si son varias acciones, \`detalle\`), sin cambiar su número, y responde con su \`destino\` en la misión.`);
+  } else if (s.tipo === 'mision' && s.comprobar) {
+    linea('  «Ya lo hice: compruébalo tú» (el paso quedó marcado): el Studio no pudo comprobarlo al instante. Busca la evidencia de ese paso y responde si se cumplió, qué encontraste y qué hacer si no; si no se cumplió, ese paso le vuelve como misión primera, con lo que encontraste.');
   } else if (s.tipo === 'mision' && s.eleccion === YA_LO_DIJE) {
     // Ninguna opción le calzaba: el paso lo responde lo que ya dijo con su ✉ de ese paso (el último antes de este clic)
     const c = n.de ? comentarioDe(estado.notas.filter((x) => x.cuando <= n.cuando), s.id ?? '', Number(/\d+/.exec(s.seccion ?? '')?.[0] ?? 1) - 1, n.de) : undefined;

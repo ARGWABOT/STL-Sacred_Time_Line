@@ -89,7 +89,7 @@ describe('el plan, con cambios puntuales', () => {
 
   it('la bandeja lo aplica solo si no le suma errores al plan, y sin marcar la revisión en curso', () => {
     const bandeja = readFileSync(join(__dirname, '..', '..', 'tools', 'director', 'bandeja.ts'), 'utf-8');
-    const aplicar = bandeja.slice(bandeja.indexOf("if (args.includes('--aplicar'))"), bandeja.indexOf("if (args.includes('--aclarar'))"));
+    const aplicar = bandeja.slice(bandeja.indexOf("if (args.includes('--aplicar'))"), bandeja.indexOf("if (args.includes('--aclarar')"));
     expect(aplicar).toContain('aplicarParche(');
     expect(aplicar).toMatch(/validarPlan\(r\.plan, equipo\)\.filter\(\(e\) => !antes\.has\(e\)\)/);
     expect(aplicar).not.toContain('marcarRevision');

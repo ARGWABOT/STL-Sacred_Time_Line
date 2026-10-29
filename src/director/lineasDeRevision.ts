@@ -39,7 +39,7 @@ export interface LineaDeRevision {
 }
 
 /** Lo que dice la bandeja cuando cierra: la revisión, la urgencia o la aclaración. */
-const CERRO = /Revisión marcada: \d{4}-|Urgencia atendida: |Aclaración hecha: /;
+const CERRO = /Revisión marcada: \d{4}-|Urgencia atendida: |Aclaración hecha: |Comprobación hecha: /;
 /** La línea con que git cuenta un commit hecho: «[main 3fb3cf0] El asunto». */
 const COMMIT = /^\[[^\s\]]+(?: \([^)]*\))? ([0-9a-f]{7,40})\] (.+)$/gm;
 

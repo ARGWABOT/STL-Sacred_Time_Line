@@ -31,6 +31,8 @@ import { esRegistro, MAX_BYTES as MAX_BYTES_VER, paginaDeArchivo, paginaDeError,
 import { leerCandado, otroServidor, soltarCandado, tomarCandado, yaEncendido } from './unico.ts';
 import {
   aclaracionesDe,
+  comprobacionesDe,
+  seMarcaAMano,
   agendaDe,
   bloqueosPuerta,
   claveEntrega,
@@ -593,7 +595,7 @@ export function servidorDirector(): Plugin {
           ...(sobre.seccion ? { seccion: textoDe(sobre.seccion, 200, 'El nombre de la parte que comentas', general) } : {}),
           ...(sobre.decision ? { decision: textoDe(sobre.decision, 200, 'El nombre de la decisión que respondes', general) } : {}),
           ...(sobre.fragmento ? { fragmento: String(sobre.fragmento).trim().slice(0, 200) } : {}),
-          ...(postura ? { postura } : {}), ...(sobre.tipo === 'mision' && sobre.aclarar === true ? { aclarar: true } : {}), ...(eleccion ? { eleccion } : {}), ...(hazlo ? { hazlo } : {}),
+          ...(postura ? { postura } : {}), ...(sobre.tipo === 'mision' && sobre.aclarar === true ? { aclarar: true } : {}), ...(sobre.tipo === 'mision' && sobre.comprobar === true ? { comprobar: true } : {}), ...(eleccion ? { eleccion } : {}), ...(hazlo ? { hazlo } : {}),
         };
         const nid = `n${Date.now().toString(36)}${yo.rol.slice(0, 3).replace(/-/g, '')}`;
         const lista: unknown[] = Array.isArray(cuerpo.adjuntos) ? cuerpo.adjuntos : [];
@@ -1711,6 +1713,35 @@ export function servidorDirector(): Plugin {
             const despues = await leerLocal(raiz);
             const fallo = despues.aclaracion?.nota === aclaracion.nota && !!despues.aclaracion.error;
             return responder(res, 200, { estado, proyecto, aclaracion: fallo ? null : despues.aclaracion, ...(fallo ? { revision: despues.revision?.proyecto === id ? despues.revision : null } : {}) });
+          }
+          // «Ya lo hice: compruébalo tú» (propuesta aceptada pr_verificar_paso): un paso de afuera, ya marcado por la página;
+          // la nota de ese paso y el director solo para comprobarlo, por el camino de la aclaración. Sin quién lo llame, la
+          // nota espera la revisión que pida la persona (el Studio nunca la pide solo)
+          if (ruta === '/comprobar-paso' && req.method === 'POST') {
+            const cuerpo = await leerCuerpo(req);
+            const yo = await leerIdentidad(raiz, id);
+            if (!yo.rol) return responder(res, 403, { error: yo.problema ?? 'Este Estudio no sabe quién eres: configura git user.name y user.email.' });
+            const local = await leerLocal(raiz);
+            const r = local.revision;
+            if (r?.proyecto === id && (r.enCurso || r.lanzada) && !r.hecha) return responder(res, 400, { error: 'El director está revisando: el paso quedó marcado, y lo puedes pedir comprobar cuando termine.' });
+            const a = local.aclaracion;
+            if (a && !a.hecha && !a.error) return responder(res, 400, { error: 'El director está atendiendo otro paso: el paso quedó marcado, y lo puedes pedir comprobar cuando termine.' });
+            const plan = await leerPlan(id);
+            const m = plan.misiones?.find((x) => x.id === String(cuerpo.mision ?? ''));
+            const paso = Number(cuerpo.paso);
+            if (!m || !Number.isInteger(paso) || paso < 0 || paso >= m.pasos.length) return responder(res, 400, { error: 'Ese paso ya no está en la misión.' });
+            if (m.para !== yo.rol) return responder(res, 400, { error: 'Solo quien tiene la misión puede pedir que se compruebe.' });
+            if (!seMarcaAMano(m.pasos[paso])) return responder(res, 400, { error: 'Ese paso lo comprueba el Studio solo.' });
+            const sobre = { tipo: 'mision', id: m.id, seccion: seccionPaso(paso), comprobar: true };
+            const { estado, proyecto, que, archivos } = await enFila(() => decidir(id, { tipo: 'comentar', sobre, texto: 'Ya lo hice: compruébalo tú.' }, yo as Identidad & { rol: Persona }));
+            programarCommit(id, yo.nombre, `${que}: pide comprobar el paso ${paso + 1} de «${m.titulo}»`, archivos);
+            const nota = comprobacionesDe(estado.notas, m.id, paso).at(-1)!;
+            const comprobacion = await pedirAclaracion(raiz, { proyecto: id, mision: m.id, paso, nota: nota.id, quien: yo.nombre, comprobar: true });
+            await anotar(raiz, { quien: yo.nombre, que: `pide comprobar el ${seccionPaso(paso).toLowerCase()} de «${m.titulo}», que hizo fuera del Studio`, desde: `«Ya lo hice: compruébalo tú» · misión ${m.id} › ${seccionPaso(paso)}`, proyecto: id });
+            await revisor?.mirar(true).catch(() => {});
+            const despues = await leerLocal(raiz);
+            const fallo = despues.aclaracion?.nota === comprobacion.nota && !!despues.aclaracion.error;
+            return responder(res, 200, { estado, proyecto, aclaracion: fallo ? null : despues.aclaracion });
           }
           // «Abrir la terminal con esta orden»: la orden sale del plan (del paso que se nombra), nunca de la petición
           if (ruta === '/terminal' && req.method === 'POST') {

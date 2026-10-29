@@ -445,7 +445,7 @@ export const eleccionDe = (notas: Nota[], mision: string, i: number, persona: Pe
 /** El último comentario a secas de la persona en un paso (su ✉: sin elegir, encargar ni pedir aclarar), si dijo algo. */
 export const comentarioDe = (notas: Nota[], mision: string, i: number, persona: Persona) =>
   notas.filter((n) => n.de === persona && n.sobre.tipo === 'mision' && n.sobre.id === mision && n.sobre.seccion === seccionPaso(i)
-    && !n.sobre.eleccion && !n.sobre.hazlo && !n.sobre.aclarar && (!!n.texto?.trim() || !!n.audio || !!n.adjuntos?.length)).at(-1);
+    && !n.sobre.eleccion && !n.sobre.hazlo && !n.sobre.aclarar && !n.sobre.comprobar && (!!n.texto?.trim() || !!n.audio || !!n.adjuntos?.length)).at(-1);
 
 /** El último encargo («Hazlo tú») de la persona en un paso con `hazlo` (la nota que lo guarda), si ya se lo encargó. */
 export const encargoDe = (notas: Nota[], mision: string, i: number, persona: Persona) =>
@@ -476,7 +476,7 @@ export function pasoHecho(h: Hecho, persona: Persona, proyecto: Proyecto, estado
     case 'puerta':
       return !!h.id && !!estado.cierres[h.id];
     case 'nota':
-      return estado.notas.some((n) => n.de === persona && !n.sobre.aclarar && n.cuando >= desde
+      return estado.notas.some((n) => n.de === persona && !n.sobre.aclarar && !n.sobre.comprobar && n.cuando >= desde
         && (!h.tipo || n.sobre.tipo === h.tipo) && (!h.id || n.sobre.id === h.id) && (!h.seccion || n.sobre.seccion === h.seccion));
   }
 }
@@ -1648,12 +1648,14 @@ export interface Nota {
    * `postura`, en una decisión: `aprueba` (de acuerdo con lo que recomienda el director, con un clic), `decide` (otra
    * cosa, la que dice la nota) o `comenta` (una duda o un comentario que no la decide). Sin postura, la nota la responde.
    * `aclarar`, en un paso de una misión: «No lo entiendo, explícamelo mejor» (un clic); el director lo atiende al
-   * instante, sin el resto de la revisión, y reescribe ese paso con más detalle. `eleccion`, en un paso con `opciones`:
+   * instante, sin el resto de la revisión, y reescribe ese paso con más detalle. `comprobar`, en un paso de afuera: «Ya lo
+   * hice: compruébalo tú» (pr_verificar_paso); el paso queda hecho y el director lo comprueba al instante, por el mismo
+   * camino, y responde lo que encontró. `eleccion`, en un paso con `opciones`:
    * la opción que eligió con un clic (el paso queda hecho); `YA_LO_DIJE` si lo dio por respondido con su ✉ de ese paso
    * (`comentarioDe`). `hazlo`, en un paso con `hazlo`: le encargó el paso al
    * director («Hazlo tú», confirmado); el paso queda hecho y el director lo hace en su revisión siguiente.
    */
-  sobre: { tipo: TipoSobre; id?: string; seccion?: string; decision?: string; fragmento?: string; postura?: Postura; aclarar?: boolean; eleccion?: string; hazlo?: boolean };
+  sobre: { tipo: TipoSobre; id?: string; seccion?: string; decision?: string; fragmento?: string; postura?: Postura; aclarar?: boolean; comprobar?: boolean; eleccion?: string; hazlo?: boolean };
   texto?: string;
   /** Ruta del audio en este repositorio (proyectos/<id>/director/notas/…). */
   audio?: string;
@@ -1736,11 +1738,18 @@ export interface PasosMarcados {
  * comprobó al marcarla (`comprobar`) ya traen su prueba.
  */
 export function pasosPorComprobar(m: { pasos: Paso[] }, hechos: number[]): number[] {
-  return hechos.filter((i) => {
-    const p = m.pasos[i];
-    return p !== undefined && (typeof p === 'string' || (!p.hecho && !p.opciones?.length && p.hazlo === undefined && !p.comprobar));
-  });
+  return hechos.filter((i) => m.pasos[i] !== undefined && seMarcaAMano(m.pasos[i]));
 }
+
+/**
+ * Si un paso se marca a mano y nada lo comprueba solo: ni el Studio (`hecho`), ni una orden de lectura (`comprobar`), ni
+ * una elección o un encargo. Es el que trae «Ya lo hice: compruébalo tú» (propuesta aceptada pr_verificar_paso).
+ */
+export const seMarcaAMano = (p: Paso) => typeof p === 'string' || (!p.hecho && !p.opciones?.length && p.hazlo === undefined && !p.comprobar);
+
+/** Las veces que se pidió comprobar un paso («Ya lo hice: compruébalo tú»), de la más vieja a la más nueva. */
+export const comprobacionesDe = (notas: Nota[], mision: string, i: number) =>
+  notas.filter((n) => n.sobre.tipo === 'mision' && n.sobre.comprobar && n.sobre.id === mision && n.sobre.seccion === seccionPaso(i));
 
 /**
  * Los pasos que quedaron sin marcar en una misión entregada (nota del titular, 22 de octubre de 2026: una orden falló, su
@@ -2471,7 +2480,7 @@ export function destinosDeNota(plan: Plan, nota: Nota, faseEnCurso?: string): De
  */
 export function tratamientosDeNota(nota: Nota): Tratamiento[] {
   const s = nota.sobre;
-  if (s?.tipo === 'mision' && s.aclarar) return ['integrada', 'informada'];
+  if (s?.tipo === 'mision' && (s.aclarar || s.comprobar)) return ['integrada', 'informada'];
   if ((s?.tipo === 'mision' && s.hazlo) || decideDecision(nota)) return TRATAMIENTOS.filter((t) => t !== 'informada');
   if ((s?.tipo === 'mision' && s.eleccion) || esPregunta(nota)) return TRATAMIENTOS.filter((t) => t !== 'rechazada');
   return [...TRATAMIENTOS];

@@ -94,6 +94,7 @@ export function desdeDeAccion(cuerpo: any): string {
     const clase = s.hazlo === true ? '«Hazlo tú»'
       : typeof s.eleccion === 'string' ? `opción «${corto(s.eleccion)}»`
       : s.aclarar === true ? '«No lo entiendo»'
+      : s.comprobar === true ? '«Ya lo hice: compruébalo tú»'
       : s.postura === 'aprueba' ? '«Apruebo lo que recomiendas»'
       : s.postura === 'decide' ? '«Decido otra cosa»'
       : s.postura === 'comenta' ? 'comentario de una decisión'

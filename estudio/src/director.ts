@@ -11,6 +11,8 @@ import { limpio } from './limpiar';
 import { direccionVer } from './enlacesArchivos';
 import {
   aclaracionesDe,
+  comprobacionesDe,
+  seMarcaAMano,
   aprobadoAntesDelCierre,
   aprobadasDeFase,
   pedidosAntesDelCierre,
@@ -284,7 +286,7 @@ interface Datos {
   planVivo?: { planeando: boolean; encargos: { id: string; que: string; hecho?: string }[] | null } | null;
   /** «No lo entiendo, explícamelo mejor» de un paso: el director lo aclara al instante, sin el resto de la revisión. */
   /** `falla`: si no se cerró, el reporte de qué pasó, como el de una revisión (pr_retoma_automatica, punto 5). */
-  aclaracion?: { mision: string; paso: number; nota: string; pedida: string; lanzada?: string; hecha?: string; error?: string; falla?: FallaRevision } | null;
+  aclaracion?: { mision: string; paso: number; nota: string; pedida: string; lanzada?: string; hecha?: string; error?: string; falla?: FallaRevision; comprobar?: boolean } | null;
   /** Las notas urgentes: el director las atiende solas, al instante, y el resultado vuelve en «¿Dónde quedamos?». */
   urgencia?: { notas: string[]; luego?: string[]; pedida: string; lanzada?: string; hecha?: string; error?: string; falla?: FallaRevision } | null;
 }
@@ -516,7 +518,7 @@ async function cargar(fresco = false) {
     else if (!cabeza.parentElement?.querySelector('.dq-paro')) cabeza.insertAdjacentHTML('afterend', lineaDeParo(paroNuevo));
   }
   if (fallo) avisar(((q) => (q?.startsWith('La revisión') ? `${q}.` : `La revisión no terminó.${q ? ` ${q}.` : ''}`))(d.revision!.falla?.que), false, undefined, { etiqueta: 'Qué pasó', hacer: () => void mostrarFalla() });
-  if (aclarado?.hecha) avisar('El director reescribió el paso con más detalle: está en tu misión.', true, undefined, { etiqueta: 'Ver el paso', hacer: () => void ir({ vista: 'misiones', ancla: `mision-${aclarado.mision}`, etiqueta: '' }) });
+  if (aclarado?.hecha) avisar(aclarado.comprobar ? 'El director comprobó el paso: lo que encontró está debajo de él.' : 'El director reescribió el paso con más detalle: está en tu misión.', true, undefined, { etiqueta: 'Ver el paso', hacer: () => void ir({ vista: 'misiones', ancla: `mision-${aclarado.mision}`, etiqueta: '' }) });
   else if (aclarado?.error) avisar(`${aclarado.error} Tu pedido quedó en el Buzón: lo puedes retomar, o el director lo responde en la próxima revisión.`, false, undefined, { etiqueta: 'Qué pasó', hacer: () => void mostrarFallaAparte('aclaracion') });
   if (urgenciaFallo) avisar(`${urgenciaFallo} Lo urgente quedó en el Buzón: lo puedes retomar, o cuando pidas la revisión, con «Pedir revisión», arriba, el director lo atiende primero.`, false, undefined, { etiqueta: 'Qué pasó', hacer: () => void mostrarFallaAparte('urgencia') });
   else if (urgenciaLista) avisar('El director atendió lo urgente: el resultado está en «¿Dónde quedamos?».', true, undefined, { etiqueta: 'Ver el resultado', hacer: () => void mostrarDondeQuedamos() });
@@ -2580,6 +2582,27 @@ async function pedirAclaracion(mision: string, i: number) {
 }
 
 /**
+ * «Ya lo hice: compruébalo tú» (pr_verificar_paso): marca el paso, deja la nota en el Buzón y el Studio llama al director
+ * solo para comprobarlo. Sin quién lo llame, el pedido espera en el Buzón la revisión que pida la persona.
+ */
+async function pedirComprobacion(mision: string, i: number) {
+  if (esperaAlDirector()) return;
+  comprobandoAqui = { mision, paso: i };
+  if (!pasosHechos(mision).includes(i) && !(await marcarPaso(mision, i, true))) return void ((comprobandoAqui = null), pintar());
+  pintar();
+  const r = await fetch('/__estudio/director/comprobar-paso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mision, paso: i }), signal: AbortSignal.timeout(30_000) }).catch((e) => e as Error);
+  comprobandoAqui = null;
+  if (r instanceof Error) return void (pintar(), avisar('No se pudo hablar con el servidor del Studio.'));
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) return void (pintar(), avisar(j.error ?? 'No se pudo.'));
+  d.estado = j.estado;
+  d.aclaracion = j.aclaracion ?? null;
+  pintar();
+  avisar(j.aclaracion ? 'El paso quedó marcado y el director lo comprueba en un momento: lo que encuentre aparece debajo de él. Sigue con lo tuyo.' : 'El paso quedó marcado. El Studio no puede llamar al director ahora: tu pedido quedó en el Buzón y lo comprueba la revisión que pidas, con «Pedir revisión», arriba.', true);
+  pintarSegundoPlano();
+}
+
+/**
  * `origen`: el botón que la pide (proyectos.ts › ORIGENES_REVISION): el servidor no acepta una revisión sin él, porque
  * solo la persona la pide (regla dura del titular, 23 de octubre de 2026). `callada`: sin el aviso de que quedó pedida.
  * ¿Quedó pedida?
@@ -2772,7 +2795,7 @@ function listaPasos(m: Mision) {
 function listaDePasos(m: Mision, conCasillas: boolean, indices: number[]) {
   const hechos = new Set(pasosHechos(m.id));
   // El botón de un paso que lleva a su propia misión no se dibuja (`destinoDelPaso` con la misión): ya estás en ella
-  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}${conCasillas ? ' con-marca' : ''}"><span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && destinoDelPaso(p, m) ? irDelPaso(m, i, destinoDelPaso(p, m)!, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.copiar ? textoParaCopiar(p.copiar) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, destinoDelPaso(p, m), p.varias === true) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas ? `<div class="pie-paso">${hechos.has(i) ? '' : aclararPaso(m, i)}${marcaPaso(m, i, p, hechos.has(i))}</div>` : ''}</li>`).join('')}</ol>`;
+  return `<ol class="pasos">${indices.map((i) => [m.pasos[i], i] as const).map(([p, i]) => `<li value="${i + 1}" class="${hechos.has(i) ? 'hecho' : ''}${conCasillas ? ' con-marca' : ''}"><span>${esc(typeof p === 'string' ? p : p.texto)}</span>${typeof p !== 'string' && destinoDelPaso(p, m) ? irDelPaso(m, i, destinoDelPaso(p, m)!, conCasillas && !hechos.has(i), p.esperar) : ''}${conCasillas && hechos.has(i) && d.identidad.rol === m.para ? `<button type="button" class="enlace desmarcar-paso" data-desmarcar-paso="${esc(m.id)}|${i}" title="Lo marcaste por error: el paso vuelve a quedar por hacer">Desmarcar</button>` : ''}${conCasillas ? `<button type="button" class="comentar-paso" data-comentar="mision|${esc(m.id)}|${seccionPaso(i)}" title="Comentar este paso al director (va al Buzón)">✉</button>` : ''}${typeof p !== 'string' && p.detalle?.length ? `<ol class="detalle-paso">${p.detalle.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${typeof p !== 'string' && p.terminal ? ordenPaso(m, i, p, conCasillas && !hechos.has(i)) : ''}${typeof p !== 'string' && p.copiar ? textoParaCopiar(p.copiar) : ''}${typeof p !== 'string' && p.opciones?.length ? opcionesPaso(m, i, p.opciones, hechos.has(i), p.esperar, destinoDelPaso(p, m), p.varias === true) : ''}${typeof p !== 'string' ? quienLoHace(m, i, p, hechos.has(i)) : ''}${conCasillas ? `<div class="pie-paso">${comprobarPaso(m, i, p, hechos.has(i))}${hechos.has(i) ? '' : aclararPaso(m, i)}${marcaPaso(m, i, p, hechos.has(i))}</div>` : ''}</li>`).join('')}</ol>`;
 }
 
 /**
@@ -2960,7 +2983,7 @@ function quienLoHace(m: Mision, i: number, p: Exclude<Paso, string>, hecho: bool
 let aclarandoAqui: { mision: string; paso: number } | null = null;
 /** ¿El director está aclarando ahora este paso (lo pidió «No lo entiendo»)? */
 const aclarando = (mision: string, i: number) => (aclarandoAqui?.mision === mision && aclarandoAqui.paso === i)
-  || (!!d.aclaracion && !d.aclaracion.hecha && !d.aclaracion.error && d.aclaracion.mision === mision && d.aclaracion.paso === i);
+  || (!!d.aclaracion && !d.aclaracion.comprobar && !d.aclaracion.hecha && !d.aclaracion.error && d.aclaracion.mision === mision && d.aclaracion.paso === i);
 
 /**
  * «No lo entiendo, explícamelo mejor», en el paso de ahora: un clic y el director lo reescribe con más detalle, al
@@ -2977,6 +3000,33 @@ function aclararPaso(m: Mision, i: number): string {
   const fallida = !!ultima && !respuesta && d.aclaracion?.nota === ultima.id && !!d.aclaracion.error;
   if (ultima && !respuesta) return `<p class="aclarando-paso" role="status">${fallida ? 'La aclaración no terminó: la puedes retomar, o la responde aquí mismo la próxima revisión.<button type="button" class="enlace" data-aparte="aclaracion">¿Por qué?</button>' : 'Le pediste que te lo explique mejor: lo responde aquí mismo en su próxima revisión.'}</p>`;
   return `${dijo}<button type="button" class="aclarar-paso" data-aclarar="${esc(m.id)}|${i}" title="El director reescribe este paso con más detalle, al instante">${previas.length ? 'Aún no lo entiendo, detállalo más' : 'No lo entiendo, explícamelo mejor'}</button>`;
+}
+
+/** El paso que se acaba de pedir comprobar, mientras el servidor responde. */
+let comprobandoAqui: { mision: string; paso: number } | null = null;
+/** ¿El director está comprobando ahora este paso (lo pidió «Ya lo hice: compruébalo tú»)? */
+const comprobando = (mision: string, i: number) => (comprobandoAqui?.mision === mision && comprobandoAqui.paso === i)
+  || (!!d.aclaracion?.comprobar && !d.aclaracion.hecha && !d.aclaracion.error && d.aclaracion.mision === mision && d.aclaracion.paso === i);
+
+/**
+ * «Ya lo hice: compruébalo tú» (propuesta aceptada pr_verificar_paso), en un paso que se hace fuera del Studio y que
+ * nada comprueba solo: lo marca y el director lo comprueba al instante, aparte de la revisión, con la evidencia que pueda
+ * leer. Mientras tanto, la persona sigue con lo suyo; debajo del paso queda lo que encontró y, si no se cumplió, qué hacer.
+ */
+function comprobarPaso(m: Mision, i: number, p: Paso, hecho: boolean): string {
+  if (d.identidad.rol !== m.para) return '';
+  const ultima = comprobacionesDe(d.estado.notas, m.id, i).at(-1);
+  const respuesta = ultima ? d.plan.respuestas?.[ultima.id] : undefined;
+  if (respuesta) return `<p class="aclaracion-paso"><b>El director lo comprobó:</b> ${esc(respuesta.texto)}</p>`;
+  if (comprobando(m.id, i)) return `<p class="aclarando-paso" role="status">El director lo está comprobando: sigue con lo tuyo${seguimientoAparte(d.aclaracion?.mision === m.id && d.aclaracion.paso === i ? d.aclaracion.lanzada : undefined, MIN_ACLARAR)}<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span></p>`;
+  if (ultima) {
+    const fallida = d.aclaracion?.nota === ultima.id && !!d.aclaracion.error;
+    return `<p class="aclarando-paso" role="status">${fallida ? 'La comprobación no terminó: la puedes retomar, o la hace la próxima revisión.<button type="button" class="enlace" data-aparte="aclaracion">¿Por qué?</button>' : 'Le pediste que lo compruebe: lo responde aquí mismo en su próxima revisión.'}</p>`;
+  }
+  // Solo en un paso de afuera: uno que lleva a un lugar del Studio se ve ahí mismo
+  const deAfuera = seMarcaAMano(p) && (typeof p === 'string' || !p.ir || !!p.ir.url);
+  if (hecho || !deAfuera) return '';
+  return `<button type="button" class="aclarar-paso" data-comprobar-paso="${esc(m.id)}|${i}" title="Marca el paso y el director comprueba al instante que salió bien, aparte de la revisión: usa el modelo, como «No lo entiendo»">Ya lo hice: compruébalo tú</button>`;
 }
 
 function tarjetaMision(m: Mision, compacta = false, numero = 0) {
@@ -6257,6 +6307,9 @@ async function clicEnVista(b: HTMLButtonElement) {
   } else if (ds.aclarar) {
     const [id, i] = ds.aclarar.split('|');
     await pedirAclaracion(id, Number(i));
+  } else if (ds.comprobarPaso) {
+    const [id, i] = ds.comprobarPaso.split('|');
+    await pedirComprobacion(id, Number(i));
   } else if (ds.elegir) {
     // Elegir una opción del paso: un clic, sin ir al Buzón; queda como nota del paso y el paso se marca solo
     const [id, i, k] = ds.elegir.split('|');
