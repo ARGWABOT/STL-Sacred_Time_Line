@@ -652,6 +652,35 @@ export function tiposEnBuzon(notas: Pick<Nota, 'id' | 'sobre' | 'tipo'>[], respu
 }
 
 /**
+ * Cómo quedó una nota, para el filtro «Cómo quedó» del Buzón (la parte «Seguimiento» de la propuesta aceptada
+ * pr_tipo_nota): esperando al director, o el tratamiento de su respuesta (una de antes sin tratamiento, respondida).
+ */
+export type ComoQuedo = Tratamiento | 'esperando';
+export const NOMBRE_COMO_QUEDO: Record<ComoQuedo, string> = { esperando: 'Esperando', integrada: 'Integrada', aplazada: 'Aplazada', decision: 'Requiere tu decisión', informada: 'Respondida', rechazada: 'Rechazada' };
+const ORDEN_COMO_QUEDO: ComoQuedo[] = ['esperando', 'integrada', 'aplazada', 'decision', 'informada', 'rechazada'];
+
+/** Cómo quedó una nota: sin respuesta, esperando; con ella, su tratamiento. Pura. */
+export function comoQuedoNota(n: Pick<Nota, 'id'>, respuestas: Record<string, Pick<Respuesta, 'tratamiento'>> | undefined): ComoQuedo {
+  const r = respuestas?.[n.id];
+  return r ? r.tratamiento ?? 'informada' : 'esperando';
+}
+
+/** Cuántas notas quedaron de cada forma, en el orden de los botones del filtro, solo las que tienen alguna. Pura. */
+export function comoQuedaronEnBuzon(notas: Pick<Nota, 'id'>[], respuestas: Record<string, Pick<Respuesta, 'tratamiento'>> | undefined): [ComoQuedo, number][] {
+  const cuenta = new Map<ComoQuedo, number>();
+  for (const n of notas) {
+    const c = comoQuedoNota(n, respuestas);
+    cuenta.set(c, (cuenta.get(c) ?? 0) + 1);
+  }
+  return ORDEN_COMO_QUEDO.filter((c) => cuenta.has(c)).map((c) => [c, cuenta.get(c)!]);
+}
+
+/** Las notas que quedaron de una forma; sin forma elegida, todas. Pura. */
+export function notasQueQuedaron<T extends Pick<Nota, 'id'>>(notas: T[], respuestas: Record<string, Pick<Respuesta, 'tratamiento'>> | undefined, como: ComoQuedo | ''): T[] {
+  return como ? notas.filter((n) => comoQuedoNota(n, respuestas) === como) : notas;
+}
+
+/**
  * Las notas cuya respuesta, escrita desde `desde`, debe decir su tipo y no lo dice: las que la persona dejó con «No sé:
  * elígelo tú». Así el director se lo pone al leerlas, y `--listo` no cierra sin eso. (A una de antes, sin tipo, la bandeja
  * le pide ponérselo, sin exigirlo: las que ya tienen respuesta quedan «Sin tipo».) Pura.

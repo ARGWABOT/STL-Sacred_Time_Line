@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { estadoVacio, notasDeTipo, OPCIONES_TIPO_DE_NOTA, pideTipo, respuestasSinTipo, TIPO_ELIGE, tipoDeNota, tiposEnBuzon, validarEstado, type Nota, type Plan } from './director';
+import { comoQuedaronEnBuzon, comoQuedoNota, estadoVacio, notasDeTipo, notasQueQuedaron, OPCIONES_TIPO_DE_NOTA, pideTipo, respuestasSinTipo, TIPO_ELIGE, tipoDeNota, tiposEnBuzon, validarEstado, type Nota, type Plan } from './director';
 
 // El tipo de cada nota, obligatorio y de un toque (pedido pd_tipo_obligatorio, parte 1 de la propuesta aceptada
 // pr_tipo_nota), y las notas de antes como «Sin tipo», con su filtro en el Buzón (tu decisión nmvsv9nuytit, en
@@ -41,6 +41,20 @@ describe('cada nota con su tipo', () => {
     expect(tiposEnBuzon(notas, {})).toEqual([['idea', 1], ['falla', 1], ['sin', 2]]);
     expect(notasDeTipo(notas, {}, 'sin').map((n) => n.id)).toEqual(['n1', 'n3']);
     expect(notasDeTipo(notas, {}, '').map((n) => n.id)).toEqual(['n1', 'n2', 'n3', 'n4']);
+  });
+
+  it('el filtro «Cómo quedó» del Buzón: esperando o el tratamiento de su respuesta, sobre las del tipo elegido', () => {
+    const notas = [nota('n1', { tipo: 'general' }, 'idea'), nota('n2', { tipo: 'general' }, 'falla'), nota('n3', { tipo: 'general' }, 'idea'), nota('n4', { tipo: 'general' })];
+    const respuestas = { n1: { tratamiento: 'aplazada' as const }, n2: { tratamiento: 'integrada' as const }, n4: {} };
+    expect(comoQuedoNota(notas[2], respuestas)).toBe('esperando');
+    // Una respuesta de antes sin tratamiento cuenta como respondida
+    expect(comoQuedoNota(notas[3], respuestas)).toBe('informada');
+    expect(comoQuedaronEnBuzon(notas, respuestas)).toEqual([['esperando', 1], ['integrada', 1], ['aplazada', 1], ['informada', 1]]);
+    const ideas = notasDeTipo(notas, {}, 'idea');
+    expect(notasQueQuedaron(ideas, respuestas, 'aplazada').map((n) => n.id)).toEqual(['n1']);
+    expect(notasQueQuedaron(ideas, respuestas, '').map((n) => n.id)).toEqual(['n1', 'n3']);
+    const pagina = readFileSync(join(__dirname, '..', '..', 'estudio', 'src', 'director.ts'), 'utf-8');
+    expect(pagina).toContain('const notas = notasQueQuedaron(deTipo, d.plan.respuestas, comoBuzon);');
   });
 
   it('el cierre exige el tipo en la respuesta a una nota que dejó «No sé: elígelo tú»; a una de antes, sin tipo, no', () => {

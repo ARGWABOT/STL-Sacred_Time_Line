@@ -63,6 +63,10 @@ import {
   tiposEnBuzon,
   notasDeTipo,
   type TipoEnBuzon,
+  comoQuedaronEnBuzon,
+  notasQueQuedaron,
+  NOMBRE_COMO_QUEDO,
+  type ComoQuedo,
   notaFoco,
   opcionConDetalle,
   opcionSola,
@@ -489,6 +493,7 @@ async function cargar(fresco = false) {
     celda = null;
     busquedaBuzon = '';
     tipoBuzon = '';
+    comoBuzon = '';
     // La columna de los documentos vuelve arriba. El repintado toma su scroll de la que está en pantalla, que es la del
     // anterior: también esa vuelve arriba (si no, el proyecto nuevo heredaba hasta dónde bajaste en el otro)
     scrollColumna = 0;
@@ -3449,6 +3454,8 @@ function vistaBuzon() {
 let busquedaBuzon = '';
 /** El tipo elegido en el filtro del Buzón (vacío: todas), como la búsqueda. */
 let tipoBuzon: TipoEnBuzon | '' = '';
+/** Cómo quedó, en el filtro «Cómo quedó» del Buzón (vacío: todas): se suma al del tipo. */
+let comoBuzon: ComoQuedo | '' = '';
 
 /** Lo que dice una nota (su texto, lo que se entendió de su audio, lo que eligió) y, con `conRespuesta`, lo que respondió el director. */
 function textosDeNota(n: Nota, conRespuesta = true) {
@@ -3465,11 +3472,20 @@ function notasDelBuzon() {
   // El filtro por tipo: uno por tipo que tenga notas, con su cuenta; las de antes, en «Sin tipo» (tu decisión nmvsv9nuytit)
   const tipos = tiposEnBuzon(todas, d.plan.respuestas);
   if (tipoBuzon && !tipos.some(([t]) => t === tipoBuzon)) tipoBuzon = '';
-  const filtro = tipos.length > 1
+  let filtro = tipos.length > 1
     ? `<div class="filtro-tipo" role="group" aria-label="Filtrar por tipo">${[['', `Todas · ${todas.length}`] as [string, string], ...tipos.map(([t, k]) => [t, `${NOMBRE_TIPO_EN_BUZON[t]} · ${k}`] as [string, string])]
       .map(([t, n]) => `<button type="button" class="chip-tipo${t === tipoBuzon ? ' activo' : ''}" data-tipo-buzon="${t}" aria-pressed="${t === tipoBuzon}">${esc(n)}</button>`).join('')}</div>`
     : '';
-  const notas = notasDeTipo(todas, d.plan.respuestas, tipoBuzon);
+  // Y cómo quedó cada una (la parte «Seguimiento» de pr_tipo_nota): esperando o el tratamiento de su respuesta, sobre las de ese tipo
+  const deTipo = notasDeTipo(todas, d.plan.respuestas, tipoBuzon);
+  const comos = comoQuedaronEnBuzon(deTipo, d.plan.respuestas);
+  if (comoBuzon && !comos.some(([c]) => c === comoBuzon)) comoBuzon = '';
+  const filtroComo = comos.length > 1
+    ? `<div class="filtro-tipo filtro-como" role="group" aria-label="Filtrar por cómo quedó"><span class="como">Cómo quedó:</span>${[['', `Todas · ${deTipo.length}`] as [string, string], ...comos.map(([c, k]) => [c, `${NOMBRE_COMO_QUEDO[c]} · ${k}`] as [string, string])]
+      .map(([c, n]) => `<button type="button" class="chip-tipo${c === comoBuzon ? ' activo' : ''}" data-como-buzon="${c}" aria-pressed="${c === comoBuzon}">${esc(n)}</button>`).join('')}</div>`
+    : '';
+  const notas = notasQueQuedaron(deTipo, d.plan.respuestas, comoBuzon);
+  filtro += filtroComo;
   const aqui: Lugar = { vista: 'buzon' };
   if (palabrasDeBusqueda(busquedaBuzon).length) {
     const halladas = notas.filter((n) => coincideBusqueda(textosDeNota(n), busquedaBuzon));
@@ -5975,6 +5991,14 @@ document.addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-tipo-buzon]');
   if (!b) return;
   tipoBuzon = (b.dataset.tipoBuzon ?? '') as TipoEnBuzon | '';
+  const resultados = document.getElementById('resultados-buzon');
+  if (resultados) resultados.innerHTML = notasDelBuzon();
+});
+// Y el de cómo quedó: igual, sobre las del tipo elegido
+document.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-como-buzon]');
+  if (!b) return;
+  comoBuzon = (b.dataset.comoBuzon ?? '') as ComoQuedo | '';
   const resultados = document.getElementById('resultados-buzon');
   if (resultados) resultados.innerHTML = notasDelBuzon();
 });
