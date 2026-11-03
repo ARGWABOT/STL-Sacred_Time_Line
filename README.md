@@ -9,4 +9,4 @@ metodología cumple lo que promete.
   librerías.
 
 Se genera desde el STL Studio (`node tools/publicar-stl.ts`). No incluye el código del Studio ni datos de ningún proyecto.
-Versión del 2026-10-26.
+Versión del 2026-11-03.
