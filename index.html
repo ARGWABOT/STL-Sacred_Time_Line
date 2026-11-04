@@ -228,7 +228,7 @@
     // (el guion del titular del 20 de octubre: la escena va al ritmo de sus frases; ver los comentarios de cada momento)
     sinIntro: ['Hoy usamos agentes de programación por chat, como Claude Code o Codex,',
       'le hablas directamente al modelo,',
-      'pides, te responde, «revisas» (sí, claro) y repites.'],
+      'pides, te responde, lo «revisas»… y repites.'],
     // La primera rama brota con «Abres otra sesión», tres más con «Después otra, y otra, y otra» y dos con «Parece más
     // eficiente» (pasoSin)
     sinRamas: ['Luego se te ocurre una idea brillante: ¿pedir varias cosas a la vez?',
@@ -238,7 +238,7 @@
       'El modelo puede hacer mil cosas a la vez. Tú no.',
       'Cada sesión nueva divide tu atención',
       'y desperdicia tokens reenviando el mismo contexto una y otra vez.',
-      'Dejas de revisar lo que te entrega (aún más)',
+      'Dejas de revisar lo que te entrega, aún más,',
       'y empiezas a aprobar en automático…',
       'Al final te agotas más y gastas más, pero avanzas menos.'],
     // (corto: lo de la dispersión de la atención va en otra parte de la documentación)
@@ -250,15 +250,15 @@
       'El Studio usa su director integrado, que habla con el modelo por ti.',
       'Diagnostica y traza la ruta más óptima hacia esa meta.',
       'Y te da misiones estratégicas: una a la vez.',
-      'Sí, como en un juego: con nivel, logros y confeti cuando completas una.'],
+      'Como en un juego: con nivel, logros y confeti cuando completas una.'],
     // Las ideas empiezan a brotar con la segunda frase (empezarTrabajo)
     // (el guion del titular del 20 de octubre, en la tarde: sus frases largas van partidas donde respiran, sin cambiar
     // sus palabras)
     trabajo1: ['A medida que cumples tus misiones,',
       'igual se te ocurren ideas nuevas, comentarios o ajustes.',
       'Pero en vez de abrir sesiones nuevas, se las entregas al Studio.',
-      'El Studio recoge todo tu feedback y lo retiene de forma organizada,',
-      'sin enviarlo aún al modelo,',
+      'El Studio recoge todos tus comentarios y los retiene de forma organizada,',
+      'sin enviarlos aún al modelo,',
       'liberando tu atención para que sigas enfocado en una sola cosa:',
       'tu misión actual.'],
     // La revisión se cuenta de corrido en tres momentos: la pides (llega), el Studio le entrega al director lo que
@@ -274,15 +274,16 @@
     // Cada línea va con lo suyo: con «lo clave se vuelve misión» vuelan las misiones, luego lo que espera su fase y al
     // final lo descartado
     reparte: ['Al terminar te reporta de forma muy clara y fácil de entender lo que hizo',
-      'y organiza tus inputs con respecto al plan: lo clave se vuelve misión.',
+      'y organiza tus aportes con respecto al plan: lo clave se vuelve misión.',
       'Lo que no es de esta fase espera la suya.',
       'Lo que no sirve se descarta o se replantea, y te explica por qué.'],
     // Antes de que brote la urgencia, una pausa dramática (PAUSAS) con tus misiones ya en la línea
     entrega: ['Así, después de cada revisión obtienes lo más importante:',
       'las siguientes misiones más estratégicas, una a la vez.',
       'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.'],
-    brota: ['¡Oh no, un cambio urgente!'],
-    dispara: ['El Studio le da prioridad, pone en standby lo demás'],
+    // Sin «¡Oh no…!» ni palabras en inglés: la voz no los dice bien (nota de voz nmw27xhb6tit)
+    brota: ['¿Y si aparece un cambio urgente?'],
+    dispara: ['El Studio le da prioridad, lo demás queda en espera'],
     saleUrg: ['y procesa esa petición de inmediato con el director…'],
     procesaUrg: ['…y el modelo.'],
     devuelveUrg: ['Listo: el resultado de solo esa petición vuelve al Studio,'],
@@ -306,10 +307,24 @@
   // (antes del cambio urgente, dos segundos menos que antes: nota de voz del 20 de octubre)
   // (la idea brillante, tres segundos menos: del segundo 14 al 16 no pasaba nada antes de «Abres otra sesión» y su
   // primera rama, nota de voz del 22 de octubre)
-  const PAUSAS = { 'El modelo puede hacer mil cosas a la vez. Tú no.': 1800,
-    'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.': 200,
-    'Luego se te ocurre una idea brillante: ¿pedir varias cosas a la vez?': -3000 };
-  const lectura = (t) => 900 + t.length * 60 + (PAUSAS[t] || 0);
+  // (nota de voz nmw27xhb6tit, 4 de noviembre: un 20 % más rápida, con las pausas donde las haría un narrador
+  // profesional: una pausa larga tras el remate de una idea y antes de que cambie la escena, una corta antes de la
+  // sorpresa, y ninguna donde la frase sigue en la siguiente)
+  const PAUSAS = { 'El modelo puede hacer mil cosas a la vez. Tú no.': 1500,
+    'Parece más eficiente, pero… olvidas algo.': 500,
+    'Al final te agotas más y gastas más, pero avanzas menos.': 700,
+    '¿Qué propone STL?': 900,
+    'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.': 500,
+    '¿Y si aparece un cambio urgente?': 300,
+    'Luego se te ocurre una idea brillante: ¿pedir varias cosas a la vez?': -2000 };
+  // Toda la escena va un 20 % más rápida (nmw27xhb6tit): el reloj de la escena corre 1,2 veces el real
+  const RAPIDEZ_ESCENA = 1.2;
+  // Lo que tarda la voz en decir una línea, en milisegundos reales: Kokoro em_santa dice unas 18 letras por segundo y
+  // calla un momento en cada coma, punto o signo (voz.py --pausas), y entre una línea y la siguiente respira
+  const LETRAS_SEG = 18, PAUSA_SIGNO = 300, RESPIRA = 350;
+  const voz = (t) => (t.length / LETRAS_SEG) * 1000 + (t.match(/[,;:.?!…](\s|$)/g) ?? []).length * PAUSA_SIGNO + RESPIRA;
+  // Cada línea dura lo que su voz, en milisegundos de escena, más su pausa: así la escena va al ritmo de lo que se dice
+  const lectura = (t) => voz(t) * RAPIDEZ_ESCENA + (PAUSAS[t] || 0);
   // En qué momento de su escena empieza cada línea (de 0 a dur): cada una tiene el tiempo que tarda en leerse, así una
   // línea larga no deja a la siguiente esperando y la escena no se frena a tirones
   function momentos(lineas, dur) {
@@ -361,9 +376,9 @@
   // más largo, hay casi dos trechos a cada lado (ESPACIO_URG), y las misiones 5, 6 y 7 van un poco más separadas
   // (TRECHO_URG). Las misiones 8, 9 y final solo marcan el cierre: se reparten, más juntas, lo que queda hasta la meta
   const TRECHO = (META - X0) / 15.5, ESPACIO_URG = 1.75 * TRECHO, TRECHO_URG = 1.2 * TRECHO;
-  // La urgencia se queda a la vista, latiendo, el tiempo de leer «¡Oh no, un cambio urgente!», antes de que el Studio
-  // vaya por ella (milisegundos de escena)
-  const VE_URG = 1500;
+  // La urgencia se queda a la vista, latiendo, el tiempo de decir «¿Y si aparece un cambio urgente?», antes de que el
+  // Studio vaya por ella (milisegundos de escena)
+  const VE_URG = 2200;
   // En el último tramo, ya sin ideas sueltas, vas más rápido
   const PASO_FINAL = 2;
   // Cuándo vuelves a andar, después de que el Studio te trae la misión roja (ya con las demás en orden)
@@ -527,7 +542,7 @@
     }
     if (!cola.length || reloj < cola[0].en) return;
     const atraso = cola.length > 1 && reloj >= cola[1].en;
-    if (actual && (performance.now() - vistaDesde < lectura(actual) * (atraso ? 0.6 : 0.85) || sigueHablando())) return;
+    if (actual && (performance.now() - vistaDesde < voz(actual) * (atraso ? 0.6 : 0.85) || sigueHablando())) return;
     mostrar(cola.shift().t);
   }
   // Un momento nuevo de la escena: dura por lo menos lo que tardan en leerse sus líneas, y sus líneas pasan a la cola
@@ -604,7 +619,7 @@
   // El reloj de la historia: en qué punto va y cuánto dura toda, en tiempo real (la escena con STL va más despacio).
   // Es un solo video: la duración es siempre la suma de las dos escenas, aunque se elija una con el interruptor
   const minutos = (ms) => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-  const real = (n, m) => (n * PASO_ESC) / (m === 'con' ? PAUSADO : 1);
+  const real = (n, m) => (n * PASO_ESC) / (m === 'con' ? PAUSADO : 1) / RAPIDEZ_ESCENA;
   let textoReloj = '';
   function cronometro() {
     if (!escena || escena.largo == null) return;
@@ -2100,7 +2115,7 @@
     else if (reproduce) {
       // Siempre al mismo ritmo: la escena nunca se frena ni se detiene
       narrar();
-      sobra += dt0 * (modo === 'con' ? PAUSADO : 1);
+      sobra += dt0 * RAPIDEZ_ESCENA * (modo === 'con' ? PAUSADO : 1);
       for (let i = 0; sobra >= PASO_ESC && i < 8; i++) { sobra -= PASO_ESC; avanzar(); }
       if (sobra >= PASO_ESC) sobra = 0;
     }
