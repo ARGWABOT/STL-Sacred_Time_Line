@@ -5,9 +5,10 @@
 Versión pública del STL Studio. La publicamos para que ingenieros y modelos de IA revisen si lo que dice es cierto y si el
 método STL cumple lo que promete.
 
-- `index.html`: la portada, una animación que muestra el mismo proyecto sin STL y con STL. Un solo archivo, sin
-  librerías.
-- `voz/linea/`: la voz del narrador de la animación, un clip por línea del guion.
+- `index.html` y `mundo-3d.js`: la portada, un recorrido en 3D por la línea del tiempo de un proyecto.
+- `linea-del-proyecto.html`: la animación que el recorrido abre en grande, el mismo proyecto sin STL y con STL.
+- `vendor/three/`: la copia de three.js que usa el recorrido, con su licencia.
+- `voz/linea/` y `voz/es/`: la voz del narrador, un clip por línea del guion o por rótulo.
 
 Se genera desde el STL Studio (`node tools/publicar-stl.ts`). No incluye el código del Studio ni datos de ningún proyecto.
 Versión del 2026-11-04.
