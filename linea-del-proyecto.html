@@ -1961,13 +1961,25 @@
     if (desde > DURA_GLOBITO) return null;
     return { texto: GLOBITOS[barajaDe(Math.floor(n / GLOBITOS.length))[n % GLOBITOS.length]], k: desde / DURA_GLOBITO };
   }
+  // Dónde va el globito, de alto: encima de la perilla, nunca debajo de ella (nota de voz nmw2q8m0ltit, para que se lea).
+  // «arriba» es el borde de arriba del mando (la perilla con lo que lleva debajo), en unidades del dibujo: el globito (30
+  // de alto, más su piquito de 10) termina 8 más arriba, y nunca se sale del dibujo. Sin ese dato, donde iba
+  function yDelGlobito(arriba) {
+    const y = Y - 92;
+    return Number.isFinite(arriba) ? Math.max(28, Math.min(y, arriba - 24 - 8)) : y;
+  }
+  // El borde de arriba del mando, en unidades del dibujo: crece o se achica con la página, por eso se mide cada vez
+  function arribaDelMando() {
+    const c = cv.getBoundingClientRect(), m = $('mando').getBoundingClientRect();
+    return c.width ? (m.top - c.top) * W / c.width : NaN;
+  }
   function globitoDeMeta(now) {
     if (fase !== 'meta') return;
     const g = globitoDe(now - t0 - durFase);
     if (!g) return;
     const a = tope(g.k / 0.08) * tope((1 - g.k) / 0.12);
     ctx.font = `600 13px system-ui, -apple-system, 'Segoe UI', sans-serif`;
-    const w = ctx.measureText(g.texto).width + 26, x = Math.min(W - w / 2 - 10, cabeza), y = Y - 92 - 6 * (1 - a);
+    const w = ctx.measureText(g.texto).width + 26, x = Math.min(W - w / 2 - 10, cabeza), y = yDelGlobito(arribaDelMando()) - 6 * (1 - a);
     ctx.save(); ctx.globalAlpha = a;
     ctx.fillStyle = 'rgba(12, 15, 26, .94)'; ctx.strokeStyle = ORO; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.roundRect(x - w / 2, y - 16, w, 30, 15); ctx.fill(); ctx.stroke();

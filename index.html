@@ -100,7 +100,7 @@
   .visor iframe { flex: 1; min-height: 0; width: 100%; border: 0; border-radius: 10px; background: #07090f; }
   @media (max-width: 900px) { .visor { top: 84px; bottom: 2vh; left: 2vw; right: 2vw; } }
 
-  /* La estación 2: un panel angosto a la izquierda con los cinco problemas siempre a la vista. En el 3D, cada uno
+  /* La estación 2: un panel angosto a la izquierda con los seis problemas siempre a la vista. En el 3D, cada uno
      se elige con un clic y su respuesta sale en un recuadro animado; sin 3D, se abre aquí mismo */
   .panel { width: 360px; max-width: 100%; padding: 16px 18px; }
   .panel h2 { font-size: 16.5px; line-height: 1.3; margin: 0 0 8px; }
@@ -241,7 +241,7 @@
       <div class="tarjeta panel">
         <p class="eyebrow">2 · ¿Te ha pasado…?</p>
         <h2>Los problemas al trabajar con IA por chat. Da clic en los que te identifiquen</h2>
-        <p class="cuenta" aria-live="polite">Abriste <span data-cuenta>0</span> de 5</p>
+        <p class="cuenta" aria-live="polite">Abriste <span data-cuenta>0</span> de 6</p>
         <p class="dispersion">Esta dispersión de la atención, causada por la ilusión de productividad, es un problema grave y real.</p>
 
         <details class="problema" data-resuelve="0" data-corto="Tu atención se dispersa"><summary>¿Abres hasta 4 o más sesiones a la vez, te cuesta saber en qué va cada una y, cuando una idea aparece a mitad de algo, la metes en cualquiera y al final no sabes qué sigue?</summary><p>Con STL todo entra por un solo canal: ideas y ajustes van al Buzón y a su fase en la ruta, no sobrecargas tu atención y siempre sabes qué sigue.</p></details>
@@ -249,6 +249,7 @@
         <details class="problema" data-resuelve="2" data-corto="Retomas y el contexto se enreda"><summary>¿Vuelves de un descanso y te cuesta saber qué sigue en cada sesión, mientras tu contexto se contamina con cada cambio de decisión?</summary><p>Con STL retomas con una sola misión a la vista, y al modelo solo le llegan las decisiones que aprobaste: la que cambió queda reemplazada en el historial.</p></details>
         <details class="problema" data-resuelve="3" data-corto="Leer y releer"><summary>¿Las respuestas largas te cansan, no recuerdas lo que ya leíste y el modelo te pide releer documentación ya revisada?</summary><p>Lees una idea a la vez, con «Entendido»; lo que ya leíste queda marcado y sellado, y lo nuevo llega en un documento corto.</p></details>
         <details class="problema" data-resuelve="4" data-corto="El modelo olvida"><summary>¿El modelo olvida, se te van los tokens y el tiempo explicando otra vez, y tuviste que montar un sistema de memoria aparte porque no entiendes cómo funciona la del modelo?</summary><p>El estado queda guardado en el repositorio, siempre sabes dónde vas y qué sigue, y entiendes realmente cómo funciona el modelo.</p></details>
+        <details class="problema" data-resuelve="5" data-corto="Sin internet, tu trabajo se detiene"><summary>¿Te quedaste sin internet y tu trabajo con la IA se detuvo?</summary><p>Con STL Studio sigues trabajando sin conexión: el Buzón recoge tus notas, ajustes y entregas, y sigues leyendo tus documentos y respuestas y auditando el trabajo del modelo. Nada se pierde, y al volver la conexión el director lo recibe todo junto.</p></details>
       </div>
     </article>
   </div>

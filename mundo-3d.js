@@ -145,22 +145,31 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2783,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":2924,"s3-6":3002};
-const RESPIRO_COMA = 0.15, RESPIRO_FRASE = 0.45, RESPIRO_ENUNCIADO = 0.7;
-const ritmoDeClave = (clave) => (PISTA_VOZ_ES[clave] == null ? RAPIDEZ : 1);
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2783,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":2924,"s3-6":3002,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896};
+// Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
+// silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
+// del proyecto»
+const RESPIRO_COMA = 0.05, RESPIRO_FRASE = 0.35, RESPIRO_ENUNCIADO = 0.5;
+// Los clips de Google que su voz dice demasiado despacio suenan más rápido, a su propio ritmo, como en «La línea del
+// proyecto» (RITMO_VOZ): «y se organiza automáticamente» sonaba en cámara lenta (nmw2qiyuwtit) mientras espera su clip
+// nuevo, sin la coma; con él, sale de aquí
+const RITMO_VOZ_ES = { 's2-2': 1.2 };
+const ritmoDeClave = (clave) => (PISTA_VOZ_ES[clave] == null ? RAPIDEZ : RITMO_VOZ_ES[clave] ?? 1);
+// Lo que dura la voz de un clip de Google en el reloj del clip (a 1x), en segundos
+const segDeVoz = (clave) => PISTA_VOZ_ES[clave] / 1000 / ritmoDeClave(clave);
 const claveDePaso = (j, enProblema, m) => `s${j + 1}-${enProblema ? 'p' : ''}${m + 1}`;
 const conPista = (j, enProblema) => (enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion).every((_, m) => PISTA_VOZ_ES[claveDePaso(j, enProblema, m)] != null);
 // Lo que dura cada paso de un segmento con pista: su clip y su respiro
 const tiemposConPista = (j, enProblema) => {
   const lista = enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion;
-  return lista.map(([, texto], m) => PISTA_VOZ_ES[claveDePaso(j, enProblema, m)] / 1000 + (m === lista.length - 1 || /[.?!]$/.test(texto.trim()) ? RESPIRO_FRASE : RESPIRO_COMA));
+  return lista.map(([, texto], m) => segDeVoz(claveDePaso(j, enProblema, m)) + (m === lista.length - 1 || /[.?!]$/.test(texto.trim()) ? RESPIRO_FRASE : RESPIRO_COMA));
 };
 const suma = (xs) => xs.reduce((s, x) => s + x, 0);
 const problemaSeg = (j) => Math.max(PROBLEMA_SEG, conPista(j, true) ? suma(tiemposConPista(j, true)) : sumaVoz(PASOS_SEG[j].problema));
 const solucionSeg = (j) => Math.max(SOLUCION_SEG, conPista(j, false) ? suma(tiemposConPista(j, false)) : sumaVoz(PASOS_SEG[j].solucion));
 const enunciadoSeg = (i) => {
-  const ms = PISTA_VOZ_ES[`g${i + 1}-e`];
-  return Math.max(ENUNCIADO_SEG, ms == null ? tardaVoz(ENUNCIADOS[i] ?? '') : ms / 1000 + RESPIRO_ENUNCIADO);
+  const clave = `g${i + 1}-e`;
+  return Math.max(ENUNCIADO_SEG, PISTA_VOZ_ES[clave] == null ? tardaVoz(ENUNCIADOS[i] ?? '') : segDeVoz(clave) + RESPIRO_ENUNCIADO);
 };
 // En un segmento con pista, cuánto va de él (q, de 0 a 1) a los d segundos: cada paso dura lo que su voz, y dentro de él
 // el dibujo avanza de su «desde» al del siguiente, así lo que se ve sigue a lo que se dice (si el segmento dura más que
@@ -270,6 +279,13 @@ function altavoz(c, x, y) {   // leer en voz alta
 function trazo(c, x1, y1, x2, y2, color, alfa = 1, punteado = false) {
   c.save(); c.globalAlpha *= alfa; c.strokeStyle = color; c.lineWidth = 1.4; if (punteado) c.setLineDash([3, 3]);
   c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.restore();
+}
+function wifi(c, x, y, color, cortado = false, alfa = 1) {   // la señal de internet, con su raya encima si se cortó
+  c.save(); c.globalAlpha *= alfa; c.strokeStyle = color; c.fillStyle = color; c.lineWidth = 1.8; c.lineCap = 'round';
+  for (const r of [6, 11, 16]) { c.beginPath(); c.arc(x, y + 9, r, -2.3, -0.84); c.stroke(); }
+  c.beginPath(); c.arc(x, y + 9, 1.9, 0, 7); c.fill();
+  if (cortado) { c.strokeStyle = ROJO; c.lineWidth = 2.6; c.beginPath(); c.moveTo(x - 13, y - 8); c.lineTo(x + 13, y + 16); c.stroke(); }
+  c.restore();
 }
 // Tres soluciones de las animaciones de antes, que siguen como la solución de su segmento (el 1, el 4 y el 11)
 const DE_ANTES = [
@@ -607,6 +623,57 @@ const SEGMENTOS = [
       if (q > 0.86) { caja(c, 70, 152, 180, 22, ORO, 0.12, 6); letrero(c, 'el historial: cada revisión, paso a paso', 160, 166, ORO, 8.5); }
     },
   },
+  { // 14. Se cae el internet: el Buzón sigue recogiendo y tú sigues leyendo y auditando, sin conexión (sexto problema; su voz espera el «Confirmo»)
+    problema: (c, q) => {
+      ventana(c, 30, 22, 260, 140, 'el chat con el modelo');
+      cubito(c, 52, 140, 1.3);
+      const cae = tramo(q, 0.35, 0.5);
+      bola(c, 262, 52, 9, MODELO, 1 - 0.7 * cae);
+      if (q > 0.06) globo(c, 70, 112 - tramo(q, 0.06, 0.3) * 60, 'Sigue con el login', CIAN);
+      if (q > 0.3 && q < 0.5) globo(c, 250, 76, 'Escribiendo…', MODELO, true, 0.6 + 0.4 * Math.sin(q * 30) ** 2);
+      // El corte: la señal con su raya y el chat quieto
+      if (q > 0.35) { wifi(c, 160, 100, ROJO, true, cae); letrero(c, 'sin conexión', 160, 134, ROJO, 10); cruz(c, 262, 52, 4, cae); }
+      if (q > 0.7) letrero(c, 'el chat se congeló: ¿y ahora qué?', 160, 156, ROJO, 9.5);
+    },
+    solucion: (c, q) => {
+      // Sin conexión hasta casi el final, cuando vuelve
+      const vuelve = tramo(q, 0.86, 0.92), color = vuelve > 0.5 ? VERDE : ROJO;
+      wifi(c, 34, 24, color, vuelve < 0.5); letrero(c, vuelve > 0.5 ? 'conexión' : 'sin conexión', 34, 50, color, 8);
+      cubito(c, 36, 112, 1.2); letrero(c, 'tú', 36, 136, '#cfe0ff', 8.5);
+      cajaStudio(c, 86, 62, 110, 78); letrero(c, 'Buzón del Studio', 141, 56, MORADO, 9);
+      // Tus notas, ajustes y entregas llegan al Buzón aunque no haya internet
+      [['nota', CIAN], ['ajuste', NARANJA], ['entrega', ORO]].forEach(([texto, color], k) => {
+        const a = 0.2 + k * 0.06, u = tramo(q, a, a + 0.12);
+        if (q > a) { c.save(); c.globalAlpha *= Math.min(1, u * 3); caja(c, lerp(40, 100, u), lerp(104, 70 + k * 22, u), 82, 15, color, 0.3, 6); letrero(c, texto, lerp(40, 100, u) + 41, lerp(104, 70 + k * 22, u) + 10.5, '#fffaf0', 8.5); c.restore(); }
+      });
+      // Sigues leyendo un documento, con su «Entendido»
+      if (q > 0.4) {
+        const a = tramo(q, 0.4, 0.46);
+        c.save(); c.globalAlpha *= a;
+        ventana(c, 214, 50, 96, 52, 'documento', ORO);
+        renglones(c, 222, 69, 78, 2, 'rgba(255, 255, 255, .35)', 1, 7);
+        c.fillStyle = ORO; c.beginPath(); c.roundRect(224, 84, 62, 14, 7); c.fill(); letrero(c, 'Entendido', 255, 94.5, '#1a1f33', 8.5);
+        c.restore();
+        if (q > 0.52) palomita(c, 298, 91, 4, tramo(q, 0.52, 0.56));
+      }
+      // O auditas el trabajo del modelo en su historial
+      if (q > 0.58) {
+        c.save(); c.globalAlpha *= tramo(q, 0.58, 0.64);
+        ventana(c, 214, 108, 96, 52, 'historial', MORADO);
+        for (let k = 0; k < 3; k++) { renglones(c, 222, 122 + k * 12, 56, 1, 'rgba(255, 255, 255, .35)'); palomita(c, 298, 124 + k * 12, 3.5, tramo(q, 0.62 + k * 0.04, 0.68 + k * 0.04)); }
+        c.restore();
+      }
+      if (q > 0.74) letrero(c, 'nada se pierde: queda en la memoria del proyecto', 160, 172, VERDE, 9);
+      // Vuelve la conexión: el director lo recibe todo junto y habla con el modelo
+      if (q > 0.86) {
+        const u = tramo(q, 0.88, 0.95);
+        rombo(c, 141, 30, 9); letrero(c, 'el director', 154, 33, ORO, 8.5, 'left');
+        [CIAN, NARANJA, ORO].forEach((col, k) => bola(c, 133 + k * 8, lerp(76, 44, u), 3.5, col, 0.4 + 0.6 * u));
+        bola(c, 300, 24, 8, MODELO); letrero(c, 'el modelo', 300, 40, MODELO, 8);
+        if (q > 0.94) { trazo(c, 206, 30, 290, 25, VERDE, tramo(q, 0.94, 0.98)); letrero(c, 'todo junto', 248, 20, VERDE, 8.5); }
+      }
+    },
+  },
 ];
 // Los cinco grandes problemas, en el orden de la lista de la estación 2 (data-resuelve): de cada uno, qué segmentos junta
 // (su lugar en SEGMENTOS, de 0), con los guiones del titular del 4 de noviembre: 1: la atención (varias sesiones, la idea
@@ -615,7 +682,17 @@ const SEGMENTOS = [
 // situaciones de antes, que pasan aquí; nmw26lr5jtit); 4: leer y releer (respuestas largas, qué ya leíste, releer;
 // nmw26xb5ltit); 5: el modelo olvida (tokens, en qué ibas, explicar otra vez y la caja negra; nmw27jyxjtit). «Tienes que
 // estar encima», la decisión enterrada y la memoria aparte salieron: los agentes de chat ya lo resuelven, o lo dice otro
-const GRANDES = [[1, 2], [0, 6], [9, 11], [3, 4, 5], [7, 8, 10, 12]];
+const GRANDES = [[1, 2], [0, 6], [9, 11], [3, 4, 5], [7, 8, 10, 12], [13]];
+// Lo que todavía no tiene voz: el sexto problema (segmento 14, de 0 en 13, y su enunciado g6-e) espera el «Confirmo» del
+// titular, porque su voz gasta la API de Google. Mientras, sus rótulos duran lo que dice la estimación (tardaVoz), no se
+// pide ni suena ningún mp3 suyo (nada de 404) y el reloj del clip nunca espera a una voz. tools/vozRecorrido.ts lo repite
+// (SIN_VOZ_TODAVIA) para que el generador no lo toque
+const SIN_VOZ_TODAVIA = new Set([13]);
+const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set(['g6-e']);
+const sinVozTodavia = (clave) => {
+  const seg = /^s(\d+)-/.exec(clave);
+  return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
+};
 // Cuánto dura cada clip, en segundos: su enunciado y después cada situación en rojo seguida de su solución, segmento
 // tras segmento, cada parte lo que tarda su voz
 const duraClip = (i) => enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + problemaSeg(j) + solucionSeg(j), 0);
@@ -625,7 +702,7 @@ const claveEnunciado = (i) => `g${(GRANDES[i] ? i : 0) + 1}-e`;
 // desde qué parte de ella (de 0 a 1). Son los guiones del titular, frase por frase, cortados donde la voz hace su pausa
 const PASOS_SEG = [
   { problema: [[0, 'Si enviaste y le faltaba algo,'], [0.4, 'envías otro y otro para corregir,'], [0.72, 'multiplicando tu consumo de tokens']], solucion: [[0, 'Con STL, tus notas van primero a un buzón:'], [0.3, 'ahí esperan, y puedes revisarlas y editarlas cuanto quieras'], [0.68, 'antes de que el director las envíe realmente al modelo']] },
-  { problema: [[0, 'Con cuatro o más sesiones a la vez,'], [0.35, 'tu atención se divide'], [0.6, 'y te agotas tratando de seguirlas todas']], solucion: [[0, 'Con STL, todo entra por un solo canal'], [0.35, 'y se organiza automáticamente,'], [0.55, 'para que te enfoques solo'], [0.72, 'en el siguiente paso estratégico, uno a la vez']] },
+  { problema: [[0, 'Con cuatro o más sesiones a la vez,'], [0.35, 'tu atención se divide'], [0.6, 'y te agotas tratando de seguirlas todas']], solucion: [[0, 'Con STL, todo entra por un solo canal'], [0.35, 'y se organiza automáticamente'], [0.55, 'para que te enfoques solo'], [0.72, 'en el siguiente paso estratégico, uno a la vez']] },
   { problema: [[0, 'Cuando surgen ideas o ajustes a mitad de algo,'], [0.5, 'lo otro se va quedando atrás y se pierde']], solucion: [[0, 'Con STL, tu idea va al Buzón,'], [0.18, 'el director le da su lugar en la ruta'], [0.36, 'y, si no es estratégico hacerlo ahora, espera en su fase.'], [0.6, 'Así terminas lo que ibas a hacer primero,'], [0.76, 'sin perder esa idea o ajuste nuevo:'], [0.88, 'queda en la ruta, donde debe ir']] },
   { problema: [[0, 'Leer tres páginas seguidas de una respuesta agota,'], [0.3, 'y la atención se va.'], [0.45, 'Terminas por no leer lo que el modelo responde'], [0.75, 'y solo le dices «sí» a todo']], solucion: [[0, 'STL te presenta una idea a la vez,'], [0.14, 'con un botón de «Entendido» antes de destapar la siguiente.'], [0.36, 'Lo que sigue espera tapado hasta que llegas.'], [0.54, 'Además, te lo puede leer en voz alta,'], [0.68, 'y puedes comentar cada idea o párrafo'], [0.82, 'sin explicarle al modelo a qué parte te refieres']] },
   { problema: [[0, '¿Cómo saber qué ya leíste y qué no?']], solucion: [[0, 'Con STL, cada idea leída queda marcada'], [0.4, 'y sabes justo por dónde vas:'], [0.7, 'qué has leído y qué no']] },
@@ -637,6 +714,7 @@ const PASOS_SEG = [
   { problema: [[0, '¿Cada sesión nueva, le explicas otra vez todo'], [0.55, 'para definir de qué irá?']], solucion: [[0, 'STL genera su propio sistema optimizado'], [0.2, 'de memoria del proyecto:'], [0.36, 'el estado queda en archivos, en tu mapa del proyecto'], [0.6, 'y en todo lo que dijiste.'], [0.76, 'El director ya lo sabe todo: no necesitas repetirle nada']] },
   { problema: [[0, '¿Tu contexto se contamina'], [0.4, 'con los cambios frecuentes de decisión?']], solucion: [[0, 'Con STL, la decisión que cambias queda reemplazada en el historial'], [0.4, 'y ya no forma parte del nuevo contexto que va al modelo:'], [0.72, 'solo envías decisiones aprobadas por ti']] },
   { problema: [[0, 'El modelo es una caja negra:'], [0.4, 'a veces no sabes qué recuerda, qué no y por qué']], solucion: [[0, 'STL te presenta, de forma gráfica, todo el ciclo de inferencia:'], [0.2, 'cómo se comunican tu equipo y el modelo,'], [0.34, 'cuánto tarda cada uno en ejecutar sus partes y su consumo,'], [0.52, 'y qué le pide exactamente quién a quién.'], [0.68, 'Así entiendes qué pasa cada vez que le pides algo al modelo'], [0.85, 'y quedas con este historial, para auditarlo y aprender']] },
+  { problema: [[0, 'Se cae el internet a mitad de tu trabajo,'], [0.45, 'y el chat con el modelo se detiene: ¿y ahora qué?']], solucion: [[0, 'Con STL Studio, sigues trabajando sin internet:'], [0.2, 'el Buzón recoge tus notas, ajustes y entregas,'], [0.4, 'y sigues leyendo documentos y respuestas'], [0.58, 'o auditando el trabajo del modelo.'], [0.74, 'Nada se pierde: todo queda en la memoria del proyecto.'], [0.88, 'Al volver la conexión, el director lo recibe todo junto']] },
 ];
 // En qué paso va el clip i en el segundo t: la situación o la solución que se ve (k de n), cuánto de ella (q), su rótulo y
 // la clave de su voz (s<segmento>-p<paso>, cada paso del problema; s<segmento>-<paso>, cada paso de la solución:
@@ -658,8 +736,36 @@ function pasoDeClip(i, t) {
   const m = Math.max(0, lista.findLastIndex(([desde]) => q >= desde));
   return { n, p, enEnunciado: false, enProblema, k, q, j, texto: lista[m][1], clave: claveDePaso(j, enProblema, m) };
 }
-// Todas las voces de un clip, en su orden: para pedirlas antes de que suenen. La primera, la de su enunciado
-const clavesDeClip = (i) => [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`)])];
+// Todos los rótulos de un clip, en su orden. El primero, el de su enunciado
+const clavesDelGuion = (i) => [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`)])];
+// Todas las voces de un clip, en su orden: para pedirlas antes de que suenen. Las que aún no tienen voz no se piden
+const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(clave));
+// La voz manda (nota de voz nmw2qhhsjtit): el paso del clip i en el segundo t, si su voz es de Google, con su clave, el
+// segundo del clip en que empieza y lo que dura su voz en ese reloj; null si no tiene pista. Mientras su clip suena, el
+// reloj del clip es el de la voz (desde + lo que lleva dicho), así la animación ni se adelanta ni la hace esperar, a
+// cualquier velocidad; al callar, corre sola su respiro hasta el paso siguiente
+function tramoDeVoz(i, t) {
+  const grupo = GRANDES[i] ?? GRANDES[0], s = Math.max(0, Math.min(duraClip(i), t));
+  const e = enunciadoSeg(i), ce = claveEnunciado(i);
+  if (s < e) return PISTA_VOZ_ES[ce] == null ? null : { clave: ce, desde: 0, voz: segDeVoz(ce) };
+  let desde = e;
+  for (const j of grupo) {
+    for (const enProblema of [true, false]) {
+      const total = enProblema ? problemaSeg(j) : solucionSeg(j);
+      if (s < desde + total) {
+        if (!conPista(j, enProblema)) return null;
+        const tiempos = tiemposConPista(j, enProblema), k = total / suma(tiempos);
+        let va = desde;
+        for (let m = 0; m < tiempos.length; m++) {
+          if (s < va + tiempos[m] * k || m === tiempos.length - 1) { const clave = claveDePaso(j, enProblema, m); return { clave, desde: va, voz: segDeVoz(clave) }; }
+          va += tiempos[m] * k;
+        }
+      }
+      desde += total;
+    }
+  }
+  return null;
+}
 // La barra de lo que va, abajo: un clic en ella lleva la animación a ese punto (nota de voz nmw1oc8mctit)
 const BARRA = { x: 20, y: 195, ancho: 280, alto: 3 };
 // Dónde cae un clic sobre la barra, de 0 a 1, o null si no fue en ella. x e y, en píxeles desde la esquina del lienzo,
@@ -878,7 +984,7 @@ function iniciar() {
   // La vista de la estación 1 (y de la entrada, desde más lejos): de costado, con la línea cruzando la pantalla de
   // izquierda a derecha. La arma la estación 1
   let portada = null;
-  const orbes = [];   // los cinco grandes problemas de la estación 2
+  const orbes = [];   // los seis grandes problemas de la estación 2
 
   // ── Estación 1, qué es STL: tres actores (nota de voz nmw1c3q68tit): el desarrollador (un cubo amarillo con su sonrisa)
   // en la línea del tiempo, a la izquierda; el Studio (una caja translúcida) y el modelo, EN ALTO, muy por encima de la
@@ -1228,7 +1334,7 @@ function iniciar() {
     // Cinco esferas, una por gran problema (nota de voz nmw1bwnvztit; antes eran quince en cuatro grupos), repartidas por
     // donde estaban los grupos: a menos de 4,4 de la línea y mirados un poco hacia la izquierda, así las de la izquierda no
     // quedan detrás del panel de los problemas, ni las de la derecha bajo el menú
-    const ESFERAS = [{ x: -3.6, y: 2.6 }, { x: 3.6, y: 3.0 }, { x: -1.0, y: 5.4 }, { x: -3.6, y: 7.6 }, { x: 3.6, y: 7.4 }];
+    const ESFERAS = [{ x: -3.6, y: 2.6 }, { x: 3.6, y: 2.8 }, { x: -3.6, y: 5.2 }, { x: 3.6, y: 5.2 }, { x: -3.6, y: 7.6 }, { x: 3.6, y: 7.4 }];
     ESFERAS.forEach((pos, i) => {
       const casa = p.clone().addScaledVector(lado, pos.x).addScaledVector(ARRIBA, pos.y);
       const mat = brillo(ROJO, 0.6);
@@ -1394,15 +1500,17 @@ function iniciar() {
     if (voz.audio) { voz.audio.pause(); voz.audio.onended = voz.audio.onerror = null; }
     voz.audio = null; voz.clave = ''; voz.hablando = false;
   }
-  function decir(clave) {
+  // «desde»: en qué segundo de su clip empieza (al llegar al paso, 0; al mover la perilla a la mitad de un paso con voz de
+  // Google, lo que ya pasó de él, así la voz dice lo que se ve)
+  function decir(clave, desde = 0) {
     if (clave === voz.clave) return;
     callar();
     voz.clave = clave;
-    if (!conVoz || quieto) return;
+    if (!conVoz || quieto || sinVozTodavia(clave)) return;   // sin voz todavía: ni se pide su mp3 ni el reloj la espera
     const a = audioDe(clave), listo = () => { if (voz.audio === a) voz.hablando = false; };
     voz.audio = a; voz.hablando = true; voz.desde = performance.now();
     a.onended = a.onerror = listo;
-    a.currentTime = 0;
+    a.currentTime = desde;
     aSuRitmo(a);
     a.play().catch(listo);
   }
@@ -1495,7 +1603,9 @@ function iniciar() {
     const antes = pasoDeClip(seleccionado, clipT).clave;
     clipT = Math.max(0, Math.min(duraClip(seleccionado), clipT + seg));
     clipAntes = performance.now();
-    if (pasoDeClip(seleccionado, clipT).clave !== antes) callar();
+    // Con la voz de Google, la voz va donde quedó la animación, aunque sea el mismo paso (la voz manda: si siguiera donde
+    // iba, devolvería la animación)
+    if (pasoDeClip(seleccionado, clipT).clave !== antes || tramoDeVoz(seleccionado, clipT)) callar();
     if (ctxClip) pintarClip(ctxClip, seleccionado, clipT);
     pintarMando();
   }
@@ -1558,15 +1668,23 @@ function iniciar() {
     else if (e.key === 'Home') { e.preventDefault(); moverClip(-clipT); }
     else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); alternarClip(); }
   });
-  // Un cuadro del clip: avanza el reloj (en pausa, no), salvo si el rótulo cambiaría mientras la voz aún habla, y dice
-  // el rótulo nuevo
+  // Un cuadro del clip: con la voz de Google sonando, el reloj es el de la voz (tramoDeVoz; nmw2qhhsjtit); si no, avanza
+  // (en pausa, no), salvo si el rótulo cambiaría mientras la voz aún habla. Y dice el rótulo nuevo
   function avanzarClip() {
     const ahora = performance.now(), dt = Math.min(0.1, Math.max(0, (ahora - clipAntes) / 1000));
     clipAntes = ahora;
     if (!pausado) {
-      const ya = pasoDeClip(seleccionado, clipT), luego = pasoDeClip(seleccionado, clipT + dt * velClip);
-      if (luego.clave === ya.clave || !sigueHablando()) clipT = Math.min(duraClip(seleccionado), clipT + dt * velClip);
-      decir(pasoDeClip(seleccionado, clipT).clave);
+      const tr = tramoDeVoz(seleccionado, clipT), a = voz.audio;
+      if (tr && a && voz.hablando && voz.clave === tr.clave && !a.paused) clipT = tr.desde + Math.min(tr.voz, a.currentTime / (a.ritmo ?? 1));
+      else {
+        const ya = pasoDeClip(seleccionado, clipT), luego = pasoDeClip(seleccionado, clipT + dt * velClip);
+        if (luego.clave === ya.clave || !sigueHablando()) clipT = Math.min(duraClip(seleccionado), clipT + dt * velClip);
+      }
+      const ahoraEn = pasoDeClip(seleccionado, clipT).clave, trNuevo = tramoDeVoz(seleccionado, clipT);
+      const dicho = trNuevo && trNuevo.clave === ahoraEn ? clipT - trNuevo.desde : 0;
+      // En el respiro de un paso ya dicho (la perilla lo dejó ahí), callada: si lo dijera otra vez, devolvería la animación
+      if (trNuevo && ahoraEn !== voz.clave && dicho >= trNuevo.voz) { callar(); voz.clave = ahoraEn; }
+      else decir(ahoraEn, dicho * ritmoDeClave(ahoraEn));
     }
     pintarClip(ctxClip, seleccionado, clipT);
     pintarMando();
