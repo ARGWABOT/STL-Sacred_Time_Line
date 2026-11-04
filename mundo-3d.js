@@ -140,9 +140,43 @@ const ENUNCIADOS = [];
 const LETRAS_SEG = 18, RESPIRO = 0.35, PAUSA_SIGNO = 0.3;
 const tardaVoz = (texto) => (String(texto).length / LETRAS_SEG + (String(texto).match(/[,;:.?!…]\s/g) ?? []).length * PAUSA_SIGNO) / RAPIDEZ + RESPIRO;
 const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0);
-const problemaSeg = (j) => Math.max(PROBLEMA_SEG, sumaVoz(PASOS_SEG[j].problema));
-const solucionSeg = (j) => Math.max(SOLUCION_SEG, sumaVoz(PASOS_SEG[j].solucion));
-const enunciadoSeg = (i) => Math.max(ENUNCIADO_SEG, tardaVoz(ENUNCIADOS[i] ?? ''));
+// La voz de Google (pr_voz_google, pd_voz_video; el primer problema con el «Confirmo» nmw2p37bktit): la voz manda y la
+// animación la sigue, como en «La línea del proyecto». tools/vozRecorrido.ts mide cada clip y escribe aquí lo que dura,
+// en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
+// más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
+// con Kokoro y su estimación de arriba
+const PISTA_VOZ_ES = {"g1-e":12501,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2783,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":2924,"s3-6":3002};
+const RESPIRO_COMA = 0.15, RESPIRO_FRASE = 0.45, RESPIRO_ENUNCIADO = 0.7;
+const ritmoDeClave = (clave) => (PISTA_VOZ_ES[clave] == null ? RAPIDEZ : 1);
+const claveDePaso = (j, enProblema, m) => `s${j + 1}-${enProblema ? 'p' : ''}${m + 1}`;
+const conPista = (j, enProblema) => (enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion).every((_, m) => PISTA_VOZ_ES[claveDePaso(j, enProblema, m)] != null);
+// Lo que dura cada paso de un segmento con pista: su clip y su respiro
+const tiemposConPista = (j, enProblema) => {
+  const lista = enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion;
+  return lista.map(([, texto], m) => PISTA_VOZ_ES[claveDePaso(j, enProblema, m)] / 1000 + (m === lista.length - 1 || /[.?!]$/.test(texto.trim()) ? RESPIRO_FRASE : RESPIRO_COMA));
+};
+const suma = (xs) => xs.reduce((s, x) => s + x, 0);
+const problemaSeg = (j) => Math.max(PROBLEMA_SEG, conPista(j, true) ? suma(tiemposConPista(j, true)) : sumaVoz(PASOS_SEG[j].problema));
+const solucionSeg = (j) => Math.max(SOLUCION_SEG, conPista(j, false) ? suma(tiemposConPista(j, false)) : sumaVoz(PASOS_SEG[j].solucion));
+const enunciadoSeg = (i) => {
+  const ms = PISTA_VOZ_ES[`g${i + 1}-e`];
+  return Math.max(ENUNCIADO_SEG, ms == null ? tardaVoz(ENUNCIADOS[i] ?? '') : ms / 1000 + RESPIRO_ENUNCIADO);
+};
+// En un segmento con pista, cuánto va de él (q, de 0 a 1) a los d segundos: cada paso dura lo que su voz, y dentro de él
+// el dibujo avanza de su «desde» al del siguiente, así lo que se ve sigue a lo que se dice (si el segmento dura más que
+// su voz, por su mínimo, cada paso se estira en la misma proporción)
+function qConPista(j, enProblema, d) {
+  const lista = enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion;
+  const tiempos = tiemposConPista(j, enProblema), total = enProblema ? problemaSeg(j) : solucionSeg(j);
+  const k = total / suma(tiempos);
+  let va = 0;
+  for (let m = 0; m < lista.length; m++) {
+    const dura = tiempos[m] * k, hasta = m + 1 < lista.length ? lista[m + 1][0] : 1;
+    if (d < va + dura || m === lista.length - 1) return tope(lista[m][0] + ((d - va) / dura) * (hasta - lista[m][0]));
+    va += dura;
+  }
+  return 1;
+}
 // Dónde se dibuja lo de cada situación: escalado al 90 % alrededor del centro, bajo las píldoras de arriba (pintarClip)
 const CONTENIDO = { x: 16, y: 9.4, escala: 0.9 };
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -591,8 +625,8 @@ const claveEnunciado = (i) => `g${(GRANDES[i] ? i : 0) + 1}-e`;
 // desde qué parte de ella (de 0 a 1). Son los guiones del titular, frase por frase, cortados donde la voz hace su pausa
 const PASOS_SEG = [
   { problema: [[0, 'Si enviaste y le faltaba algo,'], [0.4, 'envías otro y otro para corregir,'], [0.72, 'multiplicando tu consumo de tokens']], solucion: [[0, 'Con STL, tus notas van primero a un buzón:'], [0.3, 'ahí esperan, y puedes revisarlas y editarlas cuanto quieras'], [0.68, 'antes de que el director las envíe realmente al modelo']] },
-  { problema: [[0, 'Con cuatro o más sesiones a la vez,'], [0.35, 'tu atención se divide'], [0.6, 'aumentando tu agotamiento al tratar de seguirlas todas']], solucion: [[0, 'Con STL, todo entra por un solo canal'], [0.35, 'y se organiza automáticamente,'], [0.55, 'para que te enfoques solo'], [0.72, 'en el siguiente paso estratégico, uno a la vez']] },
-  { problema: [[0, 'Cuando surgen ideas o ajustes a mitad de algo,'], [0.5, 'lo otro se va quedando atrás y se pierde']], solucion: [[0, 'Con STL, tu idea va al Buzón,'], [0.18, 'el director le da su lugar en la ruta'], [0.36, 'y, si no es estratégico hacerlo ahora, espera en su fase.'], [0.6, 'Así terminas lo que ibas a hacer primero,'], [0.76, 'sin perder esa idea o ajuste nuevo:'], [0.88, 'solo se agrega a la ruta, donde debe ir']] },
+  { problema: [[0, 'Con cuatro o más sesiones a la vez,'], [0.35, 'tu atención se divide'], [0.6, 'y te agotas tratando de seguirlas todas']], solucion: [[0, 'Con STL, todo entra por un solo canal'], [0.35, 'y se organiza automáticamente,'], [0.55, 'para que te enfoques solo'], [0.72, 'en el siguiente paso estratégico, uno a la vez']] },
+  { problema: [[0, 'Cuando surgen ideas o ajustes a mitad de algo,'], [0.5, 'lo otro se va quedando atrás y se pierde']], solucion: [[0, 'Con STL, tu idea va al Buzón,'], [0.18, 'el director le da su lugar en la ruta'], [0.36, 'y, si no es estratégico hacerlo ahora, espera en su fase.'], [0.6, 'Así terminas lo que ibas a hacer primero,'], [0.76, 'sin perder esa idea o ajuste nuevo:'], [0.88, 'queda en la ruta, donde debe ir']] },
   { problema: [[0, 'Leer tres páginas seguidas de una respuesta agota,'], [0.3, 'y la atención se va.'], [0.45, 'Terminas por no leer lo que el modelo responde'], [0.75, 'y solo le dices «sí» a todo']], solucion: [[0, 'STL te presenta una idea a la vez,'], [0.14, 'con un botón de «Entendido» antes de destapar la siguiente.'], [0.36, 'Lo que sigue espera tapado hasta que llegas.'], [0.54, 'Además, te lo puede leer en voz alta,'], [0.68, 'y puedes comentar cada idea o párrafo'], [0.82, 'sin explicarle al modelo a qué parte te refieres']] },
   { problema: [[0, '¿Cómo saber qué ya leíste y qué no?']], solucion: [[0, 'Con STL, cada idea leída queda marcada'], [0.4, 'y sabes justo por dónde vas:'], [0.7, 'qué has leído y qué no']] },
   { problema: [[0, '¿El modelo cambia documentos y te pide releerlos?']], solucion: [[0, 'Con STL, lo que ya leíste queda sellado;'], [0.3, 'lo nuevo llega aparte, en un documento corto,'], [0.65, 'solo con lo que cambió, y fácil de leer']] },
@@ -618,10 +652,11 @@ function pasoDeClip(i, t) {
   let d = s - e, k = 0;
   while (k < n - 1 && d >= problemaSeg(grupo[k]) + solucionSeg(grupo[k])) { d -= problemaSeg(grupo[k]) + solucionSeg(grupo[k]); k++; }
   const j = grupo[k], ps = problemaSeg(j), enProblema = d < ps;
-  const q = tope(enProblema ? d / ps : (d - ps) / solucionSeg(j));
+  const enParte = enProblema ? d : d - ps;
+  const q = conPista(j, enProblema) ? qConPista(j, enProblema, enParte) : tope(enParte / (enProblema ? ps : solucionSeg(j)));
   const lista = enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion;
   const m = Math.max(0, lista.findLastIndex(([desde]) => q >= desde));
-  return { n, p, enEnunciado: false, enProblema, k, q, j, texto: lista[m][1], clave: `s${j + 1}-${enProblema ? 'p' : ''}${m + 1}` };
+  return { n, p, enEnunciado: false, enProblema, k, q, j, texto: lista[m][1], clave: claveDePaso(j, enProblema, m) };
 }
 // Todas las voces de un clip, en su orden: para pedirlas antes de que suenen. La primera, la de su enunciado
 const clavesDeClip = (i) => [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`)])];
@@ -1337,14 +1372,21 @@ function iniciar() {
   };
   pintarBotonVoz();
   const voces = new Map();   // un Audio por clave, pedido antes de que suene
-  // La voz, un 35 % más rápida, como la animación, sin que cambie su tono (nmw1kwbsftit)
+  // La velocidad de reproducción, como en la animación del principio (1x, 1,25x, 1,5x o 2x; nota de voz nmw2n33o6tit):
+  // acelera la voz y el reloj del clip la sigue. El navegador la recuerda
+  const VELOCIDADES_CLIP = [1, 1.25, 1.5, 2], VELOCIDAD_GUARDADA = 'stl-recorrido-velocidad';
+  let velClip = 1;
+  try { const v = Number(localStorage.getItem(VELOCIDAD_GUARDADA)); if (VELOCIDADES_CLIP.includes(v)) velClip = v; } catch { /* sin almacenamiento, a 1x */ }
+  // La voz de Kokoro, un 35 % más rápida, como la animación, sin que cambie su tono (nmw1kwbsftit); la de Google, a su
+  // ritmo natural (ritmoDeClave); las dos a la velocidad elegida
   const aSuRitmo = (a) => {
-    a.defaultPlaybackRate = RAPIDEZ; a.playbackRate = RAPIDEZ;
+    const r = a.ritmo ?? RAPIDEZ;
+    a.defaultPlaybackRate = r; a.playbackRate = r * velClip;
     a.preservesPitch = true; a.mozPreservesPitch = true; a.webkitPreservesPitch = true;
     return a;
   };
   const audioDe = (clave) => {
-    if (!voces.has(clave)) { const a = new Audio(); a.preload = 'auto'; a.src = `voz/es/${clave}.mp3`; voces.set(clave, aSuRitmo(a)); }
+    if (!voces.has(clave)) { const a = new Audio(); a.preload = 'auto'; a.src = `voz/es/${clave}.mp3`; a.ritmo = ritmoDeClave(clave); voces.set(clave, aSuRitmo(a)); }
     return voces.get(clave);
   };
   const voz = { clave: '', audio: null, hablando: false, desde: 0 };
@@ -1372,6 +1414,18 @@ function iniciar() {
     callar();   // y al volver a encenderla, dice el rótulo que está
     pintarBotonVoz();
   });
+  const botonesVelocidad = [...(popup?.querySelectorAll('[data-velocidad-clip] button') ?? [])];
+  const pintarVelocidad = () => botonesVelocidad.forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === velClip)));
+  pintarVelocidad();
+  // Otra velocidad: la voz que habla sigue desde donde va, ya a la nueva, y el clip con ella
+  botonesVelocidad.forEach((b) => b.addEventListener('click', () => {
+    const v = Number(b.dataset.v);
+    if (!VELOCIDADES_CLIP.includes(v)) return;
+    velClip = v;
+    try { localStorage.setItem(VELOCIDAD_GUARDADA, String(v)); } catch { /* sin almacenamiento */ }
+    if (voz.audio) aSuRitmo(voz.audio);
+    pintarVelocidad();
+  }));
   // ── La perilla chica del clip, en vez de «↻ Repetir», como la de la animación del principio (linea-del-proyecto.html ›
   // #perilla y #pausa; nota de voz nmw1kwbsftit): la rueda del ratón sobre ella o sobre la animación la adelanta (hacia
   // abajo) o la devuelve (hacia arriba), también girándola con el ratón o con las flechas, y el botón del centro la pausa
@@ -1510,8 +1564,8 @@ function iniciar() {
     const ahora = performance.now(), dt = Math.min(0.1, Math.max(0, (ahora - clipAntes) / 1000));
     clipAntes = ahora;
     if (!pausado) {
-      const ya = pasoDeClip(seleccionado, clipT), luego = pasoDeClip(seleccionado, clipT + dt);
-      if (luego.clave === ya.clave || !sigueHablando()) clipT = Math.min(duraClip(seleccionado), clipT + dt);
+      const ya = pasoDeClip(seleccionado, clipT), luego = pasoDeClip(seleccionado, clipT + dt * velClip);
+      if (luego.clave === ya.clave || !sigueHablando()) clipT = Math.min(duraClip(seleccionado), clipT + dt * velClip);
       decir(pasoDeClip(seleccionado, clipT).clave);
     }
     pintarClip(ctxClip, seleccionado, clipT);

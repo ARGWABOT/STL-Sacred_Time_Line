@@ -140,6 +140,15 @@
   }
   #voz[aria-pressed="false"] { color: #8f8a7d; border-color: rgba(143, 138, 125, .4); }
   #voz:focus-visible { outline: 2px solid #fff6d8; outline-offset: 2px; }
+  /* La velocidad de la voz, y la animación con ella: 1x, 1.25x, 1.5x o 2x (nota de voz nmw2n33o6tit) */
+  #velocidad { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; margin: 4px 0 0; }
+  #velocidad button {
+    padding: 2px 6px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+    font: 600 clamp(9px, calc(var(--ancho) / 100), 12px)/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: #8f8a7d; background: rgba(12, 15, 26, .8); border: 1px solid rgba(143, 138, 125, .35);
+  }
+  #velocidad button[aria-pressed="true"] { color: #1a1f33; background: #f5d27a; border-color: #f5d27a; }
+  #velocidad button:focus-visible { outline: 2px solid #fff6d8; outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -181,6 +190,9 @@
   <p id="crono" aria-live="off"></p>
   <p class="pista">Gírala para controlar la animación</p>
   <button type="button" id="voz" aria-pressed="true" aria-label="La voz que narra cada subtítulo: oprímelo para callarla o para volver a oírla">🔊 Voz</button>
+  <div id="velocidad" role="group" aria-label="Velocidad de la voz y de la animación">
+    <button type="button" data-v="1" aria-pressed="true">1x</button><button type="button" data-v="1.25" aria-pressed="false">1.25x</button><button type="button" data-v="1.5" aria-pressed="false">1.5x</button><button type="button" data-v="2" aria-pressed="false">2x</button>
+  </div>
 </div>
 </div>
 
@@ -284,8 +296,9 @@
     // Sin «¡Oh no…!» ni palabras en inglés: la voz no los dice bien (nota de voz nmw27xhb6tit)
     brota: ['¿Y si aparece un cambio urgente?'],
     dispara: ['El Studio le da prioridad, lo demás queda en espera'],
-    saleUrg: ['y procesa esa petición de inmediato con el director…'],
-    procesaUrg: ['…y el modelo.'],
+    // Una sola frase dicha de corrido, sin puntos suspensivos ni respiro entre sus dos líneas (nmw2on6sdtit)
+    saleUrg: ['y procesa esa petición de inmediato con el director'],
+    procesaUrg: ['y el modelo.'],
     devuelveUrg: ['Listo: el resultado de solo esa petición vuelve al Studio,'],
     avisaUrg: ['quien te asigna como siguiente misión prioritaria confirmar este resultado,',
       'antes de seguir con el flujo principal, sin perder el enfoque,'],
@@ -315,14 +328,27 @@
     'Al final te agotas más y gastas más, pero avanzas menos.': 700,
     '¿Qué propone STL?': 900,
     'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.': 500,
-    '¿Y si aparece un cambio urgente?': 300,
-    'Luego se te ocurre una idea brillante: ¿pedir varias cosas a la vez?': -2000 };
+    '¿Y si aparece un cambio urgente?': 300 };
+  // (ninguna pausa es negativa: una línea con menos tiempo que su clip deja la escena quieta esperando a la voz, como
+  // pasaba con «Luego se te ocurre una idea brillante», nota de voz nmw2n33o6tit)
   // Toda la escena va un 20 % más rápida (nmw27xhb6tit): el reloj de la escena corre 1,2 veces el real
   const RAPIDEZ_ESCENA = 1.2;
-  // Lo que tarda la voz en decir una línea, en milisegundos reales: Kokoro em_santa dice unas 18 letras por segundo y
-  // calla un momento en cada coma, punto o signo (voz.py --pausas), y entre una línea y la siguiente respira
-  const LETRAS_SEG = 18, PAUSA_SIGNO = 300, RESPIRA = 350;
-  const voz = (t) => (t.length / LETRAS_SEG) * 1000 + (t.match(/[,;:.?!…](\s|$)/g) ?? []).length * PAUSA_SIGNO + RESPIRA;
+  // La voz manda y la animación la sigue (pr_voz_google): cada línea dura lo que dura su clip de la voz de Google, medido
+  // por tools/vozLinea.ts y escrito aquí, en milisegundos reales (la pista de tiempos), y entre una línea y la siguiente
+  // respira. Una línea sin clip todavía se estima: unas 15 letras por segundo y un momento en cada coma, punto o signo
+  const CLAVES_VOZ = new Map(Object.entries(GUION).flatMap(([momento, ls]) => ls.map((l, i) => [l, `${momento}-${i + 1}`])));
+  const PISTA_VOZ = {"sinIntro-1":5256,"sinIntro-2":2621,"sinIntro-3":5213,"sinRamas-1":5170,"sinRamas-2":3794,"sinRamas-3":3558,"sinRamas-4":3587,"sinRamas-5":4193,"sinRamas-6":2939,"sinRamas-7":5301,"sinRamas-8":3359,"sinRamas-9":2826,"sinRamas-10":4510,"sinFin-1":2152,"inicio-1":3779,"inicio-2":4652,"inicio-3":4178,"inicio-4":3859,"inicio-5":5321,"trabajo1-1":2723,"trabajo1-2":4504,"trabajo1-3":4228,"trabajo1-4":5291,"trabajo1-5":1840,"trabajo1-6":5745,"trabajo1-7":1083,"llega1-1":5887,"llega1-2":2053,"invoca-1":3389,"procesa-1":7310,"procesa-2":3947,"procesa-3":4521,"reparte-1":5776,"reparte-2":5587,"reparte-3":3299,"reparte-4":5258,"entrega-1":5068,"entrega-2":4744,"entrega-3":5308,"brota-1":2506,"dispara-1":4546,"saleUrg-1":3981,"procesaUrg-1":842,"devuelveUrg-1":5079,"avisaUrg-1":5639,"avisaUrg-2":4046,"sigue-1":2810,"llega2-1":2407,"invoca2-1":2235,"procesa2-1":4862,"procesa2-2":2332,"reparte2-1":2505,"reparte2-2":2248,"meta-1":1310,"meta-2":6283,"meta-3":3922,"meta-4":4977};
+  // Las líneas que su clip dice demasiado despacio suenan más rápido, a su propio ritmo, sin generarlas otra vez (notas
+  // de voz nmw2n33o6tit, nmw2n5yv3tit y nmw2n82cttit): su tiempo en la escena es el de su clip dividido por ese ritmo
+  // («A medida que cumples tus misiones,» va a 1,25, como pidió el titular: nota de voz nmw2ok5b3tit)
+  const RITMO_VOZ = { 'trabajo1-1': 1.25, 'entrega-2': 1.25, 'invoca2-1': 1.15 };
+  const ritmoDe = (t) => RITMO_VOZ[CLAVES_VOZ.get(t)] ?? 1;
+  const LETRAS_SEG = 15, PAUSA_SIGNO = 250, RESPIRA = 350;
+  // La línea que sigue de corrido en la siguiente no respira al final: las dos suenan como una sola frase (nmw2on6sdtit)
+  const SIN_RESPIRO = new Set(['saleUrg-1']);
+  const respiro = (t) => (SIN_RESPIRO.has(CLAVES_VOZ.get(t)) ? 0 : RESPIRA);
+  const pista = (t) => { const ms = PISTA_VOZ[CLAVES_VOZ.get(t)]; return ms == null ? undefined : ms / ritmoDe(t); };
+  const voz = (t) => (pista(t) ?? (t.length / LETRAS_SEG) * 1000 + (t.match(/[,;:.?!…](\s|$)/g) ?? []).length * PAUSA_SIGNO) + respiro(t);
   // Cada línea dura lo que su voz, en milisegundos de escena, más su pausa: así la escena va al ritmo de lo que se dice
   const lectura = (t) => voz(t) * RAPIDEZ_ESCENA + (PAUSAS[t] || 0);
   // En qué momento de su escena empieza cada línea (de 0 a dur): cada una tiene el tiempo que tarda en leerse, así una
@@ -379,8 +405,13 @@
   // La urgencia se queda a la vista, latiendo, el tiempo de decir «¿Y si aparece un cambio urgente?», antes de que el
   // Studio vaya por ella (milisegundos de escena)
   const VE_URG = 2200;
-  // En el último tramo, ya sin ideas sueltas, vas más rápido
-  const PASO_FINAL = 2;
+  // En el último tramo, ya sin ideas sueltas ni voz, vas más rápido: de «por la ruta más óptima» a «¡Meta cumplida!»
+  // eran unos 11 segundos en los que solo avanzabas; ahora unos 4 o 5 (al doble y más, nota de voz nmw2n9rgutit). Lo
+  // que pasa antes de echar a andar (aparecen las dos misiones y la final, y el director vuelve al Studio) va también
+  // ACELERA_CIERRE veces más rápido
+  const PASO_FINAL = 5, ACELERA_CIERRE = 2.5;
+  // En la segunda revisión, el Studio le entrega lo suyo al director apenas sale (milisegundos de escena)
+  const ENTREGA_RAPIDA = 600;
   // Cuándo vuelves a andar, después de que el Studio te trae la misión roja (ya con las demás en orden)
   const ARRANCA = 1900;
   // Después de «poniéndote de nuevo en la ruta más óptima», hasta la parada siguiente, vas un poco más rápido: así la
@@ -433,8 +464,8 @@
   let modo = 'sin';
   let reloj = 0, previo, fase, t0, durFase, lineas = [], pausaSub, textoCuenta = '', velo = 0, metaBrillo = 0, efectos = [];
   // Lo que falta por narrar (cada línea con el momento de la escena en que le toca), la que se ve, desde cuándo (en
-  // tiempo real)
-  let cola = [], actual = null, vistaDesde = 0;
+  // tiempo real) y en qué momento de la escena empezó a decirse (actualEn)
+  let cola = [], actual = null, vistaDesde = 0, actualEn = 0;
   // Con STL
   let parada, urg, cabeza, desde, xd, contador, agenda, lanzado, objetivo, avance, durTrabajo, alarma, andar = PASO;
   let ramas, orbita, vuelos, misiones, nuevas, esperan, nudos, revisiones, cuenta, st, entregaSale, entregado = false, entregadoEn = 0;
@@ -465,21 +496,29 @@
   // La perilla: a qué paso de la historia hay que ir (null: a ninguno), si la animación corre, y si está saltando
   let buscar = null, reproduce = true, sobra = 0, saltando = false;
 
-  // ══ La voz del narrador: Kokoro em_santa, la misma del recorrido en 3D, dice cada línea del guion exactamente como
-  //    se lee (nota de voz nmw1o1pf7tit). Un clip por línea, voz/linea/<momento>-<n>.mp3, que genera
-  //    tools/vozLinea.ts con el texto de GUION. Suena cuando aparece su línea y sigue a la reproducción: en pausa se
-  //    detiene y sigue donde iba; al girar la perilla se calla y, al soltarla, dice la línea de ese punto; y si el
-  //    narrador va atrasado, habla un poco más rápido, como sus líneas, para ponerse al día. El subtítulo espera a que
-  //    termine de decirlo (pd_narrador)
-  const CLAVES_VOZ = new Map(Object.entries(GUION).flatMap(([momento, ls]) => ls.map((l, i) => [l, `${momento}-${i + 1}`])));
+  // ══ La voz del narrador: la voz de Google (Gemini 3.8 Flash TTS, Kai en español: pr_voz_google) dice cada línea del
+  //    guion exactamente como se lee (nota de voz nmw1o1pf7tit). Un clip por línea, voz/linea/<momento>-<n>.mp3, que
+  //    genera tools/vozLinea.ts con el texto de GUION, junto con su pista de tiempos (PISTA_VOZ). Suena cuando aparece
+  //    su línea y sigue a la reproducción: en pausa se detiene y sigue donde iba; al girar la perilla se calla y, al
+  //    soltarla, dice la línea de ese punto. Nunca se apura: si la voz aún no termina cuando ya le toca a la línea
+  //    siguiente, el subtítulo y la animación la esperan (pd_narrador)
   const VOZ_GUARDADA = 'stl-linea-voz';
   let conVoz = true;
   try { conVoz = localStorage.getItem(VOZ_GUARDADA) !== 'no'; } catch { /* sin almacenamiento, con voz */ }
+  // La velocidad de reproducción (1x, 1,25x, 1,5x o 2x; nota de voz nmw2n33o6tit): acelera la voz y la escena la sigue,
+  // porque su reloj corre esas veces más rápido. El navegador la recuerda
+  const VELOCIDADES = [1, 1.25, 1.5, 2], VELOCIDAD_GUARDADA = 'stl-linea-velocidad';
+  let velocidad = 1;
+  try { const v = Number(localStorage.getItem(VELOCIDAD_GUARDADA)); if (VELOCIDADES.includes(v)) velocidad = v; } catch { /* sin almacenamiento, a 1x */ }
   const audios = new Map();
-  const narra = { audio: null, hablando: false, desde: 0, dicha: null, movida: 0 };
-  // A qué ritmo habla: el de la escena, que ya le da a cada línea su tiempo de lectura (también con STL, donde la escena
-  // va más despacio para que se alcance a leer); si la línea que sigue ya debía estar, un poco más rápido
-  const ritmoVoz = () => (cola.length && reloj >= cola[0].en ? 1.2 : 1);
+  const narra = { audio: null, hablando: false, desde: 0, dicha: null, movida: 0, trasMover: false };
+  // Al soltar la perilla (o la rueda), la línea de ese punto suena solo si su tiempo no ha pasado: desde donde va, para
+  // seguir a la escena, y desde su comienzo si apenas empezaba. Si ya pasó, se queda callada y no se repite (nota de voz
+  // del titular nmw2ed0sqtit, 4 de noviembre de 2026). null: no suena
+  const desdeTrasMover = (pasado, dura) => (pasado >= dura ? null : pasado < 400 ? 0 : pasado);
+  // Lo que dura una línea dicha: su clip, si ya se sabe; si no, lo que tarda en decirse
+  // (a 1x, ya con su propio ritmo)
+  const duraLinea = (t) => { const a = audioDeLinea(t); return a && Number.isFinite(a.duration) && a.duration > 0 ? (a.duration * 1000) / ritmoDe(t) : voz(t); };
   function audioDeLinea(t) {
     const clave = CLAVES_VOZ.get(t);
     if (!clave) return null;
@@ -490,7 +529,7 @@
     if (narra.audio) { narra.audio.pause(); narra.audio.onended = narra.audio.onerror = null; }
     narra.audio = null; narra.hablando = false;
   }
-  function decirLinea(t) {
+  function decirLinea(t, desde = 0) {
     callarVoz();
     narra.dicha = t;
     if (!conVoz || quieto) return;
@@ -499,26 +538,48 @@
     const listo = () => { if (narra.audio === a) narra.hablando = false; };
     narra.audio = a; narra.hablando = true; narra.desde = performance.now();
     a.onended = a.onerror = listo;
-    a.currentTime = 0;
-    a.playbackRate = ritmoVoz();
+    // desde: lo que ya pasó de la línea, a 1x; en el clip es eso por su ritmo
+    a.currentTime = (desde / 1000) * ritmoDe(t);
+    // A su ritmo y a la velocidad elegida: la escena ya le da a cada línea lo que dura su clip a ese ritmo
+    a.preservesPitch = true;
+    a.playbackRate = ritmoDe(t) * velocidad;
     a.play().catch(listo);
   }
-  // Si un clip no llega o se traba, el subtítulo no espera para siempre
-  const sigueHablando = () => narra.hablando && performance.now() - narra.desde < 15000;
+  // Si un clip no llega o se traba, nada lo espera para siempre: como mucho lo que dura su línea y un segundo y medio
+  const sigueHablando = () => narra.hablando && performance.now() - narra.desde < duraLinea(narra.dicha) / velocidad + 1500;
+  // La voz manda: si aún habla y ya le toca a la línea siguiente, la escena espera a que termine (pd_narrador)
+  const esperaLaVoz = () => !saltando && !quieto && cola.length > 0 && reloj >= cola[0].en && sigueHablando();
   // Cada cuadro, la voz al día con la reproducción: en pausa, quieta; corriendo, sigue la que hablaba o dice la línea
   // que se ve, si aún no la dijo (al empezar, la primera; al soltar la perilla, la de ese punto)
   function vozAlDia() {
     if (!reproduce || saltando) { if (narra.audio && !narra.audio.paused) narra.audio.pause(); return; }
     if (narra.audio && narra.hablando && narra.audio.paused) { narra.desde = performance.now(); narra.audio.play().catch(() => { narra.hablando = false; }); }
-    if (actual && actual !== narra.dicha && performance.now() - narra.movida > 350) decirLinea(actual);
+    if (actual && actual !== narra.dicha && performance.now() - narra.movida > 350) {
+      const desde = narra.trasMover ? desdeTrasMover(reloj - actualEn, duraLinea(actual)) : 0;
+      narra.trasMover = false;
+      if (desde === null) narra.dicha = actual;
+      else decirLinea(actual, desde);
+    }
   }
-  // Al girar la perilla (o la rueda), la voz se calla y, cuando se queda quieta, dice la línea de ese punto
-  function vozAlMover() { callarVoz(); narra.dicha = null; narra.movida = performance.now(); }
+  // Al girar la perilla (o la rueda), la voz se calla y, cuando se queda quieta, dice la línea de ese punto si su tiempo
+  // no ha pasado (desdeTrasMover)
+  function vozAlMover() { callarVoz(); narra.dicha = null; narra.movida = performance.now(); narra.trasMover = true; }
   function pintarVoz() {
     const b = $('voz');
     if (!b) return;
     b.setAttribute('aria-pressed', String(conVoz));
     b.textContent = conVoz ? '🔊 Voz' : '🔇 Sin voz';
+  }
+  function pintarVelocidad() {
+    document.querySelectorAll('#velocidad button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === velocidad)));
+  }
+  // Otra velocidad: la voz que habla sigue desde donde va, ya a la nueva, y la escena con ella
+  function ponerVelocidad(v) {
+    if (!VELOCIDADES.includes(v)) return;
+    velocidad = v;
+    try { localStorage.setItem(VELOCIDAD_GUARDADA, String(v)); } catch { /* sin almacenamiento */ }
+    if (narra.audio && narra.dicha) narra.audio.playbackRate = ritmoDe(narra.dicha) * velocidad;
+    pintarVelocidad();
   }
 
   function subtitulo(texto) {
@@ -529,7 +590,7 @@
     clearTimeout(pausaSub);
     pausaSub = setTimeout(() => { s.textContent = texto; s.classList.remove('cambia'); }, 220);
   }
-  function mostrar(t) { actual = t; vistaDesde = performance.now(); subtitulo(t); }
+  function mostrar(t, en = reloj) { actual = t; actualEn = en; vistaDesde = performance.now(); subtitulo(t); }
   // Cada cuadro: si ya le toca a la línea siguiente, se muestra cuando la que se ve ya se alcanzó a leer. La escena
   // nunca se detiene a esperar al narrador: si se atrasa (hay más de una línea esperando), cada línea dura un poco
   // menos hasta ponerse al día. Al girar la perilla, se muestra al instante la que toca
@@ -537,12 +598,12 @@
     if (saltando || quieto) {
       let ultima = null;
       while (cola.length && reloj >= cola[0].en) ultima = cola.shift();
-      if (ultima) mostrar(ultima.t);
+      if (ultima) mostrar(ultima.t, ultima.en);
       return;
     }
     if (!cola.length || reloj < cola[0].en) return;
     const atraso = cola.length > 1 && reloj >= cola[1].en;
-    if (actual && (performance.now() - vistaDesde < voz(actual) * (atraso ? 0.6 : 0.85) || sigueHablando())) return;
+    if (actual && (performance.now() - vistaDesde < (voz(actual) * (atraso ? 0.6 : 0.85)) / velocidad || sigueHablando())) return;
     mostrar(cola.shift().t);
   }
   // Un momento nuevo de la escena: dura por lo menos lo que tardan en leerse sus líneas, y sus líneas pasan a la cola
@@ -560,7 +621,7 @@
     const en = momentos(lineas, durFase);
     const i = Math.max(0, en.findLastIndex((m) => t0 + m <= reloj));
     lineas.forEach((l, j) => { if (j > i) cola.push({ t: l, en: t0 + en[j] }); });
-    mostrar(lineas[i]);
+    mostrar(lineas[i], t0 + en[i]);
   }
   function destello(x, y, color, now, grande) { efectos.push({ x, y, color, t: now, max: grande ? 30 : 16 }); }
   function contar(cifras) { ultimaCuenta = cifras; if (!silencio && cifras !== textoCuenta) { textoCuenta = cifras; $('cuenta').textContent = cifras; } }
@@ -1254,13 +1315,15 @@
       if (t >= 600 && t >= durFase && ramas.every((r) => r.atrapada)) {
         revisiones.push({ x: xd, n: parada });
         entregaSale = null; entregado = false;
-        cambiar('invoca', now, 3600, parada === 2 ? 'invoca2' : 'invoca');
+        // (en la segunda, lo justo de «acumulas tus peticiones,»: sin una pausa larga antes de «el director las organiza
+        // en un miniplan», nota de voz nmw2n82cttit)
+        cambiar('invoca', now, parada === 2 ? 0 : 3600, parada === 2 ? 'invoca2' : 'invoca');
       }
     } else if (fase === 'invoca') {
       // El Studio llega rápido a su lugar, saca al director, que se pone entre él y el modelo, y le entrega lo que guardó
       const p = reposo(now); volarStudio(p.x, p.y, dt, ACOMODA);
       dirK = tope(t / 1100);
-      if (t > 1200 && !entregado && entregar(now)) { entregado = true; entregadoEn = now; }
+      if (t > (parada === 2 ? ENTREGA_RAPIDA : 1200) && !entregado && entregar(now)) { entregado = true; entregadoEn = now; }
       // En cuanto recibe lo que le entrega el Studio, el director se conecta con el modelo para organizarlo: el hilo
       // de ida y vuelta se tiende ya, más tenue (solo se ve: los subtítulos no lo cuentan)
       enlace = entregado ? ORGANIZA * tope((now - entregadoEn) / 400) : 0;
@@ -1284,19 +1347,21 @@
       const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO);
       volar(now);
       if (!vuelos.length && t >= durFase) {
-        if (parada === 2) cambiar('entrega', now, nuevas.length * 450 + 3400, 'cierra');
+        if (parada === 2) cambiar('entrega', now, (nuevas.length * 450 + 1500) / ACELERA_CIERRE, 'cierra');
         else cambiar('entrega', now, nuevas.length * 450 + 2600);
       }
     } else if (fase === 'entrega') {
       // Aparecen las misiones; luego el director vuelve a entrar al Studio, que queda otra vez flotando. Con las
       // prioridades otra vez en la línea y una misión a la vez, tu atención vuelve a cero
-      revelar(nuevas, t, 200, now);
+      // (la última, ya sin voz, al doble y más: nota de voz nmw2n9rgutit)
+      const te = parada === 2 ? t * ACELERA_CIERRE : t;
+      revelar(nuevas, te, 200, now);
       atencionMeta = 0;
       const espera = nuevas.length * 450 + 500;
-      dirK = 1 - tope((t - espera) / 1000);
+      dirK = 1 - tope((te - espera) / 1000);
       const p = reposo(now); volarStudio(p.x, p.y, dt, REPOSO);
       if (t >= durFase) {
-        if (parada === 2) cambiar('tramo', now, (META + 30 - cabeza) / (PASO * PASO_FINAL) + 400);
+        if (parada === 2) cambiar('tramo', now, (META + 30 - cabeza) / (PASO * PASO_FINAL) + 200);
         else empezarTrabajo(now);
       }
     } else if (fase === 'tramo') {
@@ -2071,6 +2136,8 @@
     callarVoz(); narra.dicha = null;
     pintarVoz();
   });
+  pintarVelocidad();
+  document.querySelectorAll('#velocidad button').forEach((b) => b.addEventListener('click', () => ponerVelocidad(Number(b.dataset.v))));
   // La perilla gira sola con la escena: una vuelta cada 20 segundos de escena
   function girarPerilla() {
     giro.setAttribute('transform', `rotate(${((((antes + pasos) * PASO_ESC) / VUELTA) * 360) % 360} 60 60)`);
@@ -2151,10 +2218,12 @@
     const dt0 = Math.min(50, now - (previo ?? now)); previo = now;
     if (buscar != null) { vozAlMover(); saltando = true; ir(Math.round(buscar)); narrar(); saltando = false; buscar = null; sobra = 0; }
     else if (reproduce) {
-      // Siempre al mismo ritmo: la escena nunca se frena ni se detiene
+      // Al mismo ritmo, salvo cuando la voz aún dice su línea y ya le toca a la siguiente: entonces la espera (la pista
+      // de tiempos ya le da a cada línea lo que dura su clip, así que es solo un momento, si el clip tardó en cargar)
       narrar();
-      sobra += dt0 * RAPIDEZ_ESCENA * (modo === 'con' ? PAUSADO : 1);
-      for (let i = 0; sobra >= PASO_ESC && i < 8; i++) { sobra -= PASO_ESC; avanzar(); }
+      // (a la velocidad elegida: la escena sigue a la voz)
+      if (!esperaLaVoz()) sobra += dt0 * RAPIDEZ_ESCENA * velocidad * (modo === 'con' ? PAUSADO : 1);
+      for (let i = 0; sobra >= PASO_ESC && i < 16; i++) { sobra -= PASO_ESC; avanzar(); }
       if (sobra >= PASO_ESC) sobra = 0;
     }
     vozAlDia();
