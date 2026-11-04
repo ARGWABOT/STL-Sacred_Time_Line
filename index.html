@@ -1871,7 +1871,49 @@
   const PAUSADO = 0.72;
 
   function paso(now, dt) { if (modo === 'sin') pasoSin(now, dt); else pasoCon(now, dt); }
-  function dibujar(now) { if (modo === 'sin') dibujarSin(now); else dibujarCon(now); }
+  function dibujar(now) { if (modo === 'sin') dibujarSin(now); else { dibujarCon(now); globitoDeMeta(now); } }
+
+  // ══ El chiste escondido (pd_globitos, la propuesta aceptada «Los globitos de después de la meta»): si sigues
+  //    adelantando la animación después de la meta, con la perilla o la rueda, cada 10 segundos de escena de más sale un
+  //    globito con una de las quince frases que aprobaste el 3 de noviembre (nmw0xtin3tit), barajadas y sin repetir
+  //    hasta agotarlas; luego se barajan otra vez, sin fin. La meta sigue siendo el final: nada más cambia, y sin voz
+  const GLOBITOS = ['Hey, ¿todavía estás aquí?', 'La presentación ya terminó.', '¿Seguro que quieres seguir? No sabes lo que vas a encontrar.',
+    'Aquí no hay más misiones. De verdad.', 'La meta quedó atrás. Bastante atrás.', '¿Buscas un final secreto? Este es.',
+    'El director se fue a dormir.', 'Esto ya es dispersión, ¿eh?', 'Ni una rama más por aquí.', 'Te prometo que no pasa nada más.',
+    '¿Y si mejor instalas el Studio?', 'Ya puedes cerrar esto. Te doy permiso.', 'La línea del tiempo también necesita descansar.',
+    'Ok, ya fueron muchos segundos.', 'Sin prisa. Pero aquí no hay nada.'];
+  const CADA_GLOBITO = 10000, DURA_GLOBITO = 4500;
+  // La baraja de la vuelta v: siempre la misma para la misma vuelta, así la perilla, hacia atrás y hacia adelante, la
+  // repite igual
+  function barajaDe(v) {
+    let s = (Math.imul(v + 1, 2654435761) >>> 0) || 1;
+    const azarDe = () => { s = (Math.imul(s ^ (s >>> 15), 2246822519) + 0x9e3779b9) >>> 0; return s / 4294967296; };
+    const b = GLOBITOS.map((_, i) => i);
+    for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(azarDe() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
+    return b;
+  }
+  // El globito que se ve a los «extra» milisegundos de escena después de la meta, y cuánto lleva (de 0 a 1), o null
+  function globitoDe(extra) {
+    if (!(extra >= CADA_GLOBITO)) return null;
+    const n = Math.floor(extra / CADA_GLOBITO) - 1, desde = extra - (n + 1) * CADA_GLOBITO;
+    if (desde > DURA_GLOBITO) return null;
+    return { texto: GLOBITOS[barajaDe(Math.floor(n / GLOBITOS.length))[n % GLOBITOS.length]], k: desde / DURA_GLOBITO };
+  }
+  function globitoDeMeta(now) {
+    if (fase !== 'meta') return;
+    const g = globitoDe(now - t0 - durFase);
+    if (!g) return;
+    const a = tope(g.k / 0.08) * tope((1 - g.k) / 0.12);
+    ctx.font = `600 13px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+    const w = ctx.measureText(g.texto).width + 26, x = Math.min(W - w / 2 - 10, cabeza), y = Y - 92 - 6 * (1 - a);
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(12, 15, 26, .94)'; ctx.strokeStyle = ORO; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.roundRect(x - w / 2, y - 16, w, 30, 15); ctx.fill(); ctx.stroke();
+    // Su piquito, hacia tu cubito
+    ctx.beginPath(); ctx.moveTo(cabeza - 6, y + 14); ctx.lineTo(cabeza, y + 24); ctx.lineTo(cabeza + 6, y + 14); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    texto(g.texto, x, y + 4, LUZ, 13, a, '600');
+  }
   // Un paso fijo de la escena
   function avanzar() {
     reloj += PASO_ESC; pasos++;
