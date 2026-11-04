@@ -7,6 +7,7 @@ metodología cumple lo que promete.
 
 - `index.html`: la portada, una animación que muestra el mismo proyecto sin STL y con STL. Un solo archivo, sin
   librerías.
+- `voz/linea/`: la voz del narrador de la animación, un clip por línea del guion.
 
 Se genera desde el STL Studio (`node tools/publicar-stl.ts`). No incluye el código del Studio ni datos de ningún proyecto.
-Versión del 2026-11-03.
+Versión del 2026-11-04.
