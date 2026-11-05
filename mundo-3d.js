@@ -145,7 +145,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":2924,"s3-6":3002,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9320,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":2924,"s3-6":3002,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
