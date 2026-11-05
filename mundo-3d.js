@@ -149,7 +149,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9320,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3258,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3258,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -199,7 +199,7 @@ const lerp = (a, b, k) => a + (b - a) * k;
 const tope = (k) => Math.max(0, Math.min(1, k));
 const suave = (k) => k * k * (3 - 2 * k);
 const tramo = (p, a, b) => suave(tope((p - a) / (b - a)));
-function cubito(c, x, y, s) {   // tú: el cubito amarillo con su sonrisa, como el de la animación de la línea
+function cubito(c, x, y, s, feliz = false) {   // tú: el cubito amarillo con su sonrisa, como el de la animación de la línea
   c.save(); c.translate(x, y); c.scale(s, s);
   const g = c.createLinearGradient(0, -9, 0, 9);
   g.addColorStop(0, '#fff6dc'); g.addColorStop(1, '#ffd9a0');
@@ -208,7 +208,9 @@ function cubito(c, x, y, s) {   // tú: el cubito amarillo con su sonrisa, como 
   for (const ojo of [-3.6, 3.6]) { c.beginPath(); c.ellipse(ojo, -1.5, 1.4, 1.9, 0, 0, 7); c.fill(); }
   c.fillStyle = 'rgba(255, 140, 150, .55)';
   for (const m of [-6, 6]) { c.beginPath(); c.arc(m, 2.2, 1.7, 0, 7); c.fill(); }
-  c.beginPath(); c.moveTo(-2.6, 3.6); c.quadraticCurveTo(0, 6.2, 2.6, 3.6); c.stroke();
+  // Feliz, con la boca abierta en su sonrisa: en el cierre de cada problema (nmw3ruscptit)
+  if (feliz) { c.beginPath(); c.moveTo(-3.4, 3); c.quadraticCurveTo(0, 8.4, 3.4, 3); c.closePath(); c.fillStyle = '#1a1f33'; c.fill(); }
+  else { c.beginPath(); c.moveTo(-2.6, 3.6); c.quadraticCurveTo(0, 6.2, 2.6, 3.6); c.stroke(); }
   c.restore();
 }
 function cajaStudio(c, x, y, w, h) {
@@ -703,7 +705,7 @@ const sinVozTodavia = (clave) => {
 };
 // Cuánto dura cada clip, en segundos: su enunciado y después cada situación en rojo seguida de su solución, segmento
 // tras segmento, cada parte lo que tarda su voz
-const duraClip = (i) => enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + problemaSeg(j) + solucionSeg(j), 0);
+const duraClip = (i) => enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + segmentoSeg(j), 0);
 // La clave de la voz del enunciado de cada gran problema: g<problema>-e (tools/vozRecorrido.ts la saca de su <summary>)
 const claveEnunciado = (i) => `g${(GRANDES[i] ? i : 0) + 1}-e`;
 // Lo que dice cada paso de cada segmento, abajo, mientras pasa: los del problema, en rojo, y los de la solución, cada uno
@@ -724,6 +726,36 @@ const PASOS_SEG = [
   { problema: [[0, 'El modelo es una caja negra:'], [0.4, 'a veces no sabes qué recuerda, qué no y por qué']], solucion: [[0, 'STL te presenta, de forma gráfica, todo el ciclo de inferencia:'], [0.2, 'cómo se comunican tu equipo y el modelo,'], [0.34, 'cuánto tarda cada uno en ejecutar sus partes y su consumo,'], [0.52, 'y qué le pide exactamente quién a quién.'], [0.68, 'Así entiendes qué pasa cada vez que le pides algo al modelo'], [0.85, 'y quedas con este historial, para auditarlo y aprender']] },
   { problema: [[0, 'Se cae el internet a mitad de tu trabajo,'], [0.45, 'y el chat con el modelo se detiene: ¿y ahora qué?']], solucion: [[0, 'Con STL Studio, sigues trabajando sin conexión:'], [0.2, 'el Buzón recoge tus notas, ajustes y entregas,'], [0.4, 'y sigues leyendo documentos y respuestas'], [0.58, 'o auditando el trabajo del modelo.'], [0.74, 'Nada se pierde: todo queda en la memoria del proyecto.'], [0.88, 'Al volver la conexión, el director lo recibe todo junto.']] },
 ];
+// El cierre de cada segmento (nota de voz nmw3ruscptit): al terminar su solución, y antes del problema siguiente, unos dos
+// segundos con un ✓, el problema que quedó resuelto, en corto, tu cubito sonriendo y una frase de cierre con su voz, que
+// dice cómo STL te libera de ese problema. Así no se encadenan solución y problema seguidos. Es el patrón de toda animación
+// explicativa del recorrido: el problema, cómo lo resuelve STL y su cierre. Cada uno: [lo resuelto, la frase de su voz],
+// con su clip s<segmento>-c (tools/vozRecorrido.ts)
+const CIERRES = [
+  ['Los mensajes a medias', 'Adiós a corregir mensajes a medias: lo revisas antes de que salga.'],
+  ['Tu atención dividida', 'Libre de tantas sesiones: tu atención, en un solo paso.'],
+  ['Las ideas que se perdían', 'Ninguna idea se pierde, y terminas lo que empezaste.'],
+  ['Las respuestas que agotan', 'Leer ya no agota: una idea a la vez.'],
+  ['No saber qué ya leíste', 'Siempre sabes por dónde vas.'],
+  ['Releer lo que ya leíste', 'Nunca más releer lo que ya leíste.'],
+  ['Las preguntas repetidas', 'Lo que decidiste queda decidido.'],
+  ['Los tokens que se evaporan', 'Tus tokens, solo para lo nuevo.'],
+  ['No saber en qué ibas', 'Retomas justo donde quedaste.'],
+  ['Qué sigue al volver', 'Vuelves, y ya sabes qué sigue.'],
+  ['Explicarlo todo otra vez', 'Sin repetirle nada al modelo.'],
+  ['Un contexto contaminado', 'Un contexto limpio, solo con lo que aprobaste.'],
+  ['El modelo, una caja negra', 'La caja negra, ahora a la vista.'],
+  ['Sin internet, todo se detenía', 'Sin internet, tu trabajo sigue.'],
+];
+// Lo que dura el cierre: al menos CIERRE_SEG, y si su voz tarda más, lo que tarda con un respiro
+const CIERRE_SEG = 2.2;
+const claveDeCierre = (j) => `s${j + 1}-c`;
+const cierreSeg = (j) => {
+  const clave = claveDeCierre(j);
+  return Math.max(CIERRE_SEG, PISTA_VOZ_ES[clave] == null ? tardaVoz(CIERRES[j]?.[1] ?? '') : segDeVoz(clave) + RESPIRO_FRASE + 0.4);
+};
+// Un segmento entero: su situación en rojo, su solución y su cierre
+const segmentoSeg = (j) => problemaSeg(j) + solucionSeg(j) + cierreSeg(j);
 // En qué paso va el clip i en el segundo t: la situación o la solución que se ve (k de n), cuánto de ella (q), su rótulo y
 // la clave de su voz (s<segmento>-p<paso>, cada paso del problema; s<segmento>-<paso>, cada paso de la solución:
 // docs/difusion/voz/es/, que genera tools/vozRecorrido.ts con lo mismo que dice el rótulo, nmw1ga4dftit)
@@ -732,20 +764,21 @@ function pasoDeClip(i, t) {
   const dura = duraClip(i), s = Math.min(dura, Math.max(0, t)), p = s / dura;
   // Primero, su enunciado (nmw1olvthtit)
   const e = enunciadoSeg(i);
-  if (s < e) return { n, p, enEnunciado: true, enProblema: false, k: 0, q: s / e, j: grupo[0], texto: ENUNCIADOS[i] ?? '', clave: claveEnunciado(i) };
-  // Intercalados (nmw1ktmeatit): la situación 1 en rojo y su solución, luego la 2 y la suya, y así. k es cuál de las n
-  // situaciones se ve, y q va de 0 a 1 dentro de su problema o de su solución
+  if (s < e) return { n, p, enEnunciado: true, enProblema: false, enCierre: false, k: 0, q: s / e, j: grupo[0], texto: ENUNCIADOS[i] ?? '', clave: claveEnunciado(i) };
+  // Intercalados (nmw1ktmeatit): la situación 1 en rojo, su solución y su cierre (nmw3ruscptit), luego la 2 y lo suyo, y
+  // así. k es cuál de las n situaciones se ve, y q va de 0 a 1 dentro de su problema, de su solución o de su cierre
   let d = s - e, k = 0;
-  while (k < n - 1 && d >= problemaSeg(grupo[k]) + solucionSeg(grupo[k])) { d -= problemaSeg(grupo[k]) + solucionSeg(grupo[k]); k++; }
+  while (k < n - 1 && d >= segmentoSeg(grupo[k])) { d -= segmentoSeg(grupo[k]); k++; }
   const j = grupo[k], ps = problemaSeg(j), enProblema = d < ps;
+  if (d >= ps + solucionSeg(j)) return { n, p, enEnunciado: false, enProblema: false, enCierre: true, k, q: tope((d - ps - solucionSeg(j)) / cierreSeg(j)), j, texto: CIERRES[j]?.[1] ?? '', clave: claveDeCierre(j) };
   const enParte = enProblema ? d : d - ps;
   const q = conPista(j, enProblema) ? qConPista(j, enProblema, enParte) : tope(enParte / (enProblema ? ps : solucionSeg(j)));
   const lista = enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion;
   const m = Math.max(0, lista.findLastIndex(([desde]) => q >= desde));
-  return { n, p, enEnunciado: false, enProblema, k, q, j, texto: lista[m][1], clave: claveDePaso(j, enProblema, m) };
+  return { n, p, enEnunciado: false, enProblema, enCierre: false, k, q, j, texto: lista[m][1], clave: claveDePaso(j, enProblema, m) };
 }
-// Todos los rótulos de un clip, en su orden. El primero, el de su enunciado
-const clavesDelGuion = (i) => [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`)])];
+// Todos los rótulos de un clip, en su orden. El primero, el de su enunciado; cada segmento termina con su cierre
+const clavesDelGuion = (i) => [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`), claveDeCierre(j)])];
 // Todas las voces de un clip, en su orden: para pedirlas antes de que suenen. Las que aún no tienen voz no se piden
 const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(clave));
 // La voz manda (nota de voz nmw2qhhsjtit): el paso del clip i en el segundo t, si su voz es de Google, con su clave, el
@@ -771,6 +804,10 @@ function tramoDeVoz(i, t) {
       }
       desde += total;
     }
+    // Su cierre, con su voz (nmw3ruscptit)
+    const cierre = claveDeCierre(j);
+    if (s < desde + cierreSeg(j)) return PISTA_VOZ_ES[cierre] == null ? null : { clave: cierre, desde, voz: segDeVoz(cierre) };
+    desde += cierreSeg(j);
   }
   return null;
 }
@@ -821,9 +858,34 @@ function pintarEnunciado(c, texto, q) {
     c.restore();
   });
 }
+// El cierre de un segmento (nmw3ruscptit): la tarjeta verde con su ✓, que entra con un saltito; adentro, «Resuelto» y el
+// problema que quedó resuelto, en corto; a su lado, tu cubito sonriendo, que da un brinco de alegría; y abajo, la frase de
+// cierre que dice su voz. Arriba, «✓ Resuelto» y cuál de las situaciones era
+function pintarCierre(c, resuelto, frase, q, cual) {
+  const entra = tramo(q, 0, 0.18), s = 0.86 + 0.14 * entra + Math.sin(tope(q / 0.18) * Math.PI) * 0.05;
+  c.save(); c.globalAlpha = entra; c.translate(160, 92); c.scale(s, s); c.translate(-160, -92);
+  caja(c, 40, 46, 240, 92, VERDE, 0.16, 14);
+  // El ✓, grande, en su círculo
+  bola(c, 82, 92, 21, VERDE, 0.18);
+  c.save(); c.lineWidth = 1.4; c.strokeStyle = VERDE; c.beginPath(); c.arc(82, 92, 21, 0, 7); c.stroke(); c.restore();
+  c.save(); c.translate(82, 92); c.scale(4.2, 4.2); palomita(c, 0, 0, 2.6, tramo(q, 0.08, 0.3)); c.restore();
+  letrero(c, 'Resuelto', 114, 80, '#bff0d2', 9, 'left');
+  c.font = '700 14px system-ui, sans-serif';
+  const renglones = renglonesDe(c, resuelto, 108);
+  renglones.forEach((r, m) => letrero(c, r, 114, 98 + m * 16 - (renglones.length - 1) * 4, '#fffaf0', 14, 'left'));
+  c.restore();
+  // Tu cubito, sonriendo, que brinca una vez al llegar y después se mece
+  const brinco = Math.sin(tramo(q, 0.12, 0.42) * Math.PI) * 9, mece = Math.sin(q * 14) * 1.2;
+  cubito(c, 252, 92 - brinco - mece, 1.9 * (0.8 + 0.2 * entra), true);
+  caja(c, 8, 5, 64, 14, VERDE, 0.25, 7);
+  letrero(c, '✓ Resuelto', 40, 15.5, '#dff5e8', 8.5);
+  caja(c, 262, 5, 50, 14, VERDE, 0.2, 7);
+  letrero(c, cual, 287, 15.5, '#dff5e8', 8.5);
+  if (frase) letrero(c, frase, 160, 190, '#fffaf0', tamanoQueCabe(c, frase, 11, 300));
+}
 function pintarClip(ctx, i, t) {
   // Una vez, sin repetirse sola: al terminar queda en su último cuadro
-  const { n, p, enEnunciado, enProblema, k, q, j, texto: paso } = pasoDeClip(i, t);
+  const { n, p, enEnunciado, enProblema, enCierre, k, q, j, texto: paso } = pasoDeClip(i, t);
   const segmento = SEGMENTOS[j];
   ctx.setTransform(4, 0, 0, 4, 0, 0);
   ctx.clearRect(0, 0, 320, 200);
@@ -832,6 +894,11 @@ function pintarClip(ctx, i, t) {
   ctx.fillStyle = fondo; ctx.fillRect(0, 0, 320, 200);
   if (enEnunciado) {
     pintarEnunciado(ctx, paso, q);
+    pintarBarra(ctx, p);
+    return;
+  }
+  if (enCierre) {
+    pintarCierre(ctx, CIERRES[j]?.[0] ?? '', paso, q, `${k + 1} de ${n}`);
     pintarBarra(ctx, p);
     return;
   }
