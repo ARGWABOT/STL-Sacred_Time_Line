@@ -1938,7 +1938,8 @@
   // ══ El chiste escondido (pd_globitos, la propuesta aceptada «Los globitos de después de la meta»): si sigues
   //    adelantando la animación después de la meta, con la perilla o la rueda, cada 10 segundos de escena de más sale un
   //    globito con una de las quince frases que aprobaste el 3 de noviembre (nmw0xtin3tit), barajadas y sin repetir
-  //    hasta agotarlas; luego se barajan otra vez, sin fin. La meta sigue siendo el final: nada más cambia, y sin voz
+  //    hasta agotarlas; luego se barajan otra vez, sin fin. La meta sigue siendo el final: nada más cambia, y cada uno
+  //    con su voz (vozDelGlobito)
   const GLOBITOS = ['Hey, ¿todavía estás aquí?', 'La presentación ya terminó.', '¿Seguro que quieres seguir? No sabes lo que vas a encontrar.',
     'Aquí no hay más misiones. De verdad.', 'La meta quedó atrás. Bastante atrás.', '¿Buscas un final secreto? Este es.',
     'El director se fue a dormir.', 'Esto ya es dispersión, ¿eh?', 'Ni una rama más por aquí.', 'Te prometo que no pasa nada más.',
@@ -1959,7 +1960,32 @@
     if (!(extra >= CADA_GLOBITO)) return null;
     const n = Math.floor(extra / CADA_GLOBITO) - 1, desde = extra - (n + 1) * CADA_GLOBITO;
     if (desde > DURA_GLOBITO) return null;
-    return { texto: GLOBITOS[barajaDe(Math.floor(n / GLOBITOS.length))[n % GLOBITOS.length]], k: desde / DURA_GLOBITO };
+    const i = barajaDe(Math.floor(n / GLOBITOS.length))[n % GLOBITOS.length];
+    return { texto: GLOBITOS[i], i, n, k: desde / DURA_GLOBITO };
+  }
+  // Su voz (pd_voz_globitos, nota de voz nmw2q8m0ltit): cada globito, al aparecer, dice su frase con la voz de Kai
+  // (voz/linea/globito-<n>.mp3, de tools/vozLinea.ts), sin ir abajo como subtítulo. Suena una vez por globito, con la
+  // animación corriendo y la voz encendida, también tras mover la perilla o la rueda (nota de voz nmw2tg50utit): mientras
+  // gira no suena; al soltarla dentro de un globito, su clip sigue desde lo que el globito ya lleva (k × lo que dura el
+  // clip), y antes de uno, suena entero al aparecer. En pausa se detiene como el narrador
+  let globitoDicho = -1, globitoTras = 0;
+  function vozDelGlobito(g) {
+    if (g.n === globitoDicho && globitoTras === narra.movida) return;
+    if (!conVoz || quieto || saltando || !reproduce || performance.now() - narra.movida < 350) return;
+    globitoDicho = g.n; globitoTras = narra.movida;
+    const clave = `globito-${g.i + 1}`;
+    if (!audios.has(clave)) { const a = new Audio(); a.preload = 'auto'; a.src = `voz/linea/${clave}.mp3`; a.preservesPitch = true; audios.set(clave, a); }
+    const a = audios.get(clave);
+    callarVoz();
+    const listo = () => { if (narra.audio === a) narra.hablando = false; };
+    a.onended = a.onerror = listo;
+    // Desde el punto que corresponde a lo que el globito ya corrió; si el clip aún no sabe cuánto dura, al saberlo
+    const desdeSuPunto = () => { if (Number.isFinite(a.duration) && a.duration > 0) a.currentTime = Math.min(g.k, 0.99) * a.duration; };
+    if (Number.isFinite(a.duration) && a.duration > 0) desdeSuPunto();
+    else { a.currentTime = 0; a.addEventListener('loadedmetadata', desdeSuPunto, { once: true }); }
+    a.playbackRate = velocidad;
+    narra.audio = a; narra.hablando = true; narra.desde = performance.now();
+    a.play().catch(listo);
   }
   // Dónde va el globito, de alto: encima de la perilla, nunca debajo de ella (nota de voz nmw2q8m0ltit, para que se lea).
   // «arriba» es el borde de arriba del mando (la perilla con lo que lleva debajo), en unidades del dibujo: el globito (30
@@ -1977,6 +2003,7 @@
     if (fase !== 'meta') return;
     const g = globitoDe(now - t0 - durFase);
     if (!g) return;
+    vozDelGlobito(g);
     const a = tope(g.k / 0.08) * tope((1 - g.k) / 0.12);
     ctx.font = `600 13px system-ui, -apple-system, 'Segoe UI', sans-serif`;
     const w = ctx.measureText(g.texto).width + 26, x = Math.min(W - w / 2 - 10, cabeza), y = yDelGlobito(arribaDelMando()) - 6 * (1 - a);

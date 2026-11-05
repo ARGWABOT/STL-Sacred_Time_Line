@@ -145,15 +145,18 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2783,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":2924,"s3-6":3002,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":2924,"s3-6":3002,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
 const RESPIRO_COMA = 0.05, RESPIRO_FRASE = 0.35, RESPIRO_ENUNCIADO = 0.5;
+// Las pausas estratégicas, en segundos, después de un rótulo y antes del remate: «sin perder esa idea o ajuste nuevo»
+// … y lo que queda en la ruta (nota de voz nmw2r873etit; el texto nuevo, sin los dos puntos, llega con su clip)
+const PAUSA_VOZ_ES = { 's3-5': 0.6 };
 // Los clips de Google que su voz dice demasiado despacio suenan más rápido, a su propio ritmo, como en «La línea del
-// proyecto» (RITMO_VOZ): «y se organiza automáticamente» sonaba en cámara lenta (nmw2qiyuwtit) mientras espera su clip
-// nuevo, sin la coma; con él, sale de aquí
-const RITMO_VOZ_ES = { 's2-2': 1.2 };
+// proyecto» (RITMO_VOZ). «y se organiza automáticamente» fue a 1,2 mientras esperaba su clip nuevo, sin la coma
+// (nmw2qiyuwtit); con él (el «Confirmo» nmw2rqwg6tit), suena a su ritmo natural, como las demás
+const RITMO_VOZ_ES = {};
 const ritmoDeClave = (clave) => (PISTA_VOZ_ES[clave] == null ? RAPIDEZ : RITMO_VOZ_ES[clave] ?? 1);
 // Lo que dura la voz de un clip de Google en el reloj del clip (a 1x), en segundos
 const segDeVoz = (clave) => PISTA_VOZ_ES[clave] / 1000 / ritmoDeClave(clave);
@@ -162,7 +165,7 @@ const conPista = (j, enProblema) => (enProblema ? PASOS_SEG[j].problema : PASOS_
 // Lo que dura cada paso de un segmento con pista: su clip y su respiro
 const tiemposConPista = (j, enProblema) => {
   const lista = enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion;
-  return lista.map(([, texto], m) => segDeVoz(claveDePaso(j, enProblema, m)) + (m === lista.length - 1 || /[.?!]$/.test(texto.trim()) ? RESPIRO_FRASE : RESPIRO_COMA));
+  return lista.map(([, texto], m) => segDeVoz(claveDePaso(j, enProblema, m)) + (m === lista.length - 1 || /[.?!]$/.test(texto.trim()) ? RESPIRO_FRASE : RESPIRO_COMA) + (PAUSA_VOZ_ES[claveDePaso(j, enProblema, m)] ?? 0));
 };
 const suma = (xs) => xs.reduce((s, x) => s + x, 0);
 const problemaSeg = (j) => Math.max(PROBLEMA_SEG, conPista(j, true) ? suma(tiemposConPista(j, true)) : sumaVoz(PASOS_SEG[j].problema));
@@ -683,10 +686,11 @@ const SEGMENTOS = [
 // nmw26xb5ltit); 5: el modelo olvida (tokens, en qué ibas, explicar otra vez y la caja negra; nmw27jyxjtit). «Tienes que
 // estar encima», la decisión enterrada y la memoria aparte salieron: los agentes de chat ya lo resuelven, o lo dice otro
 const GRANDES = [[1, 2], [0, 6], [9, 11], [3, 4, 5], [7, 8, 10, 12], [13]];
-// Lo que todavía no tiene voz: el sexto problema (segmento 14, de 0 en 13, y su enunciado g6-e) espera el «Confirmo» del
-// titular, porque su voz gasta la API de Google. Mientras, sus rótulos duran lo que dice la estimación (tardaVoz), no se
-// pide ni suena ningún mp3 suyo (nada de 404) y el reloj del clip nunca espera a una voz. tools/vozRecorrido.ts lo repite
-// (SIN_VOZ_TODAVIA) para que el generador no lo toque
+// Lo que todavía no tiene voz, mientras un problema nuevo espera el «Confirmo» de la suya: sus segmentos (de 0) y sus
+// enunciados. Sus rótulos duran lo que dice la estimación (tardaVoz), no se pide ni suena ningún mp3 suyo (nada de 404) y
+// el reloj del clip nunca espera a una voz. tools/vozRecorrido.ts lo repite (SIN_VOZ_TODAVIA) para que el generador no lo
+// toque. El sexto (segmento 14, de 0 en 13, y su enunciado g6-e) ya tiene su «Confirmo» (nmw2slvaatit) y espera solo a
+// que Google deje generar sus clips: la cuota del día de la clave se acabó el 4 de noviembre
 const SIN_VOZ_TODAVIA = new Set([13]);
 const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set(['g6-e']);
 const sinVozTodavia = (clave) => {
@@ -714,7 +718,7 @@ const PASOS_SEG = [
   { problema: [[0, '¿Cada sesión nueva, le explicas otra vez todo'], [0.55, 'para definir de qué irá?']], solucion: [[0, 'STL genera su propio sistema optimizado'], [0.2, 'de memoria del proyecto:'], [0.36, 'el estado queda en archivos, en tu mapa del proyecto'], [0.6, 'y en todo lo que dijiste.'], [0.76, 'El director ya lo sabe todo: no necesitas repetirle nada']] },
   { problema: [[0, '¿Tu contexto se contamina'], [0.4, 'con los cambios frecuentes de decisión?']], solucion: [[0, 'Con STL, la decisión que cambias queda reemplazada en el historial'], [0.4, 'y ya no forma parte del nuevo contexto que va al modelo:'], [0.72, 'solo envías decisiones aprobadas por ti']] },
   { problema: [[0, 'El modelo es una caja negra:'], [0.4, 'a veces no sabes qué recuerda, qué no y por qué']], solucion: [[0, 'STL te presenta, de forma gráfica, todo el ciclo de inferencia:'], [0.2, 'cómo se comunican tu equipo y el modelo,'], [0.34, 'cuánto tarda cada uno en ejecutar sus partes y su consumo,'], [0.52, 'y qué le pide exactamente quién a quién.'], [0.68, 'Así entiendes qué pasa cada vez que le pides algo al modelo'], [0.85, 'y quedas con este historial, para auditarlo y aprender']] },
-  { problema: [[0, 'Se cae el internet a mitad de tu trabajo,'], [0.45, 'y el chat con el modelo se detiene: ¿y ahora qué?']], solucion: [[0, 'Con STL Studio, sigues trabajando sin internet:'], [0.2, 'el Buzón recoge tus notas, ajustes y entregas,'], [0.4, 'y sigues leyendo documentos y respuestas'], [0.58, 'o auditando el trabajo del modelo.'], [0.74, 'Nada se pierde: todo queda en la memoria del proyecto.'], [0.88, 'Al volver la conexión, el director lo recibe todo junto']] },
+  { problema: [[0, 'Se cae el internet a mitad de tu trabajo,'], [0.45, 'y el chat con el modelo se detiene: ¿y ahora qué?']], solucion: [[0, 'Con STL Studio, sigues trabajando sin conexión:'], [0.2, 'el Buzón recoge tus notas, ajustes y entregas,'], [0.4, 'y sigues leyendo documentos y respuestas'], [0.58, 'o auditando el trabajo del modelo.'], [0.74, 'Nada se pierde: todo queda en la memoria del proyecto.'], [0.88, 'Al volver la conexión, el director lo recibe todo junto.']] },
 ];
 // En qué paso va el clip i en el segundo t: la situación o la solución que se ve (k de n), cuánto de ella (q), su rótulo y
 // la clave de su voz (s<segmento>-p<paso>, cada paso del problema; s<segmento>-<paso>, cada paso de la solución:
