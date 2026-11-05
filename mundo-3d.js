@@ -1,10 +1,11 @@
 // El recorrido en 3D de «Qué es STL», su primer tramo (pd_recorrido_3d, 3 de noviembre de 2026): la estación 1 («Qué es
 // STL»: tres actores, el desarrollador en la línea, y el Studio (con el director dentro) y el modelo en alto, con el ciclo
 // de lo que le entregas y las misiones que pasan), la línea
-// del tiempo como camino hasta la estación 2 y la estación 2 («¿Te ha pasado…?»: los seis grandes problemas flotan
-// alrededor de la línea, cada uno un ícono 3D; al elegir uno, suelta una pantalla 3D con su animación larga, que dice cómo
-// lo resuelve STL, y se absorbe de vuelta en su ícono 4 s después de terminar) y la estación 3 («Cómo funciona»: otra
-// pantalla 3D, de pie al borde de la línea, a la que la cámara se vuelve al llegar). Lo aprendido, en la skill
+// del tiempo como camino hasta la estación 2 y la estación 2 («¿Te ha pasado…?»: los seis grandes problemas giran
+// despacio alrededor de la línea, como un anillo, cada uno un ícono 3D con su globo al pasar el ratón; al elegir uno, su
+// reproductor crece a la izquierda del anillo, hasta donde deja la pantalla, con sus mandos adentro, y se cierra solo 4 s
+// después de terminar). «Cómo funciona» y «Lo que ya trae» salieron del recorrido: repetían lo que ya cuentan la estación
+// 1 y las soluciones de la 2 (notas de voz nmw3xje22tit, nmw40cp3jtit y nmw40fizktit). Lo aprendido, en la skill
 // «sitio-3d-scroll»: un escenario fijo detrás, el scroll convertido en el avance de la cámara y suavizado en cada cuadro, y
 // el texto siempre en HTML. Con lo que pidió el titular al verlo, en dos vueltas: sin estrellas, fragmentos ni postes, la
 // cámara más lenta, las bolitas del camino con los colores de cada tipo de nota y la animación de la estación 1 en
@@ -21,23 +22,20 @@ const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb3
 // «ES · EN»); el idioma sale de <html lang> (nota de voz nmw1c3q68tit). Los tipos de pedido llevan el nombre de su tipo
 // en el Studio: falla, idea, ajuste, pregunta y respuesta. «pasado» es el título de la estación 2
 const TEXTOS = {
-  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '¿Te ha pasado…? (selecciona los problemas que están flotando si te identificas con ellos)' },
-  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Has this happened to you? (select the floating problems if you relate to them)' },
+  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '¿Te ha pasado…? Selecciona los problemas que floten si te identificas con ellos' },
+  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Has this happened to you? Select the floating problems you relate to' },
 };
 const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es'];
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
-// El título corto de cada gran problema, el que sale junto a su ícono al pasar el ratón: en español, el data-corto de la
-// página (derivado de su enunciado); en inglés, su equivalente natural
-const TITULOS_CORTOS_EN = ['Your attention scatters', 'What you say gets lost or repeated', 'You resume and the context tangles', 'Reading and re-reading', 'The model forgets', 'No internet, your work stops'];
-// El título de la estación 2 sale del diccionario, también en la página en inglés
+// El título corto de cada gran problema, el que sale en el globo de su ícono: dos palabras (nota de voz nmw40cp3jtit); en
+// español, el data-corto de la página; en inglés, su equivalente natural
+const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Tangled context', 'Long answers', 'Forgetful model', 'No internet'];
+// La línea de la estación 2 sale del diccionario, también en la página en inglés
 const tituloDos = document.querySelector('[data-titulo-dos]');
 if (tituloDos) tituloDos.textContent = T.pasado;
 // Cuánto de la distancia que le falta recorre la cámara en cada cuadro. Fue 0,085, luego 0,03 y ahora la mitad, 0,015: el
 // cambio entre estaciones mareaba (nota de voz nmw17rx07tit)
 const SUAVIZADO = 0.015;
-// El alto del nombre de cada esfera de la estación 2, que sale solo al pasar el ratón: antes 0,3, muy chico para leerlo
-// (nota de voz nmw19iamdtit)
-const TAMANO_NOMBRE = 0.52;
 
 // ── En un teléfono (o una tablet en vertical), una cubierta recomienda verlo en un computador o en una tablet en
 // horizontal: las animaciones no se entienden en una pantalla angosta (nota de voz nmw17l49mtit). Se puede seguir igual
@@ -57,16 +55,15 @@ const compartir = new URLSearchParams(location.search).has('compartir');
 const MOMENTO_COMPARTIR = 11.2;
 const fijo = compartir ? 0 : verTexto === null ? null : Math.max(0, Math.min(estaciones.length, Math.round(Number(verTexto)) || 0));
 
-// ── «¿Te ha pasado…?»: cada problema abierto se marca con su ✓ y suma a la cuenta (t_decide_cierre_problemas)
+// ── «¿Te ha pasado…?»: cada problema abierto se marca con su ✓ (t_decide_cierre_problemas); la cuenta «Abriste N de 6»
+// salió, con la tarjeta (nota de voz nmw40cp3jtit)
 const problemas = [...document.querySelectorAll('.problema')];
-const cuenta = document.querySelector('[data-cuenta]');
 const resueltos = new Set();
 const alResolver = [];
 function marcarVisto(i) {
   if (resueltos.has(i) || !problemas[i]) return;
   resueltos.add(i);
   problemas[i].classList.add('visto');
-  if (cuenta) cuenta.textContent = String(resueltos.size);
   alResolver.forEach((f) => f(i));
 }
 problemas.forEach((d, i) => d.addEventListener('toggle', () => { if (d.open) marcarVisto(i); }));
@@ -93,6 +90,8 @@ function cerrarVisor() {
 }
 document.querySelectorAll('[data-ver-animacion]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); abrirVisor(a); }));
 visor?.querySelector('[data-cerrar-visor]')?.addEventListener('click', cerrarVisor);
+// ?animacion: la abre en grande desde el principio, para revisarla o capturarla en el tamaño en que se ve (nmw40vdvitit)
+if (new URLSearchParams(location.search).has('animacion')) abrirVisor(null);
 // El recuadro de un problema del 3D se cierra con lo mismo: lo conecta iniciar() cuando hay mundo
 let cerrarPopup = () => false;
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && (cerrarVisor() || cerrarPopup())) e.preventDefault(); });
@@ -164,7 +163,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3258,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"f1-1":4014,"f1-2":4309,"f2-1":3142,"f2-2":4103,"f3-1":2369,"f3-2":5323,"f4-1":3004,"f4-2":3485,"f5-1":2986,"f5-2":3869,"f-c":3665};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3258,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -965,190 +964,6 @@ function pintarCierre(c, resuelto, frase, q, cual) {
   if (frase) letrero(c, frase, 160, 190, '#fffaf0', tamanoQueCabe(c, frase, 11, 300));
 }
 
-// ── La estación 3, «Cómo funciona» (pd_recorrido_3d): cinco escenas dibujadas con el guion confirmado (nmw3q35metil), dos
-// frases por escena, que dice Kai y salen en su rótulo; el modelo aparece en la tercera (nmw19oxgstit); los botones llevan
-// su nombre del Studio (nmw3q3u7dtit); y las notas del Buzón son los problemas que abriste en la estación 2 (nmw19na4itit).
-// Termina con su cierre, como cada animación explicativa (nmw3ruscptit). Cada clip: f<escena>-<frase>, y f-c el cierre
-const FUNCIONA = [
-  ['Tus notas', ['Escribes o dictas tus notas, ideas y ajustes,', 'y esperan en el Buzón, sin llegar todavía al modelo.']],
-  ['La revisión', ['Cuando quieres, pides la revisión con un botón:', 'el director recibe todo junto, con el mapa del proyecto.']],
-  ['El modelo', ['El director trabaja con el modelo,', 'lee solo lo que cambió y pone cada idea en su lugar de la ruta.']],
-  ['Tu misión', ['Te devuelve una sola misión a la vez,', 'con sus pasos y un botón directo a cada lugar.']],
-  ['El ciclo', ['Cumples tu misión, dejas tus notas,', 'y el ciclo vuelve a empezar, sin repetir nada.']],
-];
-const CIERRE_FUNCIONA = ['Así funciona STL', 'Tú decides, y el director se encarga del resto.'];
-const claveFunciona = (k, m) => (k >= FUNCIONA.length ? 'f-c' : `f${k + 1}-${m + 1}`);
-// Lo que dura cada escena, como mínimo, para que se alcance a ver lo que pasa
-const ESCENA_FUNCIONA_SEG = 5.5;
-const vozDe = (clave, texto) => (PISTA_VOZ_ES[clave] == null ? tardaVoz(texto) : PISTA_VOZ_ES[clave] / 1000);
-// Los rótulos, en orden: cada uno dura su voz y su respiro (corto en la coma, más largo al terminar la frase); si una escena
-// queda más corta que su mínimo, su última frase se estira. Al final, el cierre
-function rotulosFunciona() {
-  const lista = [];
-  let desde = 0;
-  FUNCIONA.forEach(([, frases], k) => {
-    const inicio = desde;
-    frases.forEach((texto, m) => {
-      const clave = claveFunciona(k, m), dura = vozDe(clave, texto) + (/[,:]$/.test(texto.trim()) ? RESPIRO_COMA + 0.1 : RESPIRO_FRASE + 0.3);
-      lista.push({ k, m, texto, clave, desde, dura });
-      desde += dura;
-    });
-    const falta = ESCENA_FUNCIONA_SEG - (desde - inicio);
-    if (falta > 0) { lista.at(-1).dura += falta; desde += falta; }
-  });
-  const clave = claveFunciona(FUNCIONA.length, 0), texto = CIERRE_FUNCIONA[1];
-  lista.push({ k: FUNCIONA.length, m: 0, texto, clave, desde, dura: Math.max(CIERRE_SEG + 0.8, vozDe(clave, texto) + RESPIRO_FRASE + 1) });
-  return lista;
-}
-const duraFunciona = () => { const r = rotulosFunciona().at(-1); return r.desde + r.dura; };
-// En qué rótulo va la estación 3 en el segundo t, y cuánto va de su escena (q, de 0 a 1)
-function pasoFunciona(t) {
-  const lista = rotulosFunciona(), s = Math.max(0, Math.min(duraFunciona(), t));
-  const r = lista.findLast((x) => s >= x.desde) ?? lista[0];
-  const deEscena = lista.filter((x) => x.k === r.k), ini = deEscena[0].desde, fin = deEscena.at(-1).desde + deEscena.at(-1).dura;
-  return { ...r, q: tope((s - ini) / (fin - ini)), p: s / duraFunciona() };
-}
-// Un texto recortado con «…» hasta que cabe en el ancho dado (para que un nombre largo no se salga de su chip)
-function recortar(c, texto, ancho) {
-  if (c.measureText(texto).width <= ancho) return texto;
-  let t = String(texto);
-  while (t.length > 3 && c.measureText(`${t}…`).width > ancho) t = t.slice(0, -1);
-  return `${t.trimEnd()}…`;
-}
-// Una nota del Buzón: su chip con el ícono de su tipo (el mismo de la estación 1) y lo que dice, recortado para que quepa
-const ANCHO_NOTA = 88;
-function nota(c, x, y, texto, tipo, alfa = 1) {
-  c.save(); c.globalAlpha *= alfa;
-  caja(c, x, y, ANCHO_NOTA, 12, COLOR_TIPO[tipo] ?? ORO, 0.22, 6);
-  iconoNota(c, tipo, x + 8, y + 6, 0.62);
-  c.font = '600 7px system-ui, sans-serif';
-  letrero(c, recortar(c, texto, ANCHO_NOTA - 22), x + 16, y + 8.6, '#fffaf0', 7, 'left');
-  c.restore();
-}
-// Las notas que viajan al Buzón: los problemas que abriste en la estación 2 (su nombre corto) y, si fueron menos de tres,
-// una idea, un ajuste o una pregunta; cada una con el ícono de su tipo
-function notasDeFunciona(abiertos = []) {
-  return [...abiertos, 'Una idea', 'Un ajuste', 'Una pregunta'].slice(0, 3).map((texto, i) => ({ texto, tipo: ['idea', 'ajuste', 'pregunta'][i], color: COLOR_TIPO[['idea', 'ajuste', 'pregunta'][i]] }));
-}
-const BUZON = { y: 76, x: 118 }, DIRECTOR = { y: 100, x: 236 }, MOD = { y: 40, x: 290 };
-function studioDeFunciona(c, q, conModelo, alfaModelo = 0.3) {
-  // El Studio con su Buzón adentro y el director en su lugar (el cubo de la estación 1)
-  actorStudio(c, 110, 56, 152, 92, false); letrero(c, 'STL Studio', 186, 51, MORADO, 8);
-  caja(c, BUZON.x - 4, BUZON.y - 10, 96, 66, ORO, 0.06, 6); letrero(c, 'Buzón', BUZON.x + 44, BUZON.y + 66, ORO, 7.5);   // debajo de su caja: por arriba pasan las notas
-  actorDirector(c, DIRECTOR.x, DIRECTOR.y, 11 + Math.sin(q * 12) * 0.6); letrero(c, 'el director', DIRECTOR.x, DIRECTOR.y + 21, ORO, 7);
-  // El modelo aparece en la tercera escena (nmw19oxgstit): antes no está
-  if (conModelo) { actorModelo(c, MOD.x, MOD.y, 12, alfaModelo); c.save(); c.globalAlpha *= alfaModelo; letrero(c, 'el modelo', MOD.x, MOD.y + 22, MODELO, 7); c.restore(); }
-}
-function pintarFunciona(ctx, t, abiertos = []) {
-  const { k, q, p, texto } = pasoFunciona(t);
-  ctx.setTransform(4, 0, 0, 4, 0, 0);
-  ctx.clearRect(0, 0, 320, 200);
-  const fondo = ctx.createRadialGradient(160, 80, 10, 160, 100, 200);
-  fondo.addColorStop(0, '#141a2e'); fondo.addColorStop(1, '#07090f');
-  ctx.fillStyle = fondo; ctx.fillRect(0, 0, 320, 200);
-  if (k >= FUNCIONA.length) {
-    pintarCierre(ctx, CIERRE_FUNCIONA[0], texto, q, '');
-    pintarBarra(ctx, p);
-    return;
-  }
-  const c = ctx, notas = notasDeFunciona(abiertos), enBuzon = (i) => ({ x: BUZON.x, y: BUZON.y + 4 + i * 15 });
-  const tu = { y: 118, x: 40 };
-  actorDev(c, tu.x, tu.y, 1.6, k === 4 && q > 0.25); letrero(c, 'tú', tu.x, tu.y + 24, '#cfe0ff', 8);
-  if (k === 0) {
-    // Tus notas salen de ti, una tras otra, y esperan en el Buzón; al modelo no le llega nada todavía
-    studioDeFunciona(c, q, false);
-    notas.forEach((n, i) => {
-      const a = 0.08 + i * 0.16, e = tramo(q, a, a + 0.2), d = enBuzon(i);
-      if (q < a) return;
-      // Cada nota viaja por su propio renglón del Buzón, sin cruzarse con las otras
-      nota(c, lerp(tu.x + 6, d.x, e), d.y, n.texto, n.tipo, tope(e * 4));
-    });
-    if (q > 0.6) {
-      const a = tramo(q, 0.6, 0.8);
-      // Nada sale del Studio todavía: el camino hacia afuera, cerrado
-      trazo(c, BUZON.x + 92, BUZON.y + 4, 300, 34, MODELO, a * 0.6, true);
-      cruz(c, 284, 40, 5, a);
-      c.save(); c.globalAlpha *= a; letrero(c, 'todavía no va al modelo', 250, 26, '#c5d2e6', 7); c.restore();
-    }
-  } else if (k === 1) {
-    // Oprimes «Pedir revisión» y el director recibe todo junto, con el mapa del proyecto
-    studioDeFunciona(c, q, false);
-    const pulso = Math.sin(tramo(q, 0.08, 0.28) * Math.PI);
-    c.save(); c.translate(tu.x + 4, 158); c.scale(1 + pulso * 0.12, 1 + pulso * 0.12);
-    c.fillStyle = ORO; c.beginPath(); c.roundRect(-34, -8, 68, 16, 8); c.fill(); letrero(c, 'Pedir revisión', 0, 3.4, '#1a1f33', 8);
-    c.restore();
-    const junto = tramo(q, 0.3, 0.62);
-    notas.forEach((n, i) => {
-      const d = enBuzon(i);
-      // Se juntan a la derecha del Buzón, una sobre otra y sin tocarse, sobre el director
-      nota(c, lerp(d.x, DIRECTOR.x - 22, junto), lerp(d.y, DIRECTOR.y - 46 + i * 13, junto), n.texto, n.tipo, 1 - tramo(q, 0.6, 0.72) * 0.7);
-    });
-    if (q > 0.55) {
-      const a = tramo(q, 0.55, 0.8);
-      c.save(); c.globalAlpha = a; caja(c, BUZON.x + 2, BUZON.y + 6, 80, 40, CIAN, 0.12, 6); renglones(c, BUZON.x + 10, BUZON.y + 16, 62, 3, CIAN, 0.8, 8);
-      letrero(c, 'el mapa del proyecto', BUZON.x + 42, BUZON.y + 56, CIAN, 7); c.restore();
-      trazo(c, BUZON.x + 82, BUZON.y + 26, DIRECTOR.x - 11, DIRECTOR.y, CIAN, a * 0.8, true);
-    }
-  } else if (k === 2) {
-    // El modelo aparece: el director le manda solo lo que cambió y pone cada idea en su fase de la ruta
-    const llega = tramo(q, 0, 0.2);
-    studioDeFunciona(c, q, true, 0.3 + 0.7 * llega);
-    for (let b = 0; b < 3; b++) {
-      const v = tope((q - 0.18 - b * 0.08) / 0.24);
-      if (v > 0 && v < 1) bola(c, lerp(DIRECTOR.x + 10, MOD.x - 10, v), lerp(DIRECTOR.y - 6, MOD.y + 6, v), 2.4, ORO);
-      const w = tope((q - 0.34 - b * 0.08) / 0.24);
-      if (w > 0 && w < 1) bola(c, lerp(MOD.x - 10, DIRECTOR.x + 10, w), lerp(MOD.y + 10, DIRECTOR.y - 2, w), 2.4, MODELO);
-    }
-    if (q > 0.18 && q < 0.62) letrero(c, 'solo lo que cambió', 225, 141, ORO, 7);   // adentro del Studio, sin cruzar su marco
-    // La ruta, abajo: tres fases, y cada nota cae en la suya
-    trazo(c, 120, 166, 300, 166, LINEA, 0.9);
-    [150, 210, 270].forEach((x, i) => { bola(c, x, 166, 3, LINEA); letrero(c, `Fase ${i + 1}`, x, 160, '#e8dcb8', 6.5); });
-    notas.forEach((n, i) => {
-      const a = 0.55 + i * 0.12, e = tramo(q, a, a + 0.16);
-      if (q < a) return;
-      const x = lerp(DIRECTOR.x, [150, 210, 270][[1, 0, 2][i]], e), y = lerp(DIRECTOR.y + 4, 166, e);
-      iconoNota(c, n.tipo, x, y, 0.8);
-    });
-  } else if (k === 3) {
-    // Te devuelve una sola misión, con sus pasos y su botón a cada lugar
-    studioDeFunciona(c, q, true, 0.55);
-    const e = tramo(q, 0.05, 0.35), x = lerp(DIRECTOR.x - 40, 74, e), y = 30;
-    caja(c, x - 60, y, 120, 72, ORO, 0.14, 8);
-    letrero(c, 'Tu misión', x - 52, y + 13, '#fffaf0', 9, 'left');
-    for (let m = 0; m < 3; m++) {
-      const visto = tramo(q, 0.4 + m * 0.12, 0.5 + m * 0.12);
-      c.save(); c.globalAlpha *= 0.3 + 0.7 * visto;
-      renglones(c, x - 52, y + 22 + m * 15, 50, 1, LUZ, 0.7);
-      c.fillStyle = ORO; c.beginPath(); c.roundRect(x + 18, y + 21 + m * 15, 34, 11, 5.5); c.fill(); letrero(c, 'Ir', x + 35, y + 29 + m * 15, '#1a1f33', 7);
-      c.restore();
-    }
-    // Arriba de la misión, sin tocar a tu cubo ni el marco del Studio
-    if (q > 0.3) letrero(c, 'una sola misión a la vez', 74, 27, '#e8dcb8', 7.5);
-  } else {
-    // La cumples, dejas tus notas nuevas y el ciclo vuelve a empezar
-    studioDeFunciona(c, q, true, 0.45);
-    const hecha = q > 0.18;
-    placaMision(c, 14, 34, 120, 'Tu misión', hecha);
-    notas.slice(0, 2).forEach((n, i) => {
-      const a = 0.32 + i * 0.12, e = tramo(q, a, a + 0.2), d = enBuzon(i);
-      if (q < a) return;
-      nota(c, lerp(tu.x + 6, d.x, e), d.y, i ? 'Un ajuste nuevo' : 'Una idea nueva', i ? 'ajuste' : 'idea', tope(e * 4));
-    });
-    // La vuelta: una flecha que gira alrededor del Studio
-    if (q > 0.6) {
-      const a = tramo(q, 0.6, 0.75), giro = (q - 0.6) * 9;
-      c.save(); c.globalAlpha = a; c.strokeStyle = LINEA; c.lineWidth = 1.6; c.setLineDash([4, 4]); c.lineDashOffset = -giro * 12;
-      c.beginPath(); c.ellipse(186, 102, 92, 62, 0, 0, 7); c.stroke(); c.restore();
-      letrero(c, 'otra vuelta', 186, 172, LINEA, 7.5);
-    }
-  }
-  caja(c, 8, 5, 72, 14, MORADO, 0.25, 7);
-  letrero(c, FUNCIONA[k][0], 44, 15.5, '#e6deff', 8.5);
-  caja(c, 262, 5, 50, 14, MORADO, 0.2, 7);
-  letrero(c, `${k + 1} de ${FUNCIONA.length}`, 287, 15.5, '#e6deff', 8.5);
-  if (texto) letrero(c, texto, 160, 190, '#fffaf0', tamanoQueCabe(c, texto, 11, 300));
-  pintarBarra(c, p);
-}
 function pintarClip(ctx, i, t) {
   // Una vez, sin repetirse sola: al terminar queda en su último cuadro
   const { n, p, enEnunciado, enProblema, enCierre, k, q, j, texto: paso } = pasoDeClip(i, t);
@@ -1190,9 +1005,39 @@ function pintarBarra(ctx, p) {
   bola(ctx, BARRA.x + BARRA.ancho * p, BARRA.y + BARRA.alto / 2, 2.6, ORO);
 }
 
-// ¿La persona está en una estación, cerca del centro de su bloque? Mientras sí, la cámara de la estación 3 mira su pantalla;
-// al seguir el scroll más allá (hacia adelante o hacia atrás), se vuelve a la línea y continúa
-const enEstacion = (scrollY, ancla, alto, cerca = 0.45) => Math.abs(scrollY - ancla) < alto * cerca;
+// ── Dónde va cada cosa de la estación 2 en la pantalla (nota de voz nmw40cp3jtit): el anillo de íconos, pegado al menú de
+// la derecha, y el reproductor del problema abierto, en todo lo que queda a su izquierda, hasta donde deja la pantalla (sin
+// tapar los íconos, el menú ni la línea de abajo), con su animación de 16 × 10 y sus mandos adentro, debajo. v: el ancho y el
+// alto de la pantalla, dónde empieza el menú (menuIzq), dónde empieza la línea de abajo (lineaArriba), la mitad del ancho y
+// del alto del anillo abierto, con el aire de sus íconos (anilloMedio, anilloAlto), y el alto de los mandos (mandos). Pura
+const ASPECTO_CLIP = 16 / 10;
+function disponerReproductor(v) {
+  const margen = Math.max(16, v.ancho * 0.015), aire = 24;
+  const arriba = Math.max(16, v.alto * 0.04), abajo = v.lineaArriba - 16;
+  const anilloX = v.menuIzq - aire - v.anilloMedio;
+  const anilloY = Math.max(arriba + v.anilloAlto, (arriba + abajo) / 2);
+  const izq = margen, der = anilloX - v.anilloMedio - aire;
+  let w = Math.max(0, der - izq), h = w / ASPECTO_CLIP + v.mandos;
+  if (h > abajo - arriba) { h = Math.max(0, abajo - arriba); w = Math.max(0, (h - v.mandos) * ASPECTO_CLIP); }
+  return { x: izq + (der - izq - w) / 2, y: arriba + (abajo - arriba - h) / 2, w, h, anilloX, anilloY };
+}
+// ¿Se tocan dos rectángulos ({ x, y, w, h })? Cuánto, en área (0, nada)
+const cruce = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+// Dónde va el globo de un ícono, de w × h: primero hacia afuera del anillo, y si ahí pisa algo (otro ícono, el reproductor,
+// el menú, la línea de abajo) o se sale de la pantalla, al otro lado, arriba o abajo; si todos pisan, el que menos.
+// icono: { x, y, r } en la pantalla; centro: el del anillo; obstaculos: rectángulos; lim: { ancho, alto }. Pura
+function lugarDelGlobo(icono, w, h, centro, obstaculos, lim, sep = 10) {
+  const d = icono.r + sep, afuera = icono.x >= centro.x ? 1 : -1;
+  const lados = [
+    { x: icono.x + afuera * d - (afuera < 0 ? w : 0), y: icono.y - h / 2 },
+    { x: icono.x - afuera * d - (afuera > 0 ? w : 0), y: icono.y - h / 2 },
+    { x: icono.x - w / 2, y: icono.y - d - h },
+    { x: icono.x - w / 2, y: icono.y + d },
+  ].map((r) => ({ ...r, w, h }));
+  const fuera = (r) => (r.x < 8 || r.y < 8 || r.x + r.w > lim.ancho - 8 || r.y + r.h > lim.alto - 8 ? 1e9 : 0);
+  const costo = (r) => fuera(r) + obstaculos.reduce((s, o) => s + cruce(r, o), 0);
+  return lados.reduce((mejor, r) => (costo(r) < costo(mejor) ? r : mejor), lados[0]);
+}
 // La pantalla de un problema se cierra sola CIERRA_TRAS_SEG segundos después de que su animación termina (nota de voz del 5
 // de noviembre). Si la persona oprime «↻ Repetir» (o vuelve a ver la animación) antes, la pantalla se queda abierta y ya no
 // se cierra sola. El reloj no mide nada por su cuenta: en cada cuadro se le dice la hora y si la animación ya terminó
@@ -1256,14 +1101,14 @@ function iniciar() {
     const lado = new THREE.Vector3(-t.z, 0, t.x).normalize();
     return { p, t, lado };
   };
-  const PARADA = [0.1, 0.42, 0.7];   // dónde se detiene la cámara en cada estación (de 0 a 1); la 3, «Cómo funciona»
+  const PARADA = [0.1, 0.42];   // dónde se detiene la cámara en cada estación (de 0 a 1)
   // Dónde está lo que se ve en cada estación: un poco más adelante, para que la cámara lo vea de frente y no encima
   const SITIO = PARADA.map((u) => u + 0.022);
   const focos = [];   // lo que mira la cámara en cada estación
   const animar = [];  // lo que se mueve: funciones (t) => void
   // El reloj de cada estación: ninguna se anima hasta que se oprime «Empieza el recorrido», y un clic en una estación del
   // menú vuelve a empezar la suya, para repetirla cuando se quiera (nota de voz nmw1khrketit). null: aún no empieza
-  const relojes = [null, null, null];
+  const relojes = [null, null];
   const empezarEstacion = (k) => { if (k >= 0 && k < relojes.length) relojes[k] = performance.now() / 1000; };
   const tiempoDe = (k) => relojes[k] === null ? 0 : performance.now() / 1000 - relojes[k];
   // Lo que se mueve en una estación corre con su propio reloj, no con el de la página
@@ -1690,43 +1535,28 @@ function iniciar() {
     });
   }
 
-  // ── Las pantallas virtuales de las estaciones 2 y 3: un plano en la escena, con su marco, cuya textura es el lienzo 2D de
-  // la animación (CanvasTexture), que se vuelve a subir en cada cuadro que se pinta. Quedan al costado de la línea y
-  // miran hacia donde se detiene la cámara
-  function crearPantalla(fuente, ancho, alto) {
-    const g = new THREE.Group();
-    const tex = fuente ? new THREE.CanvasTexture(fuente) : null;
-    if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; tex.anisotropy = 4; }
-    const cuerpo = new THREE.Mesh(new RoundedBoxGeometry(ancho + 0.7, alto + 0.7, 0.3, 3, 0.14), new THREE.MeshStandardMaterial({ color: '#10142a', emissive: '#10142a', emissiveIntensity: 0.4, roughness: 0.6 }));
-    const borde = new THREE.Mesh(new RoundedBoxGeometry(ancho + 0.95, alto + 0.95, 0.2, 3, 0.18), new THREE.MeshBasicMaterial({ color: ORO, transparent: true, opacity: 0.55 }));
-    borde.position.z = -0.08;
-    const mat = new THREE.MeshBasicMaterial({ map: tex, color: tex ? '#ffffff' : '#10142a', transparent: true, fog: false, toneMapped: false });
-    const imagen = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto), mat);
-    imagen.position.z = 0.17;
-    g.add(borde, cuerpo, imagen);
-    return { g, tex, mat, borde, ancho, alto, actualizar: () => { if (tex) tex.needsUpdate = true; } };
-  }
-  // Hacia dónde mira una pantalla: de frente a la cámara que la ve, sin inclinarse
-  const mirarA = (g, camaraEn) => g.lookAt(camaraEn.x, g.position.y, camaraEn.z);
-  // Los íconos 3D y la pantalla de la estación 2 y su cámara, y la pantalla de la estación 3: los llena cada estación
-  const pantalla2 = { k: 0, cam: 0, abierta: false, i: -1, paso: (dt) => dt, actualizar: () => {}, abrir: (i) => i, cerrar: () => {} };
-  const vista = { dos: null, tres: null };
-  let giro3 = 0;   // cuánto se ha vuelto la cámara hacia la pantalla de la estación 3 (0, a la línea; 1, a la pantalla)
+  // La estación 2: cuánto está abierto el reproductor de un problema (cam, de 0 a 1, suavizado), que lleva el anillo hacia el
+  // menú y lo achica para dejarle sitio
+  const pantalla2 = { cam: 0, abierta: false };
+  // El anillo de íconos de la estación 2: su centro, su costado y su dirección; lo llena la estación
+  const anillo = { centro: null, lado: null, tan: null, escala: 1 };
 
-  // ── Estación 2, ¿te ha pasado…?: los seis grandes problemas flotan alrededor de la línea, cada uno un ÍCONO 3D de su
-  // problema, en el estilo de los actores de la estación 1 (formas redondeadas, brillo propio, rojos hasta que se abren y
-  // verdes después): varias ventanas para la atención repartida en sesiones, un globo de mensaje partido para lo que dices
-  // y se pierde, un hilo enredado para el contexto, una pila de páginas para leer y releer, una caja negra con su «?» para
-  // el modelo que olvida y una señal de wifi cortada para la falta de internet. Su título sale junto al ícono, solo al
-  // pasar el ratón. Al hacer clic en uno, el ícono «suelta» una pantalla 3D con la animación de su problema (más abajo)
+  // ── Estación 2, ¿te ha pasado…?: los seis grandes problemas giran despacio alrededor de la línea, como un anillo (nota de
+  // voz nmw40cp3jtit), cada uno un ÍCONO 3D de su problema, en el estilo de los actores de la estación 1 (formas
+  // redondeadas, brillo propio, rojos hasta que se abren y verdes después): varias ventanas para la atención repartida en
+  // sesiones, un globo de mensaje partido para lo que dices y se pierde, un hilo enredado para el contexto, una pila de
+  // páginas para leer y releer, una caja negra con su «?» para el modelo que olvida y una señal de wifi cortada para la falta
+  // de internet. Al pasar el ratón o al hacer clic, su globo con su nombre en dos palabras; al hacer clic, su reproductor
   {
     const u = SITIO[1];
     const { p, t, lado } = marco(u);
-    const ESCALA_ICONO = 1.45;   // los íconos miden unos 1,6: así se leen a 15 metros
+    // Los íconos, al 65 % de lo que medían (1,45): por lo menos el 60 % que pidió el titular (nmw40cp3jtit)
+    const ESCALA_ICONO = 0.95;
     const frente = Math.atan2(-t.x, -t.z);   // para que el ícono mire hacia la cámara, que viene por detrás de la línea
-    // Seis íconos, uno por gran problema (nota de voz nmw1bwnvztit; antes eran quince en cuatro grupos), repartidos por
-    // donde estaban los grupos: a menos de 4,4 de la línea
-    const ESFERAS = [{ x: -3.6, y: 2.6 }, { x: 3.6, y: 2.8 }, { x: -3.6, y: 5.2 }, { x: 3.6, y: 5.2 }, { x: -3.6, y: 7.6 }, { x: 3.6, y: 7.4 }];
+    // El anillo: una elipse alrededor de la línea, de frente a la cámara (más ancha que alta, para no tocar el suelo), un poco
+    // inclinada para que se vea en 3D, con los seis a la misma distancia uno del otro
+    Object.assign(anillo, { centro: p.clone().addScaledVector(ARRIBA, 0.9), lado, tan: t });
+    const ESFERAS = Array.from({ length: 6 }, (_, i) => ({ a: Math.PI / 2 + (i * 2 * Math.PI) / 6 }));
     const forma = (pts) => { const s = new THREE.Shape(); pts.forEach(([x, y], k) => (k ? s.lineTo(x, y) : s.moveTo(x, y))); s.closePath(); return s; };
     const extr = (s, prof, bisel = 0.03) => {
       const g = new THREE.ExtrudeGeometry(s, { depth: prof, bevelEnabled: true, bevelThickness: bisel, bevelSize: bisel, bevelSegments: 1, curveSegments: 10 });
@@ -1822,114 +1652,49 @@ function iniciar() {
         return g;
       },
     ];
+    // Las medidas del anillo: sus radios (a lo ancho y a lo alto), cuánto se inclina, cuánto se achica con el reproductor
+    // abierto y su giro (radianes por segundo: una vuelta en algo más de un minuto, despacio)
+    const RADIO_X = 6.2, RADIO_Y = 3.5, INCLINA = 1.1, ANILLO_ABIERTO = 0.52, GIRO_ANILLO = 0.095;
+    const lugarEnAnillo = (a, s, fuera = new THREE.Vector3()) => fuera.copy(anillo.centro)
+      .addScaledVector(lado, Math.cos(a) * RADIO_X * s).addScaledVector(ARRIBA, Math.sin(a) * RADIO_Y * s).addScaledVector(t, Math.sin(a) * INCLINA * s);
+    Object.assign(anillo, { radioX: RADIO_X, radioY: RADIO_Y, abierto: ANILLO_ABIERTO });
     ESFERAS.forEach((pos, i) => {
-      const casa = p.clone().addScaledVector(lado, pos.x).addScaledVector(ARRIBA, pos.y);
+      const casa = lugarEnAnillo(pos.a, 1);
       const mat = brillo(ROJO, 0.6), apoyo = brillo('#fff0f3', 0.35);
       const orbe = ICONOS[i](mat, apoyo);
       orbe.position.copy(casa);
       // El área que se toca con el ratón: una esfera invisible alrededor del ícono
       const hit = new THREE.Mesh(new THREE.SphereGeometry(1.05, 10, 8), new THREE.MeshBasicMaterial({ visible: false }));
       orbe.add(hit);
+      // Su nombre, en dos palabras, el que dice su globo (nmw40cp3jtit)
       const titulo = EN ? TITULOS_CORTOS_EN[i] : (problemas[i]?.dataset.corto ?? `Problema ${i + 1}`);
-      const etiqueta = rotulo(titulo, LUZ, TAMANO_NOMBRE);
-      // Junto al ícono, hacia el centro de la línea (así no se sale de la pantalla), a su misma altura
-      etiqueta.position.copy(casa).addScaledVector(lado, -Math.sign(pos.x) * (1.9 + etiqueta.scale.x / 2));
-      etiqueta.visible = false;
-      etiqueta.renderOrder = 2;
-      hit.userData.i = etiqueta.userData.i = i;
-      escena.add(orbe, etiqueta);
-      orbes.push({ orbe, hit, etiqueta, mat, casa, fase: Math.random() * 6, grande: 1 });
+      hit.userData.i = i;
+      escena.add(orbe);
+      orbes.push({ orbe, hit, titulo, mat, casa, a: pos.a, fase: Math.random() * 6, grande: 1 });
     });
     const verde = new THREE.Color(VERDE);
     const pintarVerde = (o) => { o.mat.color.copy(verde); o.mat.emissive.copy(verde); };
     alResolver.push((i) => { if (quieto && orbes[i]) pintarVerde(orbes[i]); });
     resueltos.forEach((i) => { if (orbes[i]) pintarVerde(orbes[i]); });
-    animar.push(deEstacion(1, (t) => orbes.forEach((o, i) => {
-      const visto = resueltos.has(i);
-      if (visto) { o.mat.color.lerp(verde, 0.06); o.mat.emissive.lerp(verde, 0.06); }
-      o.grande += ((seleccionado === i ? 1.25 : sobre === i ? 1.12 : 1) - o.grande) * 0.12;
-      o.orbe.scale.setScalar(o.grande * ESCALA_ICONO);
-      o.orbe.position.copy(o.casa).addScaledVector(ARRIBA, Math.sin(t * 1.4 + o.fase) * 0.14);
-      o.orbe.rotation.y = frente + Math.sin(t * 0.9 + o.fase) * 0.4;
-      o.mat.emissiveIntensity = visto ? 0.55 : 0.4 + 0.4 * Math.sin(t * 2 + o.fase) ** 2;
-    })));
-    focos.push(p.clone().addScaledVector(ARRIBA, 4.6).addScaledVector(lado, -1.7));
-
-    // ── La pantalla del problema: a un costado de la línea, a la izquierda. Al hacer clic en un ícono, él la «suelta»: la
-    // pantalla sale de él, crece hasta su lugar con un hilo de chispas del color del problema, y la cámara se vuelve a
-    // mirarla. Al cerrarse (sola, 4 s después de que su animación termina, o a mano) el efecto va al revés: se absorbe de
-    // vuelta en su ícono y la cámara regresa a encuadrar los problemas
-    const pant = crearPantalla(document.getElementById('popup-clip'), 14, 8.75);
-    const centro = p.clone().addScaledVector(lado, -12).addScaledVector(ARRIBA, 5.4);
-    const camaraAbierta = p.clone().addScaledVector(t, -21).addScaledVector(lado, -5.3).addScaledVector(ARRIBA, 4.4);
-    pant.g.position.copy(centro);
-    mirarA(pant.g, camaraAbierta);
-    pant.g.visible = false;
-    escena.add(pant.g);
-    vista.dos = { posicion: camaraAbierta, mira: p.clone().addScaledVector(lado, -5.3).addScaledVector(ARRIBA, 4.9) };
-    const chispas = Array.from({ length: 10 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshBasicMaterial({ color: ROJO, transparent: true, opacity: 0.9, fog: false })); m.visible = false; escena.add(m); return m; });
-    const origen = new THREE.Vector3(), punto = new THREE.Vector3();
-    const DURA_ABRE = 1.0, DURA_CIERRA = 0.8;   // segundos que tarda en salir del ícono y en absorberse de vuelta
-    Object.assign(pantalla2, {
-      grupo: pant.g,
-      textura: pant,
-      // Un ícono la suelta: si ya había otra, esta sale del nuevo ícono desde cero
-      abrir(i) { pantalla2.abierta = true; pantalla2.i = i; if (pantalla2.k > 0.3) pantalla2.k = 0; },
-      // Se absorbe de vuelta en su ícono
-      cerrar() { pantalla2.abierta = false; },
-      actualizar() { pant.actualizar(); },
-      paso(dt) {
-        const meta = pantalla2.abierta ? 1 : 0;
-        pantalla2.k = quieto ? meta : meta ? Math.min(1, pantalla2.k + dt / DURA_ABRE) : Math.max(0, pantalla2.k - dt / DURA_CIERRA);
-        pantalla2.cam = quieto ? meta : pantalla2.cam + (meta - pantalla2.cam) * 0.045;
-        const e = suave(pantalla2.k), dentro = pantalla2.k > 0.001 && orbes[pantalla2.i];
-        pant.g.visible = !!dentro;
-        chispas.forEach((m) => { m.visible = false; });
-        if (!dentro) return;
-        origen.copy(orbes[pantalla2.i].casa);
-        pant.g.position.copy(origen).lerp(centro, e).addScaledVector(ARRIBA, Math.sin(e * Math.PI) * 1.6);
-        pant.g.scale.setScalar(Math.max(0.001, e));
-        pant.mat.opacity = tope(pantalla2.k * 2);
-        pant.borde.material.opacity = 0.55 * tope(pantalla2.k * 2);
-        // El hilo de chispas, entre el ícono y la pantalla, mientras sale o se absorbe
-        if (pantalla2.k < 0.999) chispas.forEach((m, j) => {
-          const s = tope(e * 1.5 - j * 0.07);
-          if (s <= 0 || s >= 1) return;
-          m.visible = true;
-          m.position.copy(punto.copy(origen).lerp(centro, s)).addScaledVector(ARRIBA, Math.sin(s * Math.PI) * 1.2);
-          m.scale.setScalar(0.6 + Math.sin(s * Math.PI));
-          m.material.color.copy(resueltos.has(pantalla2.i) ? verde : orbes[pantalla2.i].mat.color);
-        });
-      },
-    });
-  }
-
-  // ── Estación 3, «Cómo funciona»: una pantalla virtual 3D de pie, al costado de la línea (a su borde), con la animación
-  // (pintarFunciona). Al llegar a la estación, la cámara se vuelve hacia ella y la animación empieza; al seguir el scroll,
-  // hacia adelante o hacia atrás, se vuelve a la línea y continúa
-  {
-    const { p, lado } = marco(SITIO[2]);
-    const { p: pp, t: tt, lado: ll } = marco(PARADA[2]);
-    const camaraEn = pp.clone().addScaledVector(tt, -7.5).addScaledVector(ARRIBA, 2.8).addScaledVector(ll, 1.4);   // donde se detiene la cámara
-    const pant = crearPantalla(document.getElementById('funciona-clip'), 12.5, 7.8);
-    const ALTO_PIE = 4.4;   // la altura del centro de la pantalla sobre la línea
-    pant.g.position.copy(p).addScaledVector(lado, -9.8).addScaledVector(ARRIBA, ALTO_PIE);
-    mirarA(pant.g, camaraEn);
-    escena.add(pant.g);
-    // Su pie: un soporte desde el suelo y una base, para que se vea parada ahí y no flotando
-    const material = new THREE.MeshStandardMaterial({ color: '#1a2038', emissive: '#1a2038', emissiveIntensity: 0.5, roughness: 0.6 });
-    const bajo = pant.g.position.y - pant.alto / 2 - 0.5, suelo3 = -3;
-    const soporte = new THREE.Mesh(new RoundedBoxGeometry(0.45, bajo - suelo3, 0.45, 2, 0.1), material);
-    soporte.position.set(pant.g.position.x, (bajo + suelo3) / 2, pant.g.position.z);
-    soporte.rotation.y = pant.g.rotation.y;
-    const base = new THREE.Mesh(new RoundedBoxGeometry(3.2, 0.2, 2, 2, 0.08), material);
-    base.position.set(pant.g.position.x, suelo3 + 0.1, pant.g.position.z);
-    base.rotation.y = pant.g.rotation.y;
-    escena.add(soporte, base);
-    vista.tres = { mira: pant.g.position.clone() };
-    // Antes de volverse a la pantalla, al acercarse, la mirada ya se va un poco hacia ese costado
-    focos.push(p.clone().addScaledVector(ARRIBA, 3.4).addScaledVector(lado, -1.2));
-    if (funciona) funciona.alPintar = pant.actualizar;
+    // Cada cuadro: el anillo gira, y con el reproductor abierto se achica (sus íconos, un poco menos) para dejarle sitio
+    function moverAnillo(s) {
+      const abierto = suave(pantalla2.cam);
+      anillo.escala = lerp(1, ANILLO_ABIERTO, abierto);
+      orbes.forEach((o, i) => {
+        const visto = resueltos.has(i);
+        if (visto && !quieto) { o.mat.color.lerp(verde, 0.06); o.mat.emissive.lerp(verde, 0.06); }
+        o.grande += ((seleccionado === i ? 1.25 : sobre === i ? 1.12 : 1) - o.grande) * (quieto ? 1 : 0.12);
+        o.orbe.scale.setScalar(o.grande * ESCALA_ICONO * lerp(1, 0.78, abierto));
+        lugarEnAnillo(o.a + s * GIRO_ANILLO, anillo.escala, o.casa);
+        o.orbe.position.copy(o.casa).addScaledVector(ARRIBA, Math.sin(s * 1.4 + o.fase) * 0.1);
+        o.orbe.rotation.y = frente + Math.sin(s * 0.9 + o.fase) * 0.4;
+        o.mat.emissiveIntensity = visto ? 0.55 : 0.4 + 0.4 * Math.sin(s * 2 + o.fase) ** 2;
+      });
+    }
+    anillo.mover = moverAnillo;
+    animar.push(deEstacion(1, moverAnillo));
+    // La cámara mira el centro del anillo
+    focos.push(anillo.centro.clone());
   }
 
   // ── La cámara: arriba, una vista de costado de la línea; al bajar, se mete en ella y la sigue
@@ -1994,17 +1759,43 @@ function iniciar() {
         mira = portada.mira.clone().lerp(mira, e);
       }
     }
-    // Con la pantalla de un problema abierta (estación 2), la cámara se pone a mirarla; al cerrarse, vuelve a encuadrar los
-    // problemas. Y en la estación 3, la cámara se vuelve hacia su pantalla mientras se está ahí, y regresa a la línea al seguir
-    if (pantalla2.cam > 0.001 && vista.dos) {
-      const e = suave(pantalla2.cam);
-      posicion = posicion.clone().lerp(vista.dos.posicion, e);
-      mira = mira.clone().lerp(vista.dos.mira, e);
-    }
-    if (giro3 > 0.001 && vista.tres) mira = mira.clone().lerp(vista.tres.mira, suave(giro3));
     camara.position.copy(posicion);
     camara.lookAt(mira);
     farol.position.copy(posicion).addScaledVector(ARRIBA, 1.5);
+    encuadrarDos(w);
+  }
+
+  // ── El encuadre de la estación 2 (nota de voz nmw40cp3jtit): la cámara no se mueve, pero la imagen se corre
+  // (setViewOffset) para que el anillo quede en el centro de lo que deja libre el menú, y con un reproductor abierto, pegado
+  // al menú, con el reproductor en todo lo que queda a su izquierda (disponerReproductor). Lejos de la estación 2, nada se corre
+  const MANDOS_ALTO = 64;   // lo que ocupan los mandos, debajo de la animación, dentro del reproductor
+  const menuLista = document.querySelector('.menu ol'), lineaDos = document.querySelector('[data-titulo-dos]');
+  const enPantalla = new THREE.Vector3();
+  const aPantalla = (v, ancho, alto) => { enPantalla.copy(v).project(camara); return { x: (enPantalla.x + 1) / 2 * ancho, y: (1 - enPantalla.y) / 2 * alto }; };
+  let disposicion = null;   // dónde quedan el reproductor y el anillo, para el cuadro que se dibuja
+  function encuadrarDos(w) {
+    const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
+    const cerca = suave(tope(1 - Math.abs(w - 2) / 0.6));
+    camara.clearViewOffset();
+    disposicion = null;
+    if (cerca <= 0.001 || !anillo.centro || !ancho || !alto) return;
+    camara.updateMatrixWorld();
+    // El anillo como se ve ahora, sin correrse: su centro y la mitad de su ancho y de su alto, con el aire de sus íconos
+    const c = aPantalla(anillo.centro, ancho, alto);
+    const ladoX = aPantalla(anillo.centro.clone().addScaledVector(anillo.lado, anillo.radioX * anillo.escala), ancho, alto);
+    const arribaY = aPantalla(anillo.centro.clone().addScaledVector(ARRIBA, anillo.radioY * anillo.escala), ancho, alto);
+    const aire = Math.max(36, alto * 0.06);
+    const deAbierto = anillo.abierto / Math.max(anillo.escala, 0.01);
+    const medioAncho = Math.abs(ladoX.x - c.x), medioAlto = Math.abs(arribaY.y - c.y);
+    const menuIzq = movil || !menuLista ? ancho : menuLista.getBoundingClientRect().left;
+    const linea = lineaDos?.getBoundingClientRect();
+    const lineaArriba = linea && linea.height && linea.top < alto ? linea.top : alto;
+    const d = disponerReproductor({ ancho, alto, menuIzq, lineaArriba, anilloMedio: medioAncho * deAbierto + aire, anilloAlto: medioAlto * deAbierto + aire, mandos: MANDOS_ALTO });
+    // Cerrado, el anillo va al centro de lo libre (entre el borde y el menú, y sobre la línea de abajo); abierto, junto al menú
+    const e = suave(pantalla2.cam);
+    const dx = lerp(menuIzq / 2, d.anilloX, e) - c.x, dy = lerp(Math.min(alto / 2, lineaArriba / 2 + 8), d.anilloY, e) - c.y;
+    camara.setViewOffset(ancho, alto, -dx * cerca, -dy * cerca, ancho, alto);
+    disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
   }
 
   // ── La estación actual: su tarjeta se enciende
@@ -2032,8 +1823,8 @@ function iniciar() {
     history.replaceState(null, '', a.getAttribute('href'));
   }));
 
-  // ── El recuadro de un problema: grande, en todo el espacio libre entre el panel de la izquierda y el menú de la derecha
-  // (mundo-3d.html › .popup; nota de voz nmw17rx07tit), con su animación y la respuesta
+  // ── El reproductor de un problema (mundo-3d.html › .popup): su animación, a la vista, y sus mandos adentro, debajo
+  // (nota de voz nmw40cp3jtit); dónde va y qué tan grande, en ponerReproductor
   const popup = document.getElementById('popup');
   const clip = document.getElementById('popup-clip');
   const ctxClip = clip?.getContext('2d');
@@ -2162,7 +1953,7 @@ function iniciar() {
     pausado = false;
     if (manual) autocierre.repetir();
     pintarMando();
-    if (ctxClip && seleccionado >= 0) { pintarClip(ctxClip, seleccionado, 0); pantalla2.actualizar(); }
+    if (ctxClip && seleccionado >= 0) { pintarClip(ctxClip, seleccionado, 0) }
   }
   // Pausar o seguir, con su voz: la que estaba hablando se detiene y sigue donde iba
   function pausar(si) {
@@ -2178,7 +1969,7 @@ function iniciar() {
     if (seleccionado < 0) return;
     if (terminado()) empezarClip(true);   // al final, seguir es verla otra vez, con su voz (y ya no se cierra sola)
     else pausar(!pausado);
-    if (quieto && ctxClip) { pintarClip(ctxClip, seleccionado, clipT); pantalla2.actualizar(); }
+    if (quieto && ctxClip) { pintarClip(ctxClip, seleccionado, clipT) }
   }
   // Mover la animación tantos segundos (positivos: adelante; negativos: atrás). Si cambia el rótulo, la voz dice el nuevo
   function moverClip(seg) {
@@ -2189,7 +1980,7 @@ function iniciar() {
     // Con la voz de Google, la voz va donde quedó la animación, aunque sea el mismo paso (la voz manda: si siguiera donde
     // iba, devolvería la animación)
     if (pasoDeClip(seleccionado, clipT).clave !== antes || tramoDeVoz(seleccionado, clipT)) callar();
-    if (ctxClip) { pintarClip(ctxClip, seleccionado, clipT); pantalla2.actualizar(); }
+    if (ctxClip) { pintarClip(ctxClip, seleccionado, clipT) }
     pintarMando();
   }
   pausaClip?.addEventListener('click', alternarClip);
@@ -2224,8 +2015,8 @@ function iniciar() {
     pausar(!seguia);
   };
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) perillaClip?.addEventListener(ev, soltarClip);
-  // La rueda sobre la perilla o sobre la animación: cada muesca, un segundo y medio (en un touchpad, poco a poco), y la
-  // animación sigue como iba. Ahí la rueda no cierra el recuadro; fuera de ellas, sí
+  // La rueda sobre el reproductor (la animación, sus mandos o la perilla): cada muesca, un segundo y medio (en un touchpad,
+  // poco a poco), y la animación sigue como iba; se queda así (nmw40cp3jtit). Ahí la rueda no lo cierra; fuera de él, sí
   const ruedaClip = (e) => {
     e.stopPropagation();
     if (e.ctrlKey) return;
@@ -2234,7 +2025,7 @@ function iniciar() {
     e.preventDefault();
     moverClip(Math.max(-4.5, Math.min(4.5, muescas * 1.5)));
   };
-  for (const zona of [perillaClip, clip]) zona?.addEventListener('wheel', ruedaClip, { passive: false });
+  popup?.addEventListener('wheel', ruedaClip, { passive: false });
   // Un clic en la barra de lo que va, abajo de la animación, la lleva a ese punto; sobre ella, el puntero es una mano
   // (nota de voz nmw1oc8mctit)
   const enBarra = (e) => {
@@ -2272,11 +2063,47 @@ function iniciar() {
       else decir(ahoraEn, dicho * ritmoDeClave(ahoraEn));
     }
     pintarClip(ctxClip, seleccionado, clipT);
-    pantalla2.actualizar();   // la textura de la pantalla 3D es este lienzo
     pintarMando();
   }
-  // Un clic en un ícono: «suelta» la pantalla 3D con la animación de su problema (la cámara se vuelve a mirarla) y suenan
-  // las voces de Kai. Un segundo clic en el mismo ícono no hace nada
+  // El reproductor, donde dice disponerReproductor: crece a la izquierda del anillo hasta donde deja la pantalla, con sus
+  // mandos adentro, debajo de la animación (nota de voz nmw40cp3jtit). Al abrirse, sale del ícono que lo soltó
+  let origenPopup = null;
+  function ponerReproductor() {
+    if (!popup || popup.hidden || !disposicion) return;
+    const { x, y, w, h } = disposicion;
+    popup.style.left = `${Math.round(x)}px`; popup.style.top = `${Math.round(y)}px`;
+    popup.style.width = `${Math.round(w)}px`; popup.style.height = `${Math.round(h)}px`;
+    if (origenPopup) { popup.style.transformOrigin = `${Math.round(origenPopup.x - x)}px ${Math.round(origenPopup.y - y)}px`; origenPopup = null; }
+  }
+  // ── El globo de cada ícono, con su nombre en dos palabras: sale al pasar el ratón o al hacer clic (el del problema abierto
+  // se queda mientras su reproductor está abierto), hacia afuera del anillo, y nunca pisa otro ícono, el reproductor, el menú
+  // ni la línea de abajo (lugarDelGlobo)
+  const globo = document.getElementById('globo-problema');
+  const radioEnPantalla = (o) => {
+    const c = aPantalla(o.orbe.position, disposicion.ancho, disposicion.alto);
+    const borde = aPantalla(o.orbe.position.clone().addScaledVector(ARRIBA, 0.8 * o.orbe.scale.x), disposicion.ancho, disposicion.alto);
+    return { x: c.x, y: c.y, r: Math.max(14, Math.abs(borde.y - c.y)) };
+  };
+  function ponerGlobo() {
+    if (!globo) return;
+    const i = sobre >= 0 ? sobre : seleccionado;
+    if (i < 0 || !orbes[i] || !disposicion || cur < 1.5 || cur > 2.6 || visorAbierto()) { globo.hidden = true; return; }
+    if (globo.dataset.i !== String(i)) { globo.textContent = orbes[i].titulo; globo.dataset.i = String(i); }
+    globo.classList.toggle('visto', resueltos.has(i));
+    globo.hidden = false;
+    camara.updateMatrixWorld();
+    const iconos = orbes.map(radioEnPantalla), yo = iconos[i];
+    const obstaculos = iconos.filter((_, j) => j !== i).map((o) => ({ x: o.x - o.r, y: o.y - o.r, w: o.r * 2, h: o.r * 2 }));
+    if (popup && !popup.hidden) obstaculos.push({ x: disposicion.x - 8, y: disposicion.y - 8, w: disposicion.w + 16, h: disposicion.h + 16 });
+    if (menuLista && !movil) { const m = menuLista.getBoundingClientRect(); obstaculos.push({ x: m.left - 8, y: m.top - 8, w: m.width + 16, h: m.height + 16 }); }
+    const l = lineaDos?.getBoundingClientRect();
+    if (l?.height) obstaculos.push({ x: l.left - 8, y: l.top - 8, w: l.width + 16, h: l.height + 16 });
+    const centro = aPantalla(anillo.centro, disposicion.ancho, disposicion.alto);
+    const lugar = lugarDelGlobo(yo, globo.offsetWidth, globo.offsetHeight, centro, obstaculos, { ancho: disposicion.ancho, alto: disposicion.alto });
+    globo.style.left = `${Math.round(lugar.x)}px`; globo.style.top = `${Math.round(lugar.y)}px`;
+  }
+  // Un clic en un ícono abre su reproductor, con la animación de su problema, y suenan las voces de Kai. Un segundo clic en el
+  // mismo ícono no hace nada; uno en otro, cambia de problema
   function abrirProblema(i) {
     const d = problemas[i];
     if (!orbes[i] || !popup || !d || seleccionado === i) return;
@@ -2284,40 +2111,39 @@ function iniciar() {
     seleccionado = i;
     autocierre.abrir();
     problemas.forEach((otro, j) => otro.classList.toggle('activo', j === i));
-    document.getElementById('popup-problema').textContent = d.dataset.corto ?? '';
     document.getElementById('popup-respuesta').textContent = d.querySelector('p').textContent;   // para quien lee con un lector de pantalla
+    if (disposicion) { camara.updateMatrixWorld(); origenPopup = aPantalla(orbes[i].orbe.position, disposicion.ancho, disposicion.alto); }
     popup.hidden = false;
+    // La animación de salida, otra vez desde el ícono nuevo
+    popup.classList.remove('sale'); void popup.offsetWidth; popup.classList.add('sale');
+    pantalla2.abierta = true;
+    ponerReproductor();
     clavesDeClip(i).forEach(audioDe);   // sus voces, pedidas desde ya
     empezarClip();
-    pantalla2.abrir(i);
-    if (quieto && ctxClip) { pintarClip(ctxClip, i, duraClip(i)); pantalla2.actualizar(); }
+    if (quieto && ctxClip) { pintarClip(ctxClip, i, duraClip(i)); }
   }
-  // Se cierra a mano, con Esc, con la rueda, con el menú, o sola (4 s después del fin de su animación): la pantalla se
-  // absorbe de vuelta en su ícono y la cámara regresa a encuadrar los problemas
+  // Se cierra con Esc, con la rueda fuera de él, con el menú, o solo (4 s después del fin de su animación): sin botón para
+  // cerrarlo, porque sus mandos quedan fijos adentro (nmw40cp3jtit). El anillo vuelve a su tamaño y al centro
   cerrarPopup = () => {
     if (seleccionado < 0) return false;
     callar();
     seleccionado = -1;
     problemas.forEach((d) => d.classList.remove('activo'));
     if (popup) popup.hidden = true;
-    pantalla2.cerrar();
+    pantalla2.abierta = false;
     return true;
   };
-  popup?.querySelector('[data-cerrar-popup]')?.addEventListener('click', cerrarPopup);
   // Un clic en el nombre de un problema de la lista lo abre en el mundo (sin 3D, se abre ahí mismo con su respuesta)
   problemas.forEach((d, i) => d.querySelector('summary')?.addEventListener('click', (e) => { e.preventDefault(); abrirProblema(i); }));
-  // Su nombre, solo mientras el ratón está sobre su esfera o sobre el problema en la lista
-  function mostrarNombre(i) {
-    sobre = i;
-    orbes.forEach((o, j) => { o.etiqueta.visible = j === i; });
-  }
+  // Su globo, mientras el ratón está sobre su ícono o sobre el problema en la lista
+  function mostrarNombre(i) { sobre = i; }
   problemas.forEach((d, i) => {
     d.addEventListener('mouseenter', () => mostrarNombre(i));
     d.addEventListener('mouseleave', () => { if (sobre === i) mostrarNombre(-1); });
   });
-  // Y un clic en su esfera, en el mundo (el nombre, escondido, no se toca)
+  // Y un clic en su ícono, en el mundo
   const rayo = new THREE.Raycaster(), puntero = new THREE.Vector2();
-  const tocables = orbes.map((o) => o.hit);   // su área invisible: el ícono y su título no se tocan por separado
+  const tocables = orbes.map((o) => o.hit);   // su área invisible: una esfera alrededor del ícono
   function bajoElPuntero(e) {
     if (cur < 1.5 || cur > 2.6 || visorAbierto()) return -1;
     const r = lienzo.getBoundingClientRect();
@@ -2344,28 +2170,28 @@ function iniciar() {
     if (fijo !== null && ++dibujados > 150) return;
     const w = objetivo();
     cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * SUAVIZADO;
-    // En la estación 3 la cámara se vuelve hacia su pantalla mientras se está ahí (cerca del centro de su bloque), y regresa a
-    // la línea apenas se sigue, hacia adelante o hacia atrás; con ?ver=3, se queda en la pantalla
-    const enSala3 = fijo !== null ? fijo === 3 : cur > 2.6 && anclas[3] !== undefined && enEstacion(scrollY, anclas[3], innerHeight);
-    giro3 = quieto ? Number(enSala3) : giro3 + ((enSala3 ? 1 : 0) - giro3) * (primera ? 1 : 0.045);
     primera = false;
-    // Si la persona se va de la estación 2 con una pantalla abierta (por la barra de scroll, el teclado…), se cierra
+    // Si la persona se va de la estación 2 con un reproductor abierto (por la barra de scroll, el teclado…), se cierra
     if (seleccionado >= 0 && Math.abs(cur - 2) > 0.45) cerrarPopup();
-    colocar(cur);
-    marcar(cur);
     const ahoraMs = performance.now(), dt = Math.min(0.1, (ahoraMs - ultimoCuadro) / 1000);
     ultimoCuadro = ahoraMs;
-    pantalla2.paso(dt);
-    if (funciona) { if (enSala3 && giro3 > 0.55) funciona.llegar(); else if (!enSala3) funciona.detener(); }
+    // El reproductor se abre o se cierra suave: el anillo se achica y se corre hacia el menú, o vuelve
+    const meta = pantalla2.abierta ? 1 : 0;
+    pantalla2.cam = quieto ? meta : pantalla2.cam + (meta - pantalla2.cam) * Math.min(1, dt * 4);
+    if (quieto) anillo.mover?.(0);
+    colocar(cur);
+    marcar(cur);
     if (!quieto) {
       const t = ahoraMs / 1000;
       animar.forEach((f) => f(t));
       if (seleccionado >= 0 && ctxClip) {
         avanzarClip();
-        // Termina su animación, y 4 s después la pantalla se cierra sola (salvo que se haya repetido)
+        // Termina su animación, y 4 s después el reproductor se cierra solo (salvo que se haya repetido)
         if (autocierre.cuadro(ahoraMs, terminado())) cerrarPopup();
       }
     }
+    ponerReproductor();
+    ponerGlobo();
     renderer.render(escena, camara);
     requestAnimationFrame(cuadro);
   }
@@ -2386,88 +2212,15 @@ function iniciar() {
   const abrirN = new URLSearchParams(location.search).get('abrir');
   if (fijo !== null && abrirN !== null && problemas[Number(abrirN)]) {
     abrirProblema(Number(abrirN));
-    pantalla2.k = 1; pantalla2.cam = 1;
+    pantalla2.cam = 1;
     clipT = Number(new URLSearchParams(location.search).get('seg')) || 0; pausado = true;
-    pintarClip(ctxClip, Number(abrirN), clipT); pantalla2.actualizar();
+    pintarClip(ctxClip, Number(abrirN), clipT);
   }
   // Todo en su lugar desde el primer cuadro (con movimiento reducido, nada más se mueve)
   animar.forEach((f) => f(0));
   colocar(0);
   renderer.render(escena, camara);
 }
-
-// ── La estación 3, «Cómo funciona», en su recuadro grande: empieza sola cuando llegas a ella (t_decide_funciona_arranque),
-// sigue la voz de Kai, se detiene si te vas y sigue al volver, y al terminar se queda en su cierre; «↻ Repetir» la vuelve a
-// empezar. Va aparte del mundo en 3D: se ve y se oye también sin WebGL. La voz se calla con su botón, como en la estación
-// 2 (el mismo recuerdo del navegador)
-function iniciarFunciona() {
-  const lienzoF = document.getElementById('funciona-clip');
-  const ctxF = lienzoF?.getContext('2d');
-  if (!ctxF) return null;
-  const GUARDADA = 'stl-recorrido-voz';
-  let conVozF = true;
-  try { conVozF = localStorage.getItem(GUARDADA) !== 'no'; } catch { /* sin almacenamiento, con voz */ }
-  const botonVoz = document.querySelector('[data-voz-funciona]');
-  const pintarBotonVoz = () => { if (botonVoz) { botonVoz.setAttribute('aria-pressed', String(conVozF)); botonVoz.textContent = conVozF ? '🔊 Voz' : '🔇 Voz'; } };
-  pintarBotonVoz();
-  const audios = new Map();
-  const audioF = (clave) => {
-    let a = audios.get(clave);
-    if (!a) { a = new Audio(`voz/es/${clave}.mp3`); a.preload = 'auto'; audios.set(clave, a); }
-    return a;
-  };
-  let sonando = null;
-  const callarF = () => { if (sonando) { sonando.pause(); sonando = null; } };
-  const decirF = (clave, desde = 0) => {
-    callarF();
-    if (!conVozF || quieto) return;
-    const a = audioF(clave);
-    try { a.currentTime = desde; } catch { /* aún sin cargar */ }
-    a.play().catch(() => { /* el navegador no deja sonar todavía: sigue en silencio */ });
-    sonando = a;
-  };
-  // El reloj: los segundos que lleva (t), si corre y el rótulo que suena
-  let t = 0, corre = false, antes = 0, rotulo = null, empezo = false;
-  const abiertos = () => [...resueltos].sort((a, b) => a - b).map((i) => problemas[i]?.dataset.corto).filter(Boolean);
-  // Lo que el mundo 3D le pide: llegar (empieza la primera vez y sigue después), detenerse, y avisar de cada cuadro pintado
-  // para subir la textura de su pantalla (alPintar)
-  const api = { alPintar: null, llegar: () => { if (!empezo) empezar(); else seguir(); }, detener: () => detener() };
-  const dibujar = () => { pintarFunciona(ctxF, t, abiertos()); api.alPintar?.(); };
-  function cuadroF(ahora) {
-    if (!corre) return;
-    t = Math.min(duraFunciona(), t + (ahora - antes) / 1000);
-    antes = ahora;
-    const { clave, desde } = pasoFunciona(t);
-    if (clave !== rotulo) { rotulo = clave; decirF(clave, Math.max(0, t - desde)); }
-    dibujar();
-    if (t >= duraFunciona()) { corre = false; return; }
-    requestAnimationFrame(cuadroF);
-  }
-  const seguir = () => { if (corre || t >= duraFunciona()) return; corre = true; antes = performance.now(); rotulo = null; requestAnimationFrame(cuadroF); };
-  const detener = () => { corre = false; callarF(); };
-  const empezar = () => { t = 0; empezo = true; detener(); dibujar(); seguir(); };
-  clavesFunciona().forEach(audioF);   // sus voces, pedidas desde ya
-  dibujar();
-  document.querySelector('[data-repetir-funciona]')?.addEventListener('click', empezar);
-  botonVoz?.addEventListener('click', () => {
-    conVozF = !conVozF;
-    try { localStorage.setItem(GUARDADA, conVozF ? 'si' : 'no'); } catch { /* sin almacenamiento */ }
-    pintarBotonVoz();
-    if (!conVozF) callarF(); else if (corre) { const { clave, desde } = pasoFunciona(t); rotulo = clave; decirF(clave, Math.max(0, t - desde)); }
-  });
-  // Sin el mundo 3D: empieza sola la primera vez que su recuadro se ve casi entero; si te vas, se detiene, y al volver sigue
-  // donde iba. Con el mundo 3D (clase js-3d), su lienzo está oculto y es la textura de la pantalla: ahí la hace llegar y
-  // detenerse la cámara (iniciar())
-  new IntersectionObserver((vistas) => vistas.forEach((v) => {
-    if (document.documentElement.classList.contains('js-3d')) return;
-    if (v.isIntersecting && v.intersectionRatio >= 0.6) { if (!empezo) empezar(); else seguir(); }
-    else if (!v.isIntersecting || v.intersectionRatio < 0.3) detener();
-  }), { threshold: [0, 0.3, 0.6] }).observe(lienzoF);
-  return api;
-}
-// Todas las voces de la estación 3, en su orden: sus diez frases y su cierre
-const clavesFunciona = () => rotulosFunciona().map((r) => r.clave);
-const funciona = iniciarFunciona();
 
 // Al final, con todo lo de arriba ya definido: las constantes de las mini animaciones (suave, TINTAS…) aún no existían
 // si el mundo arrancaba antes, y la página se quedaba sin 3D
