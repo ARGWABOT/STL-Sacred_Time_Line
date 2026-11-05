@@ -149,7 +149,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3258,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3258,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"f1-1":4014,"f1-2":4309,"f2-1":3142,"f2-2":4103,"f3-1":2369,"f3-2":5323,"f4-1":3004,"f4-2":3485,"f5-1":2986,"f5-2":3869,"f-c":3665};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -879,9 +879,181 @@ function pintarCierre(c, resuelto, frase, q, cual) {
   cubito(c, 252, 92 - brinco - mece, 1.9 * (0.8 + 0.2 * entra), true);
   caja(c, 8, 5, 64, 14, VERDE, 0.25, 7);
   letrero(c, '✓ Resuelto', 40, 15.5, '#dff5e8', 8.5);
-  caja(c, 262, 5, 50, 14, VERDE, 0.2, 7);
-  letrero(c, cual, 287, 15.5, '#dff5e8', 8.5);
+  if (cual) { caja(c, 262, 5, 50, 14, VERDE, 0.2, 7); letrero(c, cual, 287, 15.5, '#dff5e8', 8.5); }
   if (frase) letrero(c, frase, 160, 190, '#fffaf0', tamanoQueCabe(c, frase, 11, 300));
+}
+
+// ── La estación 3, «Cómo funciona» (pd_recorrido_3d): cinco escenas dibujadas con el guion confirmado (nmw3q35metil), dos
+// frases por escena, que dice Kai y salen en su rótulo; el modelo aparece en la tercera (nmw19oxgstit); los botones llevan
+// su nombre del Studio (nmw3q3u7dtit); y las notas del Buzón son los problemas que abriste en la estación 2 (nmw19na4itit).
+// Termina con su cierre, como cada animación explicativa (nmw3ruscptit). Cada clip: f<escena>-<frase>, y f-c el cierre
+const FUNCIONA = [
+  ['Tus notas', ['Escribes o dictas tus notas, ideas y ajustes,', 'y esperan en el Buzón, sin llegar todavía al modelo.']],
+  ['La revisión', ['Cuando quieres, pides la revisión con un botón:', 'el director recibe todo junto, con el mapa del proyecto.']],
+  ['El modelo', ['El director trabaja con el modelo,', 'lee solo lo que cambió y pone cada idea en su lugar de la ruta.']],
+  ['Tu misión', ['Te devuelve una sola misión a la vez,', 'con sus pasos y un botón directo a cada lugar.']],
+  ['El ciclo', ['Cumples tu misión, dejas tus notas,', 'y el ciclo vuelve a empezar, sin repetir nada.']],
+];
+const CIERRE_FUNCIONA = ['Así funciona STL', 'Tú decides, y el director se encarga del resto.'];
+const claveFunciona = (k, m) => (k >= FUNCIONA.length ? 'f-c' : `f${k + 1}-${m + 1}`);
+// Lo que dura cada escena, como mínimo, para que se alcance a ver lo que pasa
+const ESCENA_FUNCIONA_SEG = 5.5;
+const vozDe = (clave, texto) => (PISTA_VOZ_ES[clave] == null ? tardaVoz(texto) : PISTA_VOZ_ES[clave] / 1000);
+// Los rótulos, en orden: cada uno dura su voz y su respiro (corto en la coma, más largo al terminar la frase); si una escena
+// queda más corta que su mínimo, su última frase se estira. Al final, el cierre
+function rotulosFunciona() {
+  const lista = [];
+  let desde = 0;
+  FUNCIONA.forEach(([, frases], k) => {
+    const inicio = desde;
+    frases.forEach((texto, m) => {
+      const clave = claveFunciona(k, m), dura = vozDe(clave, texto) + (/[,:]$/.test(texto.trim()) ? RESPIRO_COMA + 0.1 : RESPIRO_FRASE + 0.3);
+      lista.push({ k, m, texto, clave, desde, dura });
+      desde += dura;
+    });
+    const falta = ESCENA_FUNCIONA_SEG - (desde - inicio);
+    if (falta > 0) { lista.at(-1).dura += falta; desde += falta; }
+  });
+  const clave = claveFunciona(FUNCIONA.length, 0), texto = CIERRE_FUNCIONA[1];
+  lista.push({ k: FUNCIONA.length, m: 0, texto, clave, desde, dura: Math.max(CIERRE_SEG + 0.8, vozDe(clave, texto) + RESPIRO_FRASE + 1) });
+  return lista;
+}
+const duraFunciona = () => { const r = rotulosFunciona().at(-1); return r.desde + r.dura; };
+// En qué rótulo va la estación 3 en el segundo t, y cuánto va de su escena (q, de 0 a 1)
+function pasoFunciona(t) {
+  const lista = rotulosFunciona(), s = Math.max(0, Math.min(duraFunciona(), t));
+  const r = lista.findLast((x) => s >= x.desde) ?? lista[0];
+  const deEscena = lista.filter((x) => x.k === r.k), ini = deEscena[0].desde, fin = deEscena.at(-1).desde + deEscena.at(-1).dura;
+  return { ...r, q: tope((s - ini) / (fin - ini)), p: s / duraFunciona() };
+}
+// Una nota del Buzón: su chip de color con lo que dice
+function nota(c, x, y, texto, color, alfa = 1) {
+  c.save(); c.globalAlpha *= alfa;
+  caja(c, x, y, 88, 12, color, 0.22, 6);
+  letrero(c, texto, x + 44, y + 8.6, '#fffaf0', tamanoQueCabe(c, texto, 7, 82));
+  c.restore();
+}
+// Las notas que viajan al Buzón: los problemas que abriste en la estación 2 (su nombre corto) y, si fueron menos de tres,
+// una idea, un ajuste o una pregunta
+function notasDeFunciona(abiertos = []) {
+  return [...abiertos, 'Una idea', 'Un ajuste', 'Una pregunta'].slice(0, 3).map((texto, i) => ({ texto, color: ['#f7a8d8', '#7fe0d6', '#c9b8ff'][i] }));
+}
+const BUZON = { y: 76, x: 118 }, DIRECTOR = { y: 100, x: 236 }, MOD = { y: 40, x: 290 };
+function studioDeFunciona(c, q, conModelo, alfaModelo = 0.3) {
+  cajaStudio(c, 110, 56, 152, 92); letrero(c, 'STL Studio', 186, 51, MORADO, 8);
+  caja(c, BUZON.x - 4, BUZON.y - 10, 96, 66, ORO, 0.06, 6); letrero(c, 'Buzón', BUZON.x + 44, BUZON.y - 1, ORO, 7.5);
+  rombo(c, DIRECTOR.x, DIRECTOR.y, 9 + Math.sin(q * 12) * 0.6); letrero(c, 'el director', DIRECTOR.x, DIRECTOR.y + 20, ORO, 7);
+  // El modelo aparece en la tercera escena (nmw19oxgstit): antes no está
+  if (conModelo) { bola(c, MOD.x, MOD.y, 12, MODELO, alfaModelo); c.save(); c.globalAlpha *= alfaModelo; letrero(c, 'el modelo', MOD.x, MOD.y + 22, MODELO, 7); c.restore(); }
+}
+function pintarFunciona(ctx, t, abiertos = []) {
+  const { k, q, p, texto } = pasoFunciona(t);
+  ctx.setTransform(4, 0, 0, 4, 0, 0);
+  ctx.clearRect(0, 0, 320, 200);
+  const fondo = ctx.createRadialGradient(160, 80, 10, 160, 100, 200);
+  fondo.addColorStop(0, '#141a2e'); fondo.addColorStop(1, '#07090f');
+  ctx.fillStyle = fondo; ctx.fillRect(0, 0, 320, 200);
+  if (k >= FUNCIONA.length) {
+    pintarCierre(ctx, CIERRE_FUNCIONA[0], texto, q, '');
+    pintarBarra(ctx, p);
+    return;
+  }
+  const c = ctx, notas = notasDeFunciona(abiertos), enBuzon = (i) => ({ x: BUZON.x, y: BUZON.y + 4 + i * 15 });
+  const tu = { y: 118, x: 40 };
+  cubito(c, tu.x, tu.y, 1.6, k === 4 && q > 0.25); letrero(c, 'tú', tu.x, tu.y + 24, '#cfe0ff', 8);
+  if (k === 0) {
+    // Tus notas salen de ti, una tras otra, y esperan en el Buzón; al modelo no le llega nada todavía
+    studioDeFunciona(c, q, false);
+    notas.forEach((n, i) => {
+      const a = 0.08 + i * 0.16, e = tramo(q, a, a + 0.2), d = enBuzon(i);
+      if (q < a) return;
+      nota(c, lerp(tu.x + 6, d.x, e), lerp(tu.y - 14, d.y, e) - Math.sin(e * Math.PI) * 22, n.texto, n.color);
+    });
+    if (q > 0.6) {
+      const a = tramo(q, 0.6, 0.8);
+      // Nada sale del Studio todavía: el camino hacia afuera, cerrado
+      trazo(c, BUZON.x + 92, BUZON.y + 4, 300, 34, MODELO, a * 0.6, true);
+      cruz(c, 284, 40, 5, a);
+      c.save(); c.globalAlpha *= a; letrero(c, 'todavía no va al modelo', 250, 26, '#c5d2e6', 7); c.restore();
+    }
+  } else if (k === 1) {
+    // Oprimes «Pedir revisión» y el director recibe todo junto, con el mapa del proyecto
+    studioDeFunciona(c, q, false);
+    const pulso = Math.sin(tramo(q, 0.08, 0.28) * Math.PI);
+    c.save(); c.translate(tu.x + 4, 158); c.scale(1 + pulso * 0.12, 1 + pulso * 0.12);
+    c.fillStyle = ORO; c.beginPath(); c.roundRect(-34, -8, 68, 16, 8); c.fill(); letrero(c, 'Pedir revisión', 0, 3.4, '#1a1f33', 8);
+    c.restore();
+    const junto = tramo(q, 0.3, 0.62);
+    notas.forEach((n, i) => {
+      const d = enBuzon(i);
+      nota(c, lerp(d.x, DIRECTOR.x - 44, junto), lerp(d.y, DIRECTOR.y - 34 + i * 3, junto), n.texto, n.color, 1 - tramo(q, 0.6, 0.72) * 0.7);
+    });
+    if (q > 0.55) {
+      const a = tramo(q, 0.55, 0.8);
+      c.save(); c.globalAlpha = a; caja(c, BUZON.x + 2, BUZON.y + 6, 80, 40, CIAN, 0.12, 6); renglones(c, BUZON.x + 10, BUZON.y + 16, 62, 3, CIAN, 0.8, 8);
+      letrero(c, 'el mapa del proyecto', BUZON.x + 42, BUZON.y + 56, CIAN, 7); c.restore();
+      trazo(c, BUZON.x + 82, BUZON.y + 26, DIRECTOR.x - 11, DIRECTOR.y, CIAN, a * 0.8, true);
+    }
+  } else if (k === 2) {
+    // El modelo aparece: el director le manda solo lo que cambió y pone cada idea en su fase de la ruta
+    const llega = tramo(q, 0, 0.2);
+    studioDeFunciona(c, q, true, 0.3 + 0.7 * llega);
+    for (let b = 0; b < 3; b++) {
+      const v = tope((q - 0.18 - b * 0.08) / 0.24);
+      if (v > 0 && v < 1) bola(c, lerp(DIRECTOR.x + 10, MOD.x - 10, v), lerp(DIRECTOR.y - 6, MOD.y + 6, v), 2.4, ORO);
+      const w = tope((q - 0.34 - b * 0.08) / 0.24);
+      if (w > 0 && w < 1) bola(c, lerp(MOD.x - 10, DIRECTOR.x + 10, w), lerp(MOD.y + 10, DIRECTOR.y - 2, w), 2.4, MODELO);
+    }
+    if (q > 0.18 && q < 0.62) letrero(c, 'solo lo que cambió', 262, 86, ORO, 7);
+    // La ruta, abajo: tres fases, y cada nota cae en la suya
+    trazo(c, 120, 166, 300, 166, LINEA, 0.9);
+    [150, 210, 270].forEach((x, i) => { bola(c, x, 166, 3, LINEA); letrero(c, `Fase ${i + 1}`, x, 160, '#e8dcb8', 6.5); });
+    notas.forEach((n, i) => {
+      const a = 0.55 + i * 0.12, e = tramo(q, a, a + 0.16);
+      if (q < a) return;
+      const x = lerp(DIRECTOR.x, [150, 210, 270][[1, 0, 2][i]], e), y = lerp(DIRECTOR.y + 4, 166, e);
+      bola(c, x, y, 4, n.color);
+    });
+  } else if (k === 3) {
+    // Te devuelve una sola misión, con sus pasos y su botón a cada lugar
+    studioDeFunciona(c, q, true, 0.55);
+    const e = tramo(q, 0.05, 0.35), x = lerp(DIRECTOR.x - 40, 74, e), y = lerp(DIRECTOR.y - 10, 30, e);
+    caja(c, x - 60, y, 120, 72, ORO, 0.14, 8);
+    letrero(c, 'Tu misión', x - 52, y + 13, '#fffaf0', 9, 'left');
+    for (let m = 0; m < 3; m++) {
+      const visto = tramo(q, 0.4 + m * 0.12, 0.5 + m * 0.12);
+      c.save(); c.globalAlpha *= 0.3 + 0.7 * visto;
+      renglones(c, x - 52, y + 22 + m * 15, 50, 1, LUZ, 0.7);
+      c.fillStyle = ORO; c.beginPath(); c.roundRect(x + 18, y + 18 + m * 15, 34, 11, 5.5); c.fill(); letrero(c, 'Ir', x + 35, y + 26 + m * 15, '#1a1f33', 7);
+      c.restore();
+    }
+    if (q > 0.3) letrero(c, 'una sola misión a la vez', 74, 116, '#e8dcb8', 7.5);
+  } else {
+    // La cumples, dejas tus notas nuevas y el ciclo vuelve a empezar
+    studioDeFunciona(c, q, true, 0.45);
+    const hecha = q > 0.18;
+    caja(c, 14, 30, 120, 30, hecha ? VERDE : ORO, 0.16, 8);
+    letrero(c, 'Tu misión', 24, 49, hecha ? '#dff5e8' : '#fffaf0', 9, 'left');
+    if (hecha) palomita(c, 118, 45, 6, tramo(q, 0.18, 0.3));
+    notas.slice(0, 2).forEach((n, i) => {
+      const a = 0.32 + i * 0.12, e = tramo(q, a, a + 0.2), d = enBuzon(i);
+      if (q < a) return;
+      nota(c, lerp(tu.x + 6, d.x, e), lerp(tu.y - 14, d.y, e) - Math.sin(e * Math.PI) * 22, i ? 'Un ajuste nuevo' : 'Una idea nueva', n.color);
+    });
+    // La vuelta: una flecha que gira alrededor del Studio
+    if (q > 0.6) {
+      const a = tramo(q, 0.6, 0.75), giro = (q - 0.6) * 9;
+      c.save(); c.globalAlpha = a; c.strokeStyle = LINEA; c.lineWidth = 1.6; c.setLineDash([4, 4]); c.lineDashOffset = -giro * 12;
+      c.beginPath(); c.ellipse(186, 102, 92, 58, 0, 0, 7); c.stroke(); c.restore();
+      letrero(c, 'otra vuelta', 186, 172, LINEA, 7.5);
+    }
+  }
+  caja(c, 8, 5, 72, 14, MORADO, 0.25, 7);
+  letrero(c, FUNCIONA[k][0], 44, 15.5, '#e6deff', 8.5);
+  caja(c, 262, 5, 50, 14, MORADO, 0.2, 7);
+  letrero(c, `${k + 1} de ${FUNCIONA.length}`, 287, 15.5, '#e6deff', 8.5);
+  if (texto) letrero(c, texto, 160, 190, '#fffaf0', tamanoQueCabe(c, texto, 11, 300));
+  pintarBarra(c, p);
 }
 function pintarClip(ctx, i, t) {
   // Una vez, sin repetirse sola: al terminar queda en su último cuadro
@@ -966,14 +1138,14 @@ function iniciar() {
     const lado = new THREE.Vector3(-t.z, 0, t.x).normalize();
     return { p, t, lado };
   };
-  const PARADA = [0.1, 0.42];   // dónde se detiene la cámara en cada estación (de 0 a 1)
+  const PARADA = [0.1, 0.42, 0.7];   // dónde se detiene la cámara en cada estación (de 0 a 1); la 3, «Cómo funciona»
   // Dónde está lo que se ve en cada estación: un poco más adelante, para que la cámara lo vea de frente y no encima
   const SITIO = PARADA.map((u) => u + 0.022);
   const focos = [];   // lo que mira la cámara en cada estación
   const animar = [];  // lo que se mueve: funciones (t) => void
   // El reloj de cada estación: ninguna se anima hasta que se oprime «Empieza el recorrido», y un clic en una estación del
   // menú vuelve a empezar la suya, para repetirla cuando se quiera (nota de voz nmw1khrketit). null: aún no empieza
-  const relojes = [null, null];
+  const relojes = [null, null, null];
   const empezarEstacion = (k) => { if (k >= 0 && k < relojes.length) relojes[k] = performance.now() / 1000; };
   const tiempoDe = (k) => relojes[k] === null ? 0 : performance.now() / 1000 - relojes[k];
   // Lo que se mueve en una estación corre con su propio reloj, no con el de la página
@@ -1439,6 +1611,13 @@ function iniciar() {
     focos.push(p.clone().addScaledVector(ARRIBA, 4.6).addScaledVector(lado, -1.7));
   }
 
+  // ── Estación 3, «Cómo funciona»: su animación va en su recuadro grande (pintarFunciona, más abajo); en el mundo, la
+  // cámara se detiene y mira un poco por encima de la línea, a la izquierda, donde queda el recuadro
+  {
+    const { p, lado } = marco(SITIO[2]);
+    focos.push(p.clone().addScaledVector(ARRIBA, 3.4).addScaledVector(lado, -1.2));
+  }
+
   // ── La cámara: arriba, una vista de costado de la línea; al bajar, se mete en ella y la sigue
   const INTRO_POS = portada.posicion.clone().addScaledVector(portada.lado, 17).addScaledVector(ARRIBA, 5);
   const INTRO_MIRA = portada.mira.clone().addScaledVector(ARRIBA, 0.8);
@@ -1856,6 +2035,72 @@ function iniciar() {
   colocar(0);
   renderer.render(escena, camara);
 }
+
+// ── La estación 3, «Cómo funciona», en su recuadro grande: empieza sola cuando llegas a ella (t_decide_funciona_arranque),
+// sigue la voz de Kai, se detiene si te vas y sigue al volver, y al terminar se queda en su cierre; «↻ Repetir» la vuelve a
+// empezar. Va aparte del mundo en 3D: se ve y se oye también sin WebGL. La voz se calla con su botón, como en la estación
+// 2 (el mismo recuerdo del navegador)
+function iniciarFunciona() {
+  const lienzoF = document.getElementById('funciona-clip');
+  const ctxF = lienzoF?.getContext('2d');
+  if (!ctxF) return;
+  const GUARDADA = 'stl-recorrido-voz';
+  let conVozF = true;
+  try { conVozF = localStorage.getItem(GUARDADA) !== 'no'; } catch { /* sin almacenamiento, con voz */ }
+  const botonVoz = document.querySelector('[data-voz-funciona]');
+  const pintarBotonVoz = () => { if (botonVoz) { botonVoz.setAttribute('aria-pressed', String(conVozF)); botonVoz.textContent = conVozF ? '🔊 Voz' : '🔇 Voz'; } };
+  pintarBotonVoz();
+  const audios = new Map();
+  const audioF = (clave) => {
+    let a = audios.get(clave);
+    if (!a) { a = new Audio(`voz/es/${clave}.mp3`); a.preload = 'auto'; audios.set(clave, a); }
+    return a;
+  };
+  let sonando = null;
+  const callarF = () => { if (sonando) { sonando.pause(); sonando = null; } };
+  const decirF = (clave, desde = 0) => {
+    callarF();
+    if (!conVozF || quieto) return;
+    const a = audioF(clave);
+    try { a.currentTime = desde; } catch { /* aún sin cargar */ }
+    a.play().catch(() => { /* el navegador no deja sonar todavía: sigue en silencio */ });
+    sonando = a;
+  };
+  // El reloj: los segundos que lleva (t), si corre y el rótulo que suena
+  let t = 0, corre = false, antes = 0, rotulo = null, empezo = false;
+  const abiertos = () => [...resueltos].sort((a, b) => a - b).map((i) => problemas[i]?.dataset.corto).filter(Boolean);
+  const dibujar = () => pintarFunciona(ctxF, t, abiertos());
+  function cuadroF(ahora) {
+    if (!corre) return;
+    t = Math.min(duraFunciona(), t + (ahora - antes) / 1000);
+    antes = ahora;
+    const { clave, desde } = pasoFunciona(t);
+    if (clave !== rotulo) { rotulo = clave; decirF(clave, Math.max(0, t - desde)); }
+    dibujar();
+    if (t >= duraFunciona()) { corre = false; return; }
+    requestAnimationFrame(cuadroF);
+  }
+  const seguir = () => { if (corre || t >= duraFunciona()) return; corre = true; antes = performance.now(); rotulo = null; requestAnimationFrame(cuadroF); };
+  const detener = () => { corre = false; callarF(); };
+  const empezar = () => { t = 0; empezo = true; detener(); dibujar(); seguir(); };
+  clavesFunciona().forEach(audioF);   // sus voces, pedidas desde ya
+  dibujar();
+  document.querySelector('[data-repetir-funciona]')?.addEventListener('click', empezar);
+  botonVoz?.addEventListener('click', () => {
+    conVozF = !conVozF;
+    try { localStorage.setItem(GUARDADA, conVozF ? 'si' : 'no'); } catch { /* sin almacenamiento */ }
+    pintarBotonVoz();
+    if (!conVozF) callarF(); else if (corre) { const { clave, desde } = pasoFunciona(t); rotulo = clave; decirF(clave, Math.max(0, t - desde)); }
+  });
+  // Empieza sola la primera vez que su recuadro se ve casi entero; si te vas, se detiene, y al volver sigue donde iba
+  new IntersectionObserver((vistas) => vistas.forEach((v) => {
+    if (v.isIntersecting && v.intersectionRatio >= 0.6) { if (!empezo) empezar(); else seguir(); }
+    else if (!v.isIntersecting || v.intersectionRatio < 0.3) detener();
+  }), { threshold: [0, 0.3, 0.6] }).observe(lienzoF);
+}
+// Todas las voces de la estación 3, en su orden: sus diez frases y su cierre
+const clavesFunciona = () => rotulosFunciona().map((r) => r.clave);
+iniciarFunciona();
 
 // Al final, con todo lo de arriba ya definido: las constantes de las mini animaciones (suave, TINTAS…) aún no existían
 // si el mundo arrancaba antes, y la página se quedaba sin 3D

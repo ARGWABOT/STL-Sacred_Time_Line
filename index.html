@@ -89,6 +89,10 @@
 
   /* La estación 1: solo su título y el botón, sin la miniatura de la animación (nota de voz nmw17k73utit) */
   .tarjeta.corta { max-width: 400px; }
+  /* La estación 3, «Cómo funciona»: su animación en un recuadro grande, que empieza sola al llegar, con «↻ Repetir» */
+  .tarjeta.funciona { width: 100%; max-width: min(900px, calc(100vw - 360px)); }
+  .funciona-barra { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin: 10px 0 0; }
+  .tarjeta.funciona canvas { display: block; width: 100%; aspect-ratio: 16 / 10; max-height: calc(100vh - 260px); object-fit: contain; border-radius: 12px; background: #0b0f1c; border: 1px solid rgba(245, 210, 122, .25); }
   .acciones { margin: 0; }
   .boton-ver { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; background: var(--oro); color: #1a1f33; }
   .boton-ver:hover { background: var(--luz); }
@@ -220,7 +224,7 @@
   <ol>
     <li><a href="#e-que-es">Qué es STL</a></li>
     <li><a href="#e-te-ha-pasado">¿Te ha pasado…?</a></li>
-    <li><span title="Llega en el siguiente tramo del recorrido">Cómo funciona</span></li>
+    <li><a href="#e-como-funciona">Cómo funciona</a></li>
     <li><span title="Llega en el siguiente tramo del recorrido">Lo que ya trae</span></li>
     <li><span title="No reemplaza a SDD u otros métodos: los potencia">¿Reemplaza a otros métodos?</span></li>
     <li><span title="Llega en el siguiente tramo del recorrido">La documentación</span></li>
@@ -260,11 +264,25 @@
         <details class="problema" data-resuelve="5" data-corto="Sin internet, tu trabajo se detiene"><summary>¿Te quedaste sin internet y tu trabajo con la IA se detuvo?</summary><p>Con STL Studio sigues trabajando sin conexión: el Buzón recoge tus notas, ajustes y entregas, y sigues leyendo tus documentos y respuestas y auditando el trabajo del modelo. Nada se pierde, y al volver la conexión el director lo recibe todo junto.</p></details>
       </div>
     </article>
+
+    <div class="camino-texto" aria-hidden="true"></div>
+
+    <!-- La estación 3: cinco escenas dibujadas con el guion confirmado (nmw3q35metil), el modelo en la tercera (nmw19oxgstit),
+         los botones con su nombre del Studio (nmw3q3u7dtit) y los problemas que abriste en la 2 como notas de su Buzón
+         (nmw19na4itit). Empieza sola al llegar y sigue la voz de Kai (mundo-3d.js › FUNCIONA) -->
+    <article class="estacion tres" id="e-como-funciona">
+      <div class="tarjeta funciona">
+        <p class="eyebrow">3 · Cómo funciona</p>
+        <h2>Cómo funciona</h2>
+        <canvas id="funciona-clip" width="1280" height="800" role="img" aria-label="Cómo funciona STL, en cinco escenas: escribes o dictas tus notas y esperan en el Buzón; pides la revisión y el director recibe todo junto, con el mapa del proyecto; el director trabaja con el modelo y pone cada idea en su lugar de la ruta; te devuelve una sola misión a la vez; y el ciclo vuelve a empezar"></canvas>
+        <div class="funciona-barra"><button type="button" class="voz" data-voz-funciona aria-pressed="true" aria-label="La voz que lee cada rótulo: oprímelo para callarla o para volver a oírla">🔊 Voz</button><button type="button" class="voz" data-repetir-funciona>↻ Repetir</button></div>
+      </div>
+    </article>
   </div>
 </main>
 
 <footer class="fin" id="fin">
-  <p>Aquí termina el primer tramo del recorrido. Las estaciones que siguen («Cómo funciona», «Lo que ya trae», «¿Reemplaza a otros métodos?» y «La documentación») llegan en el siguiente.</p>
+  <p>Aquí termina este tramo del recorrido. Las estaciones que siguen («Lo que ya trae», «¿Reemplaza a otros métodos?» y «La documentación») llegan en el siguiente.</p>
   <p><a class="boton" href="https://github.com/ARGWABOT/STL-Sacred_Time_Line">▶ Bájalo en GitHub</a></p>
   <p>STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).</p>
 </footer>
