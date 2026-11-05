@@ -1,8 +1,10 @@
 // El recorrido en 3D de «Qué es STL», su primer tramo (pd_recorrido_3d, 3 de noviembre de 2026): la estación 1 («Qué es
 // STL»: tres actores, el desarrollador en la línea, y el Studio (con el director dentro) y el modelo en alto, con el ciclo
 // de lo que le entregas y las misiones que pasan), la línea
-// del tiempo como camino hasta la estación 2 y la estación 2 («¿Te ha pasado…?»: los cinco grandes problemas flotan
-// alrededor de la línea; al elegir uno, un recuadro grande con su animación larga dice cómo lo resuelve STL). Lo aprendido, en la skill
+// del tiempo como camino hasta la estación 2 y la estación 2 («¿Te ha pasado…?»: los seis grandes problemas flotan
+// alrededor de la línea, cada uno un ícono 3D; al elegir uno, suelta una pantalla 3D con su animación larga, que dice cómo
+// lo resuelve STL, y se absorbe de vuelta en su ícono 4 s después de terminar) y la estación 3 («Cómo funciona»: otra
+// pantalla 3D, de pie al borde de la línea, a la que la cámara se vuelve al llegar). Lo aprendido, en la skill
 // «sitio-3d-scroll»: un escenario fijo detrás, el scroll convertido en el avance de la cámara y suavizado en cada cuadro, y
 // el texto siempre en HTML. Con lo que pidió el titular al verlo, en dos vueltas: sin estrellas, fragmentos ni postes, la
 // cámara más lenta, las bolitas del camino con los colores de cada tipo de nota y la animación de la estación 1 en
@@ -14,18 +16,22 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 
 const ORO = '#f5d27a', LUZ = '#fff6d8', LINEA = '#ffcf5a', MORADO = '#b9a3ff', CIAN = '#5ad1ff', ROJO = '#ff6b8a';
 const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb36b', AMARILLO_TU = '#ffd98a';
-// Los colores de cada tipo de nota, los mismos del Studio (estudio/src/estilos.css › --lv-respuesta, --lv-ajuste…): las
-// bolitas del camino y lo que le entregas al Studio en la estación 1 los llevan (nota de voz nmw17rx07tit)
-const COLOR_TIPO = { respuesta: '#f5d27a', ajuste: '#7fe0d6', idea: '#f7a8d8', falla: '#ff6b8a', pregunta: '#c9b8ff', eleccion: '#7fb2ff', hazlo: '#ffb27a', entrega: '#6fe3a1' };
-const COLORES_TIPO = Object.values(COLOR_TIPO);
+// (Los colores de cada tipo de nota, COLOR_TIPO, viven más abajo, con los dibujos 2D que también los usan.)
 // Los rótulos de la estación 1 por idioma: la página es en español y viene una versión en inglés (una sola página con
 // «ES · EN»); el idioma sale de <html lang> (nota de voz nmw1c3q68tit). Los tipos de pedido llevan el nombre de su tipo
-// en el Studio: falla, idea, ajuste, pregunta y respuesta
+// en el Studio: falla, idea, ajuste, pregunta y respuesta. «pasado» es el título de la estación 2
 const TEXTOS = {
-  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario' },
-  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment' },
+  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '¿Te ha pasado…? (selecciona los problemas que están flotando si te identificas con ellos)' },
+  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Has this happened to you? (select the floating problems if you relate to them)' },
 };
 const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es'];
+const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
+// El título corto de cada gran problema, el que sale junto a su ícono al pasar el ratón: en español, el data-corto de la
+// página (derivado de su enunciado); en inglés, su equivalente natural
+const TITULOS_CORTOS_EN = ['Your attention scatters', 'What you say gets lost or repeated', 'You resume and the context tangles', 'Reading and re-reading', 'The model forgets', 'No internet, your work stops'];
+// El título de la estación 2 sale del diccionario, también en la página en inglés
+const tituloDos = document.querySelector('[data-titulo-dos]');
+if (tituloDos) tituloDos.textContent = T.pasado;
 // Cuánto de la distancia que le falta recorre la cámara en cada cuadro. Fue 0,085, luego 0,03 y ahora la mitad, 0,015: el
 // cambio entre estaciones mareaba (nota de voz nmw17rx07tit)
 const SUAVIZADO = 0.015;
@@ -112,8 +118,17 @@ function hayWebGL() {
   } catch { return false; }
 }
 
-// ── Las mini animaciones de los problemas, en 2D y con el estilo de linea-del-proyecto.html: tú es un cubito con su
-// carita, el Studio una caja morada, el director un rombo dorado, el modelo una bola gris azulada y la línea, dorada.
+// ── Las mini animaciones de los problemas, en 2D y con los MISMOS actores de la estación 1 (nota de voz del 5 de noviembre):
+// el desarrollador (el cubo amarillo con su sonrisa y su luz tibia), el Studio (el cubo morado translúcido con el director
+// dentro: el cubo blanco con el visor oscuro y su sonrisa de luz cian), el modelo (el cubo gris azulado con su carita) y los
+// íconos de cada tipo de nota (error, idea, ajuste, petición y comentario), con sus colores del Studio. Los dibujan unas
+// pocas funciones compartidas (actorDev, actorStudio, actorDirector, actorModelo, iconoNota, placaMision), que repiten
+// las formas y los colores con que la estación 1 los arma en la función iniciar; la línea, dorada.
+// Los colores de cada tipo de nota, los mismos del Studio (estudio/src/estilos.css › --lv-respuesta, --lv-ajuste…): las
+// bolitas del camino, lo que le entregas al Studio en la estación 1 y los íconos 2D de las animaciones los llevan (nota
+// de voz nmw17rx07tit)
+const COLOR_TIPO = { respuesta: '#f5d27a', ajuste: '#7fe0d6', idea: '#f7a8d8', falla: '#ff6b8a', pregunta: '#c9b8ff', eleccion: '#7fb2ff', hazlo: '#ffb27a', entrega: '#6fe3a1' };
+const COLORES_TIPO = Object.values(COLOR_TIPO);
 // Los quince problemas de antes (nota de voz nmw19elcqtit) siguen como dieciséis SEGMENTOS: cada uno dibuja su situación
 // y cómo la resuelve STL (el dieciseisavo, «una decisión vieja se cuela», es nuevo: pd_memoria_ventaja). Desde la nota de
 // voz nmw1bwnvztit, el titular pidió unificarlos y sintetizarlos en cinco grandes problemas y alargar cada animación para
@@ -199,26 +214,106 @@ const lerp = (a, b, k) => a + (b - a) * k;
 const tope = (k) => Math.max(0, Math.min(1, k));
 const suave = (k) => k * k * (3 - 2 * k);
 const tramo = (p, a, b) => suave(tope((p - a) / (b - a)));
-function cubito(c, x, y, s, feliz = false) {   // tú: el cubito amarillo con su sonrisa, como el de la animación de la línea
-  c.save(); c.translate(x, y); c.scale(s, s);
-  const g = c.createLinearGradient(0, -9, 0, 9);
-  g.addColorStop(0, '#fff6dc'); g.addColorStop(1, '#ffd9a0');
-  c.fillStyle = g; c.beginPath(); c.roundRect(-9, -9, 18, 18, 5); c.fill();
-  c.fillStyle = '#1a1f33'; c.strokeStyle = '#1a1f33'; c.lineCap = 'round'; c.lineWidth = 1.1;
-  for (const ojo of [-3.6, 3.6]) { c.beginPath(); c.ellipse(ojo, -1.5, 1.4, 1.9, 0, 0, 7); c.fill(); }
-  c.fillStyle = 'rgba(255, 140, 150, .55)';
-  for (const m of [-6, 6]) { c.beginPath(); c.arc(m, 2.2, 1.7, 0, 7); c.fill(); }
+// Un resplandor tibio detrás de un actor, como el de la estación 1 (resplandor()): rgb, como «255, 241, 196»
+function brilloActor(c, x, y, r, rgb) {
+  const g = c.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, `rgba(${rgb}, .4)`); g.addColorStop(0.45, `rgba(${rgb}, .14)`); g.addColorStop(1, `rgba(${rgb}, 0)`);
+  c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
+}
+// La carita de los cubos de la estación 1 (iniciar() › carita): ojos, mejillas y sonrisa; l es el lado del cubo
+function caritaCubo(c, l, feliz = false, tinta = '#1a1f33') {
+  const k = l / 256;
+  c.save(); c.scale(k, k); c.translate(-128, -128);
+  c.fillStyle = tinta; c.strokeStyle = tinta; c.lineCap = 'round';
+  for (const ox of [-58, 58]) { c.beginPath(); c.ellipse(128 + ox, 106, 15, 22, 0, 0, 7); c.fill(); }
+  c.fillStyle = 'rgba(255, 140, 150, .6)';
+  for (const ox of [-86, 86]) { c.beginPath(); c.arc(128 + ox, 150, 15, 0, 7); c.fill(); }
+  c.lineWidth = 11; c.beginPath(); c.moveTo(88, 158); c.quadraticCurveTo(128, 202, 168, 158);
   // Feliz, con la boca abierta en su sonrisa: en el cierre de cada problema (nmw3ruscptit)
-  if (feliz) { c.beginPath(); c.moveTo(-3.4, 3); c.quadraticCurveTo(0, 8.4, 3.4, 3); c.closePath(); c.fillStyle = '#1a1f33'; c.fill(); }
-  else { c.beginPath(); c.moveTo(-2.6, 3.6); c.quadraticCurveTo(0, 6.2, 2.6, 3.6); c.stroke(); }
+  if (feliz) { c.closePath(); c.fillStyle = tinta; c.fill(); } else c.stroke();
   c.restore();
 }
-function cajaStudio(c, x, y, w, h) {
-  c.fillStyle = 'rgba(185, 163, 255, .13)'; c.strokeStyle = MORADO; c.lineWidth = 2;
-  c.beginPath(); c.roundRect(x, y, w, h, 6); c.fill(); c.stroke();
+// El desarrollador: el cubo redondeado amarillo (AMARILLO_TU) con su carita y su luz tibia, el de la estación 1; s = 1 es
+// un cubo de 18 de lado
+function actorDev(c, x, y, s, feliz = false) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  brilloActor(c, 0, 0, 22, '255, 241, 196');
+  c.fillStyle = AMARILLO_TU; c.beginPath(); c.roundRect(-9, -9, 18, 18, 3); c.fill();
+  caritaCubo(c, 17, feliz);
+  c.restore();
 }
-function rombo(c, x, y, r) {
-  c.fillStyle = ORO; c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r, y); c.lineTo(x, y + r); c.lineTo(x - r, y); c.closePath(); c.fill();
+// El director: el cubo blanco con el visor oscuro de su cara (ojos y sonrisa de luz cian), el de la estación 1; r es la
+// mitad de su diagonal de antes, así que un cubo de r × 1,5 de lado
+function actorDirector(c, x, y, r) {
+  const l = r * 1.5, k = l / 256;
+  c.save(); c.translate(x, y);
+  c.fillStyle = '#f4f1ea'; c.beginPath(); c.roundRect(-l / 2, -l / 2, l, l, l * 0.18); c.fill();
+  c.scale(k, k); c.translate(-128, -128);
+  c.fillStyle = '#2b2826'; c.beginPath(); c.roundRect(26, 48, 204, 150, 62); c.fill();
+  c.strokeStyle = '#a8f4fb'; c.lineWidth = 14; c.lineCap = 'round';
+  for (const ox of [-44, 44]) { c.beginPath(); c.arc(128 + ox, 118, 17, Math.PI, 0); c.stroke(); }
+  c.beginPath(); c.moveTo(98, 152); c.quadraticCurveTo(128, 180, 158, 152); c.stroke();
+  c.restore();
+}
+// El modelo: el cubo gris azulado (MODELO) con su carita oscura y su luz fría, el de la estación 1; r, como el de la bola
+// de antes (un cubo de r × 1,8 de lado)
+function actorModelo(c, x, y, r, alfa = 1) {
+  const l = r * 1.8;
+  c.save(); c.globalAlpha *= alfa; c.translate(x, y);
+  brilloActor(c, 0, 0, r * 2.2, '197, 210, 230');
+  c.fillStyle = MODELO; c.beginPath(); c.roundRect(-l / 2, -l / 2, l, l, l * 0.16); c.fill();
+  caritaCubo(c, l * 0.92);
+  c.restore();
+}
+// El Studio: el cubo morado translúcido con su marco (una cara de atrás desplazada, para que se lea como cubo) y, dentro,
+// el director. conDirector = false cuando adentro va otro contenido (el Buzón con sus notas)
+function actorStudio(c, x, y, w, h, conDirector = true) {
+  // (la cara de atrás va abajo y a la derecha: los rótulos de los cubos van arriba y no la tocan)
+  const d = Math.min(3.5, h * 0.1);
+  c.save();
+  c.strokeStyle = MORADO; c.lineWidth = 1; c.globalAlpha *= 0.45;
+  c.beginPath(); c.rect(x + d, y + d, w, h); c.stroke();
+  for (const [px, py] of [[x + w, y], [x + w, y + h], [x, y + h]]) { c.beginPath(); c.moveTo(px, py); c.lineTo(px + d, py + d); c.stroke(); }
+  c.restore();
+  c.fillStyle = 'rgba(185, 163, 255, .12)'; c.strokeStyle = MORADO; c.lineWidth = 2;
+  c.beginPath(); c.roundRect(x, y, w, h, 4); c.fill(); c.stroke();
+  if (conDirector) actorDirector(c, x + w / 2, y + h / 2, Math.min(w, h) * 0.22);
+}
+// Los íconos de cada tipo de nota, con su color del Studio: un error es un rayo; una idea, una bombilla; un ajuste, un
+// engranaje; una petición, un sobre; un comentario, un globo de diálogo. s = 1 mide unos 14 de alto
+function iconoNota(c, tipo, x, y, s = 1, alfa = 1) {
+  const color = COLOR_TIPO[tipo] ?? ORO;
+  c.save(); c.globalAlpha *= alfa; c.translate(x, y); c.scale(s * 14, s * 14);
+  c.fillStyle = color; c.strokeStyle = color; c.lineWidth = 0.08; c.lineJoin = 'round'; c.lineCap = 'round';
+  if (tipo === 'falla') {
+    c.beginPath(); c.moveTo(0.12, -0.5); c.lineTo(-0.3, 0.05); c.lineTo(-0.03, 0.05); c.lineTo(-0.14, 0.52); c.lineTo(0.3, -0.1); c.lineTo(0.03, -0.1); c.closePath(); c.fill();
+  } else if (tipo === 'idea') {
+    c.beginPath(); c.arc(0, -0.12, 0.3, 0, 7); c.fill();
+    c.beginPath(); c.roundRect(-0.12, 0.18, 0.24, 0.14, 0.04); c.fill();
+    c.beginPath(); c.roundRect(-0.07, 0.34, 0.14, 0.08, 0.03); c.fill();
+    c.strokeStyle = color; c.beginPath();
+    for (const a of [-2.4, -1.57, -0.74]) { c.moveTo(Math.cos(a) * 0.4, -0.12 + Math.sin(a) * 0.4); c.lineTo(Math.cos(a) * 0.52, -0.12 + Math.sin(a) * 0.52); }
+    c.stroke();
+  } else if (tipo === 'ajuste') {
+    c.beginPath();
+    for (let k = 0; k < 32; k++) { const a = (k / 32) * Math.PI * 2, r = k % 4 === 1 || k % 4 === 2 ? 0.46 : 0.34; if (k) c.lineTo(Math.cos(a) * r, Math.sin(a) * r); else c.moveTo(r, 0); }
+    c.closePath(); c.moveTo(0.14, 0); c.arc(0, 0, 0.14, 0, 7); c.fill('evenodd');   // con su hueco en el centro
+  } else if (tipo === 'pregunta') {
+    c.beginPath(); c.roundRect(-0.42, -0.28, 0.84, 0.56, 0.06); c.fill();
+    c.strokeStyle = LUZ; c.lineWidth = 0.07; c.beginPath(); c.moveTo(-0.4, -0.26); c.lineTo(0, 0.06); c.lineTo(0.4, -0.26); c.stroke();
+  } else {   // respuesta: el globo de diálogo con su colita
+    c.beginPath(); c.roundRect(-0.46, -0.34, 0.92, 0.55, 0.14); c.fill();
+    c.beginPath(); c.moveTo(-0.26, 0.2); c.lineTo(-0.34, 0.46); c.lineTo(-0.04, 0.2); c.closePath(); c.fill();
+  }
+  c.restore();
+}
+// Una misión: la placa dorada de la estación 1 con su nombre; verde y con su ✓ si ya está hecha
+function placaMision(c, x, y, w, texto, hecha = false, alfa = 1) {
+  c.save(); c.globalAlpha *= alfa;
+  caja(c, x, y, w, 20, hecha ? VERDE : ORO, 0.2, 6);
+  letrero(c, texto, x + 8, y + 13.5, hecha ? '#dff5e8' : '#fffaf0', 9, 'left');
+  if (hecha) palomita(c, x + w - 11, y + 10, 4.5);
+  c.restore();
 }
 function bola(c, x, y, r, color, alfa = 1) { c.save(); c.globalAlpha *= alfa; c.fillStyle = color; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.restore(); }
 function letrero(c, texto, x, y, color = LUZ, tam = 10, alinea = 'center') {
@@ -257,23 +352,9 @@ function renglones(c, x, y, w, n, color, alfa = 1, paso = 7) {
   for (let k = 0; k < n; k++) { c.beginPath(); c.roundRect(x, y + k * paso, k === n - 1 ? w * 0.6 : w, 3.2, 1.6); c.fill(); }
   c.restore();
 }
-// Una misión o un pedido: una tarjeta dorada con su nombre, verde y con su ✓ si ya está hecha
-function tarjeta(c, x, y, w, texto, hecha = false, alfa = 1) {
-  c.save(); c.globalAlpha *= alfa;
-  caja(c, x, y, w, 20, hecha ? VERDE : ORO, 0.16, 6);
-  letrero(c, texto, x + 8, y + 13.5, hecha ? '#dff5e8' : '#fffaf0', 9, 'left');
-  if (hecha) palomita(c, x + w - 11, y + 10, 4.5);
-  c.restore();
-}
 function barra(c, x, y, w, k, color) {
   caja(c, x, y, w, 10, '#8f8a7d', 0.08, 5);
   c.fillStyle = color; c.beginPath(); c.roundRect(x, y, Math.max(0.5, w * k), 10, 5); c.fill();
-}
-function bombilla(c, x, y, alfa = 1) {   // una idea
-  c.save(); c.globalAlpha *= alfa; bola(c, x, y, 6, NARANJA);
-  c.strokeStyle = NARANJA; c.lineWidth = 1.2; c.beginPath();
-  for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; c.moveTo(x + Math.cos(a) * 9, y + Math.sin(a) * 9); c.lineTo(x + Math.cos(a) * 12, y + Math.sin(a) * 12); }
-  c.stroke(); c.restore();
 }
 function lupa(c, x, y, r = 7) {
   c.save(); c.strokeStyle = LUZ; c.lineWidth = 2; c.lineCap = 'round';
@@ -300,15 +381,15 @@ function wifi(c, x, y, color, cortado = false, alfa = 1) {   // la señal de int
 const DE_ANTES = [
   // Tu pedido llega al Buzón del Studio, lo corriges allí y solo entonces lo lee el director
   (c, p, tinta) => {
-    cubito(c, 40, 118, 1.6); letrero(c, 'tú', 40, 150, '#cfe0ff');
-    cajaStudio(c, 110, 78, 100, 70); letrero(c, 'Buzón del Studio', 160, 70, MORADO);
-    rombo(c, 160, 36, 11); letrero(c, 'el director', 160, 18, ORO);
+    actorDev(c, 40, 118, 1.6); letrero(c, 'tú', 40, 150, '#cfe0ff');
+    actorStudio(c, 110, 78, 100, 70, false); letrero(c, 'Buzón del Studio', 160, 70, MORADO);
+    actorDirector(c, 160, 36, 11); letrero(c, 'el director', 160, 18, ORO);
     const x = p < 0.3 ? lerp(60, 150, tramo(p, 0, 0.3)) : 150, y = p < 0.3 ? 118 - Math.sin(tramo(p, 0, 0.3) * Math.PI) * 24 : p < 0.7 ? 114 : lerp(114, 48, tramo(p, 0.7, 0.9));
     const editada = p > 0.45;
     bola(c, x, y, 7, editada ? VERDE : tinta);
     if (p > 0.3 && p < 0.7) letrero(c, editada ? 'la corriges' : 'te faltó algo', 160, 138, editada ? VERDE : ROJO, 9.5);
     if (p > 0.92) palomita(c, 160, 58, 5);
-    bola(c, 285, 60, 10, MODELO, 0.5); letrero(c, 'el modelo', 285, 84, MODELO, 9);
+    actorModelo(c, 285, 60, 10, 0.5); letrero(c, 'el modelo', 285, 84, MODELO, 9);
   },
   // Leer lo que responde: una idea a la vez, con «Entendido», y lo que sigue queda tapado
   (c, p, tinta) => {
@@ -322,7 +403,7 @@ const DE_ANTES = [
       if (activa && q > 0.6) { c.fillStyle = ORO; c.beginPath(); c.roundRect(200, y + 6, 62, 22, 11); c.fill(); letrero(c, 'Entendido', 231, y + 21, '#1a1f33', 9.5); }
       if (k > n) { c.fillStyle = 'rgba(11, 15, 28, .78)'; c.beginPath(); c.roundRect(50, y, 220, 34, 8); c.fill(); }
     }
-    cubito(c, 24, 90, 1.1);
+    actorDev(c, 24, 90, 1.1);
   },
   // Volver otro día: el estado queda guardado y la misión sigue ahí, a la vista
   (c, p, tinta) => {
@@ -334,7 +415,7 @@ const DE_ANTES = [
     }
     letrero(c, 'tu misión', 162, 98, ORO, 10);
     const x = lerp(-10, 106, tramo(p, 0, 0.35));
-    cubito(c, x, 86, 1.5);
+    actorDev(c, x, 86, 1.5);
     ['el plan', 'el mapa', 'lo que dijiste'].forEach((t, k) => {
       const a = tramo(p, 0.4 + k * 0.12, 0.52 + k * 0.12);
       c.globalAlpha = a; c.fillStyle = 'rgba(185, 163, 255, .16)'; c.strokeStyle = MORADO; c.lineWidth = 1.2;
@@ -349,8 +430,8 @@ const SEGMENTOS = [
   { // 1. El mensaje que se fue incompleto
     problema: (c, q) => {
       ventana(c, 30, 22, 260, 140, 'el chat con el modelo');
-      cubito(c, 52, 140, 1.3);
-      bola(c, 262, 52, 9, MODELO);
+      actorDev(c, 52, 140, 1.3);
+      actorModelo(c, 262, 52, 9);
       if (q > 0.06) globo(c, 70, 112 - tramo(q, 0.06, 0.3) * 60, 'Hazme el inicio de sesión', CIAN);
       if (q > 0.35) globo(c, 250, 76, 'Escribiendo…', MODELO, true, 0.6 + 0.4 * Math.sin(q * 30) ** 2);
       if (q > 0.4) { globo(c, 70, 112, '…y que entre con Google', ROJO); cruz(c, 200, 119, 4); }
@@ -368,7 +449,7 @@ const SEGMENTOS = [
         renglones(c, x + 8, y + 18, 80, 4, k === foco ? '#ffd0da' : 'rgba(255, 255, 255, .25)', 1, 8);
         if (k === foco) trazo(c, 160, 84, x + 55, y + 27, ROJO, 0.7, true);
       });
-      cubito(c, 160, 84, 1.2);
+      actorDev(c, 160, 84, 1.2);
       if (q > 0.55) letrero(c, '¿en qué iba?', 160, 166, ROJO, 10);
     },
     solucion: (c, q) => {
@@ -378,12 +459,12 @@ const SEGMENTOS = [
       });
       if (q > 0.25) {
         c.save(); c.globalAlpha *= tramo(q, 0.25, 0.4);
-        cajaStudio(c, 110, 40, 100, 58); letrero(c, 'el Studio: un solo canal', 160, 34, MORADO, 9); rombo(c, 160, 69, 9);
+        actorStudio(c, 110, 40, 100, 58); letrero(c, 'el Studio: un solo canal', 160, 34, MORADO, 9);
         c.restore();
       }
-      cubito(c, 50, 132, 1.3);
+      actorDev(c, 50, 132, 1.3);
       if (q > 0.4) trazo(c, 62, 124, 110, 92, ORO, tramo(q, 0.4, 0.5));
-      if (q > 0.5) tarjeta(c, 100, 120, 130, 'Tu misión de ahora', q > 0.85, tramo(q, 0.5, 0.6));
+      if (q > 0.5) placaMision(c, 100, 120, 130, 'Tu misión de ahora', q > 0.85, tramo(q, 0.5, 0.6));
       if (q > 0.65) letrero(c, 'un proyecto · una misión', 165, 160, VERDE, 9.5);
     },
   },
@@ -391,22 +472,22 @@ const SEGMENTOS = [
     problema: (c, q) => {
       letrero(c, 'lo que ibas a hacer', 60, 44, LUZ, 9, 'left');
       barra(c, 60, 52, 200, Math.min(0.4, q * 1.4), q > 0.45 ? ROJO : ORO);
-      if (q > 0.3) bombilla(c, 250, 112, tramo(q, 0.3, 0.38));
-      cubito(c, lerp(80, 226, tramo(q, 0.42, 0.7)), 116, 1.3);
+      if (q > 0.3) iconoNota(c, 'idea', 250, 112, 1.5, tramo(q, 0.3, 0.38));
+      actorDev(c, lerp(80, 226, tramo(q, 0.42, 0.7)), 116, 1.3);
       if (q > 0.72) letrero(c, 'y lo otro se quedó a medias', 160, 160, ROJO, 9.5);
     },
     solucion: (c, q) => {
       letrero(c, 'lo que ibas a hacer', 60, 44, LUZ, 9, 'left');
       barra(c, 60, 52, 200, lerp(0.4, 1, tramo(q, 0.05, 0.9)), ORO);
       if (q > 0.9) palomita(c, 274, 57, 5);
-      cubito(c, 40, 57, 1.1);
-      cajaStudio(c, 226, 80, 70, 36); letrero(c, 'el Buzón', 261, 102, MORADO, 9);
+      actorDev(c, 40, 57, 1.1);
+      actorStudio(c, 226, 80, 70, 36, false); letrero(c, 'el Buzón', 261, 102, MORADO, 9);
       // La ruta, con sus fases: la idea va a la suya
       c.strokeStyle = LINEA; c.lineWidth = 2.5; c.beginPath(); c.moveTo(30, 150); c.lineTo(290, 150); c.stroke();
       ['fase 1', 'fase 2', 'fase 3'].forEach((f, k) => { bola(c, 60 + k * 73, 150, 4, ORO); letrero(c, f, 60 + k * 73, 166, LUZ, 8); });
       const k1 = tramo(q, 0, 0.25), k2 = tramo(q, 0.35, 0.65);
-      if (q > 0.3) { c.save(); c.globalAlpha *= tramo(q, 0.3, 0.38); rombo(c, 190, 120, 7); c.restore(); }
-      bombilla(c, q < 0.35 ? lerp(70, 261, k1) : lerp(261, 206, k2), q < 0.35 ? lerp(80, 98, k1) - Math.sin(k1 * Math.PI) * 20 : lerp(98, 138, k2));
+      if (q > 0.3) { c.save(); c.globalAlpha *= tramo(q, 0.3, 0.38); actorDirector(c, 190, 120, 7); c.restore(); }
+      iconoNota(c, 'idea', q < 0.35 ? lerp(70, 261, k1) : lerp(261, 206, k2), q < 0.35 ? lerp(80, 98, k1) - Math.sin(k1 * Math.PI) * 20 : lerp(98, 138, k2), 1.4);
     },
   },
   { // 4. Las respuestas largas
@@ -436,7 +517,7 @@ const SEGMENTOS = [
         renglones(c, 74, 34 + k * 26, 150, 2, 'rgba(255, 255, 255, .35)', 1, 8);
         if (q > 0.15 + k * 0.12) letrero(c, '?', 240, 43 + k * 26, ROJO, 13);
       }
-      cubito(c, 34, 120, 1.2);
+      actorDev(c, 34, 120, 1.2);
       if (q > 0.6) letrero(c, '¿esto ya lo leí?', 160, 177, ROJO, 9.5);
     },
     solucion: (c, q, tinta) => {
@@ -449,7 +530,7 @@ const SEGMENTOS = [
         renglones(c, 74, y, 150, 2, k < n ? 'rgba(255, 255, 255, .25)' : 'rgba(255, 255, 255, .45)', 1, 6);
         if (k < n) palomita(c, 240, y + 4, 4.5);
       }
-      cubito(c, 34, 120, 1.2);
+      actorDev(c, 34, 120, 1.2);
       if (q > 0.8) { caja(c, 200, 27, 50, 15, VERDE, 0.3, 7); letrero(c, 'leída', 225, 38, '#dff5e8', 8.5); }
     },
   },
@@ -486,7 +567,7 @@ const SEGMENTOS = [
     solucion: (c, q) => {
       caja(c, 30, 30, 110, 70, ORO, 0.1); letrero(c, 'En firme', 85, 44, ORO, 9.5);
       ['opción A', 'sin Google', 'en español'].forEach((t, k) => letrero(c, `· ${t}`, 42, 60 + k * 13, LUZ, 8.5, 'left'));
-      rombo(c, 222, 60, 12); letrero(c, 'el director', 222, 84, ORO, 9);
+      actorDirector(c, 222, 60, 12); letrero(c, 'el director', 222, 84, ORO, 9);
       if (q < 0.55) lupa(c, lerp(170, 80, tramo(q, 0.1, 0.45)), 57, 7);
       if (q > 0.5) { c.save(); c.strokeStyle = VERDE; c.lineWidth = 1.5; c.strokeRect(38, 51, 64, 12); c.restore(); }
       if (q > 0.6) globo(c, 120, 118, 'Ya lo decidiste: la opción A', VERDE, false, tramo(q, 0.6, 0.7));
@@ -495,7 +576,7 @@ const SEGMENTOS = [
   },
   { // 8. Los tokens que se van
     problema: (c, q) => {
-      bola(c, 160, 62, 14, MODELO); letrero(c, 'el modelo', 160, 40, MODELO, 9);
+      actorModelo(c, 160, 62, 14); letrero(c, 'el modelo', 160, 40, MODELO, 9);
       const leyendo = Math.floor(q * 14) % 6;
       for (let k = 0; k < 6; k++) {
         const x = 40 + k * 48;
@@ -506,8 +587,8 @@ const SEGMENTOS = [
       if (q > 0.6) letrero(c, 'lee lo mismo una y otra vez', 160, 166, ROJO, 9.5);
     },
     solucion: (c, q) => {
-      cajaStudio(c, 16, 40, 70, 50); letrero(c, 'el Studio', 51, 34, MORADO, 9);
-      rombo(c, 160, 64, 12); letrero(c, 'el director', 160, 44, ORO, 9);
+      actorStudio(c, 16, 40, 70, 50, false); letrero(c, 'el Studio', 51, 34, MORADO, 9);
+      actorDirector(c, 160, 64, 12); letrero(c, 'el director', 160, 44, ORO, 9);
       const k = tramo(q, 0.05, 0.3);
       caja(c, lerp(31, 136, k), lerp(57, 84, k), 48, 16, ORO, 0.3, 5); letrero(c, 'todo junto', lerp(55, 160, k), lerp(68, 95, k), '#fffaf0', 7.5);
       for (let j = 0; j < 6; j++) {
@@ -525,7 +606,7 @@ const SEGMENTOS = [
       bola(c, 272, 40, 14, '#e8e4d6'); bola(c, 279, 35, 12, '#121829'); letrero(c, 'otro día', 272, 70, LUZ, 9);
       ventana(c, 40, 30, 180, 110, 'sesión nueva', '#8f8a7d');
       if (Math.floor(q * 8) % 2) { c.fillStyle = LUZ; c.fillRect(54, 48, 2, 10); }
-      cubito(c, 130, 158, 1.3);
+      actorDev(c, 130, 158, 1.3);
       if (q > 0.3) letrero(c, '?', 152, 150, ROJO, 18);
       if (q > 0.55) letrero(c, '¿en qué iba?', 262, 120, ROJO, 10);
     },
@@ -535,13 +616,13 @@ const SEGMENTOS = [
         c.save(); c.globalAlpha *= tramo(q, 0.1 + k * 0.15, 0.2 + k * 0.15); letrero(c, `· ${t}`, 84, 58 + k * 18, LUZ, 9, 'left'); c.restore();
       });
       if (q > 0.55) { caja(c, 110, 112, 100, 20, ORO, 0.5, 10); letrero(c, 'Ir a tu misión', 160, 125.5, '#1a1f33', 9.5); }
-      cubito(c, lerp(30, 100, tramo(q, 0.65, 0.85)), 122, 1.2);
+      actorDev(c, lerp(30, 100, tramo(q, 0.65, 0.85)), 122, 1.2);
       if (q > 0.88) letrero(c, 'y sigues donde ibas', 160, 160, VERDE, 9.5);
     },
   },
   { // 10. Qué sigue al volver de un descanso
     problema: (c, q) => {
-      cubito(c, 160, 96, 1.5);
+      actorDev(c, 160, 96, 1.5);
       for (let k = 0; k < 6; k++) {
         const a = k * Math.PI / 3 + 0.3, largo = 52 + 6 * Math.sin(q * 20 + k);
         const x = 160 + Math.cos(a) * largo * 1.5, y = 96 + Math.sin(a) * largo;
@@ -560,7 +641,7 @@ const SEGMENTOS = [
         caja(c, 90, y, 136, 16, hecho ? VERDE : '#8f8a7d', 0.12, 5); letrero(c, `Paso ${k + 1}`, 98, y + 11, LUZ, 8.5, 'left');
         if (hecho) palomita(c, 216, y + 8, 4);
       }
-      cubito(c, 40, 120, 1.2);
+      actorDev(c, 40, 120, 1.2);
       if (q > 0.85) letrero(c, 'las demás esperan detrás', 158, 170, VERDE, 9.5);
     },
   },
@@ -571,7 +652,7 @@ const SEGMENTOS = [
       const x0 = 26 + s * 12, y0 = 20 + s * 12;
       globo(c, x0 + 10, y0 + 22, 'Mi proyecto es…', CIAN);
       renglones(c, x0 + 12, y0 + 46, 170, Math.max(1, Math.round(1 + k * 6)), '#9fd8ff', 1, 8);
-      cubito(c, 272, 124, 1.4);
+      actorDev(c, 272, 124, 1.4);
       if (s > 0) letrero(c, 'otra vez', 272, 98, ROJO, 11);
     },
     solucion: (c, q, tinta) => DE_ANTES[2](c, q, tinta),
@@ -584,7 +665,7 @@ const SEGMENTOS = [
       globo(c, 44, 66, 'Cambiamos: sin Google', CIAN, false, 0.9);
       if (q > 0.25) lupa(c, lerp(230, 214, tramo(q, 0.25, 0.5)), lerp(110, 46, tramo(q, 0.25, 0.5)), 6);
       if (q > 0.5) caja(c, 40, 26, 214, 24, ROJO, 0.12, 8);
-      bola(c, 296, 112, 11, MODELO);
+      actorModelo(c, 296, 112, 11);
       if (q > 0.62) globo(c, 284, 98, 'Hice el inicio con Google', ROJO, true);
       if (q > 0.8) letrero(c, 'una decisión vieja se coló', 160, 156, ROJO, 9.5);
     },
@@ -593,7 +674,7 @@ const SEGMENTOS = [
       caja(c, 24, 34, 140, 36, '#8f8a7d', 0.08); letrero(c, 'Usemos Google', 36, 56, vieja > 0.5 ? '#8f8a7d' : LUZ, 9.5, 'left');
       if (q > 0.12) { trazo(c, 34, 52, 118, 52, ROJO, vieja); caja(c, 90, 24, 78, 15, NARANJA, 0.3, 7); letrero(c, 'Reemplazado', 129, 34.5, '#fff1de', 8.5); }
       caja(c, 24, 94, 140, 36, ORO, 0.12); letrero(c, 'En vigor', 94, 90, ORO, 8.5); letrero(c, 'Sin Google', 36, 116, '#fffaf0', 9.5, 'left');
-      rombo(c, 246, 82, 12); letrero(c, 'el director', 246, 62, ORO, 9);
+      actorDirector(c, 246, 82, 12); letrero(c, 'el director', 246, 62, ORO, 9);
       if (q > 0.45) { trazo(c, 236, 88, 168, 108, VERDE, tramo(q, 0.45, 0.55)); palomita(c, 150, 100, 5, tramo(q, 0.5, 0.6)); }
       if (q > 0.6) { trazo(c, 236, 76, 168, 54, ROJO, 0.55 * tramo(q, 0.6, 0.7), true); cruz(c, 202, 65, 4, tramo(q, 0.65, 0.75)); }
       if (q > 0.82) letrero(c, 'al modelo, solo lo que aprobaste', 160, 160, VERDE, 9.5);
@@ -601,9 +682,9 @@ const SEGMENTOS = [
   },
   { // 13. El modelo, una caja negra (nmw27jyxjtit): y con STL, el ciclo de inferencia dibujado
     problema: (c, q) => {
-      cubito(c, 46, 96, 1.4);
+      actorDev(c, 46, 96, 1.4);
       caja(c, 150, 40, 120, 100, '#3a3f55', 0.7, 10);
-      c.save(); c.globalAlpha *= 0.2 + 0.15 * Math.sin(q * 12) ** 2; bola(c, 210, 90, 14, MODELO); c.restore();
+      actorModelo(c, 210, 90, 14, 0.25 + 0.2 * Math.sin(q * 12) ** 2);
       letrero(c, 'el modelo', 210, 32, MODELO, 9);
       const k = tramo(q, 0.05, 0.35);
       if (k < 1) globo(c, lerp(62, 150, k), 84, 'Haz esto', CIAN, false, 1 - k * 0.6);
@@ -611,10 +692,10 @@ const SEGMENTOS = [
       if (q > 0.7) letrero(c, '¿qué recuerda, qué no y por qué?', 160, 166, ROJO, 9.5);
     },
     solucion: (c, q) => {
-      cubito(c, 40, 92, 1.2); letrero(c, 'tú', 40, 116, '#cfe0ff', 8.5);
-      cajaStudio(c, 96, 74, 44, 36); letrero(c, 'el Studio', 118, 122, MORADO, 8.5);
-      rombo(c, 196, 92, 10); letrero(c, 'el director', 196, 116, ORO, 8.5);
-      bola(c, 276, 92, 11, MODELO); letrero(c, 'el modelo', 276, 116, MODELO, 8.5);
+      actorDev(c, 40, 92, 1.2); letrero(c, 'tú', 40, 116, '#cfe0ff', 8.5);
+      // El Studio con el director dentro, como en la estación 1
+      actorStudio(c, 96, 70, 48, 44); letrero(c, 'el Studio', 120, 126, MORADO, 8.5);
+      actorModelo(c, 276, 92, 11); letrero(c, 'el modelo', 276, 116, MODELO, 8.5);
       // El ciclo: de ida por arriba y de vuelta por abajo, con un pulso que lo recorre
       c.save(); c.strokeStyle = 'rgba(255, 255, 255, .25)'; c.lineWidth = 1.2; c.setLineDash([3, 3]);
       c.beginPath(); c.moveTo(40, 76); c.bezierCurveTo(100, 40, 220, 40, 276, 76); c.stroke();
@@ -635,9 +716,9 @@ const SEGMENTOS = [
   { // 14. Se cae el internet: el Buzón sigue recogiendo y tú sigues leyendo y auditando, sin conexión (sexto problema; su voz espera el «Confirmo»)
     problema: (c, q) => {
       ventana(c, 30, 22, 260, 140, 'el chat con el modelo');
-      cubito(c, 52, 140, 1.3);
+      actorDev(c, 52, 140, 1.3);
       const cae = tramo(q, 0.35, 0.5);
-      bola(c, 262, 52, 9, MODELO, 1 - 0.7 * cae);
+      actorModelo(c, 262, 52, 9, 1 - 0.7 * cae);
       if (q > 0.06) globo(c, 70, 112 - tramo(q, 0.06, 0.3) * 60, 'Sigue con el login', CIAN);
       if (q > 0.3 && q < 0.5) globo(c, 250, 76, 'Escribiendo…', MODELO, true, 0.6 + 0.4 * Math.sin(q * 30) ** 2);
       // El corte: la señal con su raya y el chat quieto
@@ -648,8 +729,8 @@ const SEGMENTOS = [
       // Sin conexión hasta casi el final, cuando vuelve
       const vuelve = tramo(q, 0.86, 0.92), color = vuelve > 0.5 ? VERDE : ROJO;
       wifi(c, 34, 24, color, vuelve < 0.5); letrero(c, vuelve > 0.5 ? 'conexión' : 'sin conexión', 34, 50, color, 8);
-      cubito(c, 36, 112, 1.2); letrero(c, 'tú', 36, 136, '#cfe0ff', 8.5);
-      cajaStudio(c, 86, 62, 110, 78); letrero(c, 'Buzón del Studio', 141, 56, MORADO, 9);
+      actorDev(c, 36, 112, 1.2); letrero(c, 'tú', 36, 136, '#cfe0ff', 8.5);
+      actorStudio(c, 86, 62, 110, 78, false); letrero(c, 'Buzón del Studio', 141, 56, MORADO, 9);
       // Tus notas, ajustes y entregas llegan al Buzón aunque no haya internet
       [['nota', CIAN], ['ajuste', NARANJA], ['entrega', ORO]].forEach(([texto, color], k) => {
         const a = 0.2 + k * 0.06, u = tramo(q, a, a + 0.12);
@@ -676,9 +757,9 @@ const SEGMENTOS = [
       // Vuelve la conexión: el director lo recibe todo junto y habla con el modelo
       if (q > 0.86) {
         const u = tramo(q, 0.88, 0.95);
-        rombo(c, 141, 30, 9); letrero(c, 'el director', 154, 33, ORO, 8.5, 'left');
+        actorDirector(c, 141, 30, 9); letrero(c, 'el director', 154, 33, ORO, 8.5, 'left');
         [CIAN, NARANJA, ORO].forEach((col, k) => bola(c, 133 + k * 8, lerp(76, 44, u), 3.5, col, 0.4 + 0.6 * u));
-        bola(c, 300, 24, 8, MODELO); letrero(c, 'el modelo', 300, 40, MODELO, 8);
+        actorModelo(c, 300, 24, 8); letrero(c, 'el modelo', 300, 40, MODELO, 8);
         if (q > 0.94) { trazo(c, 206, 30, 290, 25, VERDE, tramo(q, 0.94, 0.98)); letrero(c, 'todo junto', 248, 20, VERDE, 8.5); }
       }
     },
@@ -747,8 +828,9 @@ const CIERRES = [
   ['El modelo, una caja negra', 'La caja negra, ahora a la vista.'],
   ['Sin internet, todo se detenía', 'Sin internet, tu trabajo sigue.'],
 ];
-// Lo que dura el cierre: al menos CIERRE_SEG, y si su voz tarda más, lo que tarda con un respiro
-const CIERRE_SEG = 2.2;
+// Lo que dura el cierre: al menos CIERRE_SEG (cuatro segundos, para que se alcance a leer el ✓, el problema resuelto y la
+// frase de Kai; nota de voz del 5 de noviembre), y si su voz tarda más, lo que tarda con un respiro
+const CIERRE_SEG = 4;
 const claveDeCierre = (j) => `s${j + 1}-c`;
 const cierreSeg = (j) => {
   const clave = claveDeCierre(j);
@@ -843,7 +925,7 @@ function tamanoQueCabe(c, texto, tam, ancho) {
 // El enunciado, al empezar: tú, pensándolo, y el enunciado en renglones, que aparece poco a poco. Los de los guiones
 // nuevos son más largos: la letra baja hasta que todos los renglones caben entre tu cubito y la barra
 function pintarEnunciado(c, texto, q) {
-  cubito(c, 160, 36 - Math.abs(Math.sin(q * 9)) * 2, 1.5);
+  actorDev(c, 160, 36 - Math.abs(Math.sin(q * 9)) * 2, 1.5);
   ['?', '?'].forEach((s, k) => letrero(c, s, 182 + k * 9, 26 - k * 6, ORO, 11 + k * 2, 'left'));
   let tam = 14, renglones = [];
   for (; tam >= 10; tam--) {
@@ -876,7 +958,7 @@ function pintarCierre(c, resuelto, frase, q, cual) {
   c.restore();
   // Tu cubito, sonriendo, que brinca una vez al llegar y después se mece
   const brinco = Math.sin(tramo(q, 0.12, 0.42) * Math.PI) * 9, mece = Math.sin(q * 14) * 1.2;
-  cubito(c, 252, 92 - brinco - mece, 1.9 * (0.8 + 0.2 * entra), true);
+  actorDev(c, 252, 92 - brinco - mece, 1.9 * (0.8 + 0.2 * entra), true);
   caja(c, 8, 5, 64, 14, VERDE, 0.25, 7);
   letrero(c, '✓ Resuelto', 40, 15.5, '#dff5e8', 8.5);
   if (cual) { caja(c, 262, 5, 50, 14, VERDE, 0.2, 7); letrero(c, cual, 287, 15.5, '#dff5e8', 8.5); }
@@ -926,25 +1008,36 @@ function pasoFunciona(t) {
   const deEscena = lista.filter((x) => x.k === r.k), ini = deEscena[0].desde, fin = deEscena.at(-1).desde + deEscena.at(-1).dura;
   return { ...r, q: tope((s - ini) / (fin - ini)), p: s / duraFunciona() };
 }
-// Una nota del Buzón: su chip de color con lo que dice
-function nota(c, x, y, texto, color, alfa = 1) {
+// Un texto recortado con «…» hasta que cabe en el ancho dado (para que un nombre largo no se salga de su chip)
+function recortar(c, texto, ancho) {
+  if (c.measureText(texto).width <= ancho) return texto;
+  let t = String(texto);
+  while (t.length > 3 && c.measureText(`${t}…`).width > ancho) t = t.slice(0, -1);
+  return `${t.trimEnd()}…`;
+}
+// Una nota del Buzón: su chip con el ícono de su tipo (el mismo de la estación 1) y lo que dice, recortado para que quepa
+const ANCHO_NOTA = 88;
+function nota(c, x, y, texto, tipo, alfa = 1) {
   c.save(); c.globalAlpha *= alfa;
-  caja(c, x, y, 88, 12, color, 0.22, 6);
-  letrero(c, texto, x + 44, y + 8.6, '#fffaf0', tamanoQueCabe(c, texto, 7, 82));
+  caja(c, x, y, ANCHO_NOTA, 12, COLOR_TIPO[tipo] ?? ORO, 0.22, 6);
+  iconoNota(c, tipo, x + 8, y + 6, 0.62);
+  c.font = '600 7px system-ui, sans-serif';
+  letrero(c, recortar(c, texto, ANCHO_NOTA - 22), x + 16, y + 8.6, '#fffaf0', 7, 'left');
   c.restore();
 }
 // Las notas que viajan al Buzón: los problemas que abriste en la estación 2 (su nombre corto) y, si fueron menos de tres,
-// una idea, un ajuste o una pregunta
+// una idea, un ajuste o una pregunta; cada una con el ícono de su tipo
 function notasDeFunciona(abiertos = []) {
-  return [...abiertos, 'Una idea', 'Un ajuste', 'Una pregunta'].slice(0, 3).map((texto, i) => ({ texto, color: ['#f7a8d8', '#7fe0d6', '#c9b8ff'][i] }));
+  return [...abiertos, 'Una idea', 'Un ajuste', 'Una pregunta'].slice(0, 3).map((texto, i) => ({ texto, tipo: ['idea', 'ajuste', 'pregunta'][i], color: COLOR_TIPO[['idea', 'ajuste', 'pregunta'][i]] }));
 }
 const BUZON = { y: 76, x: 118 }, DIRECTOR = { y: 100, x: 236 }, MOD = { y: 40, x: 290 };
 function studioDeFunciona(c, q, conModelo, alfaModelo = 0.3) {
-  cajaStudio(c, 110, 56, 152, 92); letrero(c, 'STL Studio', 186, 51, MORADO, 8);
-  caja(c, BUZON.x - 4, BUZON.y - 10, 96, 66, ORO, 0.06, 6); letrero(c, 'Buzón', BUZON.x + 44, BUZON.y - 1, ORO, 7.5);
-  rombo(c, DIRECTOR.x, DIRECTOR.y, 9 + Math.sin(q * 12) * 0.6); letrero(c, 'el director', DIRECTOR.x, DIRECTOR.y + 20, ORO, 7);
+  // El Studio con su Buzón adentro y el director en su lugar (el cubo de la estación 1)
+  actorStudio(c, 110, 56, 152, 92, false); letrero(c, 'STL Studio', 186, 51, MORADO, 8);
+  caja(c, BUZON.x - 4, BUZON.y - 10, 96, 66, ORO, 0.06, 6); letrero(c, 'Buzón', BUZON.x + 44, BUZON.y + 66, ORO, 7.5);   // debajo de su caja: por arriba pasan las notas
+  actorDirector(c, DIRECTOR.x, DIRECTOR.y, 11 + Math.sin(q * 12) * 0.6); letrero(c, 'el director', DIRECTOR.x, DIRECTOR.y + 21, ORO, 7);
   // El modelo aparece en la tercera escena (nmw19oxgstit): antes no está
-  if (conModelo) { bola(c, MOD.x, MOD.y, 12, MODELO, alfaModelo); c.save(); c.globalAlpha *= alfaModelo; letrero(c, 'el modelo', MOD.x, MOD.y + 22, MODELO, 7); c.restore(); }
+  if (conModelo) { actorModelo(c, MOD.x, MOD.y, 12, alfaModelo); c.save(); c.globalAlpha *= alfaModelo; letrero(c, 'el modelo', MOD.x, MOD.y + 22, MODELO, 7); c.restore(); }
 }
 function pintarFunciona(ctx, t, abiertos = []) {
   const { k, q, p, texto } = pasoFunciona(t);
@@ -960,14 +1053,15 @@ function pintarFunciona(ctx, t, abiertos = []) {
   }
   const c = ctx, notas = notasDeFunciona(abiertos), enBuzon = (i) => ({ x: BUZON.x, y: BUZON.y + 4 + i * 15 });
   const tu = { y: 118, x: 40 };
-  cubito(c, tu.x, tu.y, 1.6, k === 4 && q > 0.25); letrero(c, 'tú', tu.x, tu.y + 24, '#cfe0ff', 8);
+  actorDev(c, tu.x, tu.y, 1.6, k === 4 && q > 0.25); letrero(c, 'tú', tu.x, tu.y + 24, '#cfe0ff', 8);
   if (k === 0) {
     // Tus notas salen de ti, una tras otra, y esperan en el Buzón; al modelo no le llega nada todavía
     studioDeFunciona(c, q, false);
     notas.forEach((n, i) => {
       const a = 0.08 + i * 0.16, e = tramo(q, a, a + 0.2), d = enBuzon(i);
       if (q < a) return;
-      nota(c, lerp(tu.x + 6, d.x, e), lerp(tu.y - 14, d.y, e) - Math.sin(e * Math.PI) * 22, n.texto, n.color);
+      // Cada nota viaja por su propio renglón del Buzón, sin cruzarse con las otras
+      nota(c, lerp(tu.x + 6, d.x, e), d.y, n.texto, n.tipo, tope(e * 4));
     });
     if (q > 0.6) {
       const a = tramo(q, 0.6, 0.8);
@@ -986,7 +1080,8 @@ function pintarFunciona(ctx, t, abiertos = []) {
     const junto = tramo(q, 0.3, 0.62);
     notas.forEach((n, i) => {
       const d = enBuzon(i);
-      nota(c, lerp(d.x, DIRECTOR.x - 44, junto), lerp(d.y, DIRECTOR.y - 34 + i * 3, junto), n.texto, n.color, 1 - tramo(q, 0.6, 0.72) * 0.7);
+      // Se juntan a la derecha del Buzón, una sobre otra y sin tocarse, sobre el director
+      nota(c, lerp(d.x, DIRECTOR.x - 22, junto), lerp(d.y, DIRECTOR.y - 46 + i * 13, junto), n.texto, n.tipo, 1 - tramo(q, 0.6, 0.72) * 0.7);
     });
     if (q > 0.55) {
       const a = tramo(q, 0.55, 0.8);
@@ -1004,7 +1099,7 @@ function pintarFunciona(ctx, t, abiertos = []) {
       const w = tope((q - 0.34 - b * 0.08) / 0.24);
       if (w > 0 && w < 1) bola(c, lerp(MOD.x - 10, DIRECTOR.x + 10, w), lerp(MOD.y + 10, DIRECTOR.y - 2, w), 2.4, MODELO);
     }
-    if (q > 0.18 && q < 0.62) letrero(c, 'solo lo que cambió', 262, 86, ORO, 7);
+    if (q > 0.18 && q < 0.62) letrero(c, 'solo lo que cambió', 225, 141, ORO, 7);   // adentro del Studio, sin cruzar su marco
     // La ruta, abajo: tres fases, y cada nota cae en la suya
     trazo(c, 120, 166, 300, 166, LINEA, 0.9);
     [150, 210, 270].forEach((x, i) => { bola(c, x, 166, 3, LINEA); letrero(c, `Fase ${i + 1}`, x, 160, '#e8dcb8', 6.5); });
@@ -1012,39 +1107,38 @@ function pintarFunciona(ctx, t, abiertos = []) {
       const a = 0.55 + i * 0.12, e = tramo(q, a, a + 0.16);
       if (q < a) return;
       const x = lerp(DIRECTOR.x, [150, 210, 270][[1, 0, 2][i]], e), y = lerp(DIRECTOR.y + 4, 166, e);
-      bola(c, x, y, 4, n.color);
+      iconoNota(c, n.tipo, x, y, 0.8);
     });
   } else if (k === 3) {
     // Te devuelve una sola misión, con sus pasos y su botón a cada lugar
     studioDeFunciona(c, q, true, 0.55);
-    const e = tramo(q, 0.05, 0.35), x = lerp(DIRECTOR.x - 40, 74, e), y = lerp(DIRECTOR.y - 10, 30, e);
+    const e = tramo(q, 0.05, 0.35), x = lerp(DIRECTOR.x - 40, 74, e), y = 30;
     caja(c, x - 60, y, 120, 72, ORO, 0.14, 8);
     letrero(c, 'Tu misión', x - 52, y + 13, '#fffaf0', 9, 'left');
     for (let m = 0; m < 3; m++) {
       const visto = tramo(q, 0.4 + m * 0.12, 0.5 + m * 0.12);
       c.save(); c.globalAlpha *= 0.3 + 0.7 * visto;
       renglones(c, x - 52, y + 22 + m * 15, 50, 1, LUZ, 0.7);
-      c.fillStyle = ORO; c.beginPath(); c.roundRect(x + 18, y + 18 + m * 15, 34, 11, 5.5); c.fill(); letrero(c, 'Ir', x + 35, y + 26 + m * 15, '#1a1f33', 7);
+      c.fillStyle = ORO; c.beginPath(); c.roundRect(x + 18, y + 21 + m * 15, 34, 11, 5.5); c.fill(); letrero(c, 'Ir', x + 35, y + 29 + m * 15, '#1a1f33', 7);
       c.restore();
     }
-    if (q > 0.3) letrero(c, 'una sola misión a la vez', 74, 116, '#e8dcb8', 7.5);
+    // Arriba de la misión, sin tocar a tu cubo ni el marco del Studio
+    if (q > 0.3) letrero(c, 'una sola misión a la vez', 74, 27, '#e8dcb8', 7.5);
   } else {
     // La cumples, dejas tus notas nuevas y el ciclo vuelve a empezar
     studioDeFunciona(c, q, true, 0.45);
     const hecha = q > 0.18;
-    caja(c, 14, 30, 120, 30, hecha ? VERDE : ORO, 0.16, 8);
-    letrero(c, 'Tu misión', 24, 49, hecha ? '#dff5e8' : '#fffaf0', 9, 'left');
-    if (hecha) palomita(c, 118, 45, 6, tramo(q, 0.18, 0.3));
+    placaMision(c, 14, 34, 120, 'Tu misión', hecha);
     notas.slice(0, 2).forEach((n, i) => {
       const a = 0.32 + i * 0.12, e = tramo(q, a, a + 0.2), d = enBuzon(i);
       if (q < a) return;
-      nota(c, lerp(tu.x + 6, d.x, e), lerp(tu.y - 14, d.y, e) - Math.sin(e * Math.PI) * 22, i ? 'Un ajuste nuevo' : 'Una idea nueva', n.color);
+      nota(c, lerp(tu.x + 6, d.x, e), d.y, i ? 'Un ajuste nuevo' : 'Una idea nueva', i ? 'ajuste' : 'idea', tope(e * 4));
     });
     // La vuelta: una flecha que gira alrededor del Studio
     if (q > 0.6) {
       const a = tramo(q, 0.6, 0.75), giro = (q - 0.6) * 9;
       c.save(); c.globalAlpha = a; c.strokeStyle = LINEA; c.lineWidth = 1.6; c.setLineDash([4, 4]); c.lineDashOffset = -giro * 12;
-      c.beginPath(); c.ellipse(186, 102, 92, 58, 0, 0, 7); c.stroke(); c.restore();
+      c.beginPath(); c.ellipse(186, 102, 92, 62, 0, 0, 7); c.stroke(); c.restore();
       letrero(c, 'otra vuelta', 186, 172, LINEA, 7.5);
     }
   }
@@ -1094,6 +1188,30 @@ function pintarBarra(ctx, p) {
   ctx.fillStyle = 'rgba(255, 255, 255, .12)'; ctx.fillRect(BARRA.x, BARRA.y, BARRA.ancho, BARRA.alto);
   ctx.fillStyle = ORO; ctx.fillRect(BARRA.x, BARRA.y, BARRA.ancho * p, BARRA.alto);
   bola(ctx, BARRA.x + BARRA.ancho * p, BARRA.y + BARRA.alto / 2, 2.6, ORO);
+}
+
+// ¿La persona está en una estación, cerca del centro de su bloque? Mientras sí, la cámara de la estación 3 mira su pantalla;
+// al seguir el scroll más allá (hacia adelante o hacia atrás), se vuelve a la línea y continúa
+const enEstacion = (scrollY, ancla, alto, cerca = 0.45) => Math.abs(scrollY - ancla) < alto * cerca;
+// La pantalla de un problema se cierra sola CIERRA_TRAS_SEG segundos después de que su animación termina (nota de voz del 5
+// de noviembre). Si la persona oprime «↻ Repetir» (o vuelve a ver la animación) antes, la pantalla se queda abierta y ya no
+// se cierra sola. El reloj no mide nada por su cuenta: en cada cuadro se le dice la hora y si la animación ya terminó
+const CIERRA_TRAS_SEG = 4;
+function relojAutocierre(espera = CIERRA_TRAS_SEG) {
+  let finEn = null, manual = false;
+  return {
+    /** Un cuadro: true cuando ya toca cerrar. ahora, en milisegundos; terminada, si la animación llegó a su fin. */
+    cuadro(ahora, terminada) {
+      if (manual || !terminada) { finEn = null; return false; }
+      if (finEn === null) finEn = ahora;
+      return ahora - finEn >= espera * 1000;
+    },
+    /** La persona repitió la animación: ya no se cierra sola. */
+    repetir() { manual = true; finEn = null; },
+    /** Una pantalla nueva: vuelve a cerrarse sola. */
+    abrir() { manual = false; finEn = null; },
+    get sola() { return !manual; },
+  };
 }
 
 function iniciar() {
@@ -1572,29 +1690,155 @@ function iniciar() {
     });
   }
 
-  // ── Estación 2, ¿te ha pasado…?: los cinco grandes problemas flotan alrededor de la línea, cada uno una
-  // esfera roja. Su nombre corto sale solo al pasar el ratón por la esfera o por el problema en la lista, y más grande
-  // que antes (nota de voz nmw19iamdtit). Al elegir uno (en la lista o en el mundo), la cámara se queda quieta, la esfera
-  // crece y sale su recuadro (t_decide_acercar_problema); los que ya se abrieron se vuelven verdes
+  // ── Las pantallas virtuales de las estaciones 2 y 3: un plano en la escena, con su marco, cuya textura es el lienzo 2D de
+  // la animación (CanvasTexture), que se vuelve a subir en cada cuadro que se pinta. Quedan al costado de la línea y
+  // miran hacia donde se detiene la cámara
+  function crearPantalla(fuente, ancho, alto) {
+    const g = new THREE.Group();
+    const tex = fuente ? new THREE.CanvasTexture(fuente) : null;
+    if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; tex.anisotropy = 4; }
+    const cuerpo = new THREE.Mesh(new RoundedBoxGeometry(ancho + 0.7, alto + 0.7, 0.3, 3, 0.14), new THREE.MeshStandardMaterial({ color: '#10142a', emissive: '#10142a', emissiveIntensity: 0.4, roughness: 0.6 }));
+    const borde = new THREE.Mesh(new RoundedBoxGeometry(ancho + 0.95, alto + 0.95, 0.2, 3, 0.18), new THREE.MeshBasicMaterial({ color: ORO, transparent: true, opacity: 0.55 }));
+    borde.position.z = -0.08;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, color: tex ? '#ffffff' : '#10142a', transparent: true, fog: false, toneMapped: false });
+    const imagen = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto), mat);
+    imagen.position.z = 0.17;
+    g.add(borde, cuerpo, imagen);
+    return { g, tex, mat, borde, ancho, alto, actualizar: () => { if (tex) tex.needsUpdate = true; } };
+  }
+  // Hacia dónde mira una pantalla: de frente a la cámara que la ve, sin inclinarse
+  const mirarA = (g, camaraEn) => g.lookAt(camaraEn.x, g.position.y, camaraEn.z);
+  // Los íconos 3D y la pantalla de la estación 2 y su cámara, y la pantalla de la estación 3: los llena cada estación
+  const pantalla2 = { k: 0, cam: 0, abierta: false, i: -1, paso: (dt) => dt, actualizar: () => {}, abrir: (i) => i, cerrar: () => {} };
+  const vista = { dos: null, tres: null };
+  let giro3 = 0;   // cuánto se ha vuelto la cámara hacia la pantalla de la estación 3 (0, a la línea; 1, a la pantalla)
+
+  // ── Estación 2, ¿te ha pasado…?: los seis grandes problemas flotan alrededor de la línea, cada uno un ÍCONO 3D de su
+  // problema, en el estilo de los actores de la estación 1 (formas redondeadas, brillo propio, rojos hasta que se abren y
+  // verdes después): varias ventanas para la atención repartida en sesiones, un globo de mensaje partido para lo que dices
+  // y se pierde, un hilo enredado para el contexto, una pila de páginas para leer y releer, una caja negra con su «?» para
+  // el modelo que olvida y una señal de wifi cortada para la falta de internet. Su título sale junto al ícono, solo al
+  // pasar el ratón. Al hacer clic en uno, el ícono «suelta» una pantalla 3D con la animación de su problema (más abajo)
   {
     const u = SITIO[1];
-    const { p, lado } = marco(u);
-    // Cinco esferas, una por gran problema (nota de voz nmw1bwnvztit; antes eran quince en cuatro grupos), repartidas por
-    // donde estaban los grupos: a menos de 4,4 de la línea y mirados un poco hacia la izquierda, así las de la izquierda no
-    // quedan detrás del panel de los problemas, ni las de la derecha bajo el menú
+    const { p, t, lado } = marco(u);
+    const ESCALA_ICONO = 1.45;   // los íconos miden unos 1,6: así se leen a 15 metros
+    const frente = Math.atan2(-t.x, -t.z);   // para que el ícono mire hacia la cámara, que viene por detrás de la línea
+    // Seis íconos, uno por gran problema (nota de voz nmw1bwnvztit; antes eran quince en cuatro grupos), repartidos por
+    // donde estaban los grupos: a menos de 4,4 de la línea
     const ESFERAS = [{ x: -3.6, y: 2.6 }, { x: 3.6, y: 2.8 }, { x: -3.6, y: 5.2 }, { x: 3.6, y: 5.2 }, { x: -3.6, y: 7.6 }, { x: 3.6, y: 7.4 }];
+    const forma = (pts) => { const s = new THREE.Shape(); pts.forEach(([x, y], k) => (k ? s.lineTo(x, y) : s.moveTo(x, y))); s.closePath(); return s; };
+    const extr = (s, prof, bisel = 0.03) => {
+      const g = new THREE.ExtrudeGeometry(s, { depth: prof, bevelEnabled: true, bevelThickness: bisel, bevelSize: bisel, bevelSegments: 1, curveSegments: 10 });
+      g.translate(0, 0, -prof / 2);
+      return g;
+    };
+    const cajita = (w, h, d, material, r = 0.04) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), material);
+    // «?» grande y claro, sin fondo, para la cara de la caja negra
+    const textura = (texto, color) => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 256;
+      const x = c.getContext('2d');
+      x.fillStyle = color; x.font = '700 190px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(texto, 128, 140);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    };
+    // Cada constructor recibe el material que se vuelve verde al abrir el problema (mat) y uno claro de apoyo (apoyo)
+    const ICONOS = [
+      // 1 · la atención repartida: cuatro ventanas, cada una una sesión, abiertas a la vez
+      (mat, apoyo) => {
+        const g = new THREE.Group();
+        [[-0.42, 0.34, -0.16, 0.12], [0.4, 0.24, -0.02, -0.1], [-0.32, -0.34, 0.1, 0.09], [0.36, -0.4, 0.18, -0.08]].forEach(([x, y, z, giro]) => {
+          const v = new THREE.Group();
+          const barra = cajita(0.84, 0.15, 0.1, apoyo, 0.03); barra.position.y = 0.225;
+          const l1 = cajita(0.5, 0.06, 0.1, apoyo, 0.02); l1.position.set(-0.14, 0.0, 0.01);
+          const l2 = cajita(0.36, 0.06, 0.1, apoyo, 0.02); l2.position.set(-0.21, -0.12, 0.01);
+          v.add(cajita(0.84, 0.6, 0.09, mat), barra, l1, l2);
+          v.position.set(x, y, z); v.rotation.z = giro;
+          g.add(v);
+        });
+        return g;
+      },
+      // 2 · lo que dices se pierde: un globo de mensaje partido en dos, incompleto, con sus puntos suspensivos
+      (mat, apoyo) => {
+        const g = new THREE.Group();
+        const izq = new THREE.Mesh(extr(forma([[-0.58, 0.2], [-0.46, 0.34], [0, 0.34], [-0.1, 0.14], [0.04, -0.06], [-0.06, -0.3], [-0.2, -0.3], [-0.34, -0.5], [-0.36, -0.3], [-0.46, -0.3], [-0.58, -0.18]]), 0.14), mat);
+        const der = new THREE.Mesh(extr(forma([[0.1, 0.34], [0.46, 0.34], [0.58, 0.2], [0.58, -0.18], [0.46, -0.3], [0.06, -0.3], [0.2, -0.06], [0.08, 0.14]]), 0.14), mat);
+        izq.position.x = -0.07; izq.rotation.z = 0.08;
+        der.position.set(0.07, -0.03, 0); der.rotation.z = -0.1;
+        g.add(izq, der);
+        [0.28, 0.4, 0.52].forEach((x) => { const punto = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), apoyo); punto.position.set(x, 0.04, 0.1); g.add(punto); });
+        return g;
+      },
+      // 3 · el contexto que se enreda: un hilo hecho un nudo, con sus dos puntas sueltas
+      (mat, apoyo) => {
+        const g = new THREE.Group();
+        const pts = [];
+        for (let k = 0; k <= 90; k++) { const a = (k / 90) * Math.PI * 6; pts.push(new THREE.Vector3(Math.sin(a * 0.9) * 0.56 + Math.sin(a * 2.3) * 0.2, Math.cos(a * 0.7) * 0.5 + Math.cos(a * 1.9) * 0.18, Math.sin(a * 1.3) * 0.36)); }
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 240, 0.075, 8, false), mat));
+        [pts[0], pts[90]].forEach((v) => { const punta = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), apoyo); punta.position.copy(v); g.add(punta); });
+        return g;
+      },
+      // 4 · leer y releer: una pila de páginas, la de arriba con sus renglones
+      (mat, apoyo) => {
+        const g = new THREE.Group();
+        for (let k = 0; k < 4; k++) {
+          const hoja = new THREE.Group();
+          hoja.add(cajita(0.95, 1.2, 0.08, k === 3 ? apoyo : mat, 0.03));
+          if (k === 3) [0.38, 0.18, -0.02, -0.22].forEach((y, m) => { const r = cajita(m === 3 ? 0.34 : 0.6, 0.07, 0.09, mat, 0.02); r.position.set(m === 3 ? -0.21 : -0.1, y, 0.02); hoja.add(r); });
+          hoja.position.set(0, 0, -0.2 + k * 0.14); hoja.rotation.z = (k - 1.5) * 0.09;
+          g.add(hoja);
+        }
+        return g;
+      },
+      // 5 · el modelo olvida: una caja negra con su «?», sobre una base del color del problema
+      (mat) => {
+        const g = new THREE.Group();
+        const negra = new THREE.MeshStandardMaterial({ color: '#2b2826', emissive: '#2b2826', emissiveIntensity: 0.2, roughness: 0.5 });
+        const cara = new THREE.Mesh(new THREE.PlaneGeometry(1.06, 1.06), new THREE.MeshBasicMaterial({ map: textura('?', '#ffd9e2'), transparent: true, depthWrite: false }));
+        cara.position.z = 0.585;
+        const base = cajita(1.5, 0.12, 1.5, mat, 0.04); base.position.y = -0.68;
+        g.add(cajita(1.15, 1.15, 1.15, negra, 0.18), cara, base);
+        g.position.y = 0.1;
+        return g;
+      },
+      // 6 · sin internet: la señal de wifi con su corte
+      (mat, apoyo) => {
+        const g = new THREE.Group();
+        const arco = (r0, r1) => {
+          const s = new THREE.Shape();
+          s.absarc(0, 0, r1, Math.PI * 0.25, Math.PI * 0.75, false);
+          s.absarc(0, 0, r0, Math.PI * 0.75, Math.PI * 0.25, true);
+          s.closePath();
+          const m = new THREE.Mesh(extr(s, 0.14, 0.02), mat);
+          m.position.y = -0.4;
+          return m;
+        };
+        g.add(arco(0.2, 0.36), arco(0.5, 0.66), arco(0.8, 0.96));
+        const punto = new THREE.Mesh(new THREE.SphereGeometry(0.11, 14, 10), mat); punto.position.y = -0.4;
+        const corte = cajita(0.15, 1.9, 0.18, apoyo, 0.06); corte.rotation.z = -0.75; corte.position.set(0.04, 0.02, 0.14);
+        g.add(punto, corte);
+        return g;
+      },
+    ];
     ESFERAS.forEach((pos, i) => {
       const casa = p.clone().addScaledVector(lado, pos.x).addScaledVector(ARRIBA, pos.y);
-      const mat = brillo(ROJO, 0.6);
-      const orbe = new THREE.Mesh(new THREE.SphereGeometry(0.5, 18, 14), mat);
+      const mat = brillo(ROJO, 0.6), apoyo = brillo('#fff0f3', 0.35);
+      const orbe = ICONOS[i](mat, apoyo);
       orbe.position.copy(casa);
-      const etiqueta = rotulo(problemas[i]?.dataset.corto ?? `Problema ${i + 1}`, LUZ, TAMANO_NOMBRE);
-      etiqueta.position.copy(casa).addScaledVector(ARRIBA, -1.1);
+      // El área que se toca con el ratón: una esfera invisible alrededor del ícono
+      const hit = new THREE.Mesh(new THREE.SphereGeometry(1.05, 10, 8), new THREE.MeshBasicMaterial({ visible: false }));
+      orbe.add(hit);
+      const titulo = EN ? TITULOS_CORTOS_EN[i] : (problemas[i]?.dataset.corto ?? `Problema ${i + 1}`);
+      const etiqueta = rotulo(titulo, LUZ, TAMANO_NOMBRE);
+      // Junto al ícono, hacia el centro de la línea (así no se sale de la pantalla), a su misma altura
+      etiqueta.position.copy(casa).addScaledVector(lado, -Math.sign(pos.x) * (1.9 + etiqueta.scale.x / 2));
       etiqueta.visible = false;
       etiqueta.renderOrder = 2;
-      orbe.userData.i = etiqueta.userData.i = i;
+      hit.userData.i = etiqueta.userData.i = i;
       escena.add(orbe, etiqueta);
-      orbes.push({ orbe, etiqueta, mat, casa, fase: Math.random() * 6, grande: 1 });
+      orbes.push({ orbe, hit, etiqueta, mat, casa, fase: Math.random() * 6, grande: 1 });
     });
     const verde = new THREE.Color(VERDE);
     const pintarVerde = (o) => { o.mat.color.copy(verde); o.mat.emissive.copy(verde); };
@@ -1603,19 +1847,89 @@ function iniciar() {
     animar.push(deEstacion(1, (t) => orbes.forEach((o, i) => {
       const visto = resueltos.has(i);
       if (visto) { o.mat.color.lerp(verde, 0.06); o.mat.emissive.lerp(verde, 0.06); }
-      o.grande += ((seleccionado === i ? 1.4 : 1) - o.grande) * 0.12;
-      o.orbe.scale.setScalar(o.grande);
+      o.grande += ((seleccionado === i ? 1.25 : sobre === i ? 1.12 : 1) - o.grande) * 0.12;
+      o.orbe.scale.setScalar(o.grande * ESCALA_ICONO);
       o.orbe.position.copy(o.casa).addScaledVector(ARRIBA, Math.sin(t * 1.4 + o.fase) * 0.14);
+      o.orbe.rotation.y = frente + Math.sin(t * 0.9 + o.fase) * 0.4;
       o.mat.emissiveIntensity = visto ? 0.55 : 0.4 + 0.4 * Math.sin(t * 2 + o.fase) ** 2;
     })));
     focos.push(p.clone().addScaledVector(ARRIBA, 4.6).addScaledVector(lado, -1.7));
+
+    // ── La pantalla del problema: a un costado de la línea, a la izquierda. Al hacer clic en un ícono, él la «suelta»: la
+    // pantalla sale de él, crece hasta su lugar con un hilo de chispas del color del problema, y la cámara se vuelve a
+    // mirarla. Al cerrarse (sola, 4 s después de que su animación termina, o a mano) el efecto va al revés: se absorbe de
+    // vuelta en su ícono y la cámara regresa a encuadrar los problemas
+    const pant = crearPantalla(document.getElementById('popup-clip'), 14, 8.75);
+    const centro = p.clone().addScaledVector(lado, -12).addScaledVector(ARRIBA, 5.4);
+    const camaraAbierta = p.clone().addScaledVector(t, -21).addScaledVector(lado, -5.3).addScaledVector(ARRIBA, 4.4);
+    pant.g.position.copy(centro);
+    mirarA(pant.g, camaraAbierta);
+    pant.g.visible = false;
+    escena.add(pant.g);
+    vista.dos = { posicion: camaraAbierta, mira: p.clone().addScaledVector(lado, -5.3).addScaledVector(ARRIBA, 4.9) };
+    const chispas = Array.from({ length: 10 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshBasicMaterial({ color: ROJO, transparent: true, opacity: 0.9, fog: false })); m.visible = false; escena.add(m); return m; });
+    const origen = new THREE.Vector3(), punto = new THREE.Vector3();
+    const DURA_ABRE = 1.0, DURA_CIERRA = 0.8;   // segundos que tarda en salir del ícono y en absorberse de vuelta
+    Object.assign(pantalla2, {
+      grupo: pant.g,
+      textura: pant,
+      // Un ícono la suelta: si ya había otra, esta sale del nuevo ícono desde cero
+      abrir(i) { pantalla2.abierta = true; pantalla2.i = i; if (pantalla2.k > 0.3) pantalla2.k = 0; },
+      // Se absorbe de vuelta en su ícono
+      cerrar() { pantalla2.abierta = false; },
+      actualizar() { pant.actualizar(); },
+      paso(dt) {
+        const meta = pantalla2.abierta ? 1 : 0;
+        pantalla2.k = quieto ? meta : meta ? Math.min(1, pantalla2.k + dt / DURA_ABRE) : Math.max(0, pantalla2.k - dt / DURA_CIERRA);
+        pantalla2.cam = quieto ? meta : pantalla2.cam + (meta - pantalla2.cam) * 0.045;
+        const e = suave(pantalla2.k), dentro = pantalla2.k > 0.001 && orbes[pantalla2.i];
+        pant.g.visible = !!dentro;
+        chispas.forEach((m) => { m.visible = false; });
+        if (!dentro) return;
+        origen.copy(orbes[pantalla2.i].casa);
+        pant.g.position.copy(origen).lerp(centro, e).addScaledVector(ARRIBA, Math.sin(e * Math.PI) * 1.6);
+        pant.g.scale.setScalar(Math.max(0.001, e));
+        pant.mat.opacity = tope(pantalla2.k * 2);
+        pant.borde.material.opacity = 0.55 * tope(pantalla2.k * 2);
+        // El hilo de chispas, entre el ícono y la pantalla, mientras sale o se absorbe
+        if (pantalla2.k < 0.999) chispas.forEach((m, j) => {
+          const s = tope(e * 1.5 - j * 0.07);
+          if (s <= 0 || s >= 1) return;
+          m.visible = true;
+          m.position.copy(punto.copy(origen).lerp(centro, s)).addScaledVector(ARRIBA, Math.sin(s * Math.PI) * 1.2);
+          m.scale.setScalar(0.6 + Math.sin(s * Math.PI));
+          m.material.color.copy(resueltos.has(pantalla2.i) ? verde : orbes[pantalla2.i].mat.color);
+        });
+      },
+    });
   }
 
-  // ── Estación 3, «Cómo funciona»: su animación va en su recuadro grande (pintarFunciona, más abajo); en el mundo, la
-  // cámara se detiene y mira un poco por encima de la línea, a la izquierda, donde queda el recuadro
+  // ── Estación 3, «Cómo funciona»: una pantalla virtual 3D de pie, al costado de la línea (a su borde), con la animación
+  // (pintarFunciona). Al llegar a la estación, la cámara se vuelve hacia ella y la animación empieza; al seguir el scroll,
+  // hacia adelante o hacia atrás, se vuelve a la línea y continúa
   {
     const { p, lado } = marco(SITIO[2]);
+    const { p: pp, t: tt, lado: ll } = marco(PARADA[2]);
+    const camaraEn = pp.clone().addScaledVector(tt, -7.5).addScaledVector(ARRIBA, 2.8).addScaledVector(ll, 1.4);   // donde se detiene la cámara
+    const pant = crearPantalla(document.getElementById('funciona-clip'), 12.5, 7.8);
+    const ALTO_PIE = 4.4;   // la altura del centro de la pantalla sobre la línea
+    pant.g.position.copy(p).addScaledVector(lado, -9.8).addScaledVector(ARRIBA, ALTO_PIE);
+    mirarA(pant.g, camaraEn);
+    escena.add(pant.g);
+    // Su pie: un soporte desde el suelo y una base, para que se vea parada ahí y no flotando
+    const material = new THREE.MeshStandardMaterial({ color: '#1a2038', emissive: '#1a2038', emissiveIntensity: 0.5, roughness: 0.6 });
+    const bajo = pant.g.position.y - pant.alto / 2 - 0.5, suelo3 = -3;
+    const soporte = new THREE.Mesh(new RoundedBoxGeometry(0.45, bajo - suelo3, 0.45, 2, 0.1), material);
+    soporte.position.set(pant.g.position.x, (bajo + suelo3) / 2, pant.g.position.z);
+    soporte.rotation.y = pant.g.rotation.y;
+    const base = new THREE.Mesh(new RoundedBoxGeometry(3.2, 0.2, 2, 2, 0.08), material);
+    base.position.set(pant.g.position.x, suelo3 + 0.1, pant.g.position.z);
+    base.rotation.y = pant.g.rotation.y;
+    escena.add(soporte, base);
+    vista.tres = { mira: pant.g.position.clone() };
+    // Antes de volverse a la pantalla, al acercarse, la mirada ya se va un poco hacia ese costado
     focos.push(p.clone().addScaledVector(ARRIBA, 3.4).addScaledVector(lado, -1.2));
+    if (funciona) funciona.alPintar = pant.actualizar;
   }
 
   // ── La cámara: arriba, una vista de costado de la línea; al bajar, se mete en ella y la sigue
@@ -1680,6 +1994,14 @@ function iniciar() {
         mira = portada.mira.clone().lerp(mira, e);
       }
     }
+    // Con la pantalla de un problema abierta (estación 2), la cámara se pone a mirarla; al cerrarse, vuelve a encuadrar los
+    // problemas. Y en la estación 3, la cámara se vuelve hacia su pantalla mientras se está ahí, y regresa a la línea al seguir
+    if (pantalla2.cam > 0.001 && vista.dos) {
+      const e = suave(pantalla2.cam);
+      posicion = posicion.clone().lerp(vista.dos.posicion, e);
+      mira = mira.clone().lerp(vista.dos.mira, e);
+    }
+    if (giro3 > 0.001 && vista.tres) mira = mira.clone().lerp(vista.tres.mira, suave(giro3));
     camara.position.copy(posicion);
     camara.lookAt(mira);
     farol.position.copy(posicion).addScaledVector(ARRIBA, 1.5);
@@ -1830,11 +2152,17 @@ function iniciar() {
       perillaClip.setAttribute('aria-valuetext', `segundo ${s} de ${Math.round(seleccionado >= 0 ? duraClip(seleccionado) : 0)}`);
     }
   }
-  function empezarClip() {
+  // El reloj de la pantalla de un problema: se cierra sola 4 s después de que su animación termina, salvo que la persona la
+  // haya repetido («↻ Repetir» o «Verla otra vez»): entonces se queda abierta hasta que ella la cierre
+  const autocierre = relojAutocierre();
+  // «manual»: la persona la repite; la primera vez que se abre una pantalla, no
+  function empezarClip(manual = false) {
     callar();
     clipT = 0; clipAntes = performance.now();
     pausado = false;
+    if (manual) autocierre.repetir();
     pintarMando();
+    if (ctxClip && seleccionado >= 0) { pintarClip(ctxClip, seleccionado, 0); pantalla2.actualizar(); }
   }
   // Pausar o seguir, con su voz: la que estaba hablando se detiene y sigue donde iba
   function pausar(si) {
@@ -1848,9 +2176,9 @@ function iniciar() {
   }
   function alternarClip() {
     if (seleccionado < 0) return;
-    if (terminado()) empezarClip();   // al final, seguir es verla otra vez, con su voz
+    if (terminado()) empezarClip(true);   // al final, seguir es verla otra vez, con su voz (y ya no se cierra sola)
     else pausar(!pausado);
-    if (quieto && ctxClip) pintarClip(ctxClip, seleccionado, clipT);
+    if (quieto && ctxClip) { pintarClip(ctxClip, seleccionado, clipT); pantalla2.actualizar(); }
   }
   // Mover la animación tantos segundos (positivos: adelante; negativos: atrás). Si cambia el rótulo, la voz dice el nuevo
   function moverClip(seg) {
@@ -1861,10 +2189,12 @@ function iniciar() {
     // Con la voz de Google, la voz va donde quedó la animación, aunque sea el mismo paso (la voz manda: si siguiera donde
     // iba, devolvería la animación)
     if (pasoDeClip(seleccionado, clipT).clave !== antes || tramoDeVoz(seleccionado, clipT)) callar();
-    if (ctxClip) pintarClip(ctxClip, seleccionado, clipT);
+    if (ctxClip) { pintarClip(ctxClip, seleccionado, clipT); pantalla2.actualizar(); }
     pintarMando();
   }
   pausaClip?.addEventListener('click', alternarClip);
+  // «↻ Repetir»: la animación vuelve a empezar, con su voz, y la pantalla se queda abierta sin cerrarse sola
+  popup?.querySelector('[data-repetir-clip]')?.addEventListener('click', () => { if (seleccionado >= 0) empezarClip(true); });
   let arrastreClip = null;
   const anguloClip = (e) => {
     const b = perillaClip.getBoundingClientRect();
@@ -1942,27 +2272,35 @@ function iniciar() {
       else decir(ahoraEn, dicho * ritmoDeClave(ahoraEn));
     }
     pintarClip(ctxClip, seleccionado, clipT);
+    pantalla2.actualizar();   // la textura de la pantalla 3D es este lienzo
     pintarMando();
   }
+  // Un clic en un ícono: «suelta» la pantalla 3D con la animación de su problema (la cámara se vuelve a mirarla) y suenan
+  // las voces de Kai. Un segundo clic en el mismo ícono no hace nada
   function abrirProblema(i) {
     const d = problemas[i];
-    if (!orbes[i] || !popup || !d) return;
+    if (!orbes[i] || !popup || !d || seleccionado === i) return;
     marcarVisto(i);
     seleccionado = i;
+    autocierre.abrir();
     problemas.forEach((otro, j) => otro.classList.toggle('activo', j === i));
-    document.getElementById('popup-problema').textContent = d.querySelector('summary').textContent;
-    document.getElementById('popup-respuesta').textContent = d.querySelector('p').textContent;
+    document.getElementById('popup-problema').textContent = d.dataset.corto ?? '';
+    document.getElementById('popup-respuesta').textContent = d.querySelector('p').textContent;   // para quien lee con un lector de pantalla
     popup.hidden = false;
     clavesDeClip(i).forEach(audioDe);   // sus voces, pedidas desde ya
     empezarClip();
-    if (quieto && ctxClip) pintarClip(ctxClip, i, duraClip(i));
+    pantalla2.abrir(i);
+    if (quieto && ctxClip) { pintarClip(ctxClip, i, duraClip(i)); pantalla2.actualizar(); }
   }
+  // Se cierra a mano, con Esc, con la rueda, con el menú, o sola (4 s después del fin de su animación): la pantalla se
+  // absorbe de vuelta en su ícono y la cámara regresa a encuadrar los problemas
   cerrarPopup = () => {
     if (seleccionado < 0) return false;
     callar();
     seleccionado = -1;
     problemas.forEach((d) => d.classList.remove('activo'));
     if (popup) popup.hidden = true;
+    pantalla2.cerrar();
     return true;
   };
   popup?.querySelector('[data-cerrar-popup]')?.addEventListener('click', cerrarPopup);
@@ -1979,9 +2317,9 @@ function iniciar() {
   });
   // Y un clic en su esfera, en el mundo (el nombre, escondido, no se toca)
   const rayo = new THREE.Raycaster(), puntero = new THREE.Vector2();
-  const tocables = orbes.map((o) => o.orbe);
+  const tocables = orbes.map((o) => o.hit);   // su área invisible: el ícono y su título no se tocan por separado
   function bajoElPuntero(e) {
-    if (cur < 1.5 || visorAbierto()) return -1;
+    if (cur < 1.5 || cur > 2.6 || visorAbierto()) return -1;
     const r = lienzo.getBoundingClientRect();
     puntero.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     rayo.setFromCamera(puntero, camara);
@@ -1996,7 +2334,7 @@ function iniciar() {
   lienzo.addEventListener('pointerleave', () => mostrarNombre(-1));
 
   // ── El bucle: solo dibuja mientras el recorrido está a la vista
-  let enVista = false, cur = 0, primera = true;
+  let enVista = false, cur = 0, primera = true, ultimoCuadro = performance.now();
   new IntersectionObserver(([e]) => { enVista = e.isIntersecting; if (enVista) requestAnimationFrame(cuadro); }, { rootMargin: '200px' })
     .observe(document.getElementById('viaje'));
   let dibujados = 0;
@@ -2006,13 +2344,27 @@ function iniciar() {
     if (fijo !== null && ++dibujados > 150) return;
     const w = objetivo();
     cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * SUAVIZADO;
+    // En la estación 3 la cámara se vuelve hacia su pantalla mientras se está ahí (cerca del centro de su bloque), y regresa a
+    // la línea apenas se sigue, hacia adelante o hacia atrás; con ?ver=3, se queda en la pantalla
+    const enSala3 = fijo !== null ? fijo === 3 : cur > 2.6 && anclas[3] !== undefined && enEstacion(scrollY, anclas[3], innerHeight);
+    giro3 = quieto ? Number(enSala3) : giro3 + ((enSala3 ? 1 : 0) - giro3) * (primera ? 1 : 0.045);
     primera = false;
+    // Si la persona se va de la estación 2 con una pantalla abierta (por la barra de scroll, el teclado…), se cierra
+    if (seleccionado >= 0 && Math.abs(cur - 2) > 0.45) cerrarPopup();
     colocar(cur);
     marcar(cur);
+    const ahoraMs = performance.now(), dt = Math.min(0.1, (ahoraMs - ultimoCuadro) / 1000);
+    ultimoCuadro = ahoraMs;
+    pantalla2.paso(dt);
+    if (funciona) { if (enSala3 && giro3 > 0.55) funciona.llegar(); else if (!enSala3) funciona.detener(); }
     if (!quieto) {
-      const t = performance.now() / 1000;
+      const t = ahoraMs / 1000;
       animar.forEach((f) => f(t));
-      if (seleccionado >= 0 && ctxClip) avanzarClip();
+      if (seleccionado >= 0 && ctxClip) {
+        avanzarClip();
+        // Termina su animación, y 4 s después la pantalla se cierra sola (salvo que se haya repetido)
+        if (autocierre.cuadro(ahoraMs, terminado())) cerrarPopup();
+      }
     }
     renderer.render(escena, camara);
     requestAnimationFrame(cuadro);
@@ -2030,6 +2382,14 @@ function iniciar() {
   document.querySelector('.entrada .bajar')?.addEventListener('click', () => relojes.forEach((_, k) => empezarEstacion(k)));
   if (fijo !== null) relojes.forEach((_, k) => empezarEstacion(k));
   else if (pedida >= 0) empezarEstacion(pedida);
+  // ?ver=2&abrir=N&seg=S: para capturar la pantalla del problema N (desde 0) ya abierta, quieta en el segundo S de su animación
+  const abrirN = new URLSearchParams(location.search).get('abrir');
+  if (fijo !== null && abrirN !== null && problemas[Number(abrirN)]) {
+    abrirProblema(Number(abrirN));
+    pantalla2.k = 1; pantalla2.cam = 1;
+    clipT = Number(new URLSearchParams(location.search).get('seg')) || 0; pausado = true;
+    pintarClip(ctxClip, Number(abrirN), clipT); pantalla2.actualizar();
+  }
   // Todo en su lugar desde el primer cuadro (con movimiento reducido, nada más se mueve)
   animar.forEach((f) => f(0));
   colocar(0);
@@ -2043,7 +2403,7 @@ function iniciar() {
 function iniciarFunciona() {
   const lienzoF = document.getElementById('funciona-clip');
   const ctxF = lienzoF?.getContext('2d');
-  if (!ctxF) return;
+  if (!ctxF) return null;
   const GUARDADA = 'stl-recorrido-voz';
   let conVozF = true;
   try { conVozF = localStorage.getItem(GUARDADA) !== 'no'; } catch { /* sin almacenamiento, con voz */ }
@@ -2069,7 +2429,10 @@ function iniciarFunciona() {
   // El reloj: los segundos que lleva (t), si corre y el rótulo que suena
   let t = 0, corre = false, antes = 0, rotulo = null, empezo = false;
   const abiertos = () => [...resueltos].sort((a, b) => a - b).map((i) => problemas[i]?.dataset.corto).filter(Boolean);
-  const dibujar = () => pintarFunciona(ctxF, t, abiertos());
+  // Lo que el mundo 3D le pide: llegar (empieza la primera vez y sigue después), detenerse, y avisar de cada cuadro pintado
+  // para subir la textura de su pantalla (alPintar)
+  const api = { alPintar: null, llegar: () => { if (!empezo) empezar(); else seguir(); }, detener: () => detener() };
+  const dibujar = () => { pintarFunciona(ctxF, t, abiertos()); api.alPintar?.(); };
   function cuadroF(ahora) {
     if (!corre) return;
     t = Math.min(duraFunciona(), t + (ahora - antes) / 1000);
@@ -2092,15 +2455,19 @@ function iniciarFunciona() {
     pintarBotonVoz();
     if (!conVozF) callarF(); else if (corre) { const { clave, desde } = pasoFunciona(t); rotulo = clave; decirF(clave, Math.max(0, t - desde)); }
   });
-  // Empieza sola la primera vez que su recuadro se ve casi entero; si te vas, se detiene, y al volver sigue donde iba
+  // Sin el mundo 3D: empieza sola la primera vez que su recuadro se ve casi entero; si te vas, se detiene, y al volver sigue
+  // donde iba. Con el mundo 3D (clase js-3d), su lienzo está oculto y es la textura de la pantalla: ahí la hace llegar y
+  // detenerse la cámara (iniciar())
   new IntersectionObserver((vistas) => vistas.forEach((v) => {
+    if (document.documentElement.classList.contains('js-3d')) return;
     if (v.isIntersecting && v.intersectionRatio >= 0.6) { if (!empezo) empezar(); else seguir(); }
     else if (!v.isIntersecting || v.intersectionRatio < 0.3) detener();
   }), { threshold: [0, 0.3, 0.6] }).observe(lienzoF);
+  return api;
 }
 // Todas las voces de la estación 3, en su orden: sus diez frases y su cierre
 const clavesFunciona = () => rotulosFunciona().map((r) => r.clave);
-iniciarFunciona();
+const funciona = iniciarFunciona();
 
 // Al final, con todo lo de arriba ya definido: las constantes de las mini animaciones (suave, TINTAS…) aún no existían
 // si el mundo arrancaba antes, y la página se quedaba sin 3D
