@@ -45,7 +45,11 @@ const movil = matchMedia('(max-width: 900px), (pointer: coarse)').matches;
 // Para revisar una estación sin desplazarse (?ver=2): la muestra fija, con su tarjeta. Sirve para capturarla sin pantalla
 // (desplazar la página deja la captura en blanco) y para mostrar una sola estación.
 const verTexto = new URLSearchParams(location.search).get('ver');
-const fijo = verTexto === null ? null : Math.max(0, Math.min(estaciones.length, Math.round(Number(verTexto)) || 0));
+// La imagen al compartir el enlace (pd_imagen_compartir; nmw2nl736tit, nmw2p52extit): con ?compartir, la portada quieta en el
+// momento en que el director habla con el modelo, sin rótulos ni ningún texto encima, para capturarla (mirar.ts --webgl)
+const compartir = new URLSearchParams(location.search).has('compartir');
+const MOMENTO_COMPARTIR = 11.2;
+const fijo = compartir ? 0 : verTexto === null ? null : Math.max(0, Math.min(estaciones.length, Math.round(Number(verTexto)) || 0));
 
 // ── «¿Te ha pasado…?»: cada problema abierto se marca con su ✓ y suma a la cuenta (t_decide_cierre_problemas)
 const problemas = [...document.querySelectorAll('.problema')];
@@ -145,7 +149,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9320,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":2924,"s3-6":3002,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9320,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3002,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -692,7 +696,7 @@ const GRANDES = [[1, 2], [0, 6], [9, 11], [3, 4, 5], [7, 8, 10, 12], [13]];
 // toque. El sexto (segmento 14, de 0 en 13, y su enunciado g6-e) ya tiene su «Confirmo» (nmw2slvaatit) y espera solo a
 // que Google deje generar sus clips: la cuota del día de la clave se acabó el 4 de noviembre
 const SIN_VOZ_TODAVIA = new Set([13]);
-const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set(['g6-e']);
+const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set([]);
 const sinVozTodavia = (clave) => {
   const seg = /^s(\d+)-/.exec(clave);
   return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
@@ -707,7 +711,7 @@ const claveEnunciado = (i) => `g${(GRANDES[i] ? i : 0) + 1}-e`;
 const PASOS_SEG = [
   { problema: [[0, 'Si enviaste y le faltaba algo,'], [0.4, 'envías otro y otro para corregir,'], [0.72, 'multiplicando tu consumo de tokens']], solucion: [[0, 'Con STL, tus notas van primero a un buzón:'], [0.3, 'ahí esperan, y puedes revisarlas y editarlas cuanto quieras'], [0.68, 'antes de que el director las envíe realmente al modelo']] },
   { problema: [[0, 'Con cuatro o más sesiones a la vez,'], [0.35, 'tu atención se divide'], [0.6, 'y te agotas tratando de seguirlas todas']], solucion: [[0, 'Con STL, todo entra por un solo canal'], [0.35, 'y se organiza automáticamente'], [0.55, 'para que te enfoques solo'], [0.72, 'en el siguiente paso estratégico, uno a la vez']] },
-  { problema: [[0, 'Cuando surgen ideas o ajustes a mitad de algo,'], [0.5, 'lo otro se va quedando atrás y se pierde']], solucion: [[0, 'Con STL, tu idea va al Buzón,'], [0.18, 'el director le da su lugar en la ruta'], [0.36, 'y, si no es estratégico hacerlo ahora, espera en su fase.'], [0.6, 'Así terminas lo que ibas a hacer primero,'], [0.76, 'sin perder esa idea o ajuste nuevo:'], [0.88, 'queda en la ruta, donde debe ir']] },
+  { problema: [[0, 'Cuando surgen ideas o ajustes a mitad de algo,'], [0.5, 'lo otro se va quedando atrás y se pierde']], solucion: [[0, 'Con STL, tu idea va al Buzón,'], [0.18, 'el director le da su lugar en la ruta'], [0.36, 'y, si no es estratégico hacerlo ahora, espera en su fase.'], [0.6, 'Así terminas lo que ibas a hacer primero,'], [0.76, 'sin perder esa idea o ajuste nuevo,'], [0.88, 'queda en la ruta, donde debe ir']] },
   { problema: [[0, 'Leer tres páginas seguidas de una respuesta agota,'], [0.3, 'y la atención se va.'], [0.45, 'Terminas por no leer lo que el modelo responde'], [0.75, 'y solo le dices «sí» a todo']], solucion: [[0, 'STL te presenta una idea a la vez,'], [0.14, 'con un botón de «Entendido» antes de destapar la siguiente.'], [0.36, 'Lo que sigue espera tapado hasta que llegas.'], [0.54, 'Además, te lo puede leer en voz alta,'], [0.68, 'y puedes comentar cada idea o párrafo'], [0.82, 'sin explicarle al modelo a qué parte te refieres']] },
   { problema: [[0, '¿Cómo saber qué ya leíste y qué no?']], solucion: [[0, 'Con STL, cada idea leída queda marcada'], [0.4, 'y sabes justo por dónde vas:'], [0.7, 'qué has leído y qué no']] },
   { problema: [[0, '¿El modelo cambia documentos y te pide releerlos?']], solucion: [[0, 'Con STL, lo que ya leíste queda sellado;'], [0.3, 'lo nuevo llega aparte, en un documento corto,'], [0.65, 'solo con lo que cambió, y fácil de leer']] },
@@ -906,7 +910,7 @@ function iniciar() {
   const empezarEstacion = (k) => { if (k >= 0 && k < relojes.length) relojes[k] = performance.now() / 1000; };
   const tiempoDe = (k) => relojes[k] === null ? 0 : performance.now() / 1000 - relojes[k];
   // Lo que se mueve en una estación corre con su propio reloj, no con el de la página
-  const deEstacion = (k, f) => () => f(tiempoDe(k));
+  const deEstacion = (k, f) => () => f(compartir ? MOMENTO_COMPARTIR : tiempoDe(k));
   const azar = (a, b) => a + Math.random() * (b - a);
 
   // Un rótulo flotante: texto sobre una píldora, siempre de frente a la cámara
@@ -926,6 +930,7 @@ function iniciar() {
     tex.colorSpace = THREE.SRGBColorSpace;
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
     s.scale.set(alto * w / 84, alto, 1);
+    s.visible = !compartir;
     return s;
   }
   // La carita de un cubo (ojos, mejillas y sonrisa, como la de la animación de la línea): una textura sin fondo, para
@@ -1790,5 +1795,6 @@ function iniciar() {
 if (lienzo && estaciones.length && hayWebGL()) {
   document.documentElement.classList.add('js-3d');
   if (fijo !== null) document.documentElement.classList.add('ver-parada');
+  if (compartir) document.documentElement.classList.add('compartir');
   iniciar();
 }

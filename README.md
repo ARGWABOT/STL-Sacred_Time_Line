@@ -11,4 +11,4 @@ método STL cumple lo que promete.
 - `voz/linea/` y `voz/es/`: la voz del narrador, un clip por línea del guion o por rótulo.
 
 Se genera desde el STL Studio (`node tools/publicar-stl.ts`). No incluye el código del Studio ni datos de ningún proyecto.
-Versión del 2026-11-04.
+Versión del 2026-11-05.
