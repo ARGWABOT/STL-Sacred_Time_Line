@@ -13,8 +13,17 @@
 // escritos aquí (ACORDES). Es parte del código del Studio, bajo su misma licencia MIT (LICENSE), sin derechos de nadie
 // más que pedir ni atribuir.
 //
-// Lo de arriba es puro (VIDEO, ACORDES, acortar, montaje, parteEn): se prueba sin navegador (tools/recorrido3d.test.ts).
-// montar() es lo único que toca la página; lo llama mundo-3d.js con lo que necesita de él.
+// La velocidad: todo el video suena y se mueve a 1,25x (nota de voz nmw4ioo37tit, del titular): la voz de Kai, la animación
+// y la música, juntas. El montaje sigue contando en segundos de clip, a 1x (así lo miden tramoDeVoz y duraClip); lo que se
+// acelera es el reloj del video, que avanza velocidad veces más rápido, y la voz, que suena con esa misma velocidad sin
+// que cambie su tono. Lo que dura de verdad es el total del montaje entre la velocidad.
+//
+// El MP4 (nmw4iqe1ztit, «Ármalo tú»): con ?video&mp4 la página no se reproduce sola, ofrece dos ganchos a
+// tools/videoMp4.ts, que la dibuja cuadro por cuadro con un navegador sin pantalla y arma el audio aparte.
+//
+// Lo de arriba es puro (VIDEO, ACORDES, acortar, montaje, parteEn, pistaDeVoz): se prueba sin navegador
+// (tools/recorrido3d.test.ts, tools/videoCorto.test.ts). montar() es lo único que toca la página; lo llama mundo-3d.js con
+// lo que necesita de él.
 
 export const VIDEO = {
   // La estación 1: cuánto se ve y desde qué segundo de su ciclo (el director habla con el modelo hacia el segundo 11)
@@ -35,6 +44,8 @@ export const VIDEO = {
   enlace: 'https://argwabot.github.io/STL-Sacred_Time_Line/',
   // La música, muy baja: la voz manda
   volumen: 0.05,
+  // Todo el video a 1,25x (nmw4ioo37tit)
+  velocidad: 1.25,
 };
 
 // Cuatro acordes lentos, en hercios, de cuatro segundos cada uno: do mayor con séptima, la menor con séptima, fa mayor con
@@ -80,6 +91,24 @@ export function parteEn(m, s) {
   return { parte, t: Math.min(parte.dura, t - parte.desde) };
 }
 
+// Cuándo empieza a hablar cada clip de voz, en segundos reales del video ya acelerado, y por dónde de su clip (a 1x):
+// recorre cada problema con tramoDeVoz y anota cada cambio de clip. Con ello se arma el audio del MP4 sin grabar nada
+export function pistaDeVoz(m, tramoDeVoz, v = VIDEO, paso = 0.01) {
+  const pista = [];
+  for (const parte of m.partes) {
+    if (parte.tipo !== 'clip') continue;
+    let clave = '';
+    for (let t = 0; t <= parte.dura + 1e-9; t += paso) {
+      const tramo = tramoDeVoz(parte.i, Math.min(parte.dura, t));
+      if (tramo && tramo.clave !== clave) {
+        clave = tramo.clave;
+        pista.push({ clave, segundoReal: (parte.desde + t) / v.velocidad, recorte: Math.max(0, t - tramo.desde) });
+      }
+    }
+  }
+  return pista;
+}
+
 // ── Lo que toca la página
 const ESTILO = `
   html.video, html.video body { overflow: hidden; }
@@ -103,24 +132,26 @@ const ESTILO = `
 `;
 
 // La música: cada acorde entra y sale despacio, por un filtro que le quita el brillo, y toda ella baja al final
-function tocarMusica(ctx, total, volumen) {
+// (a la velocidad del video: dura total / velocidad y cada acorde, ACORDE_SEG / velocidad, así termina con él)
+function tocarMusica(ctx, total, volumen, velocidad = 1) {
+  const k = 1 / velocidad, real = total * k, acorde = ACORDE_SEG * k;
   const salida = ctx.createGain(), filtro = ctx.createBiquadFilter();
   filtro.type = 'lowpass'; filtro.frequency.value = 900;
   filtro.connect(salida); salida.connect(ctx.destination);
   const t0 = ctx.currentTime + 0.1;
   salida.gain.setValueAtTime(0, t0);
-  salida.gain.linearRampToValueAtTime(volumen, t0 + 3);
-  salida.gain.setValueAtTime(volumen, t0 + Math.max(3, total - 4));
-  salida.gain.linearRampToValueAtTime(0, t0 + total);
-  for (let k = 0, a = t0; a < t0 + total; k++, a += ACORDE_SEG) {
-    for (const f of ACORDES[k % ACORDES.length]) {
+  salida.gain.linearRampToValueAtTime(volumen, t0 + 3 * k);
+  salida.gain.setValueAtTime(volumen, t0 + Math.max(3 * k, real - 4 * k));
+  salida.gain.linearRampToValueAtTime(0, t0 + real);
+  for (let n = 0, a = t0; a < t0 + real; n++, a += acorde) {
+    for (const f of ACORDES[n % ACORDES.length]) {
       const osc = ctx.createOscillator(), g = ctx.createGain();
       osc.type = 'sine'; osc.frequency.value = f;
       g.gain.setValueAtTime(0, a);
-      g.gain.linearRampToValueAtTime(0.22, a + 1.6);
-      g.gain.linearRampToValueAtTime(0, a + ACORDE_SEG + 1.2);
+      g.gain.linearRampToValueAtTime(0.22, a + 1.6 * k);
+      g.gain.linearRampToValueAtTime(0, a + acorde + 1.2 * k);
       osc.connect(g); g.connect(filtro);
-      osc.start(a); osc.stop(a + ACORDE_SEG + 1.3);
+      osc.start(a); osc.stop(a + acorde + 1.3 * k);
     }
   }
   return () => { try { salida.gain.cancelScheduledValues(ctx.currentTime); salida.gain.setValueAtTime(0, ctx.currentTime); } catch { /* ya cerrado */ } };
@@ -142,13 +173,19 @@ export function montar({ grandes, pintarClip, duraClip, tramoDeVoz, gancho, sinC
     <canvas width="1280" height="800" hidden aria-hidden="true"></canvas>
     <div class="titulo">${VIDEO.titulo}</div>
     <div class="final" aria-hidden="true"><div class="marca">STL Studio</div><div class="lema">El guardrail donde más hacía falta, en el Dev</div><div class="github">Gratis, en GitHub</div><a class="enlace" href="${VIDEO.enlace}">${VIDEO.enlace.replace(/^https:\/\//, '').replace(/\/$/, '')}</a></div>
-    <div class="empezar"><button type="button">▶ Reproducir el video</button><small>Dura ${Math.round(m.total)} segundos. Para grabarlo, ponlo en pantalla completa con F11.</small></div>
+    <div class="empezar"><button type="button">▶ Reproducir el video</button><small>Dura ${Math.round(m.total / VIDEO.velocidad)} segundos. Para grabarlo, ponlo en pantalla completa con F11.</small></div>
   </div>`;
   document.body.append(raiz);
   const cuadro = raiz.querySelector('.cuadro'), lienzo = raiz.querySelector('canvas'), ctx = lienzo.getContext('2d');
   const titulo = raiz.querySelector('.titulo'), final = raiz.querySelector('.final'), empezar = raiz.querySelector('.empezar');
   const voces = new Map();
-  const audioDe = (clave) => { if (!voces.has(clave)) { const a = new Audio(`voz/es/${clave}.mp3`); a.preload = 'auto'; voces.set(clave, a); } return voces.get(clave); };
+  // La voz de Kai suena a la velocidad del video sin cambiar su tono (nmw4ioo37tit)
+  const aVelocidad = (a) => {
+    a.defaultPlaybackRate = VIDEO.velocidad; a.playbackRate = VIDEO.velocidad;
+    a.preservesPitch = true; a.mozPreservesPitch = true; a.webkitPreservesPitch = true;
+    return a;
+  };
+  const audioDe = (clave) => { if (!voces.has(clave)) { const a = new Audio(`voz/es/${clave}.mp3`); a.preload = 'auto'; voces.set(clave, aVelocidad(a)); } return voces.get(clave); };
   for (const p of m.partes) if (p.tipo === 'clip') { for (let t = 0; t < p.dura; t += 0.25) { const tr = tramoDeVoz(p.i, t); if (tr) audioDe(tr.clave); } }
 
   // Lo que se ve en un momento: la parte, con su lienzo, su título o su pantalla final
@@ -158,6 +195,28 @@ export function montar({ grandes, pintarClip, duraClip, tramoDeVoz, gancho, sinC
     cuadro.classList.toggle('negro', parte.tipo !== 'estacion1');
     lienzo.hidden = parte.tipo !== 'clip';
     if (parte.tipo === 'clip') pintarClip(ctx, parte.i, t);
+  }
+  // ?video&mp4: lo que usa tools/videoMp4.ts. cuadroDelVideo(seg) pinta el cuadro del segundo REAL seg (ya acelerado), con
+  // la estación 1 en 3D puesta en su segundo exacto, y espera a que el navegador lo dibuje; pistaDelVideo() dice cuándo
+  // empieza cada voz; duracionDelVideo(), lo que dura de verdad. Sin transiciones: los fundidos se calculan por cuadro
+  if (params.has('mp4')) {
+    empezar.hidden = true;
+    estilo.textContent += ' #video-corto * { transition: none !important; }';
+    const cuadros = () => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+    const fundido = (x) => Math.max(0, Math.min(1, x / 0.8));
+    window.duracionDelVideo = () => m.total / VIDEO.velocidad;
+    window.pistaDelVideo = () => pistaDeVoz(m, tramoDeVoz);
+    window.cuadroDelVideo = async (seg) => {
+      const s = Math.max(0, seg) * VIDEO.velocidad;
+      const { parte, t } = parteEn(m, s);
+      if (parte.tipo === 'estacion1') gancho.estacion1?.(VIDEO.desdeEstacion1 + t);
+      pintar(parte, t);
+      const alTitulo = s - m.partes[0].dura;   // lo que lleva el título ya sin ver (la estación 1 acabó)
+      titulo.style.opacity = parte.tipo === 'estacion1' ? fundido(t) : String(1 - fundido(alTitulo / VIDEO.velocidad));
+      final.style.opacity = parte.tipo === 'final' ? fundido(t / VIDEO.velocidad) : 0;
+      await cuadros();
+    };
+    return;
   }
   if (quietoEn !== null) {
     empezar.hidden = true;
@@ -173,13 +232,13 @@ export function montar({ grandes, pintarClip, duraClip, tramoDeVoz, gancho, sinC
   empezar.querySelector('button').addEventListener('click', () => {
     empezar.hidden = true;
     let parar = () => {};
-    try { const ac = new AudioContext(); parar = tocarMusica(ac, m.total, VIDEO.volumen); } catch { /* sin audio del navegador, sin música */ }
+    try { const ac = new AudioContext(); parar = tocarMusica(ac, m.total, VIDEO.volumen, VIDEO.velocidad); } catch { /* sin audio del navegador, sin música */ }
     gancho.estacion1?.(VIDEO.desdeEstacion1);
-    // El reloj del video: corre con el tiempo real, y si una voz aún habla cuando le toca al paso siguiente, la espera
-    // (la voz manda, como en el recorrido), nunca más de tres segundos
+    // El reloj del video: corre con el tiempo real por la velocidad (s está en segundos del montaje, a 1x), y si una voz
+    // aún habla cuando le toca al paso siguiente, la espera (la voz manda, como en el recorrido), nunca más de tres segundos
     let s = 0, antes = performance.now(), dicha = '', hablando = null, espera = 0;
     function cuadroDelVideo(ahora) {
-      const dt = Math.min(0.1, (ahora - antes) / 1000);
+      const real = Math.min(0.1, (ahora - antes) / 1000), dt = real * VIDEO.velocidad;
       antes = ahora;
       const { parte, t } = parteEn(m, s);
       let avanza = true;
@@ -189,13 +248,15 @@ export function montar({ grandes, pintarClip, duraClip, tramoDeVoz, gancho, sinC
           hablando?.pause();
           dicha = tramo.clave;
           hablando = audioDe(tramo.clave);
-          hablando.currentTime = Math.max(0, t - tramo.desde);
+          aVelocidad(hablando);
+          hablando.currentTime = Math.max(0, t - tramo.desde);   // segundos del clip, a 1x: su reloj propio
           hablando.play().catch(() => { hablando = null; });
           espera = 0;
         }
-        if (tramo && hablando && !hablando.ended && !hablando.paused && t + dt >= tramo.desde + tramo.voz && espera < 3) { avanza = false; espera += dt; }
+        if (tramo && hablando && !hablando.ended && !hablando.paused && t + dt >= tramo.desde + tramo.voz && espera < 3) { avanza = false; espera += real; }
       }
       if (avanza) s += dt;
+      if (parte.tipo === 'estacion1') gancho.estacion1?.(VIDEO.desdeEstacion1 + t);   // el reloj 3D, en el del video: a 1,25x
       pintar(parte, Math.min(parte.dura, t));
       if (s < m.total) requestAnimationFrame(cuadroDelVideo);
       else parar();

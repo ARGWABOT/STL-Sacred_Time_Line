@@ -86,7 +86,7 @@
 
   /* La estación 1: solo su título y el botón, sin la miniatura de la animación (nota de voz nmw17k73utit) */
   .tarjeta.corta { max-width: 400px; }
-  .js-3d .estacion.dos { justify-content: center; }
+  .js-3d .estacion.dos, .js-3d .estacion.tres { justify-content: center; }
   .acciones { margin: 0; }
   .boton-ver { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; background: var(--oro); color: #1a1f33; }
   .boton-ver:hover { background: var(--luz); }
@@ -166,6 +166,23 @@
   .velocidad button { padding: 5px 9px; border: 1px solid rgba(245, 210, 122, .35); border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: #b9b4a6; }
   .velocidad button[aria-pressed="true"] { background: var(--oro); border-color: var(--oro); color: #1a1f33; }
   .velocidad button:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  /* «Cómo empezar» (pd_como_empezar) en el mismo reproductor: la fila con un ejemplo de lo que se le puede pedir al modelo,
+     como texto y sin «Copiar» (nmw56hkz8tit), o del enlace al README, sobre los mandos; y, si el navegador no deja sonar la
+     voz al llegar, «▶ Empezar con voz» encima */
+  .popup-extra { display: none; }
+  .popup.guia .popup-extra { flex: none; height: 32px; display: flex; justify-content: center; align-items: center; gap: 12px; }
+  .popup-extra .ejemplo-como { color: #d9d4c4; font-size: 15px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85%; }
+  .ejemplo-como { font-style: italic; }
+  .popup-extra a { font-size: 15px; font-weight: 600; }
+  .popup-extra [hidden] { display: none; }
+  .empezar-voz { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 1; padding: 16px 30px; border: 0; border-radius: 999px; font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; background: var(--oro); color: #1a1f33; box-shadow: 0 10px 40px rgba(0, 0, 0, .6); }
+  .empezar-voz:hover { background: var(--luz); }
+  .empezar-voz[hidden] { display: none; }
+  .ver-como { display: none; }
+  .js-3d .ver-como { display: inline-flex; margin-left: 12px; vertical-align: middle; font-size: 15px; text-shadow: none; }
+  .js-3d .ver-como[hidden] { display: none; }
+  .js-3d .lista-como { display: none; }
+  .lista-como q { color: #fffaf0; }
   /* La respuesta de STL la dice la animación (su cierre); aquí queda solo para los lectores de pantalla */
   .popup-respuesta { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* El globo de cada ícono: su nombre en dos palabras, al pasar el ratón o al hacer clic; lo pone mundo-3d.js › ponerGlobo,
@@ -228,6 +245,7 @@
   <ol>
     <li><a href="#e-que-es">Qué es STL</a></li>
     <li><a href="#e-te-ha-pasado">¿Te ha pasado…?</a></li>
+    <li><a href="#e-como-empezar">Cómo empezar</a></li>
     <li><span title="Llega en el siguiente tramo del recorrido">La documentación</span></li>
   </ol>
 </nav>
@@ -252,7 +270,7 @@
 
     <article class="estacion dos" id="e-te-ha-pasado">
       <div class="tarjeta panel">
-        <h2 class="linea-dos" data-titulo-dos>6 problemas de desarrollar por chat que STL resuelve muy bien</h2>
+        <h2 class="linea-dos" data-titulo-dos>7 problemas de desarrollar por chat que STL resuelve muy bien</h2>
 
         <div class="lista-problemas">
         <details class="problema" data-resuelve="0" data-corto="Atención dispersa"><summary>¿Abres hasta 4 o más sesiones a la vez, te cuesta saber en qué va cada una y, cuando una idea aparece a mitad de algo, la metes en cualquiera y al final no sabes qué sigue?</summary><p>Con STL todo entra por un solo canal: ideas y ajustes van al Buzón y a su fase en la ruta, no sobrecargas tu atención y siempre sabes qué sigue.</p></details>
@@ -261,7 +279,29 @@
         <details class="problema" data-resuelve="3" data-corto="Respuestas largas"><summary>¿Las respuestas largas te cansan, no recuerdas lo que ya leíste y el modelo te pide releer documentación ya revisada?</summary><p>Lees una idea a la vez, con «Entendido»; lo que ya leíste queda marcado y sellado, y lo nuevo llega en un documento corto.</p></details>
         <details class="problema" data-resuelve="4" data-corto="Modelo olvidadizo"><summary>¿El modelo olvida, se te van los tokens y el tiempo explicando otra vez, y tuviste que montar un sistema de memoria aparte porque no entiendes cómo funciona la del modelo?</summary><p>El estado queda guardado en el repositorio, siempre sabes dónde vas y qué sigue, y entiendes realmente cómo funciona el modelo.</p></details>
         <details class="problema" data-resuelve="5" data-corto="Sin internet"><summary>¿Te quedaste sin internet y tu trabajo con la IA se detuvo?</summary><p>Con STL Studio sigues trabajando sin conexión: el Buzón recoge tus notas, ajustes y entregas, y sigues leyendo tus documentos y respuestas y auditando el trabajo del modelo. Nada se pierde, y al volver la conexión el director lo recibe todo junto.</p></details>
+        <details class="problema" data-resuelve="6" data-corto="Cansancio de escribir"><summary>¿Te cansa escribir todo lo que piensas, y tus mensajes al modelo salen a medias?</summary><p>Con STL dictas tus notas: hablas como hablarías con un amigo, de forma natural, e incluso puedes divagar, que el director te entenderá; se transcriben en tu computador y, como van al Buzón y no directo al modelo, las lees y las corriges antes de que lleguen.</p></details>
         </div>
+      </div>
+    </article>
+
+    <div class="camino-texto" aria-hidden="true"></div>
+
+    <!-- La estación 3, «Cómo empezar» (pd_como_empezar): con 3D, su animación sale en el reproductor de los problemas, sola al
+         llegar (nmw4ircrjtit), y aquí queda solo su línea, con «▶ Ver cómo empezar» para volver a abrirla; sin 3D, sus siete
+         pasos se leen aquí, con lo que se le pide al modelo y el enlace al README -->
+    <article class="estacion tres" id="e-como-empezar">
+      <div class="tarjeta panel guia">
+        <h2 class="linea-dos" data-linea-tres>Cómo empezar <button type="button" class="boton-ver ver-como" data-ver-como>▶ Ver cómo empezar</button></h2>
+        <ol class="lista-como">
+          <li>¿Quieres probar el Studio ahora? Así se empieza.</li>
+          <li>Primero, tráelo a tu computador: clona el repositorio, o descárgalo desde GitHub.</li>
+          <li>Ponlo en la carpeta donde quieras trabajar.</li>
+          <li>Para tu tranquilidad, pídele primero a tu modelo un escaneo de seguridad: que confirme que no trae nada malicioso. Por ejemplo, en Claude Code: <q class="ejemplo-como">Revisa este repositorio y dime si trae algo malicioso antes de instalarlo</q></li>
+          <li>Después, pídele que lo instale. Por ejemplo, en Claude Code: <q class="ejemplo-como">Inicializa STL Studio</q></li>
+          <li>Desde ahí, el Studio te guía paso a paso.</li>
+          <li>Si te queda alguna duda, consulta <a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme">la documentación</a>.</li>
+        </ol>
+        <p class="lista-como">Listo: ya estás en marcha.</p>
       </div>
     </article>
 
@@ -291,6 +331,11 @@
 <div class="globo-problema" id="globo-problema" role="tooltip" hidden></div>
 <aside class="popup" id="popup" role="dialog" aria-label="Cómo lo resuelve STL" hidden>
   <canvas id="popup-clip" width="1280" height="800" role="img" aria-label="Una animación de este gran problema: cada situación como pasa al trabajar con IA por chat, seguida de cómo la resuelve STL, paso a paso"></canvas>
+  <!-- Solo con «Cómo empezar»: si el navegador no deja sonar la voz al llegar, espera con este botón (nmw4isbmktit); y la
+       fila con un ejemplo de lo que se le puede pedir al modelo, como texto y sin «Copiar» (nmw56hkz8tit), o el enlace al
+       README (nmw4f6lictit) -->
+  <button type="button" class="empezar-voz" data-empezar-voz hidden>▶ Empezar con voz</button>
+  <div class="popup-extra" data-extra-como><span class="ejemplo-como" data-pedido-como hidden></span><a data-enlace-como href="https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme" target="_blank" rel="noopener" hidden>Abrir la documentación (el README en GitHub) ↗</a></div>
   <div class="popup-barra"><button type="button" class="voz" data-voz-clip aria-pressed="true" aria-label="La voz que lee cada rótulo: oprímelo para callarla o para volver a oírla">🔊 Voz</button><button type="button" class="voz" data-repetir-clip aria-label="Repetir la animación; el reproductor se queda abierto">↻ Repetir</button>
     <div class="velocidad" data-velocidad-clip role="group" aria-label="Velocidad de la voz y de la animación"><button type="button" data-v="1" aria-pressed="true">1x</button><button type="button" data-v="1.25" aria-pressed="false">1.25x</button><button type="button" data-v="1.5" aria-pressed="false">1.5x</button><button type="button" data-v="2" aria-pressed="false">2x</button></div>
     <div class="mini-perilla" data-perilla-clip role="slider" tabindex="0" aria-valuemin="0" aria-valuenow="0" aria-valuetext="segundo 0"
@@ -345,7 +390,7 @@
   @media (prefers-reduced-motion: reduce) { #info-caja { transition: none; } }
 </style>
 <div id="info">
-  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-05</span></div></div>
+  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-06</span></div></div>
   <button type="button" id="info-boton" aria-label="Más información: la versión" aria-expanded="false" aria-describedby="info-caja">i</button>
 </div>
 <script>

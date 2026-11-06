@@ -22,14 +22,14 @@ const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb3
 // «ES · EN»); el idioma sale de <html lang> (nota de voz nmw1c3q68tit). Los tipos de pedido llevan el nombre de su tipo
 // en el Studio: falla, idea, ajuste, pregunta y respuesta. «pasado» es el título de la estación 2
 const TEXTOS = {
-  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '6 problemas de desarrollar por chat que STL resuelve muy bien', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
-  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: '6 problems of developing through chat that STL solves really well', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
+  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '7 problemas de desarrollar por chat que STL resuelve muy bien', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
+  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: '7 problems of developing through chat that STL solves really well', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
 };
 const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es'];
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
 // El título corto de cada gran problema, el que sale en el globo de su ícono: dos palabras (nota de voz nmw40cp3jtit); en
 // español, el data-corto de la página; en inglés, su equivalente natural
-const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Tangled context', 'Long answers', 'Forgetful model', 'No internet'];
+const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Tangled context', 'Long answers', 'Forgetful model', 'No internet', 'Typing fatigue'];
 // La línea de la estación 2 sale del diccionario, también en la página en inglés
 const tituloDos = document.querySelector('[data-titulo-dos]');
 if (tituloDos) tituloDos.textContent = T.pasado;
@@ -135,8 +135,11 @@ function hayWebGL() {
 // de voz nmw17rx07tit)
 const COLOR_TIPO = { respuesta: '#f5d27a', ajuste: '#7fe0d6', idea: '#f7a8d8', falla: '#ff6b8a', pregunta: '#c9b8ff', eleccion: '#7fb2ff', hazlo: '#ffb27a', entrega: '#6fe3a1' };
 // Los íconos de la estación 2, de un solo color con el blanco, con la paleta de las notas de la estación 1 (nota de voz del
-// titular nmw46qjootit): uno distinto por problema, en el orden de la estación; antes de tocarlos, todos en gris
-const COLOR_PROBLEMA = [COLOR_TIPO.idea, COLOR_TIPO.ajuste, COLOR_TIPO.pregunta, COLOR_TIPO.respuesta, COLOR_TIPO.eleccion, COLOR_TIPO.hazlo];
+// titular nmw46qjootit): uno distinto por problema, en el orden de la estación; antes de tocarlos, todos en gris. El séptimo,
+// el micrófono del dictado, va en el verde de las entregas, en un tono más claro que el de «Con STL» para que no se
+// confundan (nmw4it925tit)
+const VERDE_DICTADO = '#b4f5cf';
+const COLOR_PROBLEMA = [COLOR_TIPO.idea, COLOR_TIPO.ajuste, COLOR_TIPO.pregunta, COLOR_TIPO.respuesta, COLOR_TIPO.eleccion, COLOR_TIPO.hazlo, VERDE_DICTADO];
 const GRIS_PROBLEMA = '#8d929e';
 /** Si el ícono del problema i va en su color: con el ratón encima, abierto o ya abierto antes; si no, en gris. Pura. */
 function enColor(i, sobre, seleccionado, resueltos) {
@@ -178,7 +181,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -378,6 +381,14 @@ function altavoz(c, x, y) {   // leer en voz alta
   c.save(); c.fillStyle = LUZ; c.strokeStyle = LUZ; c.lineWidth = 1.4;
   c.beginPath(); c.moveTo(x - 7, y - 3); c.lineTo(x - 3, y - 3); c.lineTo(x + 2, y - 8); c.lineTo(x + 2, y + 8); c.lineTo(x - 3, y + 3); c.lineTo(x - 7, y + 3); c.closePath(); c.fill();
   for (const r of [6, 10]) { c.beginPath(); c.arc(x + 2, y, r, -0.7, 0.7); c.stroke(); }
+  c.restore();
+}
+// Un micrófono, para dictar tus notas (pd_dictado): su cabeza redondeada, su soporte en U y su pie
+function microfono(c, x, y, color, s = 1) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.fillStyle = color; c.beginPath(); c.roundRect(-4.5, -15, 9, 16, 4.5); c.fill();
+  c.strokeStyle = color; c.lineWidth = 1.6; c.lineCap = 'round';
+  c.beginPath(); c.arc(0, -5, 7.5, 0.15, Math.PI - 0.15); c.moveTo(0, 2.5); c.lineTo(0, 8); c.moveTo(-5, 8); c.lineTo(5, 8); c.stroke();
   c.restore();
 }
 function trazo(c, x1, y1, x2, y2, color, alfa = 1, punteado = false) {
@@ -778,6 +789,56 @@ const SEGMENTOS = [
       }
     },
   },
+  { // 15. El cansancio de escribir: dictas tu nota (pd_dictado; su guion, confirmado el 6 de noviembre de 2026, nmw4f8wietit;
+    // «cansa» en vez de «pereza», que Kai pronunciaba mal, nmw56lwtbtit; y «hablas como hablarías», ampliado, nmw56n724tit)
+    problema: (c, q) => {
+      ventana(c, 30, 22, 260, 140, 'el chat con el modelo');
+      // Tu idea, entera, en la cabeza: la bombilla y sus renglones
+      actorDev(c, 60, 136, 1.3);
+      caja(c, 28, 34, 110, 62, ORO, 0.1, 12);
+      iconoNota(c, 'idea', 46, 52, 1.1);
+      renglones(c, 62, 46, 66, 4, 'rgba(255, 241, 196, .55)', 1, 10);
+      // Escribirla toda cansa: el teclado avanza despacio, y sale solo la mitad
+      if (q > 0.3) {
+        const escrito = tramo(q, 0.3, 0.62);
+        caja(c, 92, 118, 92, 22, '#8f8a7d', 0.1, 5);
+        for (let k = 0; k < 8; k++) bola(c, 101 + k * 10.5, 129, 2.6, k < escrito * 4 ? ROJO : 'rgba(255, 255, 255, .3)');
+        letrero(c, 'escribirlo todo…', 138, 112, '#ffc2cf', 8.5);
+      }
+      actorModelo(c, 262, 52, 9);
+      if (q > 0.66) {
+        globo(c, 150, 76, 'Haz que el botón…', ROJO, false, tramo(q, 0.66, 0.74));
+        letrero(c, 'le llega la mitad', 262, 96, ROJO, 8.5);
+        cruz(c, 262, 52, 4, tramo(q, 0.74, 0.8));
+      }
+    },
+    solucion: (c, q) => {
+      // Hablas como hablarías con un amigo, incluso divagando (nmw56n724tit): el micrófono y sus ondas, mientras hablas
+      actorDev(c, 38, 108, 1.3, q > 0.82);
+      microfono(c, 70, 98, VERDE_DICTADO);
+      if (q < 0.52) for (const r of [8, 13, 18]) { c.save(); c.globalAlpha *= 0.3 + 0.7 * Math.sin(q * 40 - r) ** 2; c.strokeStyle = VERDE_DICTADO; c.lineWidth = 1.4; c.beginPath(); c.arc(70, 92, r, -0.9, 0.9); c.stroke(); c.restore(); }
+      // Se transcribe en tu computador
+      if (q > 0.5) { letrero(c, 'se transcribe en tu computador', 104, 150, VERDE_DICTADO, 8.5, 'left'); caja(c, 96, 140, 6, 6, VERDE_DICTADO, 0.4, 2); }
+      // Tu nota, en el Buzón: la lees y la corriges antes de que salga
+      actorStudio(c, 108, 40, 120, 92, false); letrero(c, 'Buzón del Studio', 168, 34, MORADO, 9);
+      const escrita = tramo(q, 0.1, 0.56);
+      caja(c, 118, 52, 100, 70, VERDE_DICTADO, 0.1, 7);
+      letrero(c, 'tu nota', 124, 62, VERDE_DICTADO, 7.5, 'left');
+      for (let k = 0; k < 4; k++) {
+        const visible = escrita * 4 > k;
+        if (!visible) continue;
+        const quitada = k === 2 && q > 0.78, agregada = k === 3;
+        if (agregada && q < 0.88) continue;
+        renglones(c, 124, 70 + k * 12, k === 3 ? 60 : 84, 1, agregada ? VERDE : 'rgba(255, 255, 255, .45)', quitada ? 0.35 : 1);
+        if (quitada) trazo(c, 122, 71.5 + k * 12, 210, 71.5 + k * 12, ROJO, tramo(q, 0.78, 0.84));
+        if (agregada) letrero(c, '+', 196, 76 + k * 12, VERDE, 9, 'left');
+      }
+      if (q > 0.74) { lupa(c, 214, 58, 6); letrero(c, 'la lees y la corriges', 168, 138, '#fffaf0', 8.5); }
+      // Y solo entonces la recibe el modelo
+      actorModelo(c, 284, 76, 9);
+      if (q > 0.93) { const u = tramo(q, 0.93, 0.99); bola(c, lerp(222, 274, u), 86, 3.5, VERDE, 0.5 + 0.5 * u); if (u > 0.95) palomita(c, 284, 100, 4); }
+    },
+  },
 ];
 // Los cinco grandes problemas, en el orden de la lista de la estación 2 (data-resuelve): de cada uno, qué segmentos junta
 // (su lugar en SEGMENTOS, de 0), con los guiones del titular del 4 de noviembre: 1: la atención (varias sesiones, la idea
@@ -785,8 +846,9 @@ const SEGMENTOS = [
 // (qué sigue después de un descanso y el contexto que se contamina con cada cambio de decisión, las dos terceras
 // situaciones de antes, que pasan aquí; nmw26lr5jtit); 4: leer y releer (respuestas largas, qué ya leíste, releer;
 // nmw26xb5ltit); 5: el modelo olvida (tokens, en qué ibas, explicar otra vez y la caja negra; nmw27jyxjtit). «Tienes que
-// estar encima», la decisión enterrada y la memoria aparte salieron: los agentes de chat ya lo resuelven, o lo dice otro
-const GRANDES = [[1, 2], [0, 6], [9, 11], [3, 4, 5], [7, 8, 10, 12], [13]];
+// estar encima», la decisión enterrada y la memoria aparte salieron: los agentes de chat ya lo resuelven, o lo dice otro.
+// El sexto, sin internet; y el séptimo, el cansancio de escribir, que se resuelve dictando (pd_dictado, nmw4f73aftit)
+const GRANDES = [[1, 2], [0, 6], [9, 11], [3, 4, 5], [7, 8, 10, 12], [13], [14]];
 // Lo que todavía no tiene voz, mientras un problema nuevo espera el «Confirmo» de la suya: sus segmentos (de 0) y sus
 // enunciados. Sus rótulos duran lo que dice la estimación (tardaVoz), no se pide ni suena ningún mp3 suyo (nada de 404) y
 // el reloj del clip nunca espera a una voz. tools/vozRecorrido.ts lo repite (SIN_VOZ_TODAVIA) para que el generador no lo
@@ -794,13 +856,17 @@ const GRANDES = [[1, 2], [0, 6], [9, 11], [3, 4, 5], [7, 8, 10, 12], [13]];
 // que Google deje generar sus clips: la cuota del día de la clave se acabó el 4 de noviembre
 const SIN_VOZ_TODAVIA = new Set([]);
 const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set([]);
+// Y los clips sueltos que ya tienen su «Confirmo» pero no su mp3, porque la cuota del día de Google se acabó (nmw2xuhhgtit:
+// de a un día); tools/vozRecorrido.ts --confirmo los genera cuando vuelve la cuota, y entonces salen de aquí. Hoy, ninguno:
+// el 6 de noviembre de 2026 salieron los del dictado, con su texto nuevo, y los ocho de «Cómo empezar»
+const CLAVES_SIN_VOZ_TODAVIA = new Set([]);
 const sinVozTodavia = (clave) => {
   const seg = /^s(\d+)-/.exec(clave);
-  return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
+  return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || CLAVES_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
 };
 // Cuánto dura cada clip, en segundos: su enunciado y después cada situación en rojo seguida de su solución, segmento
-// tras segmento, cada parte lo que tarda su voz
-const duraClip = (i) => enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + segmentoSeg(j), 0);
+// tras segmento, cada parte lo que tarda su voz; «Cómo empezar» (GUIA), sus escenas
+const duraClip = (i) => (i === GUIA ? duraComo() : enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + segmentoSeg(j), 0));
 // La clave de la voz del enunciado de cada gran problema: g<problema>-e (tools/vozRecorrido.ts la saca de su <summary>)
 const claveEnunciado = (i) => `g${(GRANDES[i] ? i : 0) + 1}-e`;
 // Lo que dice cada paso de cada segmento, abajo, mientras pasa: los del problema, en rojo, y los de la solución, cada uno
@@ -820,6 +886,7 @@ const PASOS_SEG = [
   { problema: [[0, '¿Tu contexto se contamina'], [0.4, 'con los cambios frecuentes de decisión?']], solucion: [[0, 'Con STL, la decisión que cambias queda reemplazada en el historial'], [0.4, 'y ya no forma parte del nuevo contexto que va al modelo:'], [0.72, 'solo envías decisiones aprobadas por ti']] },
   { problema: [[0, 'El modelo es una caja negra:'], [0.4, 'a veces no sabes qué recuerda, qué no y por qué']], solucion: [[0, 'STL te presenta, de forma gráfica, todo el ciclo de inferencia:'], [0.2, 'cómo se comunican tu equipo y el modelo,'], [0.34, 'cuánto tarda cada uno en ejecutar sus partes y su consumo,'], [0.52, 'y qué le pide exactamente quién a quién.'], [0.68, 'Así entiendes qué pasa cada vez que le pides algo al modelo'], [0.85, 'y quedas con este historial, para auditarlo y aprender']] },
   { problema: [[0, 'Se cae el internet a mitad de tu trabajo,'], [0.45, 'y el chat con el modelo se detiene: ¿y ahora qué?']], solucion: [[0, 'Con STL Studio, sigues trabajando sin conexión:'], [0.2, 'el Buzón recoge tus notas, ajustes y entregas,'], [0.4, 'y sigues leyendo documentos y respuestas'], [0.58, 'o auditando el trabajo del modelo.'], [0.74, 'Nada se pierde: todo queda en la memoria del proyecto.'], [0.88, 'Al volver la conexión, el director lo recibe todo junto.']] },
+  { problema: [[0, 'Tienes la idea clara en la cabeza,'], [0.36, 'pero escribirla entera cansa,'], [0.66, 'y al modelo le llega solo la mitad.']], solucion: [[0, 'Con STL, la dictas: hablas como hablarías con un amigo,'], [0.1, 'de forma natural, explicándole lo que tienes en mente.'], [0.2, 'Incluso puedes divagar, no importa: el director te entenderá bien.'], [0.32, 'Lo importante es que expreses tu idea como de verdad la quieres,'], [0.42, 'con tu lenguaje natural: la comprensión, déjasela al director.'], [0.52, 'Tu nota se transcribe en tu computador.'], [0.62, 'Como va al Buzón y no directo al modelo,'], [0.74, 'la lees y la corriges antes de que llegue:'], [0.86, 'le quitas o le agregas lo que quieras.']] },
 ];
 // El cierre de cada segmento (nota de voz nmw3ruscptit): al terminar su solución, y antes del problema siguiente, unos dos
 // segundos con un ✓, el problema que quedó resuelto, en corto, tu cubito sonriendo y una frase de cierre con su voz, que
@@ -841,6 +908,7 @@ const CIERRES = [
   ['Un contexto contaminado', 'Un contexto limpio, solo con lo que aprobaste.'],
   ['El modelo, una caja negra', 'La caja negra, ahora a la vista.'],
   ['Sin internet, todo se detenía', 'Sin internet, tu trabajo sigue.'],
+  ['El cansancio de escribir', 'Hablas, corriges y envías: sin escribir de más.'],
 ];
 // Lo que dura el cierre: al menos CIERRE_SEG (cuatro segundos, para que se alcance a leer el ✓, el problema resuelto y la
 // frase de Kai; nota de voz del 5 de noviembre), y si su voz tarda más, lo que tarda con un respiro
@@ -852,10 +920,53 @@ const cierreSeg = (j) => {
 };
 // Un segmento entero: su situación en rojo, su solución y su cierre
 const segmentoSeg = (j) => problemaSeg(j) + solucionSeg(j) + cierreSeg(j);
+
+// ── «Cómo empezar», la estación 3 (pd_como_empezar, en lugar de «¿Reemplaza a otros métodos?», nmw47ga2wtit): una sola
+// animación, en el mismo reproductor de los problemas y con sus mismos mandos (nmw4ircrjtit, nmw4irz3etit), que se abre sola
+// al llegar. Su guion, confirmado el 6 de noviembre de 2026 tal como está (nmw4f5xg4tit): siete escenas y su cierre, cada
+// una con su clip de Kai (como-1 … como-7 y como-c, tools/vozRecorrido.ts); cada escena dura lo que su voz, con un mínimo
+// para alcanzar a verla. GUIA es su lugar en el reproductor: no es un problema de la estación 2
+const GUIA = 100;
+const GUION_COMO = {
+  escenas: [
+    '¿Quieres probar el Studio ahora? Así se empieza.',
+    'Primero, tráelo a tu computador: clona el repositorio, o descárgalo desde GitHub.',
+    'Ponlo en la carpeta donde quieras trabajar.',
+    'Para tu tranquilidad, pídele primero a tu modelo un escaneo de seguridad: que confirme que no trae nada malicioso.',
+    'Después, pídele que lo instale.',
+    'Desde ahí, el Studio te guía paso a paso.',
+    'Si te queda alguna duda, consulta la documentación.',
+  ],
+  cierre: 'Listo: ya estás en marcha.',
+};
+// Lo que se le pide al modelo en las escenas del escaneo y de la instalación (de 0: la 3 y la 4), debajo de la animación como
+// un ejemplo, en texto y sin «Copiar» (nmw56hkz8tit, que reemplaza a nmw4f6alqtit), y el enlace de la última, al README del repositorio en GitHub (nmw4f6lictit); la
+// ventana a la que se le pide se llama «Claude Code» (nmw4irns1tit)
+const PEDIDOS_COMO = { 3: 'Revisa este repositorio y dime si trae algo malicioso antes de instalarlo', 4: 'Inicializa STL Studio' };
+const ENLACE_COMO = 'https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme';
+const VENTANA_COMO = 'Claude Code';
+const ESCENA_SEG = 4.5, ESCENA_PEDIDO_SEG = 6.5;
+const nComo = () => GUION_COMO.escenas.length + 1;   // las siete escenas y su cierre
+const claveDeComo = (k) => (k < GUION_COMO.escenas.length ? `como-${k + 1}` : 'como-c');
+const textoDeComo = (k) => GUION_COMO.escenas[k] ?? GUION_COMO.cierre;
+const escenaSeg = (k) => {
+  const clave = claveDeComo(k);
+  const voz = PISTA_VOZ_ES[clave] == null ? tardaVoz(textoDeComo(k)) : segDeVoz(clave) + RESPIRO_FRASE + 0.4;
+  return Math.max(PEDIDOS_COMO[k] ? ESCENA_PEDIDO_SEG : k === nComo() - 1 ? CIERRE_SEG : ESCENA_SEG, voz);
+};
+const duraComo = () => Array.from({ length: nComo() }, (_, k) => escenaSeg(k)).reduce((s, x) => s + x, 0);
+// En qué escena va en el segundo t: k (de 0; la última es el cierre), cuánto de ella (q), desde qué segundo y su rótulo
+function escenaDeComo(t) {
+  const s = Math.max(0, Math.min(duraComo(), t));
+  let desde = 0, k = 0;
+  while (k < nComo() - 1 && s >= desde + escenaSeg(k)) { desde += escenaSeg(k); k++; }
+  return { k, desde, q: tope((s - desde) / escenaSeg(k)), p: s / duraComo(), texto: textoDeComo(k), clave: claveDeComo(k) };
+}
 // En qué paso va el clip i en el segundo t: la situación o la solución que se ve (k de n), cuánto de ella (q), su rótulo y
 // la clave de su voz (s<segmento>-p<paso>, cada paso del problema; s<segmento>-<paso>, cada paso de la solución:
 // docs/difusion/voz/es/, que genera tools/vozRecorrido.ts con lo mismo que dice el rótulo, nmw1ga4dftit)
 function pasoDeClip(i, t) {
+  if (i === GUIA) { const e = escenaDeComo(t); return { n: nComo() - 1, p: e.p, enEnunciado: false, enProblema: false, enCierre: e.k === nComo() - 1, k: e.k, q: e.q, j: -1, texto: e.texto, clave: e.clave }; }
   const grupo = GRANDES[i] ?? GRANDES[0], n = grupo.length;
   const dura = duraClip(i), s = Math.min(dura, Math.max(0, t)), p = s / dura;
   // Primero, su enunciado (nmw1olvthtit)
@@ -874,7 +985,7 @@ function pasoDeClip(i, t) {
   return { n, p, enEnunciado: false, enProblema, enCierre: false, k, q, j, texto: lista[m][1], clave: claveDePaso(j, enProblema, m) };
 }
 // Todos los rótulos de un clip, en su orden. El primero, el de su enunciado; cada segmento termina con su cierre
-const clavesDelGuion = (i) => [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`), claveDeCierre(j)])];
+const clavesDelGuion = (i) => i === GUIA ? Array.from({ length: nComo() }, (_, k) => claveDeComo(k)) : [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`), claveDeCierre(j)])];
 // Todas las voces de un clip, en su orden: para pedirlas antes de que suenen. Las que aún no tienen voz no se piden
 const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(clave));
 // La voz manda (nota de voz nmw2qhhsjtit): el paso del clip i en el segundo t, si su voz es de Google, con su clave, el
@@ -882,6 +993,7 @@ const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(c
 // reloj del clip es el de la voz (desde + lo que lleva dicho), así la animación ni se adelanta ni la hace esperar, a
 // cualquier velocidad; al callar, corre sola su respiro hasta el paso siguiente
 function tramoDeVoz(i, t) {
+  if (i === GUIA) { const e = escenaDeComo(t); return PISTA_VOZ_ES[e.clave] == null ? null : { clave: e.clave, desde: e.desde, voz: segDeVoz(e.clave) }; }
   const grupo = GRANDES[i] ?? GRANDES[0], s = Math.max(0, Math.min(duraClip(i), t));
   const e = enunciadoSeg(i), ce = claveEnunciado(i);
   if (s < e) return PISTA_VOZ_ES[ce] == null ? null : { clave: ce, desde: 0, voz: segDeVoz(ce) };
@@ -957,7 +1069,7 @@ function pintarEnunciado(c, texto, q) {
 // El cierre de un segmento (nmw3ruscptit): la tarjeta verde con su ✓, que entra con un saltito; adentro, «Resuelto» y el
 // problema que quedó resuelto, en corto; a su lado, tu cubito sonriendo, que da un brinco de alegría; y abajo, la frase de
 // cierre que dice su voz. Arriba, «✓ Resuelto» y cuál de las situaciones era
-function pintarCierre(c, resuelto, frase, q, cual) {
+function pintarCierre(c, resuelto, frase, q, cual, etiqueta = 'Resuelto') {
   const entra = tramo(q, 0, 0.18), s = 0.86 + 0.14 * entra + Math.sin(tope(q / 0.18) * Math.PI) * 0.05;
   c.save(); c.globalAlpha = entra; c.translate(160, 92); c.scale(s, s); c.translate(-160, -92);
   caja(c, 40, 46, 240, 92, VERDE, 0.16, 14);
@@ -965,7 +1077,7 @@ function pintarCierre(c, resuelto, frase, q, cual) {
   bola(c, 82, 92, 21, VERDE, 0.18);
   c.save(); c.lineWidth = 1.4; c.strokeStyle = VERDE; c.beginPath(); c.arc(82, 92, 21, 0, 7); c.stroke(); c.restore();
   c.save(); c.translate(82, 92); c.scale(4.2, 4.2); palomita(c, 0, 0, 2.6, tramo(q, 0.08, 0.3)); c.restore();
-  letrero(c, 'Resuelto', 114, 80, '#bff0d2', 9, 'left');
+  letrero(c, etiqueta, 114, 80, '#bff0d2', 9, 'left');
   c.font = '700 14px system-ui, sans-serif';
   const renglones = renglonesDe(c, resuelto, 108);
   renglones.forEach((r, m) => letrero(c, r, 114, 98 + m * 16 - (renglones.length - 1) * 4, '#fffaf0', 14, 'left'));
@@ -974,9 +1086,118 @@ function pintarCierre(c, resuelto, frase, q, cual) {
   const brinco = Math.sin(tramo(q, 0.12, 0.42) * Math.PI) * 9, mece = Math.sin(q * 14) * 1.2;
   actorDev(c, 252, 92 - brinco - mece, 1.9 * (0.8 + 0.2 * entra), true);
   caja(c, 8, 5, 64, 14, VERDE, 0.25, 7);
-  letrero(c, '✓ Resuelto', 40, 15.5, '#dff5e8', 8.5);
+  letrero(c, `✓ ${etiqueta}`, 40, 15.5, '#dff5e8', 8.5);
   if (cual) { caja(c, 262, 5, 50, 14, VERDE, 0.2, 7); letrero(c, cual, 287, 15.5, '#dff5e8', 8.5); }
   if (frase) letrero(c, frase, 160, 190, '#fffaf0', tamanoQueCabe(c, frase, 11, 300));
+}
+
+// ── Las escenas de «Cómo empezar» (pd_como_empezar): con los mismos actores de la estación 1 y de los problemas. Su rótulo,
+// abajo, dice lo mismo que su voz (nmw1ga4dftit); el de las frases largas va en dos renglones
+function rotuloLargo(c, texto, color = '#fffaf0') {
+  c.font = '600 10.5px system-ui, sans-serif';
+  const renglones = renglonesDe(c, texto, 300);
+  if (renglones.length < 2) return void letrero(c, texto, 160, 190, color, tamanoQueCabe(c, texto, 11, 300));
+  renglones.slice(0, 2).forEach((r, m) => letrero(c, r, 160, 177 + m * 12, color, 10.5));
+}
+// Una carpeta: su pestaña y su cuerpo, con su nombre
+function carpeta(c, x, y, w, h, color, nombre) {
+  c.save(); c.fillStyle = color; c.globalAlpha *= 0.25;
+  c.beginPath(); c.roundRect(x, y - 8, w * 0.4, 12, 4); c.fill(); c.restore();
+  caja(c, x, y, w, h, color, 0.2, 7);
+  if (nombre) letrero(c, nombre, x + w / 2, y + h + 13, color, 8.5);
+}
+// Lo que escribes en la ventana de Claude Code, letra a letra, con su «>» (en renglones si no cabe)
+function pedidoEscrito(c, x, y, w, texto, k) {
+  const va = texto.slice(0, Math.round(texto.length * tope(k)));
+  letrero(c, '>', x, y, CIAN, 9, 'left');
+  c.font = '600 8.5px system-ui, sans-serif';
+  renglonesDe(c, va, w).slice(0, 3).forEach((r, m) => letrero(c, r, x + 9, y + m * 11, '#fffaf0', 8.5, 'left'));
+}
+const ESCENAS_COMO = [
+  // 1 · ¿Quieres probarlo? Tú y el Studio, y el camino entre los dos
+  (c, q) => {
+    actorDev(c, 80, 108, 1.8, q > 0.6);
+    if (q < 0.6) ['?', '?'].forEach((s, k) => letrero(c, s, 100 + k * 9, 82 - k * 6, ORO, 11 + k * 2, 'left'));
+    trazo(c, 104, 108, lerp(104, 196, tramo(q, 0.15, 0.6)), 108, ORO, 0.8, true);
+    actorStudio(c, 196, 64, 92, 84); letrero(c, 'STL Studio', 242, 58, MORADO, 10);
+  },
+  // 2 · Tráelo a tu computador: clonarlo o descargarlo de GitHub, los dos caminos a la vista
+  (c, q) => {
+    ventana(c, 18, 30, 124, 104, 'GitHub', LUZ);
+    letrero(c, 'STL-Sacred_Time_Line', 80, 56, '#fffaf0', 8.5);
+    const clona = q < 0.5;
+    caja(c, 30, 70, 100, 18, CIAN, clona ? 0.35 : 0.1, 6); letrero(c, 'clonar el repositorio', 80, 82.5, '#fffaf0', 8);
+    caja(c, 30, 98, 100, 18, ORO, clona ? 0.1 : 0.35, 6); letrero(c, 'descargar el ZIP', 80, 110.5, '#fffaf0', 8);
+    // El computador
+    caja(c, 196, 46, 104, 66, LUZ, 0.08, 6); caja(c, 236, 112, 24, 8, LUZ, 0.2, 2); caja(c, 222, 120, 52, 5, LUZ, 0.2, 2);
+    letrero(c, 'tu computador', 248, 140, LUZ, 9);
+    // Lo que viaja: por arriba si lo clonas, por abajo si lo descargas
+    const u = clona ? tramo(q, 0.1, 0.42) : tramo(q, 0.58, 0.9), y0 = clona ? 79 : 107;
+    trazo(c, 132, y0, 196, 79, clona ? CIAN : ORO, 0.6, true);
+    c.save(); c.globalAlpha *= u > 0 && u < 1 ? 1 : 0; caja(c, lerp(134, 236, u), lerp(y0 - 6, 72, u), 14, 12, MORADO, 0.5, 3); c.restore();
+    if (q > 0.42) { caja(c, 236, 66, 26, 26, MORADO, 0.35, 5); letrero(c, 'STL', 249, 82, '#fffaf0', 8); }
+  },
+  // 3 · Ponlo en la carpeta donde quieras trabajar: el Studio cae en su carpeta
+  (c, q) => {
+    carpeta(c, 104, 92, 112, 60, ORO, 'donde quieras trabajar');
+    const cae = tramo(q, 0.1, 0.55);
+    caja(c, 140, lerp(24, 104, cae), 40, 34, MORADO, 0.4, 6); letrero(c, 'STL', 160, lerp(24, 104, cae) + 21, '#fffaf0', 9);
+    if (q > 0.6) palomita(c, 228, 104, 6, tramo(q, 0.6, 0.7));
+    actorDev(c, 50, 120, 1.3, q > 0.6);
+  },
+  // 4 · El escaneo de seguridad: le pides a Claude Code que lo revise, la lupa pasa por sus archivos y no trae nada malicioso
+  (c, q) => {
+    ventana(c, 14, 26, 176, 64, VENTANA_COMO, CIAN);
+    pedidoEscrito(c, 22, 50, 160, PEDIDOS_COMO[3], tramo(q, 0.04, 0.4));
+    actorModelo(c, 48, 132, 9); letrero(c, 'tu modelo', 48, 156, MODELO, 8);
+    // Los archivos del Studio, en su carpeta, y la lupa que los recorre
+    carpeta(c, 200, 34, 104, 112, ORO, '');
+    for (let k = 0; k < 6; k++) {
+      renglones(c, 210, 46 + k * 16, 70, 1, 'rgba(255, 255, 255, .4)');
+      if (q > 0.5 + k * 0.05) palomita(c, 292, 47.5 + k * 16, 3.2, tramo(q, 0.5 + k * 0.05, 0.54 + k * 0.05));
+    }
+    if (q > 0.42 && q < 0.86) { const u = tramo(q, 0.44, 0.84); lupa(c, 250, lerp(44, 126, u), 8); trazo(c, 92, 132, 200, 90, CIAN, 0.5, true); }
+    if (q > 0.86) letrero(c, 'nada malicioso', 252, 160, VERDE, 10);
+  },
+  // 5 · Después, pídele que lo instale: «Inicializa STL Studio» y su barra que se llena
+  (c, q) => {
+    ventana(c, 14, 26, 176, 50, VENTANA_COMO, CIAN);
+    pedidoEscrito(c, 22, 52, 160, PEDIDOS_COMO[4], tramo(q, 0.04, 0.3));
+    const k = tramo(q, 0.34, 0.82);
+    if (q > 0.32) { barra(c, 22, 96, 160, k, VERDE); letrero(c, k < 1 ? 'instalando…' : 'instalado', 102, 124, k < 1 ? '#fffaf0' : VERDE, 9); }
+    if (k >= 1) palomita(c, 190, 101, 5);
+    actorStudio(c, 214, 46, 90, 76); letrero(c, 'STL Studio', 259, 40, MORADO, 9);
+  },
+  // 6 · Desde ahí, el Studio te guía paso a paso: tu primera misión, cada paso con su ✓
+  (c, q) => {
+    actorStudio(c, 20, 40, 104, 96); letrero(c, 'STL Studio', 72, 34, MORADO, 9);
+    letrero(c, 'tu primera misión', 222, 40, ORO, 9.5);
+    ['Paso 1', 'Paso 2', 'Paso 3'].forEach((paso, m) => {
+      const a = 0.12 + m * 0.24;
+      if (q > a - 0.1) placaMision(c, 158, 52 + m * 28, 128, paso, q > a + 0.16, tramo(q, a - 0.1, a));
+    });
+    actorDev(c, 296, 150, 1.1, q > 0.8);
+  },
+  // 7 · Si te queda alguna duda, la documentación: el README, que se abre con su enlace de abajo
+  (c, q) => {
+    actorDev(c, 70, 112, 1.6, q > 0.55);
+    if (q < 0.55) letrero(c, '?', 92, 86, ORO, 13, 'left');
+    ventana(c, 150, 30, 140, 116, 'README · la documentación', ORO);
+    renglones(c, 162, 52, 112, 8, 'rgba(255, 241, 196, .45)', tramo(q, 0.1, 0.4), 10);
+    if (q > 0.3) lupa(c, lerp(180, 250, tramo(q, 0.3, 0.8)), lerp(64, 110, tramo(q, 0.3, 0.8)), 8);
+  },
+];
+// Una escena de «Cómo empezar» (k, de 0; la última es su cierre), q de 0 a 1 dentro de ella, y p lo que va de toda
+function pintarComo(c, k, q, p) {
+  const n = GUION_COMO.escenas.length;
+  if (k >= n) { pintarCierre(c, 'En marcha', GUION_COMO.cierre, q, '', 'Listo'); pintarBarra(c, p); return; }
+  c.save(); c.translate(CONTENIDO.x, CONTENIDO.y); c.scale(CONTENIDO.escala, CONTENIDO.escala);
+  ESCENAS_COMO[k](c, q);
+  c.restore();
+  caja(c, 8, 5, 76, 14, ORO, 0.25, 7); letrero(c, 'Cómo empezar', 46, 15.5, '#fff1c4', 8.5);
+  caja(c, 262, 5, 50, 14, ORO, 0.2, 7); letrero(c, `${k + 1} de ${n}`, 287, 15.5, '#fff1c4', 8.5);
+  rotuloLargo(c, textoDeComo(k));
+  pintarBarra(c, p);
 }
 
 // El video corto (video-corto.js) deja cada problema con una sola situación, y entonces el «1 de 1» no va
@@ -990,6 +1211,7 @@ function pintarClip(ctx, i, t) {
   const fondo = ctx.createRadialGradient(160, 80, 10, 160, 100, 200);
   fondo.addColorStop(0, '#141a2e'); fondo.addColorStop(1, '#07090f');
   ctx.fillStyle = fondo; ctx.fillRect(0, 0, 320, 200);
+  if (i === GUIA) return void pintarComo(ctx, k, q, p);
   if (enEnunciado) {
     pintarEnunciado(ctx, paso, q);
     pintarBarra(ctx, p);
@@ -1120,14 +1342,14 @@ function iniciar() {
     const lado = new THREE.Vector3(-t.z, 0, t.x).normalize();
     return { p, t, lado };
   };
-  const PARADA = [0.1, 0.42];   // dónde se detiene la cámara en cada estación (de 0 a 1)
+  const PARADA = [0.1, 0.42, 0.7];   // dónde se detiene la cámara en cada estación (de 0 a 1)
   // Dónde está lo que se ve en cada estación: un poco más adelante, para que la cámara lo vea de frente y no encima
   const SITIO = PARADA.map((u) => u + 0.022);
   const focos = [];   // lo que mira la cámara en cada estación
   const animar = [];  // lo que se mueve: funciones (t) => void
   // El reloj de cada estación: ninguna se anima hasta que se oprime «Empieza el recorrido», y un clic en una estación del
   // menú vuelve a empezar la suya, para repetirla cuando se quiera (nota de voz nmw1khrketit). null: aún no empieza
-  const relojes = [null, null];
+  const relojes = [null, null, null];
   const empezarEstacion = (k) => { if (k >= 0 && k < relojes.length) relojes[k] = performance.now() / 1000; };
   // El video empieza el ciclo de la estación 1 en el segundo que pide, para que se vea al director hablar con el modelo
   ganchoVideo.estacion1 = (seg) => { relojes[0] = performance.now() / 1000 - seg; };
@@ -1578,7 +1800,7 @@ function iniciar() {
     // El anillo: una elipse alrededor de la línea, de frente a la cámara (más ancha que alta, para no tocar el suelo), un poco
     // inclinada para que se vea en 3D, con los seis a la misma distancia uno del otro
     Object.assign(anillo, { centro: p.clone().addScaledVector(ARRIBA, 0.9), lado, tan: t });
-    const ESFERAS = Array.from({ length: 6 }, (_, i) => ({ a: Math.PI / 2 + (i * 2 * Math.PI) / 6 }));
+    const ESFERAS = Array.from({ length: 7 }, (_, i) => ({ a: Math.PI / 2 + (i * 2 * Math.PI) / 7 }));
     const forma = (pts) => { const s = new THREE.Shape(); pts.forEach(([x, y], k) => (k ? s.lineTo(x, y) : s.moveTo(x, y))); s.closePath(); return s; };
     const extr = (s, prof, bisel = 0.03) => {
       const g = new THREE.ExtrudeGeometry(s, { depth: prof, bevelEnabled: true, bevelThickness: bisel, bevelSize: bisel, bevelSegments: 1, curveSegments: 10 });
@@ -1673,6 +1895,19 @@ function iniciar() {
         g.add(punto, corte);
         return g;
       },
+      // 7 · la pereza de escribir: un micrófono para dictar, su cabeza de su color con su rejilla blanca, su soporte en U y su
+      // pie (pd_dictado; el verde claro, nmw4it925tit)
+      (mat, apoyo) => {
+        const g = new THREE.Group();
+        const cabeza = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.42, 6, 16), mat); cabeza.position.y = 0.28;
+        [0.42, 0.28, 0.14].forEach((y) => { const raya = cajita(0.5, 0.045, 0.2, apoyo, 0.02); raya.position.set(0, y, 0.24); g.add(raya); });
+        const arco = Array.from({ length: 13 }, (_, k) => { const a = Math.PI + (k / 12) * Math.PI; return new THREE.Vector3(Math.cos(a) * 0.46, Math.sin(a) * 0.46, 0); });
+        const u = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arco), 24, 0.05, 8, false), apoyo); u.position.y = 0.16;
+        const pie = cajita(0.1, 0.42, 0.1, apoyo, 0.03); pie.position.y = -0.5;
+        const base = cajita(0.7, 0.1, 0.36, apoyo, 0.04); base.position.y = -0.72;
+        g.add(cabeza, u, pie, base);
+        return g;
+      },
     ];
     // Las medidas del anillo: sus radios (a lo ancho y a lo alto), cuánto se inclina, cuánto se achica con el reproductor
     // abierto y su giro (radianes por segundo: una vuelta en algo más de un minuto, despacio)
@@ -1718,6 +1953,11 @@ function iniciar() {
     // La cámara mira el centro del anillo
     focos.push(anillo.centro.clone());
   }
+
+  // ── Estación 3, «Cómo empezar» (pd_como_empezar): el camino de la 2 a la 3 es la línea sola, como el de la 1 a la 2 pero
+  // sin notas que viajan (nmw4isvr9tit); al llegar, su reproductor se abre a la izquierda y la línea queda a la derecha
+  // (nmw4ircrjtit). La cámara mira la línea, un poco arriba
+  focos.push(marco(SITIO[2]).p.clone().addScaledVector(ARRIBA, 0.9));
 
   // ── La cámara: arriba, una vista de costado de la línea; al bajar, se mete en ella y la sigue
   const INTRO_POS = portada.posicion.clone().addScaledVector(portada.lado, 17).addScaledVector(ARRIBA, 5);
@@ -1795,11 +2035,30 @@ function iniciar() {
   const enPantalla = new THREE.Vector3();
   const aPantalla = (v, ancho, alto) => { enPantalla.copy(v).project(camara); return { x: (enPantalla.x + 1) / 2 * ancho, y: (1 - enPantalla.y) / 2 * alto }; };
   let disposicion = null;   // dónde quedan el reproductor y el anillo, para el cuadro que se dibuja
+  // «Cómo empezar», en la estación 3 (nmw4ircrjtit): su reproductor a la izquierda, con la fila del ejemplo y del enlace
+  // (EXTRA_ALTO) sobre sus mandos, y la línea a la derecha, donde en la 2 queda el anillo; la imagen se corre para que la
+  // línea quede ahí cuando el reproductor está abierto, y al centro de lo libre cuando no
+  const EXTRA_ALTO = 40;
+  const lineaTres = document.querySelector('[data-linea-tres]');
+  function encuadrarTres(w, ancho, alto) {
+    const cerca = suave(tope(1 - Math.abs(w - 3) / 0.6));
+    if (cerca <= 0.001 || !focos[2] || !ancho || !alto) return false;
+    camara.updateMatrixWorld();
+    const menuIzq = movil || !menuLista ? ancho : menuLista.getBoundingClientRect().left;
+    const linea = lineaTres?.getBoundingClientRect();
+    const lineaArriba = linea && linea.height && linea.top < alto ? linea.top : alto;
+    const d = disponerReproductor({ ancho, alto, menuIzq, lineaArriba, anilloMedio: menuIzq * 0.12, anilloAlto: 0, mandos: MANDOS_ALTO + EXTRA_ALTO });
+    const c = aPantalla(focos[2], ancho, alto), e = seleccionado === GUIA ? suave(pantalla2.cam) : 0;
+    camara.setViewOffset(ancho, alto, -(lerp(menuIzq / 2, d.anilloX, e) - c.x) * cerca, 0, ancho, alto);
+    disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
+    return true;
+  }
   function encuadrarDos(w) {
     const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
     const cerca = suave(tope(1 - Math.abs(w - 2) / 0.6));
     camara.clearViewOffset();
     disposicion = null;
+    if (encuadrarTres(w, ancho, alto)) return;
     if (cerca <= 0.001 || !anillo.centro || !ancho || !alto) return;
     camara.updateMatrixWorld();
     // El anillo como se ve ahora, sin correrse: su centro y la mitad de su ancho y de su alto, con el aire de sus íconos
@@ -1902,7 +2161,8 @@ function iniciar() {
     a.onended = a.onerror = listo;
     a.currentTime = desde;
     aSuRitmo(a);
-    a.play().catch(listo);
+    // Si el navegador no la deja sonar (nadie ha hecho clic en la página), «Cómo empezar» espera con «▶ Empezar con voz»
+    a.play().catch((e) => { listo(); if (e?.name === 'NotAllowedError') alNoPoderSonar(); });
   }
   // Si un clip no llega o se traba, el rótulo no espera para siempre
   const sigueHablando = () => voz.hablando && performance.now() - voz.desde < 20000;
@@ -2155,12 +2415,70 @@ function iniciar() {
   cerrarPopup = () => {
     if (seleccionado < 0) return false;
     callar();
+    if (seleccionado === GUIA) salirDeComo();
     seleccionado = -1;
     problemas.forEach((d) => d.classList.remove('activo'));
     if (popup) popup.hidden = true;
     pantalla2.abierta = false;
     return true;
   };
+  // ── «Cómo empezar» en el reproductor (estación 3; nmw4ircrjtit, nmw4irz3etit): sus mandos son los de los problemas, se abre
+  // solo al llegar, una vez por visita, y no se cierra solo al terminar, para que alcance a quedar a la vista el enlace al
+  // README; lo cierran Esc, la rueda fuera de él o el menú, y «▶ Ver cómo empezar», en su línea de abajo, lo vuelve a abrir.
+  // Debajo de la animación, la fila con un ejemplo de lo que se le puede pedir al modelo, como texto y sin «Copiar»
+  // (nmw56hkz8tit: son pedidos tan sencillos que cada quien los escribe a su modo), o el enlace (nmw4f6lictit)
+  const extraComo = popup?.querySelector('[data-extra-como]');
+  const pedidoComo = extraComo?.querySelector('[data-pedido-como]');
+  const enlaceComo = extraComo?.querySelector('[data-enlace-como]'), empezarVoz = popup?.querySelector('[data-empezar-voz]');
+  const verComo = document.querySelector('[data-ver-como]');
+  const guia = { visita: false, extra: '' };
+  function abrirComo() {
+    if (!popup) return;
+    if (seleccionado === GUIA) return void empezarClip(true);
+    if (seleccionado >= 0) cerrarPopup();
+    seleccionado = GUIA;
+    autocierre.abrir(); autocierre.repetir();   // no se cierra solo
+    popup.classList.add('guia');
+    popup.setAttribute('aria-label', 'Cómo empezar a usar STL Studio');
+    document.getElementById('popup-respuesta').textContent = [...GUION_COMO.escenas, GUION_COMO.cierre].join(' ');
+    origenPopup = null;
+    popup.hidden = false;
+    popup.classList.remove('sale'); void popup.offsetWidth; popup.classList.add('sale');
+    pantalla2.abierta = true;
+    ponerReproductor();
+    clavesDeClip(GUIA).forEach(audioDe);
+    empezarClip();
+    // Sin un clic antes en la página, el navegador no deja sonar la voz: espera quieta con «▶ Empezar con voz» (nmw4isbmktit)
+    // (mientras sus clips esperan la cuota de Google, no hay voz que esperar: empieza con sus rótulos)
+    if (conVoz && !quieto && !sinVozTodavia(claveDeComo(0)) && navigator.userActivation && !navigator.userActivation.hasBeenActive) alNoPoderSonar();
+    if (quieto && ctxClip) pintarClip(ctxClip, GUIA, duraClip(GUIA));
+    pintarExtraComo();
+  }
+  function alNoPoderSonar() {
+    if (seleccionado !== GUIA || !empezarVoz) return;
+    callar();
+    clipT = 0; pausado = true; pintarMando();
+    empezarVoz.hidden = false;
+  }
+  empezarVoz?.addEventListener('click', () => { empezarVoz.hidden = true; if (seleccionado === GUIA) empezarClip(); });
+  function salirDeComo() {
+    popup?.classList.remove('guia');
+    popup?.setAttribute('aria-label', 'Cómo lo resuelve STL');
+    if (empezarVoz) empezarVoz.hidden = true;
+    guia.extra = '';
+  }
+  // Lo de la fila de abajo, según la escena que se ve: el ejemplo de su escena, o el enlace al README desde la última
+  // escena hasta el final
+  function pintarExtraComo() {
+    if (!extraComo || seleccionado !== GUIA) return;
+    const { k } = escenaDeComo(clipT), pedido = PEDIDOS_COMO[k] ?? '', enlace = k >= GUION_COMO.escenas.length - 1;
+    const cual = pedido || (enlace ? 'enlace' : '');
+    if (cual === guia.extra) return;
+    guia.extra = cual;
+    if (pedidoComo) { pedidoComo.textContent = pedido ? `Por ejemplo: «${pedido}»` : ''; pedidoComo.hidden = !pedido; }
+    if (enlaceComo) enlaceComo.hidden = !enlace;
+  }
+  verComo?.addEventListener('click', () => { guia.visita = true; abrirComo(); });
   // Un clic en el nombre de un problema de la lista lo abre en el mundo (sin 3D, se abre ahí mismo con su respuesta)
   problemas.forEach((d, i) => d.querySelector('summary')?.addEventListener('click', (e) => { e.preventDefault(); alternarProblema(i); }));
   // Su globo, mientras el ratón está sobre su ícono o sobre el problema en la lista
@@ -2188,7 +2506,8 @@ function iniciar() {
   lienzo.addEventListener('pointerleave', () => mostrarNombre(-1));
 
   // ── El bucle: solo dibuja mientras el recorrido está a la vista
-  let enVista = false, cur = 0, primera = true, ultimoCuadro = performance.now();
+  let enVista = false, cur = 0, primera = true, ultimoCuadro = performance.now(), ultimaRueda = 0;
+  addEventListener('wheel', () => { ultimaRueda = performance.now(); }, { passive: true });
   new IntersectionObserver(([e]) => { enVista = e.isIntersecting; if (enVista) requestAnimationFrame(cuadro); }, { rootMargin: '200px' })
     .observe(document.getElementById('viaje'));
   let dibujados = 0;
@@ -2199,9 +2518,16 @@ function iniciar() {
     const w = objetivo();
     cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * SUAVIZADO;
     primera = false;
-    // Si la persona se va de la estación 2 con un reproductor abierto (por la barra de scroll, el teclado…), se cierra
-    if (seleccionado >= 0 && Math.abs(cur - 2) > 0.45) cerrarPopup();
+    // Si la persona se va de la estación 2 (o de la 3, con «Cómo empezar») con un reproductor abierto (por la barra de
+    // scroll, el teclado…), se cierra
+    if (seleccionado >= 0 && Math.abs(cur - (seleccionado === GUIA ? 3 : 2)) > 0.45) cerrarPopup();
     const ahoraMs = performance.now(), dt = Math.min(0.1, (ahoraMs - ultimoCuadro) / 1000);
+    // «Cómo empezar» se abre solo al llegar a la estación 3, cuando la cámara ya se detuvo y la rueda lleva un momento quieta
+    // (si no, la misma rueda que trae hasta aquí lo cerraría); una vez por visita
+    if (Math.abs(cur - 3) > 0.45) guia.visita = false;
+    else if (!guia.visita && Math.abs(w - 3) < 0.02 && Math.abs(cur - 3) < 0.06 && ahoraMs - ultimaRueda > 700 && seleccionado < 0 && !visorAbierto()) { guia.visita = true; abrirComo(); }
+    pintarExtraComo();
+    if (verComo) verComo.hidden = seleccionado === GUIA;
     ultimoCuadro = ahoraMs;
     // El reproductor se abre o se cierra suave: el anillo se achica y se corre hacia el menú, o vuelve
     const meta = pantalla2.abierta ? 1 : 0;
