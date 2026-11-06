@@ -216,7 +216,7 @@
   <p class="pista">Gírala para controlar la animación</p>
   <button type="button" id="voz" aria-pressed="true" aria-label="La voz que narra cada subtítulo: oprímelo para callarla o para volver a oírla">🔊 Voz</button>
   <div id="velocidad" role="group" aria-label="Velocidad de la voz y de la animación">
-    <button type="button" data-v="1" aria-pressed="true">1x</button><button type="button" data-v="1.25" aria-pressed="false">1.25x</button><button type="button" data-v="1.5" aria-pressed="false">1.5x</button><button type="button" data-v="2" aria-pressed="false">2x</button>
+    <button type="button" data-v="1" aria-pressed="false">1x</button><button type="button" data-v="1.25" aria-pressed="true">1.25x</button><button type="button" data-v="1.5" aria-pressed="false">1.5x</button><button type="button" data-v="2" aria-pressed="false">2x</button>
   </div>
 </div>
 </div>
@@ -530,10 +530,10 @@
   let conVoz = true;
   try { conVoz = localStorage.getItem(VOZ_GUARDADA) !== 'no'; } catch { /* sin almacenamiento, con voz */ }
   // La velocidad de reproducción (1x, 1,25x, 1,5x o 2x; nota de voz nmw2n33o6tit): acelera la voz y la escena la sigue,
-  // porque su reloj corre esas veces más rápido. El navegador la recuerda
-  const VELOCIDADES = [1, 1.25, 1.5, 2], VELOCIDAD_GUARDADA = 'stl-linea-velocidad';
-  let velocidad = 1;
-  try { const v = Number(localStorage.getItem(VELOCIDAD_GUARDADA)); if (VELOCIDADES.includes(v)) velocidad = v; } catch { /* sin almacenamiento, a 1x */ }
+  // porque su reloj corre esas veces más rápido. Cada vez que se abre empieza a 1,25x, y quien la visita la cambia cuando
+  // quiere durante su visita: no se guarda de una visita a otra (nota de voz del titular nmw5gelsmtit)
+  const VELOCIDADES = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25;
+  let velocidad = VELOCIDAD_INICIAL;
   const audios = new Map();
   const narra = { audio: null, hablando: false, desde: 0, dicha: null, movida: 0, trasMover: false };
   // Al soltar la perilla (o la rueda), la línea de ese punto suena solo si su tiempo no ha pasado: desde donde va, para
@@ -614,7 +614,6 @@
   function ponerVelocidad(v) {
     if (!VELOCIDADES.includes(v)) return;
     velocidad = v;
-    try { localStorage.setItem(VELOCIDAD_GUARDADA, String(v)); } catch { /* sin almacenamiento */ }
     if (narra.audio && narra.dicha) narra.audio.playbackRate = ritmoDe(narra.dicha) * velocidad;
     pintarVelocidad();
   }

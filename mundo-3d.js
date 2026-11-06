@@ -2170,10 +2170,10 @@ function iniciar() {
   pintarBotonVoz();
   const voces = new Map();   // un Audio por clave, pedido antes de que suene
   // La velocidad de reproducción, como en la animación del principio (1x, 1,25x, 1,5x o 2x; nota de voz nmw2n33o6tit):
-  // acelera la voz y el reloj del clip la sigue. El navegador la recuerda
-  const VELOCIDADES_CLIP = [1, 1.25, 1.5, 2], VELOCIDAD_GUARDADA = 'stl-recorrido-velocidad';
-  let velClip = 1;
-  try { const v = Number(localStorage.getItem(VELOCIDAD_GUARDADA)); if (VELOCIDADES_CLIP.includes(v)) velClip = v; } catch { /* sin almacenamiento, a 1x */ }
+  // acelera la voz y el reloj del clip la sigue. Cada vez que se abre la página empieza a 1,25x, y quien la visita la
+  // cambia cuando quiere durante su visita: no se guarda de una visita a otra (nota de voz del titular nmw5gelsmtit)
+  const VELOCIDADES_CLIP = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25;
+  let velClip = VELOCIDAD_INICIAL;
   // La voz de Kokoro, un 35 % más rápida, como la animación, sin que cambie su tono (nmw1kwbsftit); la de Google, a su
   // ritmo natural (ritmoDeClave); las dos a la velocidad elegida
   const aSuRitmo = (a) => {
@@ -2224,7 +2224,6 @@ function iniciar() {
     const v = Number(b.dataset.v);
     if (!VELOCIDADES_CLIP.includes(v)) return;
     velClip = v;
-    try { localStorage.setItem(VELOCIDAD_GUARDADA, String(v)); } catch { /* sin almacenamiento */ }
     if (voz.audio) aSuRitmo(voz.audio);
     pintarVelocidad();
   }));
