@@ -573,6 +573,19 @@
   const sigueHablando = () => narra.hablando && performance.now() - narra.desde < duraLinea(narra.dicha) / velocidad + 1500;
   // La voz manda: si aún habla y ya le toca a la línea siguiente, la escena espera a que termine (pd_narrador)
   const esperaLaVoz = () => !saltando && !quieto && cola.length > 0 && reloj >= cola[0].en && sigueHablando();
+  // La voz que toca aún carga (pedida, sin lo suficiente para sonar): la escena la espera con un «Cargando la voz…» encima,
+  // como todas las animaciones del recorrido (nota de voz nmw5d6iqctit); si no llega, sigue sin ella (sigueHablando)
+  const cargandoVoz = () => !saltando && !quieto && !!narra.audio && sigueHablando() && narra.audio.readyState < 3 && !narra.audio.ended;
+  function dibujarCargando(now) {
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const w = cv.width, h = cv.height, r = Math.min(w, h) * 0.05, x = w / 2, y = h / 2 - r * 0.6, a = now / 200;
+    ctx.fillStyle = 'rgba(7, 9, 15, .55)'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255, 255, 255, .15)'; ctx.lineWidth = r * 0.22; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+    ctx.strokeStyle = '#f5d27a'; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(x, y, r, a, a + 1.6); ctx.stroke();
+    ctx.font = `600 ${Math.round(r * 0.6)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = '#fff6d8';
+    ctx.fillText((document.documentElement.lang || 'es').startsWith('en') ? 'Loading the voice…' : 'Cargando la voz…', x, y + r * 2.1);
+    ctx.restore();
+  }
   // Cada cuadro, la voz al día con la reproducción: en pausa, quieta; corriendo, sigue la que hablaba o dice la línea
   // que se ve, si aún no la dijo (al empezar, la primera; al soltar la perilla, la de ese punto)
   function vozAlDia() {
@@ -2321,12 +2334,14 @@
       // de tiempos ya le da a cada línea lo que dura su clip, así que es solo un momento, si el clip tardó en cargar)
       narrar();
       // (a la velocidad elegida: la escena sigue a la voz)
-      if (!esperaLaVoz()) sobra += dt0 * RAPIDEZ_ESCENA * velocidad * (modo === 'con' ? PAUSADO : 1);
+      // Y mientras la voz que toca aún carga, la escena espera quieta con su «Cargando la voz…» (nmw5d6iqctit)
+      if (!esperaLaVoz() && !cargandoVoz()) sobra += dt0 * RAPIDEZ_ESCENA * velocidad * (modo === 'con' ? PAUSADO : 1);
       for (let i = 0; sobra >= PASO_ESC && i < 16; i++) { sobra -= PASO_ESC; avanzar(); }
       if (sobra >= PASO_ESC) sobra = 0;
     }
     vozAlDia();
     dibujar(reloj); girarPerilla(); cronometro();
+    if (reproduce && cargandoVoz()) dibujarCargando(now);
     requestAnimationFrame(cuadro);
   };
   requestAnimationFrame(cuadro);

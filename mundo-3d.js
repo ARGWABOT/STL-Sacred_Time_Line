@@ -29,7 +29,7 @@ const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWit
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
 // El título corto de cada gran problema, el que sale en el globo de su ícono: dos palabras (nota de voz nmw40cp3jtit); en
 // español, el data-corto de la página; en inglés, su equivalente natural
-const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Tangled context', 'Long answers', 'Forgetful model', 'No internet', 'Typing fatigue'];
+const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Lost thread', 'Long answers', 'Forgetful model', 'No internet', 'Typing fatigue'];
 // La línea de la estación 2 sale del diccionario, también en la página en inglés
 const tituloDos = document.querySelector('[data-titulo-dos]');
 if (tituloDos) tituloDos.textContent = T.pasado;
@@ -146,6 +146,8 @@ function enColor(i, sobre, seleccionado, resueltos) {
   return sobre === i || seleccionado === i || resueltos.has(i);
 }
 const COLORES_TIPO = Object.values(COLOR_TIPO);
+// El idioma de lo que se dibuja, sin depender de la página (las pruebas lo dibujan sin documento)
+const EN_DIBUJO = typeof document !== 'undefined' && (document.documentElement?.lang || 'es').toLowerCase().startsWith('en');
 // Los quince problemas de antes (nota de voz nmw19elcqtit) siguen como dieciséis SEGMENTOS: cada uno dibuja su situación
 // y cómo la resuelve STL (el dieciseisavo, «una decisión vieja se cuela», es nuevo: pd_memoria_ventaja). Desde la nota de
 // voz nmw1bwnvztit, el titular pidió unificarlos y sintetizarlos en cinco grandes problemas y alargar cada animación para
@@ -181,7 +183,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g4-e":7646,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -391,6 +393,26 @@ function microfono(c, x, y, color, s = 1) {
   c.beginPath(); c.arc(0, -5, 7.5, 0.15, Math.PI - 0.15); c.moveTo(0, 2.5); c.lineTo(0, 8); c.moveTo(-5, 8); c.lineTo(5, 8); c.stroke();
   c.restore();
 }
+// Un reloj chico que corre: k va de 0 a 1 (una vuelta de su aguja), el de «El director espera al modelo»
+function relojito(c, x, y, r, k) {
+  c.save(); c.strokeStyle = LUZ; c.lineWidth = 1.2; c.lineCap = 'round';
+  c.beginPath(); c.arc(x, y, r, 0, 7); c.moveTo(x, y); c.lineTo(x + Math.sin(k * Math.PI * 2) * r * 0.75, y - Math.cos(k * Math.PI * 2) * r * 0.75); c.stroke();
+  c.restore();
+}
+// Mientras la voz de un rótulo no ha cargado lo suficiente para sonar, la animación espera quieta y encima se ve que carga
+// (nota de voz nmw5d6iqctit: «hasta que el audio no esté cargado y listo para responderse, mostremos algún tipo de loader»,
+// en todas las animaciones): el cuadro se oscurece y un arco gira con «Cargando la voz…». w y h, el tamaño del lienzo; s,
+// los segundos de la página, para que gire
+function pintarCargando(c, w, h, s) {
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+  c.fillStyle = 'rgba(7, 9, 15, .55)'; c.fillRect(0, 0, w, h);
+  const r = Math.min(w, h) * 0.05, x = w / 2, y = h / 2 - r * 0.6, a = s * 5;
+  c.strokeStyle = 'rgba(255, 255, 255, .15)'; c.lineWidth = r * 0.22; c.beginPath(); c.arc(x, y, r, 0, 7); c.stroke();
+  c.strokeStyle = ORO; c.lineCap = 'round'; c.beginPath(); c.arc(x, y, r, a, a + 1.6); c.stroke();
+  c.font = `600 ${Math.round(r * 0.6)}px system-ui, sans-serif`; c.textAlign = 'center'; c.fillStyle = LUZ;
+  c.fillText(EN_DIBUJO ? 'Loading the voice…' : 'Cargando la voz…', x, y + r * 2.1);
+  c.restore();
+}
 function trazo(c, x1, y1, x2, y2, color, alfa = 1, punteado = false) {
   c.save(); c.globalAlpha *= alfa; c.strokeStyle = color; c.lineWidth = 1.4; if (punteado) c.setLineDash([3, 3]);
   c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.restore();
@@ -584,7 +606,8 @@ const SEGMENTOS = [
       ventana(c, 30, 20, 260, 140, 'el chat con el modelo');
       const sube = tramo(q, 0.15, 0.4);
       c.save(); c.beginPath(); c.rect(32, 32, 256, 126); c.clip();
-      globo(c, 44, 44 - sube * 30, 'Usemos la opción A', CIAN, false, 1 - sube * 0.7);
+      // Sube y se apaga, pero se queda debajo del nombre de la ventana, sin pisarlo (nmw5d6iqctit)
+      globo(c, 44, 44 - sube * 8, 'Usemos la opción A', CIAN, false, 1 - sube * 0.7);
       c.restore();
       if (q > 0.4) globo(c, 276, 74, '¿Usamos A o B?', MODELO, true);
       if (q > 0.7) { globo(c, 276, 102, 'Hice la B', ROJO, true); letrero(c, 'ya lo habías decidido', 160, 146, ROJO, 9.5); }
@@ -626,59 +649,39 @@ const SEGMENTOS = [
       if (q > 0.8) letrero(c, 'en «Modelo y consumo»', 304, 44, LUZ, 8, 'right');
     },
   },
-  { // 9. En qué ibas
+  { // 9. Vuelves de una pausa y no sabes en qué ibas ni qué sigue: junta «en qué ibas» y «qué sigue al volver de un
+    // descanso», que se repetían (pd_fusion_olvidadizo; el reparto aprobado, nmw5chos7tit, y su guion, nmw5cks5utit)
     problema: (c, q) => {
       bola(c, 272, 40, 14, '#e8e4d6'); bola(c, 279, 35, 12, '#121829'); letrero(c, 'otro día', 272, 70, LUZ, 9);
-      ventana(c, 40, 30, 180, 110, 'sesión nueva', '#8f8a7d');
+      ventana(c, 40, 30, 180, 100, 'sesión nueva', '#8f8a7d');
       if (Math.floor(q * 8) % 2) { c.fillStyle = LUZ; c.fillRect(54, 48, 2, 10); }
       actorDev(c, 130, 158, 1.3);
-      if (q > 0.3) letrero(c, '?', 152, 150, ROJO, 18);
-      if (q > 0.55) letrero(c, '¿en qué iba?', 262, 120, ROJO, 10);
+      if (q > 0.3) letrero(c, '?', 152, 152, ROJO, 18);
+      if (q > 0.3) letrero(c, '¿en qué iba?', 262, 112, ROJO, 10);
+      if (q > 0.55) letrero(c, '¿y qué sigue?', 262, 132, ROJO, 10);
     },
     solucion: (c, q) => {
       caja(c, 70, 20, 180, 120, ORO, 0.08); letrero(c, '¿Dónde quedamos?', 160, 37, ORO, 10.5);
       ['Lo que se hizo', 'Dónde quedó el proyecto', 'Lo nuevo desde tu visita'].forEach((t, k) => {
-        c.save(); c.globalAlpha *= tramo(q, 0.1 + k * 0.15, 0.2 + k * 0.15); letrero(c, `· ${t}`, 84, 58 + k * 18, LUZ, 9, 'left'); c.restore();
+        c.save(); c.globalAlpha *= tramo(q, 0.1 + k * 0.13, 0.2 + k * 0.13); letrero(c, `· ${t}`, 84, 58 + k * 18, LUZ, 9, 'left'); c.restore();
       });
-      if (q > 0.55) { caja(c, 110, 112, 100, 20, ORO, 0.5, 10); letrero(c, 'Ir a tu misión', 160, 125.5, '#1a1f33', 9.5); }
-      actorDev(c, lerp(30, 100, tramo(q, 0.65, 0.85)), 122, 1.2);
-      if (q > 0.88) letrero(c, 'y sigues donde ibas', 160, 160, VERDE, 9.5);
+      // Una sola misión siguiente a la vista, y solo retomas
+      if (q > 0.54) placaMision(c, 100, 112, 120, 'Tu misión siguiente', q > 0.84, tramo(q, 0.54, 0.62));
+      actorDev(c, lerp(30, 80, tramo(q, 0.7, 0.84)), 122, 1.2);
+      if (q > 0.86) letrero(c, 'solo retomas: ya sabes qué sigue', 160, 160, VERDE, 9.5);
     },
   },
-  { // 10. Qué sigue al volver de un descanso
-    problema: (c, q) => {
-      actorDev(c, 160, 96, 1.5);
-      for (let k = 0; k < 6; k++) {
-        const a = k * Math.PI / 3 + 0.3, largo = 52 + 6 * Math.sin(q * 20 + k);
-        const x = 160 + Math.cos(a) * largo * 1.5, y = 96 + Math.sin(a) * largo;
-        trazo(c, 160 + Math.cos(a) * 16, 96 + Math.sin(a) * 16, x, y, ROJO, 0.4 + 0.5 * Math.sin(q * 14 + k * 2) ** 2, true);
-        letrero(c, '?', x, y + 4, ROJO, 12);
-      }
-      letrero(c, 'después del descanso', 160, 30, '#8f8a7d', 8.5);
-      if (q > 0.5) letrero(c, '¿qué sigue en cada sesión?', 160, 177, ROJO, 10);
-    },
-    solucion: (c, q) => {
-      caja(c, 94, 18, 160, 124, '#5b6482', 0.1); caja(c, 86, 24, 160, 124, '#6b7492', 0.12);
-      caja(c, 78, 30, 160, 124, ORO, 0.14); letrero(c, 'Tu misión de ahora', 158, 47, ORO, 10);
-      letrero(c, 'Por qué va ahora', 90, 64, LUZ, 8, 'left');
-      for (let k = 0; k < 3; k++) {
-        const y = 76 + k * 22, hecho = q > 0.35 + k * 0.17;
-        caja(c, 90, y, 136, 16, hecho ? VERDE : '#8f8a7d', 0.12, 5); letrero(c, `Paso ${k + 1}`, 98, y + 11, LUZ, 8.5, 'left');
-        if (hecho) palomita(c, 216, y + 8, 4);
-      }
-      actorDev(c, 40, 120, 1.2);
-      if (q > 0.85) letrero(c, 'las demás esperan detrás', 158, 170, VERDE, 9.5);
-    },
-  },
+  null,   // 10. (Salió: «qué sigue al volver de un descanso» se juntó con la 9 en «Hilo perdido», pd_fusion_olvidadizo; su lugar se queda vacío para que los demás segmentos conserven las claves de su voz)
   { // 11. Explicar otra vez el proyecto
     problema: (c, q) => {
       const s = Math.min(2, Math.floor(q * 3)), k = (q * 3) % 1;
-      for (let j = 0; j <= s; j++) ventana(c, 26 + j * 12, 20 + j * 12, 200, 110, `sesión ${j + 1}`, j === s ? ROJO : '#5b6482');
-      const x0 = 26 + s * 12, y0 = 20 + s * 12;
+      // Una sesión tras otra, cada una en lugar de la anterior: ya no se apilan una encima de otra (nmw5d6iqctit)
+      ventana(c, 38, 32, 200, 110, `sesión ${s + 1}`, ROJO);
+      const x0 = 38, y0 = 32;
       globo(c, x0 + 10, y0 + 22, 'Mi proyecto es…', CIAN);
       renglones(c, x0 + 12, y0 + 46, 170, Math.max(1, Math.round(1 + k * 6)), '#9fd8ff', 1, 8);
       actorDev(c, 272, 124, 1.4);
-      if (s > 0) letrero(c, 'otra vez', 272, 98, ROJO, 11);
+      if (s > 0) letrero(c, 'otra vez', 274, 98, ROJO, 11);
     },
     solucion: (c, q, tinta) => DE_ANTES[2](c, q, tinta),
   },
@@ -689,15 +692,17 @@ const SEGMENTOS = [
       letrero(c, 'hace dos semanas', 262, 41, '#8f8a7d', 7.5, 'right');
       globo(c, 44, 66, 'Cambiamos: sin Google', CIAN, false, 0.9);
       if (q > 0.25) lupa(c, lerp(230, 214, tramo(q, 0.25, 0.5)), lerp(110, 46, tramo(q, 0.25, 0.5)), 6);
-      if (q > 0.5) caja(c, 40, 26, 214, 24, ROJO, 0.12, 8);
-      actorModelo(c, 296, 112, 11);
-      if (q > 0.62) globo(c, 284, 98, 'Hice el inicio con Google', ROJO, true);
+      // El resaltado, justo alrededor del globo viejo, y la respuesta del modelo, dentro de la ventana (nmw5d6iqctit)
+      if (q > 0.5) caja(c, 40, 26, 139, 23, ROJO, 0.12, 8);
+      actorModelo(c, 290, 112, 11);
+      if (q > 0.62) globo(c, 260, 98, 'Hice el inicio con Google', ROJO, true);
       if (q > 0.8) letrero(c, 'una decisión vieja se coló', 160, 156, ROJO, 9.5);
     },
     solucion: (c, q) => {
       const vieja = tramo(q, 0.12, 0.3);
-      caja(c, 24, 34, 140, 36, '#8f8a7d', 0.08); letrero(c, 'Usemos Google', 36, 56, vieja > 0.5 ? '#8f8a7d' : LUZ, 9.5, 'left');
-      if (q > 0.12) { trazo(c, 34, 52, 118, 52, ROJO, vieja); caja(c, 90, 24, 78, 15, NARANJA, 0.3, 7); letrero(c, 'Reemplazado', 129, 34.5, '#fff1de', 8.5); }
+      // «Reemplazado» va dentro de su tarjeta, debajo de lo tachado, sin pisar su borde (nmw5d6iqctit)
+      caja(c, 24, 34, 140, 36, '#8f8a7d', 0.08); letrero(c, 'Usemos Google', 36, 50, vieja > 0.5 ? '#8f8a7d' : LUZ, 9.5, 'left');
+      if (q > 0.12) { trazo(c, 34, 47, 108, 47, ROJO, vieja); caja(c, 94, 52, 64, 14, NARANJA, 0.3, 7); letrero(c, 'Reemplazado', 126, 62, '#fff1de', 8.5); }
       caja(c, 24, 94, 140, 36, ORO, 0.12); letrero(c, 'En vigor', 94, 90, ORO, 8.5); letrero(c, 'Sin Google', 36, 116, '#fffaf0', 9.5, 'left');
       actorDirector(c, 246, 82, 12); letrero(c, 'el director', 246, 62, ORO, 9);
       if (q > 0.45) { trazo(c, 236, 88, 168, 108, VERDE, tramo(q, 0.45, 0.55)); palomita(c, 150, 100, 5, tramo(q, 0.5, 0.6)); }
@@ -716,26 +721,44 @@ const SEGMENTOS = [
       [0, 1, 2].forEach((m) => { if (q > 0.35 + m * 0.12) letrero(c, '?', 172 + m * 38, 66 + (m % 2) * 46, ROJO, 14); });
       if (q > 0.7) letrero(c, '¿qué recuerda, qué no y por qué?', 160, 166, ROJO, 9.5);
     },
+    // Con STL, un chat dibujado entre el director y el modelo, como el avance de la revisión del director (nmw5cyd6otit): a
+    // la izquierda el director y a la derecha el modelo, sus globos llegan uno a uno, «El director solicita…» y «El modelo
+    // responde…»; mientras espera, su globo dice «El director espera al modelo» con un reloj que corre; abajo, los tokens de
+    // entrada y de salida suben con cada globo; al final, los globos se pliegan en el historial. Es un dibujo, no una
+    // revisión real: no muestra nada de ningún proyecto
     solucion: (c, q) => {
-      actorDev(c, 40, 92, 1.2); letrero(c, 'tú', 40, 116, '#cfe0ff', 8.5);
-      // El Studio con el director dentro, como en la estación 1
-      actorStudio(c, 96, 70, 48, 44); letrero(c, 'el Studio', 120, 126, MORADO, 8.5);
-      actorModelo(c, 276, 92, 11); letrero(c, 'el modelo', 276, 116, MODELO, 8.5);
-      // El ciclo: de ida por arriba y de vuelta por abajo, con un pulso que lo recorre
-      c.save(); c.strokeStyle = 'rgba(255, 255, 255, .25)'; c.lineWidth = 1.2; c.setLineDash([3, 3]);
-      c.beginPath(); c.moveTo(40, 76); c.bezierCurveTo(100, 40, 220, 40, 276, 76); c.stroke();
-      c.beginPath(); c.moveTo(276, 108); c.bezierCurveTo(220, 150, 100, 150, 40, 108); c.stroke();
-      c.restore();
-      const bez = (a, b, e, d, t) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t * t * e + t ** 3 * d;
-      const v = (q * 3) % 1, ida = v < 0.5, w = ida ? v * 2 : (v - 0.5) * 2;
-      bola(c, ida ? bez(40, 100, 220, 276, w) : bez(276, 220, 100, 40, w), ida ? bez(76, 40, 40, 76, w) : bez(108, 150, 150, 108, w), 3.5, ida ? CIAN : VERDE);
-      // Cuánto tarda cada uno y cuánto gasta
-      ['1 s', '4 s', '38 s'].forEach((t, m) => { c.save(); c.globalAlpha *= tramo(q, 0.36 + m * 0.04, 0.42 + m * 0.04); letrero(c, t, [68, 163, 236][m], 88, LUZ, 8); c.restore(); });
-      if (q > 0.36) letrero(c, '21 mil tokens', 312, 136, NARANJA, 8, 'right');
-      // Qué le pide quién a quién
-      if (q > 0.54) globo(c, 78, 18, 'director → modelo: lo que cambió', CIAN, false, tramo(q, 0.54, 0.6));
-      // Y el historial, para auditarlo y aprender
-      if (q > 0.86) { caja(c, 70, 152, 180, 22, ORO, 0.12, 6); letrero(c, 'el historial: cada revisión, paso a paso', 160, 166, ORO, 8.5); }
+      actorDirector(c, 38, 46, 11); letrero(c, 'el director', 38, 72, ORO, 8);
+      actorModelo(c, 282, 46, 10); letrero(c, 'el modelo', 282, 72, MODELO, 8);
+      const historial = tramo(q, 0.86, 0.94);
+      if (q < 0.86) {
+        // Los globos, de arriba abajo: lo que pide el director (a la izquierda) y lo que responde el modelo (a la derecha)
+        const espera = (desde, hasta, y) => {
+          if (q <= desde || q >= hasta) return;
+          const s = Math.round(lerp(1, 38, tramo(q, desde, hasta)));
+          globo(c, 64, y, `El director espera al modelo · ${s} s`, '#8f8a7d', false, 0.9);
+          relojito(c, 250, y + 7.5, 5, tramo(q, desde, hasta));
+        };
+        if (q > 0.04) globo(c, 64, 24, 'El director solicita: lo que cambió', CIAN, false, tramo(q, 0.04, 0.1));
+        espera(0.1, 0.24, 44);
+        if (q >= 0.24) globo(c, 256, 44, 'El modelo responde: 3 archivos', VERDE, true, tramo(q, 0.24, 0.3));
+        if (q > 0.5) globo(c, 64, 64, 'El director solicita: las pruebas', CIAN, false, tramo(q, 0.5, 0.56));
+        espera(0.56, 0.68, 84);
+        if (q >= 0.68) globo(c, 256, 84, 'El modelo responde: todas pasan', VERDE, true, tramo(q, 0.68, 0.74));
+      } else {
+        // Y se pliegan en el historial, para auditarlo y aprender
+        c.save(); c.globalAlpha *= historial;
+        ventana(c, 64, 22, 192, 78, 'el historial: cada paso, auditable', ORO);
+        ['solicita: lo que cambió', 'responde: 3 archivos', 'solicita: las pruebas', 'responde: todas pasan'].forEach((t, k) => {
+          letrero(c, t, 76, 46 + k * 14, LUZ, 8, 'left'); palomita(c, 240, 43 + k * 14, 3.5);
+        });
+        c.restore();
+      }
+      // Los tokens de entrada y de salida, que suben con cada globo, como en el panel de avance
+      const entrada = Math.round(lerp(0, 9800, tramo(q, 0.04, 0.12)) + lerp(0, 4300, tramo(q, 0.5, 0.58)));
+      const salida = Math.round(lerp(0, 1900, tramo(q, 0.24, 0.32)) + lerp(0, 800, tramo(q, 0.68, 0.76)));
+      if (q > 0.34) letrero(c, 'la caja negra, a la vista', 160, 168, LUZ, 8.5);
+      caja(c, 64, 108, 92, 30, CIAN, 0.12, 6); letrero(c, 'tokens de entrada', 110, 119, CIAN, 7.5); letrero(c, entrada.toLocaleString('es'), 110, 133, '#fffaf0', 10);
+      caja(c, 164, 108, 92, 30, VERDE, 0.12, 6); letrero(c, 'tokens de salida', 210, 119, VERDE, 7.5); letrero(c, salida.toLocaleString('es'), 210, 133, '#fffaf0', 10);
     },
   },
   { // 14. Se cae el internet: el Buzón sigue recogiendo y tú sigues leyendo y auditando, sin conexión (sexto problema; su voz espera el «Confirmo»)
@@ -792,23 +815,25 @@ const SEGMENTOS = [
   { // 15. El cansancio de escribir: dictas tu nota (pd_dictado; su guion, confirmado el 6 de noviembre de 2026, nmw4f8wietit;
     // «cansa» en vez de «pereza», que Kai pronunciaba mal, nmw56lwtbtit; y «hablas como hablarías», ampliado, nmw56n724tit)
     problema: (c, q) => {
+      // Nada se sale de la ventana ni pisa otra cosa (la regla del titular, nmw5d6iqctit): la tarjeta de la idea va adentro,
+      // y «le llega la mitad», debajo del globo y lejos de «escribirlo todo…»
       ventana(c, 30, 22, 260, 140, 'el chat con el modelo');
       // Tu idea, entera, en la cabeza: la bombilla y sus renglones
       actorDev(c, 60, 136, 1.3);
-      caja(c, 28, 34, 110, 62, ORO, 0.1, 12);
-      iconoNota(c, 'idea', 46, 52, 1.1);
-      renglones(c, 62, 46, 66, 4, 'rgba(255, 241, 196, .55)', 1, 10);
+      caja(c, 40, 36, 104, 58, ORO, 0.1, 12);
+      iconoNota(c, 'idea', 56, 54, 1.1);
+      renglones(c, 72, 48, 60, 4, 'rgba(255, 241, 196, .55)', 1, 10);
       // Escribirla toda cansa: el teclado avanza despacio, y sale solo la mitad
       if (q > 0.3) {
         const escrito = tramo(q, 0.3, 0.62);
-        caja(c, 92, 118, 92, 22, '#8f8a7d', 0.1, 5);
-        for (let k = 0; k < 8; k++) bola(c, 101 + k * 10.5, 129, 2.6, k < escrito * 4 ? ROJO : 'rgba(255, 255, 255, .3)');
-        letrero(c, 'escribirlo todo…', 138, 112, '#ffc2cf', 8.5);
+        caja(c, 96, 124, 92, 22, '#8f8a7d', 0.1, 5);
+        for (let k = 0; k < 8; k++) bola(c, 105 + k * 10.5, 135, 2.6, k < escrito * 4 ? ROJO : 'rgba(255, 255, 255, .3)');
+        letrero(c, 'escribirlo todo…', 142, 117, '#ffc2cf', 8.5);
       }
       actorModelo(c, 262, 52, 9);
       if (q > 0.66) {
-        globo(c, 150, 76, 'Haz que el botón…', ROJO, false, tramo(q, 0.66, 0.74));
-        letrero(c, 'le llega la mitad', 262, 96, ROJO, 8.5);
+        globo(c, 156, 66, 'Haz que el botón…', ROJO, false, tramo(q, 0.66, 0.74));
+        letrero(c, 'le llega la mitad', 202, 97, ROJO, 8.5);
         cruz(c, 262, 52, 4, tramo(q, 0.74, 0.8));
       }
     },
@@ -848,7 +873,11 @@ const SEGMENTOS = [
 // nmw26xb5ltit); 5: el modelo olvida (tokens, en qué ibas, explicar otra vez y la caja negra; nmw27jyxjtit). «Tienes que
 // estar encima», la decisión enterrada y la memoria aparte salieron: los agentes de chat ya lo resuelven, o lo dice otro.
 // El sexto, sin internet; y el séptimo, el cansancio de escribir, que se resuelve dictando (pd_dictado, nmw4f73aftit)
-const GRANDES = [[1, 2], [0, 6], [9, 11], [3, 4, 5], [7, 8, 10, 12], [13], [14]];
+// Desde el 6 de noviembre (pd_fusion_olvidadizo; el reparto, nmw5chos7tit): ninguno pasa de tres situaciones. El 3, «Hilo
+// perdido», en el lugar de «Contexto enredado»: volver de una pausa sin saber en qué ibas ni qué sigue (la 9, que junta la 9
+// y la 10 de antes) y explicarlo todo otra vez; el 5, «Modelo olvidadizo»: los tokens, el contexto que se contamina y la
+// caja negra, contada como un chat entre el director y el modelo (nmw5cyd6otit)
+const GRANDES = [[1, 2], [0, 6], [8, 10], [3, 4, 5], [7, 11, 12], [13], [14]];
 // Lo que todavía no tiene voz, mientras un problema nuevo espera el «Confirmo» de la suya: sus segmentos (de 0) y sus
 // enunciados. Sus rótulos duran lo que dice la estimación (tardaVoz), no se pide ni suena ningún mp3 suyo (nada de 404) y
 // el reloj del clip nunca espera a una voz. tools/vozRecorrido.ts lo repite (SIN_VOZ_TODAVIA) para que el generador no lo
@@ -859,7 +888,10 @@ const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set([]);
 // Y los clips sueltos que ya tienen su «Confirmo» pero no su mp3, porque la cuota del día de Google se acabó (nmw2xuhhgtit:
 // de a un día); tools/vozRecorrido.ts --confirmo los genera cuando vuelve la cuota, y entonces salen de aquí. Hoy, ninguno:
 // el 6 de noviembre de 2026 salieron los del dictado, con su texto nuevo, y los ocho de «Cómo empezar»
-const CLAVES_SIN_VOZ_TODAVIA = new Set([]);
+// Desde el 6 de noviembre en la tarde, los cinco de «Hilo perdido» y «Modelo olvidadizo» (pd_fusion_olvidadizo): sus dos
+// enunciados, las dos frases en rojo de volver de una pausa y «con una sola misión siguiente a la vista:», que esperan su
+// «Confirmo» (t_confirma_voz_hilo); hasta entonces, sus rótulos duran lo que dice la estimación
+const CLAVES_SIN_VOZ_TODAVIA = new Set(['g3-e', 'g5-e', 's9-p1', 's9-p2', 's9-4']);
 const sinVozTodavia = (clave) => {
   const seg = /^s(\d+)-/.exec(clave);
   return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || CLAVES_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
@@ -880,8 +912,8 @@ const PASOS_SEG = [
   { problema: [[0, '¿El modelo cambia documentos y te pide releerlos?']], solucion: [[0, 'Con STL, lo que ya leíste queda sellado;'], [0.3, 'lo nuevo llega aparte, en un documento corto,'], [0.65, 'solo con lo que cambió, y fácil de leer']] },
   { problema: [[0, '¿El modelo te pregunta algo que ya decidiste antes?']], solucion: [[0, 'STL tiene su propio sistema de memoria del proyecto:'], [0.16, 'lo que decidiste queda en firme,'], [0.3, 'y, antes de preguntarte, el director busca.'], [0.55, 'Ya estaba decidido: la opción A.'], [0.8, 'No te lo vuelve a preguntar']] },
   { problema: [[0, 'Cada sesión nueva relee lo mismo,'], [0.5, 'y se evaporan los tokens']], solucion: [[0, 'Con STL, el director recibe todo junto, con el mapa,'], [0.4, 'y lee solo lo que cambió,'], [0.62, 'optimizando el consumo de tokens de entrada']] },
-  { problema: [[0, '¿Después de una pausa, no sabes en qué ibas?']], solucion: [[0, 'Con STL, te espera lista la sección «¿Dónde quedamos?»:'], [0.2, 'un reporte siempre al día de lo que se hizo'], [0.4, 'y de dónde quedó el proyecto,'], [0.56, 'con un botón directo a tu siguiente misión']] },
-  { problema: [[0, '¿Al volver de un descanso,'], [0.4, 'te cuesta saber qué sigue en cada sesión?']], solucion: [[0, 'Con STL, siempre tienes a la vista una sola misión siguiente:'], [0.5, 'solo retomas, y ya sabes qué sigue']] },
+  { problema: [[0, '¿Vuelves de una pausa,'], [0.4, 'y no sabes en qué ibas ni qué sigue en cada sesión?']], solucion: [[0, 'Con STL, te espera lista la sección «¿Dónde quedamos?»:'], [0.2, 'un reporte siempre al día de lo que se hizo'], [0.38, 'y de dónde quedó el proyecto,'], [0.54, 'con una sola misión siguiente a la vista:'], [0.78, 'solo retomas, y ya sabes qué sigue']] },
+  { problema: [], solucion: [] },   // 10. (salió: se juntó con la 9)
   { problema: [[0, '¿Cada sesión nueva, le explicas otra vez todo'], [0.55, 'para definir de qué irá?']], solucion: [[0, 'STL genera su propio sistema optimizado'], [0.2, 'de memoria del proyecto:'], [0.36, 'el estado queda en archivos, en tu mapa del proyecto'], [0.6, 'y en todo lo que dijiste.'], [0.76, 'El director ya lo sabe todo: no necesitas repetirle nada']] },
   { problema: [[0, '¿Tu contexto se contamina'], [0.4, 'con los cambios frecuentes de decisión?']], solucion: [[0, 'Con STL, la decisión que cambias queda reemplazada en el historial'], [0.4, 'y ya no forma parte del nuevo contexto que va al modelo:'], [0.72, 'solo envías decisiones aprobadas por ti']] },
   { problema: [[0, 'El modelo es una caja negra:'], [0.4, 'a veces no sabes qué recuerda, qué no y por qué']], solucion: [[0, 'STL te presenta, de forma gráfica, todo el ciclo de inferencia:'], [0.2, 'cómo se comunican tu equipo y el modelo,'], [0.34, 'cuánto tarda cada uno en ejecutar sus partes y su consumo,'], [0.52, 'y qué le pide exactamente quién a quién.'], [0.68, 'Así entiendes qué pasa cada vez que le pides algo al modelo'], [0.85, 'y quedas con este historial, para auditarlo y aprender']] },
@@ -902,8 +934,8 @@ const CIERRES = [
   ['Releer lo que ya leíste', 'Nunca más releer lo que ya leíste.'],
   ['Las preguntas repetidas', 'Lo que decidiste queda decidido.'],
   ['Los tokens que se evaporan', 'Tus tokens, solo para lo nuevo.'],
-  ['No saber en qué ibas', 'Retomas justo donde quedaste.'],
-  ['Qué sigue al volver', 'Vuelves, y ya sabes qué sigue.'],
+  ['No saber en qué ibas ni qué sigue', 'Retomas justo donde quedaste.'],
+  null,   // 10. (salió: se juntó con la 9)
   ['Explicarlo todo otra vez', 'Sin repetirle nada al modelo.'],
   ['Un contexto contaminado', 'Un contexto limpio, solo con lo que aprobaste.'],
   ['El modelo, una caja negra', 'La caja negra, ahora a la vista.'],
@@ -2166,6 +2198,8 @@ function iniciar() {
   }
   // Si un clip no llega o se traba, el rótulo no espera para siempre
   const sigueHablando = () => voz.hablando && performance.now() - voz.desde < 20000;
+  // La voz que toca aún carga: pedida, sin haber empezado a sonar y sin lo suficiente para hacerlo (HAVE_FUTURE_DATA)
+  const cargandoVoz = () => !!voz.audio && sigueHablando() && voz.audio.readyState < 3 && !voz.audio.ended;
   botonVoz?.addEventListener('click', () => {
     conVoz = !conVoz;
     try { localStorage.setItem(VOZ_GUARDADA, conVoz ? 'si' : 'no'); } catch { /* sin almacenamiento */ }
@@ -2331,6 +2365,9 @@ function iniciar() {
   function avanzarClip() {
     const ahora = performance.now(), dt = Math.min(0.1, Math.max(0, (ahora - clipAntes) / 1000));
     clipAntes = ahora;
+    // Mientras la voz que toca no ha cargado lo suficiente para sonar, la animación espera quieta con su «Cargando la
+    // voz…» (nmw5d6iqctit); si no llega en 20 s, sigue sin ella (sigueHablando)
+    if (!pausado && cargandoVoz()) { pintarClip(ctxClip, seleccionado, clipT); pintarCargando(ctxClip, clip.width, clip.height, ahora / 1000); pintarMando(); return; }
     if (!pausado) {
       const tr = tramoDeVoz(seleccionado, clipT), a = voz.audio;
       if (tr && a && voz.hablando && voz.clave === tr.clave && !a.paused) clipT = tr.desde + Math.min(tr.voz, a.currentTime / (a.ritmo ?? 1));
