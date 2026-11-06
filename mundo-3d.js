@@ -183,7 +183,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g4-e":7646,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9731,"g4-e":7646,"g5-e":9878,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":1421,"s9-p2":4019,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":2872,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -528,7 +528,8 @@ const SEGMENTOS = [
       barra(c, 60, 52, 200, lerp(0.4, 1, tramo(q, 0.05, 0.9)), ORO);
       if (q > 0.9) palomita(c, 274, 57, 5);
       actorDev(c, 40, 57, 1.1);
-      actorStudio(c, 226, 80, 70, 36, false); letrero(c, 'el Buzón', 261, 102, MORADO, 9);
+      // El rótulo va arriba del Buzón: adentro se queda la idea cuando llega, sin pisarlo (nmw5eoz0rtit)
+      actorStudio(c, 226, 80, 70, 36, false); letrero(c, 'el Buzón', 261, 74, MORADO, 9);
       // La ruta, con sus fases: la idea va a la suya
       c.strokeStyle = LINEA; c.lineWidth = 2.5; c.beginPath(); c.moveTo(30, 150); c.lineTo(290, 150); c.stroke();
       ['fase 1', 'fase 2', 'fase 3'].forEach((f, k) => { bola(c, 60 + k * 73, 150, 4, ORO); letrero(c, f, 60 + k * 73, 166, LUZ, 8); });
@@ -593,8 +594,9 @@ const SEGMENTOS = [
     },
     solucion: (c, q) => {
       ventana(c, 30, 16, 150, 150, 'lo que ya leíste', '#8f8a7d');
-      for (let k = 0; k < 5; k++) { renglones(c, 42, 34 + k * 26, 100, 2, 'rgba(255, 255, 255, .35)', 1, 8); palomita(c, 162, 38 + k * 26, 4.5); }
-      if (q > 0.1) { bola(c, 150, 144, 14, ORO, tramo(q, 0.1, 0.25)); letrero(c, 'sellado', 150, 147, '#1a1f33', 7.5); }
+      // Las filas más juntas (22 en vez de 26) para que el sello de abajo no pise el último ✓ (nmw5eoz0rtit)
+      for (let k = 0; k < 5; k++) { renglones(c, 42, 34 + k * 22, 100, 2, 'rgba(255, 255, 255, .35)', 1, 8); palomita(c, 162, 38 + k * 22, 4.5); }
+      if (q > 0.1) { bola(c, 156, 148, 14, ORO, tramo(q, 0.1, 0.25)); letrero(c, 'sellado', 156, 151, '#1a1f33', 7.5); }
       const x = lerp(330, 196, tramo(q, 0.3, 0.55));
       ventana(c, x, 50, 100, 70, 'lo nuevo', VERDE);
       renglones(c, x + 10, 72, 76, 2, VERDE, 1, 9);
@@ -616,7 +618,8 @@ const SEGMENTOS = [
       caja(c, 30, 30, 110, 70, ORO, 0.1); letrero(c, 'En firme', 85, 44, ORO, 9.5);
       ['opción A', 'sin Google', 'en español'].forEach((t, k) => letrero(c, `· ${t}`, 42, 60 + k * 13, LUZ, 8.5, 'left'));
       actorDirector(c, 222, 60, 12); letrero(c, 'el director', 222, 84, ORO, 9);
-      if (q < 0.55) lupa(c, lerp(170, 80, tramo(q, 0.1, 0.45)), 57, 7);
+      // La lupa se queda a la derecha de la lista, junto a lo que encontró, sin tapar el texto (nmw5eoz0rtit)
+      if (q < 0.55) lupa(c, lerp(170, 122, tramo(q, 0.1, 0.45)), 57, 7);
       if (q > 0.5) { c.save(); c.strokeStyle = VERDE; c.lineWidth = 1.5; c.strokeRect(38, 51, 64, 12); c.restore(); }
       if (q > 0.6) globo(c, 120, 118, 'Ya lo decidiste: la opción A', VERDE, false, tramo(q, 0.6, 0.7));
       if (q > 0.8) letrero(c, 'no te lo vuelve a preguntar', 160, 160, VERDE, 9.5);
@@ -667,7 +670,8 @@ const SEGMENTOS = [
       });
       // Una sola misión siguiente a la vista, y solo retomas
       if (q > 0.54) placaMision(c, 100, 112, 120, 'Tu misión siguiente', q > 0.84, tramo(q, 0.54, 0.62));
-      actorDev(c, lerp(30, 80, tramo(q, 0.7, 0.84)), 122, 1.2);
+      // Se acerca a la tarjeta pero se queda afuera de su borde, sin cruzarlo (nmw5eoz0rtit)
+      actorDev(c, lerp(30, 54, tramo(q, 0.7, 0.84)), 122, 1.2);
       if (q > 0.86) letrero(c, 'solo retomas: ya sabes qué sigue', 160, 160, VERDE, 9.5);
     },
   },
@@ -691,7 +695,8 @@ const SEGMENTOS = [
       globo(c, 44, 30, 'Usemos Google para entrar', ORO, false, 0.8);
       letrero(c, 'hace dos semanas', 262, 41, '#8f8a7d', 7.5, 'right');
       globo(c, 44, 66, 'Cambiamos: sin Google', CIAN, false, 0.9);
-      if (q > 0.25) lupa(c, lerp(230, 214, tramo(q, 0.25, 0.5)), lerp(110, 46, tramo(q, 0.25, 0.5)), 6);
+      // La lupa termina debajo de «hace dos semanas», a la derecha del resaltado, sin pisar su letrero (nmw5eoz0rtit)
+      if (q > 0.25) lupa(c, lerp(230, 200, tramo(q, 0.25, 0.5)), lerp(110, 58, tramo(q, 0.25, 0.5)), 6);
       // El resaltado, justo alrededor del globo viejo, y la respuesta del modelo, dentro de la ventana (nmw5d6iqctit)
       if (q > 0.5) caja(c, 40, 26, 139, 23, ROJO, 0.12, 8);
       actorModelo(c, 290, 112, 11);
@@ -718,7 +723,7 @@ const SEGMENTOS = [
       letrero(c, 'el modelo', 210, 32, MODELO, 9);
       const k = tramo(q, 0.05, 0.35);
       if (k < 1) globo(c, lerp(62, 150, k), 84, 'Haz esto', CIAN, false, 1 - k * 0.6);
-      [0, 1, 2].forEach((m) => { if (q > 0.35 + m * 0.12) letrero(c, '?', 172 + m * 38, 66 + (m % 2) * 46, ROJO, 14); });
+      [0, 1, 2].forEach((m) => { if (q > 0.35 + m * 0.12) letrero(c, '?', 172 + m * 38, 66 + (m % 2) * 58, ROJO, 14); });   // el del medio, más abajo: no pisa al modelo (nmw5eoz0rtit)
       if (q > 0.7) letrero(c, '¿qué recuerda, qué no y por qué?', 160, 166, ROJO, 9.5);
     },
     // Con STL, un chat dibujado entre el director y el modelo, como el avance de la revisión del director (nmw5cyd6otit): a
@@ -770,7 +775,7 @@ const SEGMENTOS = [
       if (q > 0.06) globo(c, 70, 112 - tramo(q, 0.06, 0.3) * 60, 'Sigue con el login', CIAN);
       if (q > 0.3 && q < 0.5) globo(c, 250, 76, 'Escribiendo…', MODELO, true, 0.6 + 0.4 * Math.sin(q * 30) ** 2);
       // El corte: la señal con su raya y el chat quieto
-      if (q > 0.35) { wifi(c, 160, 100, ROJO, true, cae); letrero(c, 'sin conexión', 160, 134, ROJO, 10); cruz(c, 262, 52, 4, cae); }
+      if (q > 0.35) { wifi(c, 160, 100, ROJO, true, cae); letrero(c, 'sin conexión', 160, 134, ROJO, 10); cruz(c, 262, 70, 4, cae); }   // la ✗ debajo del modelo, no encima de él (nmw5eoz0rtit)
       if (q > 0.7) letrero(c, 'el chat se congeló: ¿y ahora qué?', 160, 156, ROJO, 9.5);
     },
     solucion: (c, q) => {
@@ -834,7 +839,7 @@ const SEGMENTOS = [
       if (q > 0.66) {
         globo(c, 156, 66, 'Haz que el botón…', ROJO, false, tramo(q, 0.66, 0.74));
         letrero(c, 'le llega la mitad', 202, 97, ROJO, 8.5);
-        cruz(c, 262, 52, 4, tramo(q, 0.74, 0.8));
+        cruz(c, 262, 70, 4, tramo(q, 0.74, 0.8));   // debajo del modelo, no encima de él (nmw5eoz0rtit)
       }
     },
     solucion: (c, q) => {
@@ -842,23 +847,26 @@ const SEGMENTOS = [
       actorDev(c, 38, 108, 1.3, q > 0.82);
       microfono(c, 70, 98, VERDE_DICTADO);
       if (q < 0.52) for (const r of [8, 13, 18]) { c.save(); c.globalAlpha *= 0.3 + 0.7 * Math.sin(q * 40 - r) ** 2; c.strokeStyle = VERDE_DICTADO; c.lineWidth = 1.4; c.beginPath(); c.arc(70, 92, r, -0.9, 0.9); c.stroke(); c.restore(); }
-      // Se transcribe en tu computador
-      if (q > 0.5) { letrero(c, 'se transcribe en tu computador', 104, 150, VERDE_DICTADO, 8.5, 'left'); caja(c, 96, 140, 6, 6, VERDE_DICTADO, 0.4, 2); }
+      // Se transcribe en tu computador. Los dos rótulos de abajo van en renglones aparte, ambos debajo del Buzón y de su marco
+      // de atrás (que llega hasta 135,5), sin tocarlo ni apretarse entre ellos (nmw5eoz0rtit)
+      if (q > 0.5) { caja(c, 14, 148, 6, 6, VERDE_DICTADO, 0.4, 2); letrero(c, 'se transcribe en tu computador', 26, 154, VERDE_DICTADO, 8.5, 'left'); }
       // Tu nota, en el Buzón: la lees y la corriges antes de que salga
       actorStudio(c, 108, 40, 120, 92, false); letrero(c, 'Buzón del Studio', 168, 34, MORADO, 9);
       const escrita = tramo(q, 0.1, 0.56);
       caja(c, 118, 52, 100, 70, VERDE_DICTADO, 0.1, 7);
       letrero(c, 'tu nota', 124, 62, VERDE_DICTADO, 7.5, 'left');
+      // Los renglones de la nota empiezan en 72 (antes 70), para dejar arriba, a la derecha, el lugar de la lupa
       for (let k = 0; k < 4; k++) {
         const visible = escrita * 4 > k;
         if (!visible) continue;
         const quitada = k === 2 && q > 0.78, agregada = k === 3;
         if (agregada && q < 0.88) continue;
-        renglones(c, 124, 70 + k * 12, k === 3 ? 60 : 84, 1, agregada ? VERDE : 'rgba(255, 255, 255, .45)', quitada ? 0.35 : 1);
-        if (quitada) trazo(c, 122, 71.5 + k * 12, 210, 71.5 + k * 12, ROJO, tramo(q, 0.78, 0.84));
-        if (agregada) letrero(c, '+', 196, 76 + k * 12, VERDE, 9, 'left');
+        renglones(c, 124, 72 + k * 12, k === 3 ? 60 : 84, 1, agregada ? VERDE : 'rgba(255, 255, 255, .45)', quitada ? 0.35 : 1);
+        if (quitada) trazo(c, 122, 73.5 + k * 12, 210, 73.5 + k * 12, ROJO, tramo(q, 0.78, 0.84));
+        if (agregada) letrero(c, '+', 196, 78 + k * 12, VERDE, 9, 'left');
       }
-      if (q > 0.74) { lupa(c, 214, 58, 6); letrero(c, 'la lees y la corriges', 168, 138, '#fffaf0', 8.5); }
+      // La lupa va adentro de la tarjeta de tu nota (arriba a la derecha) y el rótulo, debajo del Buzón, no sobre su borde
+      if (q > 0.74) { lupa(c, 202, 61, 6); letrero(c, 'la lees y la corriges', 168, 168, '#fffaf0', 8.5); }
       // Y solo entonces la recibe el modelo
       actorModelo(c, 284, 76, 9);
       if (q > 0.93) { const u = tramo(q, 0.93, 0.99); bola(c, lerp(222, 274, u), 86, 3.5, VERDE, 0.5 + 0.5 * u); if (u > 0.95) palomita(c, 284, 100, 4); }
@@ -888,10 +896,10 @@ const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set([]);
 // Y los clips sueltos que ya tienen su «Confirmo» pero no su mp3, porque la cuota del día de Google se acabó (nmw2xuhhgtit:
 // de a un día); tools/vozRecorrido.ts --confirmo los genera cuando vuelve la cuota, y entonces salen de aquí. Hoy, ninguno:
 // el 6 de noviembre de 2026 salieron los del dictado, con su texto nuevo, y los ocho de «Cómo empezar»
-// Desde el 6 de noviembre en la tarde, los cinco de «Hilo perdido» y «Modelo olvidadizo» (pd_fusion_olvidadizo): sus dos
-// enunciados, las dos frases en rojo de volver de una pausa y «con una sola misión siguiente a la vista:», que esperan su
-// «Confirmo» (t_confirma_voz_hilo); hasta entonces, sus rótulos duran lo que dice la estimación
-const CLAVES_SIN_VOZ_TODAVIA = new Set(['g3-e', 'g5-e', 's9-p1', 's9-p2', 's9-4']);
+// Los cinco de «Hilo perdido» y «Modelo olvidadizo» (pd_fusion_olvidadizo), sus dos enunciados, las dos frases en rojo de
+// volver de una pausa y «con una sola misión siguiente a la vista:», hablan con Kai desde la noche del 6 de noviembre de
+// 2026, con su «Confirmo» (nmw5ej4oytit, pd_voz_hilo)
+const CLAVES_SIN_VOZ_TODAVIA = new Set([]);
 const sinVozTodavia = (clave) => {
   const seg = /^s(\d+)-/.exec(clave);
   return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || CLAVES_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
@@ -1112,7 +1120,8 @@ function pintarCierre(c, resuelto, frase, q, cual, etiqueta = 'Resuelto') {
   letrero(c, etiqueta, 114, 80, '#bff0d2', 9, 'left');
   c.font = '700 14px system-ui, sans-serif';
   const renglones = renglonesDe(c, resuelto, 108);
-  renglones.forEach((r, m) => letrero(c, r, 114, 98 + m * 16 - (renglones.length - 1) * 4, '#fffaf0', 14, 'left'));
+  // Con tres renglones, el primero baja para no pisar «Resuelto» (nmw5eoz0rtit)
+  renglones.forEach((r, m) => letrero(c, r, 114, (renglones.length > 2 ? 100 : 98 - (renglones.length - 1) * 4) + m * 16, '#fffaf0', 14, 'left'));
   c.restore();
   // Tu cubito, sonriendo, que brinca una vez al llegar y después se mece
   const brinco = Math.sin(tramo(q, 0.12, 0.42) * Math.PI) * 9, mece = Math.sin(q * 14) * 1.2;
@@ -1166,7 +1175,8 @@ const ESCENAS_COMO = [
     // Lo que viaja: por arriba si lo clonas, por abajo si lo descargas
     const u = clona ? tramo(q, 0.1, 0.42) : tramo(q, 0.58, 0.9), y0 = clona ? 79 : 107;
     trazo(c, 132, y0, 196, 79, clona ? CIAN : ORO, 0.6, true);
-    c.save(); c.globalAlpha *= u > 0 && u < 1 ? 1 : 0; caja(c, lerp(134, 236, u), lerp(y0 - 6, 72, u), 14, 12, MORADO, 0.5, 3); c.restore();
+    // El paquete solo se dibuja mientras viaja: quieto, invisible, igual ocuparía lugar sobre la ventana y sobre su destino (nmw5eoz0rtit)
+    if (u > 0 && u < 1) caja(c, lerp(134, 236, u), lerp(y0 - 6, 72, u), 14, 12, MORADO, 0.5, 3);
     if (q > 0.42) { caja(c, 236, 66, 26, 26, MORADO, 0.35, 5); letrero(c, 'STL', 249, 82, '#fffaf0', 8); }
   },
   // 3 · Ponlo en la carpeta donde quieras trabajar: el Studio cae en su carpeta
