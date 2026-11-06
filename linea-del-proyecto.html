@@ -573,9 +573,26 @@
   const sigueHablando = () => narra.hablando && performance.now() - narra.desde < duraLinea(narra.dicha) / velocidad + 1500;
   // La voz manda: si aún habla y ya le toca a la línea siguiente, la escena espera a que termine (pd_narrador)
   const esperaLaVoz = () => !saltando && !quieto && cola.length > 0 && reloj >= cola[0].en && sigueHablando();
-  // La voz que toca aún carga (pedida, sin lo suficiente para sonar): la escena la espera con un «Cargando la voz…» encima,
-  // como todas las animaciones del recorrido (nota de voz nmw5d6iqctit); si no llega, sigue sin ella (sigueHablando)
-  const cargandoVoz = () => !saltando && !quieto && !!narra.audio && sigueHablando() && narra.audio.readyState < 3 && !narra.audio.ended;
+  // Toda la voz se carga una sola vez, al abrir la página, detrás de un solo «Cargando la voz…» (nota de voz nmw5d6iqctit):
+  // la escena espera quieta hasta que llegan todos los clips (o pasa CARGA_MAX, y sigue con los que haya). Entre una frase
+  // y otra nunca se dibuja nada encima ni se oscurece la escena: antes el velo salía cada vez que un clip se pedía y su
+  // readyState bajaba un momento, y la animación parpadeaba con cada frase (nota de voz del titular nmw5h32xptit)
+  const CARGA_MAX = 20000;
+  let vozPedida = false, vozCargada = false;
+  function cargarTodaLaVoz() {
+    if (vozPedida || !conVoz || quieto) return;
+    vozPedida = true;
+    const claves = [...new Set([...CLAVES_VOZ.values(), ...GLOBITOS.map((_, i) => `globito-${i + 1}`)])];
+    const llega = (clave) => new Promise((ok) => {
+      if (!audios.has(clave)) { const a = new Audio(); a.preload = 'auto'; a.src = `voz/linea/${clave}.mp3`; a.preservesPitch = true; audios.set(clave, a); }
+      const a = audios.get(clave);
+      if (a.readyState >= 4) return ok();
+      a.addEventListener('canplaythrough', ok, { once: true });
+      a.addEventListener('error', ok, { once: true });
+    });
+    Promise.race([Promise.all(claves.map(llega)), new Promise((ok) => setTimeout(ok, CARGA_MAX))]).then(() => { vozCargada = true; });
+  }
+  const cargandoVoz = () => !saltando && !quieto && conVoz && vozPedida && !vozCargada;
   function dibujarCargando(now) {
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
     const w = cv.width, h = cv.height, r = Math.min(w, h) * 0.05, x = w / 2, y = h / 2 - r * 0.6, a = now / 200;
@@ -590,6 +607,9 @@
   // que se ve, si aún no la dijo (al empezar, la primera; al soltar la perilla, la de ese punto)
   function vozAlDia() {
     if (!reproduce || saltando) { if (narra.audio && !narra.audio.paused) narra.audio.pause(); return; }
+    // Mientras toda la voz carga, nada suena: la primera línea empieza cuando se quita el «Cargando la voz…»
+    cargarTodaLaVoz();
+    if (cargandoVoz()) return;
     if (narra.audio && narra.hablando && narra.audio.paused) { narra.desde = performance.now(); narra.audio.play().catch(() => { narra.hablando = false; }); }
     if (actual && actual !== narra.dicha && performance.now() - narra.movida > 350) {
       const desde = narra.trasMover ? desdeTrasMover(reloj - actualEn, duraLinea(actual)) : 0;
@@ -2343,6 +2363,8 @@
     if (reproduce && cargandoVoz()) dibujarCargando(now);
     requestAnimationFrame(cuadro);
   };
+  // La voz empieza a cargar al abrir la página, aunque la animación aún no corra: así la espera del comienzo es corta
+  cargarTodaLaVoz();
   requestAnimationFrame(cuadro);
 </script>
 </body>

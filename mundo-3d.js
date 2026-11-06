@@ -2208,8 +2208,22 @@ function iniciar() {
   }
   // Si un clip no llega o se traba, el rótulo no espera para siempre
   const sigueHablando = () => voz.hablando && performance.now() - voz.desde < 20000;
-  // La voz que toca aún carga: pedida, sin haber empezado a sonar y sin lo suficiente para hacerlo (HAVE_FUTURE_DATA)
-  const cargandoVoz = () => !!voz.audio && sigueHablando() && voz.audio.readyState < 3 && !voz.audio.ended;
+  // Las voces de una animación se cargan todas al abrirla, detrás de un solo «Cargando la voz…»: entre un rótulo y otro
+  // nunca se dibuja nada encima ni se oscurece (nota de voz del titular nmw5h32xptit; antes el velo salía cada vez que un
+  // clip se pedía). Si no llegan en 20 s, sigue con las que haya
+  let cargaDe = -1, cargaLista = true;
+  function cargarVocesDe(i) {
+    cargaDe = i; cargaLista = !conVoz || quieto;
+    if (cargaLista) return;
+    const llega = (a) => new Promise((ok) => {
+      if (a.readyState >= 4) return ok();
+      a.addEventListener('canplaythrough', ok, { once: true });
+      a.addEventListener('error', ok, { once: true });
+    });
+    Promise.race([Promise.all(clavesDeClip(i).map((c) => llega(audioDe(c)))), new Promise((ok) => setTimeout(ok, 20000))])
+      .then(() => { if (cargaDe === i) cargaLista = true; });
+  }
+  const cargandoVoz = () => conVoz && !quieto && seleccionado >= 0 && cargaDe === seleccionado && !cargaLista;
   botonVoz?.addEventListener('click', () => {
     conVoz = !conVoz;
     try { localStorage.setItem(VOZ_GUARDADA, conVoz ? 'si' : 'no'); } catch { /* sin almacenamiento */ }
@@ -2452,7 +2466,7 @@ function iniciar() {
     popup.classList.remove('sale'); void popup.offsetWidth; popup.classList.add('sale');
     pantalla2.abierta = true;
     ponerReproductor();
-    clavesDeClip(i).forEach(audioDe);   // sus voces, pedidas desde ya
+    cargarVocesDe(i);   // sus voces, todas desde ya, con un solo «Cargando la voz…»
     empezarClip();
     if (quieto && ctxClip) { pintarClip(ctxClip, i, duraClip(i)); }
   }
@@ -2492,7 +2506,7 @@ function iniciar() {
     popup.classList.remove('sale'); void popup.offsetWidth; popup.classList.add('sale');
     pantalla2.abierta = true;
     ponerReproductor();
-    clavesDeClip(GUIA).forEach(audioDe);
+    cargarVocesDe(GUIA);
     empezarClip();
     // Sin un clic antes en la página, el navegador no deja sonar la voz: espera quieta con «▶ Empezar con voz» (nmw4isbmktit)
     // (mientras sus clips esperan la cuota de Google, no hay voz que esperar: empieza con sus rótulos)
