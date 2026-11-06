@@ -56,7 +56,11 @@ const verTexto = new URLSearchParams(location.search).get('ver');
 // momento en que el director habla con el modelo, sin rótulos ni ningún texto encima, para capturarla (mirar.ts --webgl)
 const compartir = new URLSearchParams(location.search).has('compartir');
 const MOMENTO_COMPARTIR = 11.2;
-const fijo = compartir ? 0 : verTexto === null ? null : Math.max(0, Math.min(estaciones.length, Math.round(Number(verTexto)) || 0));
+// El video corto de la difusión (pd_voz_video; docs/difusion/video-corto.js): con ?video, la página se vuelve el video,
+// con la cámara fija en la estación 1, que sigue animándose mientras se ve
+const enVideo = new URLSearchParams(location.search).has('video');
+const ganchoVideo = {};
+const fijo = compartir ? 0 : enVideo ? 1 : verTexto === null ? null : Math.max(0, Math.min(estaciones.length, Math.round(Number(verTexto)) || 0));
 
 // ── «¿Te ha pasado…?»: cada problema abierto se marca con su ✓ (t_decide_cierre_problemas); la cuenta «Abriste N de 6»
 // salió, con la tarjeta (nota de voz nmw40cp3jtit)
@@ -975,6 +979,8 @@ function pintarCierre(c, resuelto, frase, q, cual) {
   if (frase) letrero(c, frase, 160, 190, '#fffaf0', tamanoQueCabe(c, frase, 11, 300));
 }
 
+// El video corto (video-corto.js) deja cada problema con una sola situación, y entonces el «1 de 1» no va
+let sinCuenta = false;
 function pintarClip(ctx, i, t) {
   // Una vez, sin repetirse sola: al terminar queda en su último cuadro
   const { n, p, enEnunciado, enProblema, enCierre, k, q, j, texto: paso } = pasoDeClip(i, t);
@@ -990,7 +996,7 @@ function pintarClip(ctx, i, t) {
     return;
   }
   if (enCierre) {
-    pintarCierre(ctx, CIERRES[j]?.[0] ?? '', paso, q, `${k + 1} de ${n}`);
+    pintarCierre(ctx, CIERRES[j]?.[0] ?? '', paso, q, n > 1 || !sinCuenta ? `${k + 1} de ${n}` : '');
     pintarBarra(ctx, p);
     return;
   }
@@ -1003,9 +1009,11 @@ function pintarClip(ctx, i, t) {
   ctx.restore();
   caja(ctx, 8, 5, 52, 14, enProblema ? ROJO : VERDE, 0.25, 7);
   letrero(ctx, enProblema ? 'Sin STL' : 'Con STL', 34, 15.5, enProblema ? '#ffc2cf' : '#dff5e8', 8.5);
-  // Cuál de las situaciones se ve: «1 de 3»
-  caja(ctx, 262, 5, 50, 14, enProblema ? ROJO : VERDE, 0.2, 7);
-  letrero(ctx, `${k + 1} de ${n}`, 287, 15.5, enProblema ? '#ffc2cf' : '#dff5e8', 8.5);
+  // Cuál de las situaciones se ve: «1 de 3» (en el video, con una sola, no va)
+  if (n > 1 || !sinCuenta) {
+    caja(ctx, 262, 5, 50, 14, enProblema ? ROJO : VERDE, 0.2, 7);
+    letrero(ctx, `${k + 1} de ${n}`, 287, 15.5, enProblema ? '#ffc2cf' : '#dff5e8', 8.5);
+  }
   if (paso) letrero(ctx, paso, 160, 190, enProblema ? '#ffc2cf' : '#fffaf0', tamanoQueCabe(ctx, paso, 11, 300));
   pintarBarra(ctx, p);
 }
@@ -1121,6 +1129,8 @@ function iniciar() {
   // menú vuelve a empezar la suya, para repetirla cuando se quiera (nota de voz nmw1khrketit). null: aún no empieza
   const relojes = [null, null];
   const empezarEstacion = (k) => { if (k >= 0 && k < relojes.length) relojes[k] = performance.now() / 1000; };
+  // El video empieza el ciclo de la estación 1 en el segundo que pide, para que se vea al director hablar con el modelo
+  ganchoVideo.estacion1 = (seg) => { relojes[0] = performance.now() / 1000 - seg; };
   const tiempoDe = (k) => relojes[k] === null ? 0 : performance.now() / 1000 - relojes[k];
   // Lo que se mueve en una estación corre con su propio reloj, no con el de la página
   const deEstacion = (k, f) => () => f(compartir ? MOMENTO_COMPARTIR : tiempoDe(k));
@@ -2185,7 +2195,7 @@ function iniciar() {
   function cuadro() {
     if (!enVista) return;
     // En ?ver=N, unos segundos de cuadros y se queda quieta: así se puede capturar sin pantalla
-    if (fijo !== null && ++dibujados > 150) return;
+    if (fijo !== null && !enVideo && ++dibujados > 150) return;
     const w = objetivo();
     cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * SUAVIZADO;
     primera = false;
@@ -2248,3 +2258,4 @@ if (lienzo && estaciones.length && hayWebGL()) {
   if (compartir) document.documentElement.classList.add('compartir');
   iniciar();
 }
+if (enVideo) import('./video-corto.js').then((m) => m.montar({ grandes: GRANDES, pintarClip, duraClip, tramoDeVoz, gancho: ganchoVideo, sinCuenta: () => { sinCuenta = true; } }));
