@@ -22,8 +22,8 @@ const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb3
 // «ES · EN»); el idioma sale de <html lang> (nota de voz nmw1c3q68tit). Los tipos de pedido llevan el nombre de su tipo
 // en el Studio: falla, idea, ajuste, pregunta y respuesta. «pasado» es el título de la estación 2
 const TEXTOS = {
-  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '¿Te ha pasado…? Selecciona los problemas que floten si te identificas con ellos' },
-  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Has this happened to you? Select the floating problems you relate to' },
+  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '6 problemas de desarrollar por chat que STL resuelve muy bien', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
+  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: '6 problems of developing through chat that STL solves really well', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
 };
 const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es'];
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
@@ -33,6 +33,9 @@ const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Tangle
 // La línea de la estación 2 sale del diccionario, también en la página en inglés
 const tituloDos = document.querySelector('[data-titulo-dos]');
 if (tituloDos) tituloDos.textContent = T.pasado;
+// Y el título de la animación de la estación 1, arriba a la derecha de su visor (nmw479zmetit)
+const tituloVisor = document.querySelector('[data-titulo-visor]');
+if (tituloVisor) tituloVisor.innerHTML = T.visor;
 // Cuánto de la distancia que le falta recorre la cámara en cada cuadro. Fue 0,085, luego 0,03 y ahora la mitad, 0,015: el
 // cambio entre estaciones mareaba (nota de voz nmw17rx07tit)
 const SUAVIZADO = 0.015;
@@ -127,6 +130,14 @@ function hayWebGL() {
 // bolitas del camino, lo que le entregas al Studio en la estación 1 y los íconos 2D de las animaciones los llevan (nota
 // de voz nmw17rx07tit)
 const COLOR_TIPO = { respuesta: '#f5d27a', ajuste: '#7fe0d6', idea: '#f7a8d8', falla: '#ff6b8a', pregunta: '#c9b8ff', eleccion: '#7fb2ff', hazlo: '#ffb27a', entrega: '#6fe3a1' };
+// Los íconos de la estación 2, de un solo color con el blanco, con la paleta de las notas de la estación 1 (nota de voz del
+// titular nmw46qjootit): uno distinto por problema, en el orden de la estación; antes de tocarlos, todos en gris
+const COLOR_PROBLEMA = [COLOR_TIPO.idea, COLOR_TIPO.ajuste, COLOR_TIPO.pregunta, COLOR_TIPO.respuesta, COLOR_TIPO.eleccion, COLOR_TIPO.hazlo];
+const GRIS_PROBLEMA = '#8d929e';
+/** Si el ícono del problema i va en su color: con el ratón encima, abierto o ya abierto antes; si no, en gris. Pura. */
+function enColor(i, sobre, seleccionado, resueltos) {
+  return sobre === i || seleccionado === i || resueltos.has(i);
+}
 const COLORES_TIPO = Object.values(COLOR_TIPO);
 // Los quince problemas de antes (nota de voz nmw19elcqtit) siguen como dieciséis SEGMENTOS: cada uno dibuja su situación
 // y cómo la resuelve STL (el dieciseisavo, «una decisión vieja se cuela», es nuevo: pd_memoria_ventaja). Desde la nota de
@@ -163,7 +174,7 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3258,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9623,"g4-e":7646,"g5-e":10535,"g6-e":3784,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":2950,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":3514,"s9-c":2804,"s10-p1":1526,"s10-p2":2695,"s10-1":4743,"s10-2":2704,"s10-c":2288,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389};
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -1543,7 +1554,8 @@ function iniciar() {
 
   // ── Estación 2, ¿te ha pasado…?: los seis grandes problemas giran despacio alrededor de la línea, como un anillo (nota de
   // voz nmw40cp3jtit), cada uno un ÍCONO 3D de su problema, en el estilo de los actores de la estación 1 (formas
-  // redondeadas, brillo propio, rojos hasta que se abren y verdes después): varias ventanas para la atención repartida en
+  // redondeadas, brillo propio, de un solo color con el blanco: grises hasta que el ratón pasa o se abren, y entonces cada
+  // uno en su color, nmw46qjootit): varias ventanas para la atención repartida en
   // sesiones, un globo de mensaje partido para lo que dices y se pierde, un hilo enredado para el contexto, una pila de
   // páginas para leer y releer, una caja negra con su «?» para el modelo que olvida y una señal de wifi cortada para la falta
   // de internet. Al pasar el ratón o al hacer clic, su globo con su nombre en dos palabras; al hacer clic, su reproductor
@@ -1622,14 +1634,14 @@ function iniciar() {
         }
         return g;
       },
-      // 5 · el modelo olvida: una caja negra con su «?», sobre una base del color del problema
-      (mat) => {
+      // 5 · el modelo olvida: una caja de su color con su «?» blanco, sobre una base blanca (un solo color con el blanco:
+      // nmw46qjootit)
+      (mat, apoyo) => {
         const g = new THREE.Group();
-        const negra = new THREE.MeshStandardMaterial({ color: '#2b2826', emissive: '#2b2826', emissiveIntensity: 0.2, roughness: 0.5 });
-        const cara = new THREE.Mesh(new THREE.PlaneGeometry(1.06, 1.06), new THREE.MeshBasicMaterial({ map: textura('?', '#ffd9e2'), transparent: true, depthWrite: false }));
+        const cara = new THREE.Mesh(new THREE.PlaneGeometry(1.06, 1.06), new THREE.MeshBasicMaterial({ map: textura('?', '#ffffff'), transparent: true, depthWrite: false }));
         cara.position.z = 0.585;
-        const base = cajita(1.5, 0.12, 1.5, mat, 0.04); base.position.y = -0.68;
-        g.add(cajita(1.15, 1.15, 1.15, negra, 0.18), cara, base);
+        const base = cajita(1.5, 0.12, 1.5, apoyo, 0.04); base.position.y = -0.68;
+        g.add(cajita(1.15, 1.15, 1.15, mat, 0.18), cara, base);
         g.position.y = 0.1;
         return g;
       },
@@ -1660,7 +1672,8 @@ function iniciar() {
     Object.assign(anillo, { radioX: RADIO_X, radioY: RADIO_Y, abierto: ANILLO_ABIERTO });
     ESFERAS.forEach((pos, i) => {
       const casa = lugarEnAnillo(pos.a, 1);
-      const mat = brillo(ROJO, 0.6), apoyo = brillo('#fff0f3', 0.35);
+      // Empieza en gris; su color, al pasar el ratón, al abrirlo y después de abierto (moverAnillo)
+      const mat = brillo(GRIS_PROBLEMA, 0.2), apoyo = brillo('#ffffff', 0.3);
       const orbe = ICONOS[i](mat, apoyo);
       orbe.position.copy(casa);
       // El área que se toca con el ratón: una esfera invisible alrededor del ícono
@@ -1670,25 +1683,24 @@ function iniciar() {
       const titulo = EN ? TITULOS_CORTOS_EN[i] : (problemas[i]?.dataset.corto ?? `Problema ${i + 1}`);
       hit.userData.i = i;
       escena.add(orbe);
-      orbes.push({ orbe, hit, titulo, mat, casa, a: pos.a, fase: Math.random() * 6, grande: 1 });
+      orbes.push({ orbe, hit, titulo, mat, casa, a: pos.a, fase: Math.random() * 6, grande: 1, color: new THREE.Color(COLOR_PROBLEMA[i]) });
     });
-    const verde = new THREE.Color(VERDE);
-    const pintarVerde = (o) => { o.mat.color.copy(verde); o.mat.emissive.copy(verde); };
-    alResolver.push((i) => { if (quieto && orbes[i]) pintarVerde(orbes[i]); });
-    resueltos.forEach((i) => { if (orbes[i]) pintarVerde(orbes[i]); });
-    // Cada cuadro: el anillo gira, y con el reproductor abierto se achica (sus íconos, un poco menos) para dejarle sitio
+    const gris = new THREE.Color(GRIS_PROBLEMA);
+    // Cada cuadro: el anillo gira, y con el reproductor abierto se achica (sus íconos, un poco menos) para dejarle sitio. Cada
+    // ícono va en gris hasta que el ratón pasa por él o se abre, y entonces toma su color (nmw46qjootit)
     function moverAnillo(s) {
       const abierto = suave(pantalla2.cam);
       anillo.escala = lerp(1, ANILLO_ABIERTO, abierto);
       orbes.forEach((o, i) => {
-        const visto = resueltos.has(i);
-        if (visto && !quieto) { o.mat.color.lerp(verde, 0.06); o.mat.emissive.lerp(verde, 0.06); }
+        const visto = enColor(i, sobre, seleccionado, resueltos);
+        const tono = visto ? o.color : gris;
+        o.mat.color.lerp(tono, quieto ? 1 : 0.15); o.mat.emissive.lerp(tono, quieto ? 1 : 0.15);
         o.grande += ((seleccionado === i ? 1.25 : sobre === i ? 1.12 : 1) - o.grande) * (quieto ? 1 : 0.12);
         o.orbe.scale.setScalar(o.grande * ESCALA_ICONO * lerp(1, 0.78, abierto));
         lugarEnAnillo(o.a + s * GIRO_ANILLO, anillo.escala, o.casa);
         o.orbe.position.copy(o.casa).addScaledVector(ARRIBA, Math.sin(s * 1.4 + o.fase) * 0.1);
         o.orbe.rotation.y = frente + Math.sin(s * 0.9 + o.fase) * 0.4;
-        o.mat.emissiveIntensity = visto ? 0.55 : 0.4 + 0.4 * Math.sin(s * 2 + o.fase) ** 2;
+        o.mat.emissiveIntensity = visto ? 0.55 : 0.15 + 0.15 * Math.sin(s * 2 + o.fase) ** 2;
       });
     }
     anillo.mover = moverAnillo;
@@ -2102,11 +2114,17 @@ function iniciar() {
     const lugar = lugarDelGlobo(yo, globo.offsetWidth, globo.offsetHeight, centro, obstaculos, { ancho: disposicion.ancho, alto: disposicion.alto });
     globo.style.left = `${Math.round(lugar.x)}px`; globo.style.top = `${Math.round(lugar.y)}px`;
   }
-  // Un clic en un ícono abre su reproductor, con la animación de su problema, y suenan las voces de Kai. Un segundo clic en el
-  // mismo ícono no hace nada; uno en otro, cambia de problema
+  // Un clic en un ícono abre su reproductor, con la animación de su problema, y suenan las voces de Kai. Cada ícono es un
+  // interruptor (nota de voz del titular nmw46tffetit): un segundo clic en el mismo lo cierra y la estación vuelve a como
+  // estaba al llegar; uno en otro cierra el que estaba y abre ese
+  function alternarProblema(i) {
+    if (seleccionado === i) cerrarPopup();
+    else abrirProblema(i);
+  }
   function abrirProblema(i) {
     const d = problemas[i];
     if (!orbes[i] || !popup || !d || seleccionado === i) return;
+    if (seleccionado >= 0) callar();
     marcarVisto(i);
     seleccionado = i;
     autocierre.abrir();
@@ -2134,7 +2152,7 @@ function iniciar() {
     return true;
   };
   // Un clic en el nombre de un problema de la lista lo abre en el mundo (sin 3D, se abre ahí mismo con su respuesta)
-  problemas.forEach((d, i) => d.querySelector('summary')?.addEventListener('click', (e) => { e.preventDefault(); abrirProblema(i); }));
+  problemas.forEach((d, i) => d.querySelector('summary')?.addEventListener('click', (e) => { e.preventDefault(); alternarProblema(i); }));
   // Su globo, mientras el ratón está sobre su ícono o sobre el problema en la lista
   function mostrarNombre(i) { sobre = i; }
   problemas.forEach((d, i) => {
@@ -2151,7 +2169,7 @@ function iniciar() {
     rayo.setFromCamera(puntero, camara);
     return rayo.intersectObjects(tocables, false)[0]?.object.userData.i ?? -1;
   }
-  lienzo.addEventListener('click', (e) => { const i = bajoElPuntero(e); if (i >= 0) abrirProblema(i); });
+  lienzo.addEventListener('click', (e) => { const i = bajoElPuntero(e); if (i >= 0) alternarProblema(i); });
   lienzo.addEventListener('pointermove', (e) => {
     const i = bajoElPuntero(e);
     lienzo.style.cursor = i >= 0 ? 'pointer' : '';

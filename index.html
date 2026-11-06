@@ -99,6 +99,8 @@
   .visor[hidden] { display: none; }
   .visor-barra { display: flex; align-items: center; gap: 14px; flex: none; }
   .visor-barra span { font-size: 13px; color: var(--tenue); }
+  .visor-barra .visor-titulo { margin: 0 6px 0 auto; font-size: clamp(14px, 1.3vw, 19px); line-height: 1.25; font-weight: 600; color: var(--oro); letter-spacing: .02em; text-align: right; }
+  .visor-barra .visor-titulo span { font-size: inherit; font-weight: 500; color: #fff1c4; }
   .volver { padding: 8px 18px; border: 0; border-radius: 999px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; background: var(--oro); color: #1a1f33; }
   .volver:hover { background: var(--luz); }
   .visor iframe { flex: 1; min-height: 0; width: 100%; border: 0; border-radius: 10px; background: #07090f; }
@@ -226,7 +228,6 @@
   <ol>
     <li><a href="#e-que-es">Qué es STL</a></li>
     <li><a href="#e-te-ha-pasado">¿Te ha pasado…?</a></li>
-    <li><span title="No reemplaza a SDD u otros métodos: los potencia">¿Reemplaza a otros métodos?</span></li>
     <li><span title="Llega en el siguiente tramo del recorrido">La documentación</span></li>
   </ol>
 </nav>
@@ -251,7 +252,7 @@
 
     <article class="estacion dos" id="e-te-ha-pasado">
       <div class="tarjeta panel">
-        <h2 class="linea-dos" data-titulo-dos>¿Te ha pasado…? Selecciona los problemas que floten si te identificas con ellos</h2>
+        <h2 class="linea-dos" data-titulo-dos>6 problemas de desarrollar por chat que STL resuelve muy bien</h2>
 
         <div class="lista-problemas">
         <details class="problema" data-resuelve="0" data-corto="Atención dispersa"><summary>¿Abres hasta 4 o más sesiones a la vez, te cuesta saber en qué va cada una y, cuando una idea aparece a mitad de algo, la metes en cualquiera y al final no sabes qué sigue?</summary><p>Con STL todo entra por un solo canal: ideas y ajustes van al Buzón y a su fase en la ruta, no sobrecargas tu atención y siempre sabes qué sigue.</p></details>
@@ -268,7 +269,7 @@
 </main>
 
 <footer class="fin" id="fin">
-  <p>Aquí termina este tramo del recorrido. Las estaciones que siguen («¿Reemplaza a otros métodos?» y «La documentación») llegan en el siguiente.</p>
+  <p>Aquí termina este tramo del recorrido. La estación que sigue, «La documentación», llega en el siguiente.</p>
   <p><a class="boton" href="https://github.com/ARGWABOT/STL-Sacred_Time_Line">▶ Bájalo en GitHub</a></p>
   <p>STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).</p>
 </footer>
@@ -278,6 +279,8 @@
   <div class="visor-barra">
     <button type="button" class="volver" data-cerrar-visor>← Volver al recorrido</button>
     <span>Esc también vuelve</span>
+    <!-- El título de la animación, arriba a la derecha del visor y no dentro del dibujo (nota de voz nmw479zmetit) -->
+    <h2 class="visor-titulo" data-titulo-visor>¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span></h2>
   </div>
   <iframe data-src="linea-del-proyecto.html" allow="autoplay" title="La animación de la línea del proyecto, en grande"></iframe>
 </div>

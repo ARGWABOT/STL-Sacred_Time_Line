@@ -65,23 +65,31 @@
   #estado.cambia { opacity: 0; }
   /* Antes de iniciarla, los subtítulos no se ven (guardan su lugar): empiezan con la animación */
   #estado.espera { visibility: hidden; }
-  #cuenta { min-height: 1.4em; font-size: 12px; color: #8f8a7d; text-align: center; padding: 0 20px; flex: none; }
+  /* La línea de abajo con las cifras («Ramas abiertas…, conversaciones…») salió: el dibujo ya lo cuenta, y su lugar es
+     del dibujo (nota de voz del titular nmw473qxdtit, 5 de noviembre de 2026) */
   /* La perilla: se gira como el volumen de una radio; en el centro, pausa o sigue. Abajo a la derecha, donde termina
-     la línea del tiempo, y crece o se achica con el dibujo */
+     la línea del tiempo, y crece o se achica con el dibujo; más chica que antes, con sus mandos (nmw473qxdtit) */
   #mando {
-    position: absolute; right: .6%; bottom: 2.5%; width: 11%; z-index: 3;
+    position: absolute; right: .6%; bottom: 2.5%; width: 9%; z-index: 3;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
   }
   /* Cuando el dibujo no alcanza a usar todo el ancho (lo limita el alto, como en un portátil de 1360), la perilla y sus
-     mandos salen del dibujo a su derecha, en el espacio libre, con su tamaño cómodo y sin amontonarse (nota de voz
-     nmw40vdvitit): --mando es su columna, y el dibujo usa el resto (--lienzo) */
-  #todo.mando-fuera #mando { right: 0; bottom: 4%; width: var(--mando); gap: 6px; }
-  #todo.mando-fuera #perilla { width: min(100%, 104px); }
-  #todo.mando-fuera #crono { font-size: 14px; }
-  #todo.mando-fuera .pista { font-size: 12px; }
-  #todo.mando-fuera #voz { font-size: 13px; padding: 4px 14px; }
-  #todo.mando-fuera #velocidad { gap: 4px; }
-  #todo.mando-fuera #velocidad button { font-size: 12px; padding: 3px 8px; }
+     mandos salen del dibujo a su derecha, en el espacio libre, sin amontonarse (nota de voz nmw40vdvitit): --mando es su
+     columna, y el dibujo usa el resto (--lienzo). En el visor del recorrido, el interruptor «Sin STL · Con STL» también
+     baja a esa columna, y el dibujo gana el alto del encabezado (nmw479zmetit) */
+  #todo.mando-fuera #mando { right: 0; bottom: 4%; width: var(--mando); gap: 5px; }
+  #todo.mando-fuera #perilla { width: min(100%, 80px); }
+  #todo.mando-fuera #crono { font-size: 12px; }
+  #todo.mando-fuera .pista { font-size: 11px; }
+  #todo.mando-fuera #voz { font-size: 12px; padding: 3px 10px; }
+  #todo.mando-fuera #velocidad { gap: 3px; }
+  #todo.mando-fuera #velocidad button { font-size: 11px; padding: 2px 6px; }
+  #mando #modos { flex-direction: column; margin-bottom: 6px; border-radius: 14px; }
+  #mando #modos button { font-size: 12px; padding: 4px 12px; }
+  /* En el visor del recorrido, el título va arriba a la derecha del visor (mundo-3d.html › .visor-titulo), no aquí */
+  .en-visor h1 { display: none; }
+  .en-visor header { grid-template-columns: 1fr; justify-items: center; }
+  .en-visor header[hidden] { display: none; }
   #perilla {
     position: relative; width: 100%; aspect-ratio: 1; flex: none; border-radius: 50%;
     touch-action: none; cursor: grab; outline: none; -webkit-tap-highlight-color: transparent;
@@ -214,7 +222,6 @@
 </div>
 
 <div id="estado" class="espera"></div>
-<div id="cuenta"></div>
 </div>
 
 <!-- La bienvenida: solo la primera vez -->
@@ -641,7 +648,8 @@
     mostrar(lineas[i], t0 + en[i]);
   }
   function destello(x, y, color, now, grande) { efectos.push({ x, y, color, t: now, max: grande ? 30 : 16 }); }
-  function contar(cifras) { ultimaCuenta = cifras; if (!silencio && cifras !== textoCuenta) { textoCuenta = cifras; $('cuenta').textContent = cifras; } }
+  // Las cifras ya no salen abajo (nmw473qxdtit): se recuerdan, por si vuelven a hacer falta, sin pintarse
+  function contar(cifras) { ultimaCuenta = cifras; }
   // Lo que el director piensa en voz alta, encima de él: cada frase aparece, se queda y se va
   function pensando(t, frases, inicio, por = POR_FRASE) {
     const i = Math.floor(t / por), q = (t - i * por) / por;
@@ -2004,17 +2012,12 @@
     narra.audio = a; narra.hablando = true; narra.desde = performance.now();
     a.play().catch(listo);
   }
-  // Dónde va el globito, de alto: encima de la perilla, nunca debajo de ella (nota de voz nmw2q8m0ltit, para que se lea).
-  // «arriba» es el borde de arriba del mando (la perilla con lo que lleva debajo), en unidades del dibujo: el globito (30
-  // de alto, más su piquito de 10) termina 8 más arriba, y nunca se sale del dibujo. Sin ese dato, donde iba
-  function yDelGlobito(arriba) {
-    const y = Y - 92;
-    return Number.isFinite(arriba) ? Math.max(28, Math.min(y, arriba - 24 - 8)) : y;
-  }
-  // El borde de arriba del mando, en unidades del dibujo: crece o se achica con la página, por eso se mide cada vez
-  function arribaDelMando() {
-    const c = cv.getBoundingClientRect(), m = $('mando').getBoundingClientRect();
-    return c.width ? (m.top - c.top) * W / c.width : NaN;
+  // Dónde va el globito: justo encima del Studio, que flota junto a ti en la meta, y nunca arriba del todo, donde está el
+  // contador de tokens (nota de voz del titular nmw479zmetit: en el portátil quedaba sobre los tokens). Su centro, dentro
+  // del dibujo; su alto, el del Studio menos lo que mide el Studio (sx, sy: su centro; s, su medio lado) y el piquito, sin
+  // subir de 70 (debajo de las cifras de arriba). Pura
+  function lugarDelGlobito(sx, sy, s, w) {
+    return { x: Math.max(w / 2 + 10, Math.min(W - w / 2 - 10, sx)), y: Math.max(70, sy - s - 34), pico: Math.max(16, Math.min(W - 16, sx)) };
   }
   function globitoDeMeta(now) {
     if (fase !== 'meta') return;
@@ -2023,12 +2026,12 @@
     vozDelGlobito(g);
     const a = tope(g.k / 0.08) * tope((1 - g.k) / 0.12);
     ctx.font = `600 13px system-ui, -apple-system, 'Segoe UI', sans-serif`;
-    const w = ctx.measureText(g.texto).width + 26, x = Math.min(W - w / 2 - 10, cabeza), y = yDelGlobito(arribaDelMando()) - 6 * (1 - a);
+    const w = ctx.measureText(g.texto).width + 26, lugar = lugarDelGlobito(st.x, st.y, 20, w), x = lugar.x, y = lugar.y - 6 * (1 - a);
     ctx.save(); ctx.globalAlpha = a;
     ctx.fillStyle = 'rgba(12, 15, 26, .94)'; ctx.strokeStyle = ORO; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.roundRect(x - w / 2, y - 16, w, 30, 15); ctx.fill(); ctx.stroke();
-    // Su piquito, hacia tu cubito
-    ctx.beginPath(); ctx.moveTo(cabeza - 6, y + 14); ctx.lineTo(cabeza, y + 24); ctx.lineTo(cabeza + 6, y + 14); ctx.closePath(); ctx.fill();
+    // Su piquito, hacia el Studio
+    ctx.beginPath(); ctx.moveTo(lugar.pico - 6, y + 14); ctx.lineTo(lugar.pico, y + 24); ctx.lineTo(lugar.pico + 6, y + 14); ctx.closePath(); ctx.fill();
     ctx.restore();
     texto(g.texto, x, y + 4, LUZ, 13, a, '600');
   }
@@ -2051,7 +2054,6 @@
     while (pasos < n - antes) avanzar();
     silencio = false;
     renarrar();
-    $('cuenta').textContent = textoCuenta = ultimaCuenta;
   }
 
   // Sin movimiento: se dibuja un momento de cada escena, quieto (con STL, el director atendiendo la urgencia)
@@ -2217,12 +2219,21 @@
   // Todo cabe en la pantalla: el dibujo toma el ancho que permiten la ventana y lo que va arriba y abajo. En un
   // teléfono vertical, todo se acuesta (gira 90 grados) para verse en su forma más ancha
   const vertical = matchMedia('(orientation: portrait) and (pointer: coarse)');
-  // El ancho de la columna de los mandos fuera del dibujo: de 130 a 170 px, si cabe junto a él dentro de la pantalla
-  // (con 20 de aire en medio y 16 en los bordes); si no, 0 y la perilla sigue dentro del dibujo. Pura
+  // El ancho de la columna de los mandos fuera del dibujo: de 104 a 136 px (más chica que antes: nmw473qxdtit), si cabe
+  // junto a él dentro de la pantalla (con 20 de aire en medio y 16 en los bordes); si no, 0 y la perilla sigue dentro del
+  // dibujo. Pura
   function mandoAfuera(vw, ancho) {
     const libre = vw - 16 - ancho - 20;
-    return libre >= 130 ? Math.min(170, Math.floor(libre)) : 0;
+    return libre >= 104 ? Math.min(136, Math.floor(libre)) : 0;
   }
+  // El ancho del dibujo con «resto» de alto ocupado por lo demás: todo el que deja la pantalla, sin otro tope (nmw479zmetit). Pura
+  function anchoDelDibujo(vw, vh, resto) {
+    return Math.floor(Math.max(280, Math.min(vw - 16, ((vh - resto) * W) / H)));
+  }
+  // Dentro del recorrido en 3D (mundo-3d.html la abre en grande, en un iframe): el título va en el visor, no aquí
+  let enVisor = false;
+  try { enVisor = window.self !== window.top; } catch { enVisor = true; }
+  if (enVisor) document.documentElement.classList.add('en-visor');
   function disponer() {
     const todo = $('todo'), rot = vertical.matches;
     const vw = rot ? innerHeight : innerWidth, vh = rot ? innerWidth : innerHeight;
@@ -2230,12 +2241,25 @@
     todo.style.transform = rot ? 'rotate(90deg) translateY(-100%)' : '';
     const letra = Math.max(12, Math.min(17, vw / 68));
     todo.style.setProperty('--letra', letra + 'px');
-    // Lo que ocupan el título, los subtítulos (dos renglones) y la cuenta, con sus espacios
-    const resto = document.querySelector('header').offsetHeight + letra * 1.4 * 2 + 16 + 18 + 16 + 18;
-    const ancho = Math.floor(Math.max(280, Math.min(vw - 16, 1240, ((vh - resto) * W) / H)));
+    // El interruptor vuelve a su encabezado para medirlo
+    const cabecera = document.querySelector('header'), modos = $('modos');
+    if (modos.parentElement !== cabecera) cabecera.append(modos);
+    cabecera.hidden = false;
+    // Lo que ocupan el encabezado y los subtítulos (dos renglones), con sus espacios
+    const subtitulos = letra * 1.4 * 2 + 16 + 18 + 16;
+    let ancho = anchoDelDibujo(vw, vh, cabecera.offsetHeight + subtitulos);
     // Si el alto limita el dibujo y sobra ancho a los lados, la perilla y sus mandos van afuera, a su derecha, en una columna
-    // propia, y el título, los subtítulos y la cuenta toman todo ese ancho (nota de voz nmw40vdvitit)
-    const columna = mandoAfuera(vw, ancho);
+    // propia, y el título y los subtítulos toman todo ese ancho (nota de voz nmw40vdvitit)
+    let columna = mandoAfuera(vw, ancho);
+    // En el visor, con esa columna, el interruptor baja a ella y el encabezado se va: el dibujo gana su alto (nmw479zmetit)
+    if (enVisor && columna) {
+      $('mando').prepend(modos);
+      cabecera.hidden = true;
+      const sinCabecera = anchoDelDibujo(vw, vh, subtitulos);
+      const otra = mandoAfuera(vw, sinCabecera);
+      if (otra) { ancho = sinCabecera; columna = otra; }
+      else { cabecera.append(modos); cabecera.hidden = false; }
+    }
     todo.classList.toggle('mando-fuera', columna > 0);
     todo.style.setProperty('--ancho', (ancho + (columna ? columna + 20 : 0)) + 'px');
     todo.style.setProperty('--lienzo', columna ? ancho + 'px' : '100%');
@@ -2251,10 +2275,8 @@
   // movimiento, la escena espera quieta en un momento clave; la perilla y el botón la mueven si quieres
   reproduce = false;
   if (quieto) estatico(); else narrar();
-  // Dentro del recorrido en 3D (mundo-3d.html la abre en grande, en un iframe), empieza sola a los 2 segundos de abrirse,
-  // sin «Iniciar la presentación» ni su invitación (nota de voz del titular nmw197t4jtit); sola, en su página, espera
-  let enVisor = false;
-  try { enVisor = window.self !== window.top; } catch { enVisor = true; }
+  // Dentro del recorrido en 3D (enVisor), empieza sola a los 2 segundos de abrirse, sin «Iniciar la presentación» ni su
+  // invitación (nota de voz del titular nmw197t4jtit); sola, en su página, espera
   const ARRANQUE_EN_VISOR = 2000;
   if (enVisor) $('invita').remove();
   else mando.classList.add('llama');
