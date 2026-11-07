@@ -2864,10 +2864,23 @@ function iniciar() {
     rayo.setFromCamera(puntero, camara);
     return rayo.intersectObjects(tocables, false)[0]?.object.userData.i ?? -1;
   }
-  lienzo.addEventListener('click', (e) => { const i = bajoElPuntero(e); if (i >= 0) alternarProblema(i); });
+  // La pantalla 3D de «Cómo empezar» también se oprime: un clic en ella la agranda y empieza su animación, como «▶ Ver cómo
+  // empezar» (nmw6lwwbxtit)
+  function sobreLaPantalla(e) {
+    if (!como3d.pantalla?.visible || Math.abs(cur - 3) > 0.45 || visorAbierto()) return false;
+    const r = lienzo.getBoundingClientRect();
+    puntero.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    rayo.setFromCamera(puntero, camara);
+    return rayo.intersectObject(como3d.pantalla, true).length > 0;
+  }
+  lienzo.addEventListener('click', (e) => {
+    const i = bajoElPuntero(e);
+    if (i >= 0) alternarProblema(i);
+    else if (sobreLaPantalla(e)) { guia.visita = true; abrirComo(); }
+  });
   lienzo.addEventListener('pointermove', (e) => {
     const i = bajoElPuntero(e);
-    lienzo.style.cursor = i >= 0 ? 'pointer' : '';
+    lienzo.style.cursor = i >= 0 || sobreLaPantalla(e) ? 'pointer' : '';
     if (i !== sobre) mostrarNombre(i);
   });
   lienzo.addEventListener('pointerleave', () => mostrarNombre(-1));
