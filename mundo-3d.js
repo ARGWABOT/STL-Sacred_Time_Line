@@ -24,8 +24,8 @@ const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb3
 // «ES · EN»); el idioma sale de <html lang> (nota de voz nmw1c3q68tit). Los tipos de pedido llevan el nombre de su tipo
 // en el Studio: falla, idea, ajuste, pregunta y respuesta. «pasado» es el título de la estación 2
 const TEXTOS = {
-  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '7 problemas de desarrollar por chat que STL resuelve muy bien', uno: 'Qué es STL', tres: 'Cómo empezar', ver: '▶ Ver la animación', verComo: '▶ Ver cómo empezar', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
-  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: '7 problems of developing through chat that STL solves really well', uno: 'What is STL', tres: 'Getting started', ver: '▶ Watch the animation', verComo: '▶ Watch how to get started', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
+  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: 'Problemas de desarrollar por chat que STL resuelve muy bien', uno: 'Qué es STL', tres: 'Cómo empezar', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
+  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Problems of developing through chat that STL solves really well', uno: 'What is STL', tres: 'Getting started', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
 };
 const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es'];
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
@@ -35,8 +35,9 @@ const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Lost t
 // La línea de la estación 2 sale del diccionario, también en la página en inglés
 const tituloDos = document.querySelector('[data-titulo-dos]');
 if (tituloDos) tituloDos.textContent = T.pasado;
-// Las tarjetas de las estaciones 1 y 3, también en inglés: un solo título cada una y el botón con el mismo formato (nmw5o26vdtit)
-for (const [marca, texto] of [['[data-titulo-uno]', T.uno], ['[data-titulo-tres]', T.tres], ['[data-texto-ver]', T.ver], ['[data-ver-como]', T.verComo]]) {
+// Las tarjetas de las estaciones 1 y 3, también en inglés: solo su botón, que dice el nombre de la estación, sin un rótulo
+// encima (nota de voz del titular nmw6p0g7htit; antes, un título y «▶ Ver la animación», nmw5o26vdtit)
+for (const [marca, texto] of [['[data-titulo-tres]', T.tres], ['[data-texto-ver]', T.uno], ['[data-ver-como]', T.tres]]) {
   const el = document.querySelector(marca);
   if (el) el.textContent = texto;
 }
@@ -2339,6 +2340,8 @@ function iniciar() {
   const MANDOS_ALTO = 64;   // lo que ocupan los mandos, debajo de la animación, dentro del reproductor
   const menuLista = document.querySelector('.menu ol'), lineaDos = document.querySelector('[data-titulo-dos]')?.closest('.tarjeta');
   const enPantalla = new THREE.Vector3();
+  // Dónde queda arriba una tarjeta, sin lo que se está deslizando al aparecer (nmw6p0g7htit): el encuadre no se mueve con ella
+  const arribaDe = (el) => { const r = el?.getBoundingClientRect(); if (!r || !r.height) return null; const t = getComputedStyle(el).transform; return r.top - (t && t !== 'none' ? new DOMMatrixReadOnly(t).m42 : 0); };
   const aPantalla = (v, ancho, alto, cam = camara) => { enPantalla.copy(v).project(cam); return { x: (enPantalla.x + 1) / 2 * ancho, y: (1 - enPantalla.y) / 2 * alto }; };
   // Al irse de la estación 2 hacia la 3, el anillo queda debajo y detrás de la cámara: medido con la cámara de ahora, su
   // centro se iba al fondo de la pantalla y el encuadre corría la imagen hacia abajo, como si la cámara mirara el suelo, y
@@ -2366,8 +2369,8 @@ function iniciar() {
     if (cerca <= 0.001 || !focos[2] || !ancho || !alto) return false;
     camara.updateMatrixWorld();
     const menuIzq = movil || !menuLista ? ancho : menuLista.getBoundingClientRect().left;
-    const linea = lineaTres?.getBoundingClientRect();
-    const lineaArriba = linea && linea.height && linea.top < alto ? linea.top : alto;
+    const arriba = arribaDe(lineaTres);
+    const lineaArriba = arriba !== null && arriba < alto ? arriba : alto;
     const d = disponerReproductor({ ancho, alto, menuIzq, lineaArriba, anilloMedio: menuIzq * 0.12, anilloAlto: 0, mandos: MANDOS_ALTO + EXTRA_ALTO });
     const c = aPantalla(focos[2], ancho, alto), e = seleccionado === GUIA ? suave(pantalla2.cam) : 0;
     camara.setViewOffset(ancho, alto, -(lerp(menuIzq / 2, d.anilloX, e) - c.x) * cerca, 0, ancho, alto);
@@ -2394,8 +2397,8 @@ function iniciar() {
     const deAbierto = anillo.abierto / Math.max(anillo.escala, 0.01);
     const medioAncho = Math.abs(ladoX.x - c.x), medioAlto = Math.abs(arribaY.y - c.y);
     const menuIzq = movil || !menuLista ? ancho : menuLista.getBoundingClientRect().left;
-    const linea = lineaDos?.getBoundingClientRect();
-    const lineaArriba = linea && linea.height && linea.top < alto ? linea.top : alto;
+    const arriba = arribaDe(lineaDos);
+    const lineaArriba = arriba !== null && arriba < alto ? arriba : alto;
     const d = disponerReproductor({ ancho, alto, menuIzq, lineaArriba, anilloMedio: medioAncho * deAbierto + aire, anilloAlto: medioAlto * deAbierto + aire, mandos: MANDOS_ALTO });
     // Cerrado, el anillo va al centro de lo libre (entre el borde y el menú, y sobre la línea de abajo); abierto, junto al menú
     const e = suave(pantalla2.cam);
@@ -2404,10 +2407,12 @@ function iniciar() {
     disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
   }
 
-  // ── La estación actual: su tarjeta se enciende
+  // ── La estación actual: su tarjeta aparece solo cuando la cámara llega a ella, y se va al avanzar o retroceder (nota de
+  // voz del titular nmw6p0g7htit: antes se encendía a mitad de camino y se asomaba transparente desde el principio)
+  const LLEGADA = 0.06;
   let actual = -2;
   function marcar(w) {
-    const k = Math.round(w) - 1;
+    const k = Math.abs(w - Math.round(w)) <= LLEGADA ? Math.round(w) - 1 : -1;
     if (k === actual) return;
     actual = k;
     estaciones.forEach((el, i) => el.classList.toggle('actual', i === k));
@@ -2906,7 +2911,8 @@ function iniciar() {
     // del titular nmw5wbs86tit, 7 de noviembre de 2026: «el visitante será el que le dé clic a empezar la animación»)
     if (Math.abs(cur - 3) > 0.45) guia.visita = false;
     pintarExtraComo();
-    if (verComo) verComo.style.visibility = seleccionado === GUIA ? 'hidden' : '';
+    // Con «Cómo empezar» abierto, su tarjeta (que es solo el botón) se esconde entera
+    if (lineaTres) lineaTres.style.visibility = seleccionado === GUIA ? 'hidden' : '';
     // Mientras «Cómo empezar» está abierto (o se encoge de vuelta), su pantalla 3D se apaga: el reproductor es ella en grande
     if (como3d.pantalla) como3d.pantalla.visible = como3d.brillo.visible = !(seleccionado === GUIA || como3d.volviendo);
     ultimoCuadro = ahoraMs;
@@ -2981,6 +2987,18 @@ if (lienzo && estaciones.length && hayWebGL()) {
   if (compartir) document.documentElement.classList.add('compartir');
   iniciar();
 }
-// Ya se sabe si hay 3D: la página se muestra, con él o sin él (nmw6lwwbxtit)
-document.documentElement.classList.remove('cargando-3d');
+// Ya se sabe si hay 3D: la página se muestra, con él o sin él (nmw6lwwbxtit), cuando está lista: la carga a página completa
+// (nmw6p3dj8tit) espera el evento load y un instante más (el primer cuadro ya se dibujó en iniciar), para que el menú y «ES · EN» ya estén en su lugar, y se desvanece
+// despacio. Para capturar (?ver=N, la imagen al compartir) o grabar el video, sin carga
+function mostrarPagina() {
+  document.documentElement.classList.remove('cargando-3d');
+}
+if (fijo !== null || compartir || enVideo) {
+  document.documentElement.classList.add('sin-cargador');
+  mostrarPagina();
+} else {
+  const listo = () => setTimeout(mostrarPagina, 150);
+  if (document.readyState === 'complete') listo();
+  else addEventListener('load', listo, { once: true });
+}
 if (enVideo) import('./video-corto.js').then((m) => m.montar({ grandes: GRANDES, pintarClip, duraClip, tramoDeVoz, gancho: ganchoVideo, sinCuenta: () => { sinCuenta = true; } }));

@@ -94,6 +94,33 @@
   /* Mientras carga el recorrido, no se ve el contenido de la página sin 3D (las tarjetas de los siete problemas se asomaban,
      nmw6lwwbxtit): la clase la pone el guion del principio y la quita mundo-3d.js, con 3D o sin él */
   .cargando-3d:not(.js-3d) #viaje, .cargando-3d:not(.js-3d) .fin { visibility: hidden; }
+  /* La carga, a página completa y encima de todo (nmw6p3dj8tit): el cielo de estrellas y, al centro, un farol que va y
+     viene por una línea; al estar lista la página se desvanece despacio. Sin JavaScript no sale (la clase la pone el guion) */
+  .cargador { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; opacity: 0; visibility: hidden; pointer-events: none;
+    background: radial-gradient(ellipse at 28% 22%, rgba(185, 163, 255, .16), transparent 55%), radial-gradient(ellipse at 74% 72%, rgba(90, 209, 255, .1), transparent 50%), #07090f;
+    transition: opacity 1.8s ease, visibility 0s 1.8s; }
+  .cargador::before, .cargador::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
+  .cargador::before { background-size: 233px 211px; opacity: .85;
+    background-image: radial-gradient(1.3px 1.3px at 18px 27px, #fff, transparent), radial-gradient(1px 1px at 96px 141px, #dfe6ff, transparent),
+      radial-gradient(1.1px 1.1px at 171px 63px, #fff6d8, transparent), radial-gradient(.9px .9px at 57px 188px, #fff, transparent),
+      radial-gradient(1px 1px at 203px 172px, #cfd8ff, transparent), radial-gradient(.8px .8px at 132px 14px, #fff, transparent); }
+  .cargador::after { background-size: 389px 347px; opacity: .6;
+    background-image: radial-gradient(1.6px 1.6px at 41px 302px, #fff, transparent), radial-gradient(1.2px 1.2px at 255px 96px, #fff6d8, transparent),
+      radial-gradient(1px 1px at 330px 233px, #dfe6ff, transparent), radial-gradient(.9px .9px at 147px 51px, #fff, transparent); }
+  .cargando-3d .cargador { opacity: 1; visibility: visible; pointer-events: auto; transition: none; }
+  .sin-cargador .cargador { display: none !important; }
+  .cargador-centro { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+  .cargador-linea { position: relative; width: 200px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, rgba(255, 207, 90, .55), transparent); }
+  .cargador-linea::after { content: ''; position: absolute; top: 50%; left: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+    background: #ffcf5a; box-shadow: 0 0 16px 5px rgba(255, 207, 90, .55); animation: viajaCarga 1.8s ease-in-out infinite alternate; }
+  @keyframes viajaCarga { to { left: 100%; } }
+  .cargador-texto { margin: 22px 0 0; font-size: 14px; letter-spacing: .1em; color: var(--tenue); }
+  .cargador-texto [lang] { display: none; }
+  html:lang(es) .cargador-texto [lang="es"], html:lang(en) .cargador-texto [lang="en"] { display: inline; }
+  @media (prefers-reduced-motion: reduce) {
+    .cargador-linea::after { animation: none; left: 50%; }
+    .cargador { transition: opacity .4s ease, visibility 0s .4s; }
+  }
   .bajar { display: inline-block; margin-top: 18px; color: var(--oro); text-decoration: none; }
   .bajar span { display: inline-block; animation: latido 2.4s ease-in-out infinite; }
   @keyframes latido { 50% { transform: translateY(4px); } }
@@ -116,9 +143,16 @@
     box-shadow: 0 18px 50px rgba(0, 0, 0, .45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   }
   .js-3d .tarjeta { position: sticky; bottom: 5vh; margin-bottom: 5vh; max-height: calc(100vh - 110px); overflow-y: auto; overscroll-behavior: contain;
-    opacity: .16; transform: translateY(14px); transition: opacity .5s, transform .5s cubic-bezier(.2, .7, .2, 1); }
-  .js-3d .estacion.actual .tarjeta { opacity: 1; transform: none; }
-  @media (prefers-reduced-motion: reduce) { .js-3d .tarjeta { transition: opacity .2s; transform: none; } }
+    opacity: 0; visibility: hidden; transform: translateY(4vh); transition: opacity .45s, transform .55s cubic-bezier(.2, .7, .2, 1), visibility 0s .55s; }
+  /* El texto de cada estación no se asoma antes de tiempo (nota de voz del titular nmw6p0g7htit): aparece solo cuando la
+     cámara llega a la estación, deslizándose de abajo hacia arriba, y se va al avanzar o retroceder (mundo-3d.js › marcar) */
+  .js-3d .estacion.actual .tarjeta { opacity: 1; visibility: visible; transform: none; transition: opacity .45s, transform .55s cubic-bezier(.2, .7, .2, 1), visibility 0s; }
+  @media (prefers-reduced-motion: reduce) {
+    .js-3d .tarjeta { transition: opacity .2s, visibility 0s .2s; transform: none; }
+    .js-3d .estacion.actual .tarjeta { transition: opacity .2s, visibility 0s; }
+  }
+  /* Con 3D, las tarjetas 1 y 3 son solo su botón (nmw6p0g7htit); el título de la 3 queda para quien lee sin 3D */
+  .js-3d .tarjeta .sin-3d { display: none; }
   .eyebrow { margin: 0 0 4px; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--oro); }
   .tarjeta h2 { margin: 0 0 10px; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.2; color: #fffaf0; text-wrap: balance; }
   .tarjeta h3 { margin: 14px 0 4px; font-size: 14px; letter-spacing: .02em; color: var(--oro); }
@@ -268,6 +302,15 @@
 </style>
 </head>
 <body>
+<!-- La carga, a página completa (nota de voz del titular nmw6p3dj8tit): solo el cielo de estrellas y una animación al
+     centro, encima de todo (el menú y «ES · EN» también), hasta que la página está lista; entonces se desvanece despacio
+     y queda la vista de entrada. La quita mundo-3d.js › mostrarPagina -->
+<div class="cargador" aria-hidden="true">
+  <div class="cargador-centro">
+    <div class="cargador-linea"></div>
+    <p class="cargador-texto"><span lang="es">Cargando el recorrido…</span><span lang="en">Loading the tour…</span></p>
+  </div>
+</div>
 <div class="cubierta-movil" id="cubierta-movil" role="dialog" aria-modal="true" aria-labelledby="cubierta-titulo">
   <div>
     <p class="cubierta-icono" aria-hidden="true">🖥️</p>
@@ -299,8 +342,7 @@
 
     <article class="estacion" id="e-que-es">
       <div class="tarjeta corta">
-        <h2 data-titulo-uno>Qué es STL</h2>
-        <div class="acciones"><a class="boton-ver" href="linea-del-proyecto.html" data-ver-animacion data-texto-ver>▶ Ver la animación</a></div>
+        <div class="acciones"><a class="boton-ver" href="linea-del-proyecto.html" data-ver-animacion data-texto-ver>Qué es STL</a></div>
       </div>
     </article>
 
@@ -308,7 +350,7 @@
 
     <article class="estacion dos" id="e-te-ha-pasado">
       <div class="tarjeta corta">
-        <h2 class="linea-dos" data-titulo-dos>7 problemas de desarrollar por chat que STL resuelve muy bien</h2>
+        <h2 class="linea-dos" data-titulo-dos>Problemas de desarrollar por chat que STL resuelve muy bien</h2>
 
         <div class="lista-problemas">
         <details class="problema" data-resuelve="0" data-corto="Atención dispersa"><summary>¿Abres hasta 4 o más sesiones a la vez, te cuesta saber en qué va cada una y, cuando una idea aparece a mitad de algo, la metes en cualquiera y al final no sabes qué sigue?</summary><p>Con STL todo entra por un solo canal: ideas y ajustes van al Buzón y a su fase en la ruta, no sobrecargas tu atención y siempre sabes qué sigue.</p></details>
@@ -329,8 +371,8 @@
          pasos se leen aquí, con lo que se le pide al modelo y el enlace al README -->
     <article class="estacion tres" id="e-como-empezar">
       <div class="tarjeta corta">
-        <h2 data-titulo-tres>Cómo empezar</h2>
-        <div class="acciones"><button type="button" class="boton-ver ver-como" data-ver-como>▶ Ver cómo empezar</button></div>
+        <h2 class="sin-3d" data-titulo-tres>Cómo empezar</h2>
+        <div class="acciones"><button type="button" class="boton-ver ver-como" data-ver-como>Cómo empezar</button></div>
         <ol class="lista-como">
           <li>¿Quieres probar el Studio ahora? Así se empieza.</li>
           <li>Primero, tráelo a tu computador: clona el repositorio, o descárgalo desde GitHub.</li>
