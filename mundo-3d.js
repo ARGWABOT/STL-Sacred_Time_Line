@@ -41,6 +41,21 @@ for (const [marca, texto] of [['[data-titulo-tres]', T.tres], ['[data-texto-ver]
   const el = document.querySelector(marca);
   if (el) el.textContent = texto;
 }
+// Lo fijo de «Cómo empezar» en la página, también en inglés (nmw6r9827tit): «▶ Empezar con voz», el enlace a la
+// documentación y, sin 3D, sus siete pasos
+if (EN) {
+  const empezar = document.querySelector('[data-empezar-voz]');
+  if (empezar) empezar.textContent = '▶ Start with voice';
+  const enlace = document.querySelector('[data-enlace-como]');
+  if (enlace) enlace.textContent = 'Open the documentation (the README on GitHub) ↗';
+  const pasos = ['Want to try the Studio now? This is how you start.', 'First, bring it to your computer: clone the repository, or download it from GitHub.', 'Put it in the folder where you want to work.', 'For your peace of mind, first ask your model for a security scan: to confirm it brings nothing malicious. For example, in Claude Code: «Review this repository and tell me whether it brings anything malicious before installing it»', 'Then ask it to install it. For example, in Claude Code: «Initialize STL Studio»', 'From there, the Studio guides you step by step.', 'If you have any doubt, read the documentation.'];
+  const lista = document.querySelectorAll('ol.lista-como li');
+  lista.forEach((li, k) => { if (pasos[k]) li.textContent = pasos[k]; });
+  const ultimo = lista[6];
+  if (ultimo) { const a = document.createElement('a'); a.href = 'https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme'; a.textContent = 'the documentation'; ultimo.textContent = 'If you have any doubt, read '; ultimo.append(a, '.'); }
+  const listo = document.querySelector('p.lista-como');
+  if (listo) listo.textContent = 'Done: you are up and running.';
+}
 // El menú, la entrada y «ES · EN» en el idioma de la página (pd_bilingue; los nombres en inglés, t_decide_nombres_en y
 // t_decide_nombre_como_empezar_en). El otro idioma recarga la página con su ?lang, y la elección se guarda (nmw2lz2bvtit)
 const IDIOMA_GUARDADO = 'stl-idioma';
@@ -947,6 +962,9 @@ const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set([]);
 const CLAVES_SIN_VOZ_TODAVIA = new Set([]);
 const sinVozTodavia = (clave) => {
   const seg = /^s(\d+)-/.exec(clave);
+  // «Cómo empezar» en inglés, sin voz hasta que se revise su texto en inglés (t_decide_voz_ingles_cuando): su voz en español no
+  // suena bajo un rótulo en inglés (nmw6r9827tit)
+  if (EN_DIBUJO && /^como-/.test(clave)) return true;
   return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || CLAVES_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
 };
 // Cuánto dura cada clip, en segundos: su enunciado y después cada situación en rojo seguida de su solución, segmento
@@ -1012,6 +1030,11 @@ const segmentoSeg = (j) => problemaSeg(j) + solucionSeg(j) + cierreSeg(j);
 // una con su clip de Kai (como-1 … como-7 y como-c, tools/vozRecorrido.ts); cada escena dura lo que su voz, con un mínimo
 // para alcanzar a verla. GUIA es su lugar en el reproductor: no es un problema de la estación 2
 const GUIA = 100;
+// En la página en inglés, «Cómo empezar» entero en inglés: su guion, lo que se le pide al modelo, los rótulos de sus
+// escenas y sus botones (nota de voz del titular nmw6r9827tit). Su voz en inglés llega después de que el titular revise
+// este texto (t_decide_voz_ingles_cuando): mientras, en inglés va sin voz, cada escena con el tiempo de leerla (sinVozTodavia)
+const COMO_EN = EN_DIBUJO;
+const L = (es, en) => (COMO_EN ? en : es);
 const GUION_COMO = {
   escenas: [
     '¿Quieres probar el Studio ahora? Así se empieza.',
@@ -1024,10 +1047,25 @@ const GUION_COMO = {
   ],
   cierre: 'Listo: ya estás en marcha.',
 };
+// El de la página en inglés, en su lugar (el de arriba es el que lee tools/vozRecorrido.ts para la voz en español)
+const GUION_COMO_EN = {
+  escenas: [
+    'Want to try the Studio now? This is how you start.',
+    'First, bring it to your computer: clone the repository, or download it from GitHub.',
+    'Put it in the folder where you want to work.',
+    'For your peace of mind, first ask your model for a security scan: to confirm it brings nothing malicious.',
+    'Then ask it to install it.',
+    'From there, the Studio guides you step by step.',
+    'If you have any doubt, read the documentation.',
+  ],
+  cierre: 'Done: you are up and running.',
+};
+if (COMO_EN) Object.assign(GUION_COMO, GUION_COMO_EN);
 // Lo que se le pide al modelo en las escenas del escaneo y de la instalación (de 0: la 3 y la 4), debajo de la animación como
 // un ejemplo, en texto y sin «Copiar» (nmw56hkz8tit, que reemplaza a nmw4f6alqtit), y el enlace de la última, al README del repositorio en GitHub (nmw4f6lictit); la
 // ventana a la que se le pide se llama «Claude Code» (nmw4irns1tit)
 const PEDIDOS_COMO = { 3: 'Revisa este repositorio y dime si trae algo malicioso antes de instalarlo', 4: 'Inicializa STL Studio' };
+if (COMO_EN) Object.assign(PEDIDOS_COMO, { 3: 'Review this repository and tell me whether it brings anything malicious before installing it', 4: 'Initialize STL Studio' });
 const ENLACE_COMO = 'https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme';
 const VENTANA_COMO = 'Claude Code';
 const ESCENA_SEG = 4.5, ESCENA_PEDIDO_SEG = 6.5;
@@ -1036,7 +1074,7 @@ const claveDeComo = (k) => (k < GUION_COMO.escenas.length ? `como-${k + 1}` : 'c
 const textoDeComo = (k) => GUION_COMO.escenas[k] ?? GUION_COMO.cierre;
 const escenaSeg = (k) => {
   const clave = claveDeComo(k);
-  const voz = PISTA_VOZ_ES[clave] == null ? tardaVoz(textoDeComo(k)) : segDeVoz(clave) + RESPIRO_FRASE + 0.4;
+  const voz = PISTA_VOZ_ES[clave] == null || sinVozTodavia(clave) ? tardaVoz(textoDeComo(k)) : segDeVoz(clave) + RESPIRO_FRASE + 0.4;
   return Math.max(PEDIDOS_COMO[k] ? ESCENA_PEDIDO_SEG : k === nComo() - 1 ? CIERRE_SEG : ESCENA_SEG, voz);
 };
 const duraComo = () => Array.from({ length: nComo() }, (_, k) => escenaSeg(k)).reduce((s, x) => s + x, 0);
@@ -1212,11 +1250,11 @@ const ESCENAS_COMO = [
     ventana(c, 18, 30, 124, 104, 'GitHub', LUZ);
     letrero(c, 'STL-Sacred_Time_Line', 80, 56, '#fffaf0', 8.5);
     const clona = q < 0.5;
-    caja(c, 30, 70, 100, 18, CIAN, clona ? 0.35 : 0.1, 6); letrero(c, 'clonar el repositorio', 80, 82.5, '#fffaf0', 8);
-    caja(c, 30, 98, 100, 18, ORO, clona ? 0.1 : 0.35, 6); letrero(c, 'descargar el ZIP', 80, 110.5, '#fffaf0', 8);
+    caja(c, 30, 70, 100, 18, CIAN, clona ? 0.35 : 0.1, 6); letrero(c, L('clonar el repositorio', 'clone the repository'), 80, 82.5, '#fffaf0', 8);
+    caja(c, 30, 98, 100, 18, ORO, clona ? 0.1 : 0.35, 6); letrero(c, L('descargar el ZIP', 'download the ZIP'), 80, 110.5, '#fffaf0', 8);
     // El computador
     caja(c, 196, 46, 104, 66, LUZ, 0.08, 6); caja(c, 236, 112, 24, 8, LUZ, 0.2, 2); caja(c, 222, 120, 52, 5, LUZ, 0.2, 2);
-    letrero(c, 'tu computador', 248, 140, LUZ, 9);
+    letrero(c, L('tu computador', 'your computer'), 248, 140, LUZ, 9);
     // Lo que viaja: por arriba si lo clonas, por abajo si lo descargas
     const u = clona ? tramo(q, 0.1, 0.42) : tramo(q, 0.58, 0.9), y0 = clona ? 79 : 107;
     trazo(c, 132, y0, 196, 79, clona ? CIAN : ORO, 0.6, true);
@@ -1226,7 +1264,7 @@ const ESCENAS_COMO = [
   },
   // 3 · Ponlo en la carpeta donde quieras trabajar: el Studio cae en su carpeta
   (c, q) => {
-    carpeta(c, 104, 92, 112, 60, ORO, 'donde quieras trabajar');
+    carpeta(c, 104, 92, 112, 60, ORO, L('donde quieras trabajar', 'where you want to work'));
     const cae = tramo(q, 0.1, 0.55);
     caja(c, 140, lerp(24, 104, cae), 40, 34, MORADO, 0.4, 6); letrero(c, 'STL', 160, lerp(24, 104, cae) + 21, '#fffaf0', 9);
     if (q > 0.6) palomita(c, 228, 104, 6, tramo(q, 0.6, 0.7));
@@ -1236,7 +1274,7 @@ const ESCENAS_COMO = [
   (c, q) => {
     ventana(c, 14, 26, 176, 64, VENTANA_COMO, CIAN);
     pedidoEscrito(c, 22, 50, 160, PEDIDOS_COMO[3], tramo(q, 0.04, 0.4));
-    actorModelo(c, 48, 132, 9); letrero(c, 'tu modelo', 48, 156, MODELO, 8);
+    actorModelo(c, 48, 132, 9); letrero(c, L('tu modelo', 'your model'), 48, 156, MODELO, 8);
     // Los archivos del Studio, en su carpeta, y la lupa que los recorre
     carpeta(c, 200, 34, 104, 112, ORO, '');
     for (let k = 0; k < 6; k++) {
@@ -1244,22 +1282,22 @@ const ESCENAS_COMO = [
       if (q > 0.5 + k * 0.05) palomita(c, 292, 47.5 + k * 16, 3.2, tramo(q, 0.5 + k * 0.05, 0.54 + k * 0.05));
     }
     if (q > 0.42 && q < 0.86) { const u = tramo(q, 0.44, 0.84); lupa(c, 250, lerp(44, 126, u), 8); trazo(c, 92, 132, 200, 90, CIAN, 0.5, true); }
-    if (q > 0.86) letrero(c, 'nada malicioso', 252, 160, VERDE, 10);
+    if (q > 0.86) letrero(c, L('nada malicioso', 'nothing malicious'), 252, 160, VERDE, 10);
   },
   // 5 · Después, pídele que lo instale: «Inicializa STL Studio» y su barra que se llena
   (c, q) => {
     ventana(c, 14, 26, 176, 50, VENTANA_COMO, CIAN);
     pedidoEscrito(c, 22, 52, 160, PEDIDOS_COMO[4], tramo(q, 0.04, 0.3));
     const k = tramo(q, 0.34, 0.82);
-    if (q > 0.32) { barra(c, 22, 96, 160, k, VERDE); letrero(c, k < 1 ? 'instalando…' : 'instalado', 102, 124, k < 1 ? '#fffaf0' : VERDE, 9); }
+    if (q > 0.32) { barra(c, 22, 96, 160, k, VERDE); letrero(c, k < 1 ? L('instalando…', 'installing…') : L('instalado', 'installed'), 102, 124, k < 1 ? '#fffaf0' : VERDE, 9); }
     if (k >= 1) palomita(c, 190, 101, 5);
     actorStudio(c, 214, 46, 90, 76); letrero(c, 'STL Studio', 259, 40, MORADO, 9);
   },
   // 6 · Desde ahí, el Studio te guía paso a paso: tu primera misión, cada paso con su ✓
   (c, q) => {
     actorStudio(c, 20, 40, 104, 96); letrero(c, 'STL Studio', 72, 34, MORADO, 9);
-    letrero(c, 'tu primera misión', 222, 40, ORO, 9.5);
-    ['Paso 1', 'Paso 2', 'Paso 3'].forEach((paso, m) => {
+    letrero(c, L('tu primera misión', 'your first mission'), 222, 40, ORO, 9.5);
+    [1, 2, 3].map((n) => L(`Paso ${n}`, `Step ${n}`)).forEach((paso, m) => {
       const a = 0.12 + m * 0.24;
       if (q > a - 0.1) placaMision(c, 158, 52 + m * 28, 128, paso, q > a + 0.16, tramo(q, a - 0.1, a));
     });
@@ -1269,7 +1307,7 @@ const ESCENAS_COMO = [
   (c, q) => {
     actorDev(c, 70, 112, 1.6, q > 0.55);
     if (q < 0.55) letrero(c, '?', 92, 86, ORO, 13, 'left');
-    ventana(c, 150, 30, 140, 116, 'README · la documentación', ORO);
+    ventana(c, 150, 30, 140, 116, L('README · la documentación', 'README · the documentation'), ORO);
     renglones(c, 162, 52, 112, 8, 'rgba(255, 241, 196, .45)', tramo(q, 0.1, 0.4), 10);
     if (q > 0.3) lupa(c, lerp(180, 250, tramo(q, 0.3, 0.8)), lerp(64, 110, tramo(q, 0.3, 0.8)), 8);
   },
@@ -1277,12 +1315,12 @@ const ESCENAS_COMO = [
 // Una escena de «Cómo empezar» (k, de 0; la última es su cierre), q de 0 a 1 dentro de ella, y p lo que va de toda
 function pintarComo(c, k, q, p) {
   const n = GUION_COMO.escenas.length;
-  if (k >= n) { pintarCierre(c, 'En marcha', GUION_COMO.cierre, q, '', 'Listo'); pintarBarra(c, p); return; }
+  if (k >= n) { pintarCierre(c, L('En marcha', 'Up and running'), GUION_COMO.cierre, q, '', L('Listo', 'Done')); pintarBarra(c, p); return; }
   c.save(); c.translate(CONTENIDO.x, CONTENIDO.y); c.scale(CONTENIDO.escala, CONTENIDO.escala);
   ESCENAS_COMO[k](c, q);
   c.restore();
-  caja(c, 8, 5, 76, 14, ORO, 0.25, 7); letrero(c, 'Cómo empezar', 46, 15.5, '#fff1c4', 8.5);
-  caja(c, 262, 5, 50, 14, ORO, 0.2, 7); letrero(c, `${k + 1} de ${n}`, 287, 15.5, '#fff1c4', 8.5);
+  caja(c, 8, 5, 76, 14, ORO, 0.25, 7); letrero(c, L('Cómo empezar', 'Getting started'), 46, 15.5, '#fff1c4', 8.5);
+  caja(c, 262, 5, 50, 14, ORO, 0.2, 7); letrero(c, L(`${k + 1} de ${n}`, `${k + 1} of ${n}`), 287, 15.5, '#fff1c4', 8.5);
   rotuloLargo(c, textoDeComo(k));
   pintarBarra(c, p);
 }
@@ -2408,8 +2446,10 @@ function iniciar() {
   }
 
   // ── La estación actual: su tarjeta aparece solo cuando la cámara llega a ella, y se va al avanzar o retroceder (nota de
-  // voz del titular nmw6p0g7htit: antes se encendía a mitad de camino y se asomaba transparente desde el principio)
-  const LLEGADA = 0.06;
+  // voz del titular nmw6p0g7htit: antes se encendía a mitad de camino y se asomaba transparente desde el principio). Llega
+  // cuando la cámara se ve quieta: a 0,12 de la estación le falta menos del 1,5 % del tramo (masSuave(0,88) ≈ 0,986); con
+  // 0,06 el texto esperaba unos 2 s más a que la cámara, ya quieta a la vista, terminara de acercarse (nmw6rki46tit)
+  const LLEGADA = 0.12;
   let actual = -2;
   function marcar(w) {
     const k = Math.abs(w - Math.round(w)) <= LLEGADA ? Math.round(w) - 1 : -1;
@@ -2808,7 +2848,7 @@ function iniciar() {
     seleccionado = GUIA;
     autocierre.abrir(); autocierre.repetir();   // no se cierra solo
     popup.classList.add('guia');
-    popup.setAttribute('aria-label', 'Cómo empezar a usar STL Studio');
+    popup.setAttribute('aria-label', L('Cómo empezar a usar STL Studio', 'How to start using STL Studio'));
     document.getElementById('popup-respuesta').textContent = [...GUION_COMO.escenas, GUION_COMO.cierre].join(' ');
     // Crece desde la pantalla 3D de la estación, la misma que lo muestra (nmw6lwwbxtit)
     origenPopup = dondeEstaLaPantalla();
@@ -2835,7 +2875,7 @@ function iniciar() {
   empezarVoz?.addEventListener('click', () => { empezarVoz.hidden = true; if (seleccionado === GUIA) empezarClip(); });
   function salirDeComo() {
     popup?.classList.remove('guia');
-    popup?.setAttribute('aria-label', 'Cómo lo resuelve STL');
+    popup?.setAttribute('aria-label', L('Cómo lo resuelve STL', 'How STL solves it'));
     if (empezarVoz) empezarVoz.hidden = true;
     guia.extra = '';
   }
@@ -2847,7 +2887,7 @@ function iniciar() {
     const cual = pedido || (enlace ? 'enlace' : '');
     if (cual === guia.extra) return;
     guia.extra = cual;
-    if (pedidoComo) { pedidoComo.textContent = pedido ? `Por ejemplo: «${pedido}»` : ''; pedidoComo.hidden = !pedido; }
+    if (pedidoComo) { pedidoComo.textContent = pedido ? L(`Por ejemplo: «${pedido}»`, `For example: «${pedido}»`) : ''; pedidoComo.hidden = !pedido; }
     if (enlaceComo) enlaceComo.hidden = !enlace;
   }
   verComo?.addEventListener('click', () => { guia.visita = true; abrirComo(); });

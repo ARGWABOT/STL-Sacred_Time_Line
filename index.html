@@ -52,7 +52,10 @@
   @media (min-width: 901px) {
     .js-3d .menu { position: fixed; top: 50%; right: 16px; transform: translateY(-50%); padding: 0; }
     .js-3d .menu ol { flex-direction: column; flex-wrap: nowrap; border-radius: 18px; padding: 6px; }
-    .js-3d .estacion { padding-right: 250px; }
+    /* La píldora de cada estación, al centro exacto de la ventana (nmw6qlm1ttit): sin el margen del menú a la derecha, que la
+       corría a la izquierda, y con el ancho de la barra de desplazamiento sumado a la izquierda (100vw − 100 %), así su
+       centro es el de la ventana y no el del contenido */
+    .js-3d .estacion { padding-left: calc(clamp(16px, 5vw, 64px) + 100vw - 100%); padding-right: clamp(16px, 5vw, 64px); }
   }
   @media (max-width: 900px) { .js-3d .menu { position: fixed; left: 0; right: 0; } }
   .menu ol { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin: 0; padding: 5px; list-style: none; pointer-events: auto;
@@ -146,7 +149,7 @@
     opacity: 0; visibility: hidden; transform: translateY(4vh); transition: opacity .45s, transform .55s cubic-bezier(.2, .7, .2, 1), visibility 0s .55s; }
   /* El texto de cada estación no se asoma antes de tiempo (nota de voz del titular nmw6p0g7htit): aparece solo cuando la
      cámara llega a la estación, deslizándose de abajo hacia arriba, y se va al avanzar o retroceder (mundo-3d.js › marcar) */
-  .js-3d .estacion.actual .tarjeta { opacity: 1; visibility: visible; transform: none; transition: opacity .45s, transform .55s cubic-bezier(.2, .7, .2, 1), visibility 0s; }
+  .js-3d .estacion.actual .tarjeta { opacity: 1; visibility: visible; transform: none; transition: opacity .25s, transform .3s cubic-bezier(.2, .7, .2, 1), visibility 0s; }
   @media (prefers-reduced-motion: reduce) {
     .js-3d .tarjeta { transition: opacity .2s, visibility 0s .2s; transform: none; }
     .js-3d .estacion.actual .tarjeta { transition: opacity .2s, visibility 0s; }
