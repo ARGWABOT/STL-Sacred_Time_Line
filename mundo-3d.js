@@ -244,6 +244,11 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
 const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9731,"g4-e":7646,"g5-e":9878,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":1421,"s9-p2":4019,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":2872,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
+// La voz en inglés de «Getting started» (nmw6xp1d1tit): la gemela de Kai, en voz/en/, con su pista (tools/vozRecorrido.ts --en)
+const PISTA_VOZ_EN = {"como-1":3243,"como-2":5061,"como-3":2188,"como-4":6867,"como-5":1983,"como-6":2947,"como-7":3326,"como-c":2074};
+// La pista de cada clave en el idioma de la página: «Cómo empezar» en inglés, con la suya; lo demás, con la de Kai
+const vozEnIngles = (clave) => EN_DIBUJO && /^como-/.test(clave);
+const pistaVoz = (clave) => (vozEnIngles(clave) ? PISTA_VOZ_EN : PISTA_VOZ_ES)[clave];
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -255,11 +260,11 @@ const PAUSA_VOZ_ES = { 's3-5': 0.6 };
 // proyecto» (RITMO_VOZ). «y se organiza automáticamente» fue a 1,2 mientras esperaba su clip nuevo, sin la coma
 // (nmw2qiyuwtit); con él (el «Confirmo» nmw2rqwg6tit), suena a su ritmo natural, como las demás
 const RITMO_VOZ_ES = {};
-const ritmoDeClave = (clave) => (PISTA_VOZ_ES[clave] == null ? RAPIDEZ : RITMO_VOZ_ES[clave] ?? 1);
+const ritmoDeClave = (clave) => (pistaVoz(clave) == null ? RAPIDEZ : RITMO_VOZ_ES[clave] ?? 1);
 // Lo que dura la voz de un clip de Google en el reloj del clip (a 1x), en segundos
-const segDeVoz = (clave) => PISTA_VOZ_ES[clave] / 1000 / ritmoDeClave(clave);
+const segDeVoz = (clave) => pistaVoz(clave) / 1000 / ritmoDeClave(clave);
 const claveDePaso = (j, enProblema, m) => `s${j + 1}-${enProblema ? 'p' : ''}${m + 1}`;
-const conPista = (j, enProblema) => (enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion).every((_, m) => PISTA_VOZ_ES[claveDePaso(j, enProblema, m)] != null);
+const conPista = (j, enProblema) => (enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion).every((_, m) => pistaVoz(claveDePaso(j, enProblema, m)) != null);
 // Lo que dura cada paso de un segmento con pista: su clip y su respiro
 const tiemposConPista = (j, enProblema) => {
   const lista = enProblema ? PASOS_SEG[j].problema : PASOS_SEG[j].solucion;
@@ -270,7 +275,7 @@ const problemaSeg = (j) => Math.max(PROBLEMA_SEG, conPista(j, true) ? suma(tiemp
 const solucionSeg = (j) => Math.max(SOLUCION_SEG, conPista(j, false) ? suma(tiemposConPista(j, false)) : sumaVoz(PASOS_SEG[j].solucion));
 const enunciadoSeg = (i) => {
   const clave = `g${i + 1}-e`;
-  return Math.max(ENUNCIADO_SEG, PISTA_VOZ_ES[clave] == null ? tardaVoz(ENUNCIADOS[i] ?? '') : segDeVoz(clave) + RESPIRO_ENUNCIADO);
+  return Math.max(ENUNCIADO_SEG, pistaVoz(clave) == null ? tardaVoz(ENUNCIADOS[i] ?? '') : segDeVoz(clave) + RESPIRO_ENUNCIADO);
 };
 // En un segmento con pista, cuánto va de él (q, de 0 a 1) a los d segundos: cada paso dura lo que su voz, y dentro de él
 // el dibujo avanza de su «desde» al del siguiente, así lo que se ve sigue a lo que se dice (si el segmento dura más que
@@ -964,7 +969,7 @@ const sinVozTodavia = (clave) => {
   const seg = /^s(\d+)-/.exec(clave);
   // «Cómo empezar» en inglés, sin voz hasta que se revise su texto en inglés (t_decide_voz_ingles_cuando): su voz en español no
   // suena bajo un rótulo en inglés (nmw6r9827tit)
-  if (EN_DIBUJO && /^como-/.test(clave)) return true;
+  if (vozEnIngles(clave)) return pistaVoz(clave) == null;
   return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || CLAVES_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
 };
 // Cuánto dura cada clip, en segundos: su enunciado y después cada situación en rojo seguida de su solución, segmento
@@ -1019,7 +1024,7 @@ const CIERRE_SEG = 4;
 const claveDeCierre = (j) => `s${j + 1}-c`;
 const cierreSeg = (j) => {
   const clave = claveDeCierre(j);
-  return Math.max(CIERRE_SEG, PISTA_VOZ_ES[clave] == null ? tardaVoz(CIERRES[j]?.[1] ?? '') : segDeVoz(clave) + RESPIRO_FRASE + 0.4);
+  return Math.max(CIERRE_SEG, pistaVoz(clave) == null ? tardaVoz(CIERRES[j]?.[1] ?? '') : segDeVoz(clave) + RESPIRO_FRASE + 0.4);
 };
 // Un segmento entero: su situación en rojo, su solución y su cierre
 const segmentoSeg = (j) => problemaSeg(j) + solucionSeg(j) + cierreSeg(j);
@@ -1031,8 +1036,8 @@ const segmentoSeg = (j) => problemaSeg(j) + solucionSeg(j) + cierreSeg(j);
 // para alcanzar a verla. GUIA es su lugar en el reproductor: no es un problema de la estación 2
 const GUIA = 100;
 // En la página en inglés, «Cómo empezar» entero en inglés: su guion, lo que se le pide al modelo, los rótulos de sus
-// escenas y sus botones (nota de voz del titular nmw6r9827tit). Su voz en inglés llega después de que el titular revise
-// este texto (t_decide_voz_ingles_cuando): mientras, en inglés va sin voz, cada escena con el tiempo de leerla (sinVozTodavia)
+// escenas y sus botones (nota de voz del titular nmw6r9827tit). Con su voz en inglés, la gemela de Kai, desde el
+// «Confirmo» del 7 de noviembre de 2026 (nmw6xp1d1tit): voz/en/, con su pista (PISTA_VOZ_EN)
 const COMO_EN = EN_DIBUJO;
 const L = (es, en) => (COMO_EN ? en : es);
 const GUION_COMO = {
@@ -1074,7 +1079,7 @@ const claveDeComo = (k) => (k < GUION_COMO.escenas.length ? `como-${k + 1}` : 'c
 const textoDeComo = (k) => GUION_COMO.escenas[k] ?? GUION_COMO.cierre;
 const escenaSeg = (k) => {
   const clave = claveDeComo(k);
-  const voz = PISTA_VOZ_ES[clave] == null || sinVozTodavia(clave) ? tardaVoz(textoDeComo(k)) : segDeVoz(clave) + RESPIRO_FRASE + 0.4;
+  const voz = pistaVoz(clave) == null || sinVozTodavia(clave) ? tardaVoz(textoDeComo(k)) : segDeVoz(clave) + RESPIRO_FRASE + 0.4;
   return Math.max(PEDIDOS_COMO[k] ? ESCENA_PEDIDO_SEG : k === nComo() - 1 ? CIERRE_SEG : ESCENA_SEG, voz);
 };
 const duraComo = () => Array.from({ length: nComo() }, (_, k) => escenaSeg(k)).reduce((s, x) => s + x, 0);
@@ -1116,10 +1121,10 @@ const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(c
 // reloj del clip es el de la voz (desde + lo que lleva dicho), así la animación ni se adelanta ni la hace esperar, a
 // cualquier velocidad; al callar, corre sola su respiro hasta el paso siguiente
 function tramoDeVoz(i, t) {
-  if (i === GUIA) { const e = escenaDeComo(t); return PISTA_VOZ_ES[e.clave] == null ? null : { clave: e.clave, desde: e.desde, voz: segDeVoz(e.clave) }; }
+  if (i === GUIA) { const e = escenaDeComo(t); return pistaVoz(e.clave) == null ? null : { clave: e.clave, desde: e.desde, voz: segDeVoz(e.clave) }; }
   const grupo = GRANDES[i] ?? GRANDES[0], s = Math.max(0, Math.min(duraClip(i), t));
   const e = enunciadoSeg(i), ce = claveEnunciado(i);
-  if (s < e) return PISTA_VOZ_ES[ce] == null ? null : { clave: ce, desde: 0, voz: segDeVoz(ce) };
+  if (s < e) return pistaVoz(ce) == null ? null : { clave: ce, desde: 0, voz: segDeVoz(ce) };
   let desde = e;
   for (const j of grupo) {
     for (const enProblema of [true, false]) {
@@ -1137,7 +1142,7 @@ function tramoDeVoz(i, t) {
     }
     // Su cierre, con su voz (nmw3ruscptit)
     const cierre = claveDeCierre(j);
-    if (s < desde + cierreSeg(j)) return PISTA_VOZ_ES[cierre] == null ? null : { clave: cierre, desde, voz: segDeVoz(cierre) };
+    if (s < desde + cierreSeg(j)) return pistaVoz(cierre) == null ? null : { clave: cierre, desde, voz: segDeVoz(cierre) };
     desde += cierreSeg(j);
   }
   return null;
@@ -2518,7 +2523,7 @@ function iniciar() {
     return a;
   };
   const audioDe = (clave) => {
-    if (!voces.has(clave)) { const a = new Audio(); a.preload = 'auto'; a.src = `voz/es/${clave}.mp3`; a.ritmo = ritmoDeClave(clave); voces.set(clave, aSuRitmo(a)); }
+    if (!voces.has(clave)) { const a = new Audio(); a.preload = 'auto'; a.src = `voz/${vozEnIngles(clave) ? 'en' : 'es'}/${clave}.mp3`; a.ritmo = ritmoDeClave(clave); voces.set(clave, aSuRitmo(a)); }
     return voces.get(clave);
   };
   const voz = { clave: '', audio: null, hablando: false, desde: 0 };
