@@ -1330,6 +1330,53 @@ function pintarComo(c, k, q, p) {
   pintarBarra(c, p);
 }
 
+// El bucle de la instalación, en la pantalla de pie de la estación 3 (pd_instalacion_bucle, como eligió leonc, nmw6xq68htit):
+// corto y sin repetir la animación entera (nmw6r6qq5tit), en tres tiempos con los nombres de las tres referencias de la
+// derecha (nmw6u5bqttit): la descarga cae en la carpeta, el Studio queda en tu carpeta y le pides a tu agente que lo
+// instale, con su barra. Se dibuja en un lienzo de 320 × 186; devuelve el tiempo (0, 1 o 2), para que la referencia que
+// nombra se encienda mientras tanto
+const BUCLE_SEG = 3.2, BUCLE_TIEMPOS = 3;
+const ROTULOS_BUCLE = () => [L('Descárgalo', 'Download it'), L('Tu carpeta', 'Your folder'), L('Pídeselo a tu agente', 'Ask your agent')];
+const COLORES_BUCLE = [CIAN, ORO, VERDE];
+function pintarBucleInstalar(c, s) {
+  const dura = BUCLE_SEG * BUCLE_TIEMPOS, vuelta = s >= 0 ? s % dura : (s % dura) + dura;
+  const k = Math.min(BUCLE_TIEMPOS - 1, Math.floor(vuelta / BUCLE_SEG)), q = (vuelta - k * BUCLE_SEG) / BUCLE_SEG;
+  c.clearRect(0, 0, 320, 186);
+  const fondo = c.createRadialGradient(160, 80, 10, 160, 93, 190);
+  fondo.addColorStop(0, '#141a2e'); fondo.addColorStop(1, '#07090f');
+  c.fillStyle = fondo; c.fillRect(0, 0, 320, 186);
+  // Arriba, el nombre del tiempo, con su número y el color de su referencia
+  caja(c, 8, 8, 304, 22, COLORES_BUCLE[k], 0.18, 9);
+  letrero(c, `${k + 1} · ${ROTULOS_BUCLE()[k]}`, 160, 23.5, '#fffaf0', 12);
+  if (k === 0) {
+    // La flecha baja hasta la carpeta y deja dentro el paquete del Studio
+    carpeta(c, 110, 108, 100, 56, ORO, '');
+    const baja = tramo(q, 0.05, 0.6);
+    if (q < 0.62) {
+      const y = lerp(40, 112, baja);
+      c.save(); c.fillStyle = CIAN; c.beginPath(); c.roundRect(155, y - 26, 10, 22, 3); c.fill();
+      c.beginPath(); c.moveTo(146, y - 6); c.lineTo(174, y - 6); c.lineTo(160, y + 10); c.closePath(); c.fill(); c.restore();
+    }
+    if (q > 0.6) { caja(c, 140, 118, 40, 34, MORADO, 0.4, 6); letrero(c, 'STL', 160, 139, '#fffaf0', 9); }
+  } else if (k === 1) {
+    // El Studio, quieto en tu carpeta, con su ✓
+    carpeta(c, 100, 70, 120, 84, ORO, '');
+    caja(c, 135, 90, 50, 44, MORADO, 0.4, 7); letrero(c, 'STL', 160, 117, '#fffaf0', 11);
+    if (q > 0.35) palomita(c, 236, 112, 8, tramo(q, 0.35, 0.5));
+  } else {
+    // Le pides a tu agente que lo instale, letra a letra, y la barra se llena
+    ventana(c, 24, 44, 272, 62, VENTANA_COMO, CIAN);
+    pedidoEscrito(c, 34, 72, 250, PEDIDOS_COMO[4], tramo(q, 0.04, 0.35));
+    const lleno = tramo(q, 0.4, 0.85);
+    if (q > 0.38) {
+      barra(c, 44, 128, 232, lleno, VERDE);
+      letrero(c, lleno < 1 ? L('instalando…', 'installing…') : L('instalado', 'installed'), 160, 160, lleno < 1 ? '#fffaf0' : VERDE, 11);
+      if (lleno >= 1) palomita(c, 288, 133, 6);
+    }
+  }
+  return k;
+}
+
 // El video corto (video-corto.js) deja cada problema con una sola situación, y entonces el «1 de 1» no va
 let sinCuenta = false;
 function pintarClip(ctx, i, t) {
@@ -2261,8 +2308,31 @@ function iniciar() {
     const triangulo = new THREE.Shape();
     triangulo.moveTo(-0.24, -0.32); triangulo.lineTo(0.38, 0); triangulo.lineTo(-0.24, 0.32); triangulo.closePath();
     const play = new THREE.Mesh(new THREE.ExtrudeGeometry(triangulo, { depth: 0.06, bevelEnabled: false }), brillo(ORO, 0.9));
-    play.position.z = 0.09;
-    pantallaComo.add(marcoLuz, panel, play);
+    // El ▶, chico en la esquina de abajo a la derecha: el centro es del bucle de la instalación (nmw6xq68htit), y no lo tapa
+    play.scale.setScalar(0.42);
+    play.position.set(1.32, -0.66, 0.09);
+    // El bucle, en un lienzo que cubre el panel por dentro del marco (pintarBucleInstalar), y la pantalla de pie: su
+    // poste y su base, debajo de ella, sin tocar la línea ni las referencias (nmw5ernpstit)
+    const lienzoBucle = document.createElement('canvas');
+    lienzoBucle.width = 640; lienzoBucle.height = 372;
+    const ctxBucle = lienzoBucle.getContext('2d');
+    const texturaBucle = new THREE.CanvasTexture(lienzoBucle);
+    texturaBucle.colorSpace = THREE.SRGBColorSpace;
+    const pantallaBucle = new THREE.Mesh(new THREE.PlaneGeometry(2.96, 1.72), new THREE.MeshBasicMaterial({ map: texturaBucle, toneMapped: false }));
+    pantallaBucle.position.z = 0.086;
+    const dibujarBucle = (s) => {
+      if (!ctxBucle) return 0;
+      ctxBucle.setTransform(2, 0, 0, 2, 0, 0);
+      const k = pintarBucleInstalar(ctxBucle, s);
+      texturaBucle.needsUpdate = true;
+      return k;
+    };
+    dibujarBucle(quieto ? BUCLE_SEG * (BUCLE_TIEMPOS - 1) + BUCLE_SEG - 0.01 : 0);
+    const pieDePantalla = cajita3(0.14, 1.32, 0.14, new THREE.MeshStandardMaterial({ color: '#2a3350', roughness: 0.5 }), 0.05);
+    pieDePantalla.position.set(0, -1.66, -0.04);
+    const base = cajita3(1.1, 0.08, 0.6, brillo(CIAN, 0.35), 0.03);
+    base.position.set(0, -2.32, -0.04);
+    pantallaComo.add(marcoLuz, panel, pantallaBucle, play, pieDePantalla, base);
     enEscena(pantallaComo, -3.4, 2.4, 0.6);
     const brilloPantalla = resplandor('90, 209, 255', CIAN, 6).halo;
     brilloPantalla.material.opacity = 0.4;
@@ -2306,9 +2376,16 @@ function iniciar() {
       r.rotation.y = 0;
     }
     // La flecha baja y sube despacio hacia su bandeja, la carpeta respira y el cursor parpadea; nada sale de su lugar
+    // Mientras corre el bucle de la pantalla, la referencia que nombra se enciende un poco más (sin moverse ni crecer)
+    let cuadroBucle = -1, tiempoBucle = 0;
     function moverEscenaComo(s) {
+      const cuadro = Math.floor(s * 15);
+      if (cuadro !== cuadroBucle) { cuadroBucle = cuadro; tiempoBucle = dibujarBucle(s); }
+      const luz = (k) => (tiempoBucle === k ? 0.45 : 0);
       flecha.position.y = terminal.position.y + 3.2 - 0.08 * (1 + Math.sin(s * 1.6));
-      carpeta.children[0].material.emissiveIntensity = 0.4 + 0.15 * Math.sin(s * 1.2);
+      for (const parte of [astil, punta]) parte.material.emissiveIntensity = 0.7 + luz(0);
+      carpeta.children[0].material.emissiveIntensity = 0.4 + 0.15 * Math.sin(s * 1.2) + luz(1);
+      bordeTerminal.material.emissiveIntensity = 0.45 + luz(2);
       cursor.visible = Math.sin(s * 5) > -0.2;
       play.material.emissiveIntensity = 0.6 + 0.3 * Math.sin(s * 2);
     }
