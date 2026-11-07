@@ -3,6 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // El idioma de la página (pd_bilingue), antes de pintar nada: el que lleva su enlace (?lang=en, nmw5it25ntit); si no, el
+  // que se eligió con «ES · EN» (nmw2lz2bvtit); si no, el del navegador, y en cualquier otro idioma, inglés (nmw5gv8ymtit)
+  (function () {
+    var pedido = new URLSearchParams(location.search).get('lang'), guardado = null;
+    try { guardado = localStorage.getItem('stl-idioma'); } catch (e) { /* sin almacenamiento */ }
+    var navegador = (navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en';
+    var valido = function (x) { return x === 'es' || x === 'en'; };
+    document.documentElement.lang = valido(pedido) ? pedido : valido(guardado) ? guardado : navegador;
+  })();
+</script>
 <title>¿Qué es STL? · El guardrail donde más hacía falta, en el Dev</title>
 <meta name="description" content="STL Studio es la interfaz entre tú y el modelo, para cualquier tipo de proyecto: aplica el método STL y, entre tú y tu agente, suma dos actores nuevos: el Studio, que detiene y ordena lo que dices, y el director, que pone cada idea en su lugar de la línea y te deja ver solo lo que sigue." />
   <meta property="og:title" content="What is STL? · The guardrail developers were missing" />
@@ -49,6 +60,21 @@
   .menu a:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
   .menu a.actual { background: var(--oro); color: #1a1f33; font-weight: 600; }
   .menu span { color: rgba(154, 163, 184, .6); cursor: default; }
+  /* «ES · EN», arriba del menú (pd_bilingue, nmw5wf86xtit): el idioma de ahora, resaltado; el otro cambia la página */
+  .menu { flex-direction: column; align-items: center; gap: 8px; }
+  .idioma { display: flex; align-items: center; gap: 2px; padding: 3px; pointer-events: auto; border-radius: 999px;
+    background: rgba(8, 11, 20, .78); border: 1px solid rgba(245, 210, 122, .22); font-size: 13px; }
+  .idioma b { padding: 0 2px; font-weight: 400; color: var(--tenue); }
+  .idioma button { padding: 4px 10px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer; background: none; color: var(--luz); }
+  .idioma button:hover { background: rgba(245, 210, 122, .12); }
+  .idioma button[aria-pressed="true"] { background: var(--oro); color: #1a1f33; }
+  .idioma button:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  /* Los textos de cada estación, en una sola línea abajo, al 30 % de lo que medían, para dejarles la pantalla a las
+     animaciones en un portátil (nota de voz del titular nmw5w9ldotit, 7 de noviembre de 2026) */
+  .js-3d .tarjeta.corta { max-width: none; display: flex; align-items: center; gap: 10px; padding: 5px 12px; border-radius: 999px;
+    bottom: 1.5vh; margin-bottom: 1.5vh; white-space: nowrap; overflow: hidden; }
+  .js-3d .tarjeta.corta h2 { margin: 0; font-size: calc(clamp(22px, 2.4vw, 30px) * .3); line-height: 1.3; white-space: nowrap; text-wrap: nowrap; }
+  .js-3d .tarjeta.corta .boton-ver { padding: 3px 9px; font-size: 10px; gap: 4px; }
 
   /* La entrada: el título sobre la vista de costado del mundo */
   .entrada { padding: 14vh clamp(16px, 5vw, 64px) 8vh; text-align: center; }
@@ -237,6 +263,7 @@
 <a class="saltar" href="#fin">Saltar el recorrido</a>
 
 <nav class="menu" aria-label="Las estaciones de «Qué es STL»">
+  <div class="idioma" role="group" aria-label="Idioma · Language"><button type="button" data-idioma="es" lang="es">ES</button><b aria-hidden="true">·</b><button type="button" data-idioma="en" lang="en">EN</button></div>
   <ol>
     <li><a href="#e-que-es">Qué es STL</a></li>
     <li><a href="#e-te-ha-pasado">¿Te ha pasado…?</a></li>

@@ -40,6 +40,31 @@ for (const [marca, texto] of [['[data-titulo-uno]', T.uno], ['[data-titulo-tres]
   const el = document.querySelector(marca);
   if (el) el.textContent = texto;
 }
+// El menú, la entrada y «ES · EN» en el idioma de la página (pd_bilingue; los nombres en inglés, t_decide_nombres_en y
+// t_decide_nombre_como_empezar_en). El otro idioma recarga la página con su ?lang, y la elección se guarda (nmw2lz2bvtit)
+const IDIOMA_GUARDADO = 'stl-idioma';
+const PAGINA = {
+  es: { menu: ['Qué es STL', '¿Te ha pasado…?', 'Cómo empezar', 'La documentación'], h1: '¿Qué es STL?', bajar: 'Empieza el recorrido', saltar: 'Saltar el recorrido', nav: 'Las estaciones de «Qué es STL»' },
+  en: { menu: ['What is STL', 'Has this happened to you?', 'Getting started', 'Documentation'], h1: 'What is STL?', bajar: 'Start the tour', saltar: 'Skip the tour', nav: 'The stations of «What is STL»' },
+}[EN ? 'en' : 'es'];
+document.querySelectorAll('.menu ol > li > :is(a, span)').forEach((el, i) => { if (PAGINA.menu[i]) el.textContent = PAGINA.menu[i]; });
+document.querySelector('.menu')?.setAttribute('aria-label', PAGINA.nav);
+const h1Entrada = document.querySelector('.entrada h1');
+if (h1Entrada) h1Entrada.textContent = PAGINA.h1;
+const bajarTexto = document.querySelector('.bajar')?.firstChild;
+if (bajarTexto?.nodeType === 3) bajarTexto.textContent = `${PAGINA.bajar} `;
+const saltar = document.querySelector('.saltar');
+if (saltar) saltar.textContent = PAGINA.saltar;
+for (const b of document.querySelectorAll('[data-idioma]')) {
+  b.setAttribute('aria-pressed', String(b.dataset.idioma === (EN ? 'en' : 'es')));
+  b.addEventListener('click', () => {
+    const idioma = b.dataset.idioma;
+    try { localStorage.setItem(IDIOMA_GUARDADO, idioma); } catch { /* sin almacenamiento: vale el enlace */ }
+    const url = new URL(location.href);
+    url.searchParams.set('lang', idioma);
+    location.href = url.href;
+  });
+}
 // Y el título de la animación de la estación 1, arriba a la derecha de su visor (nmw479zmetit)
 const tituloVisor = document.querySelector('[data-titulo-visor]');
 if (tituloVisor) tituloVisor.innerHTML = T.visor;
@@ -2153,59 +2178,70 @@ function iniciar() {
 
   // ── Estación 3, «Cómo empezar» (pd_como_empezar): el camino de la 2 a la 3 es la línea sola, como el de la 1 a la 2 pero
   // sin notas que viajan (nmw4isvr9tit); al llegar, su reproductor se abre a la izquierda y la línea queda a la derecha
-  // (nmw4ircrjtit). La cámara mira la línea, un poco arriba. Y, como las estaciones 1 y 2, tiene sus elementos permanentes
-  // (nmw5o26vdtit): siete piezas, una por cada paso de empezar (traerlo, la carpeta, el escaneo de seguridad, instalarlo, la
-  // guía, la documentación y «listo»), que giran despacio alrededor de la línea en un anillo más chico que el de la 2, con un
-  // resplandor detrás que se ve desde lejos. Están siempre, antes de llegar y después de irse, aunque el reproductor esté cerrado
+  // (nmw4ircrjtit), pero solo cuando el visitante oprime «▶ Ver cómo empezar» (nmw5wbs86tit). La cámara mira la línea, al
+  // frente. Sus elementos están siempre, antes de llegar y después de irse, aunque el reproductor esté cerrado
   {
     const u = SITIO[2];
     const { p, t, lado } = marco(u);
-    const centro = p.clone().addScaledVector(ARRIBA, 0.9);
-    focos.push(marco(SITIO[2]).p.clone().addScaledVector(ARRIBA, 0.9));
-    const RADIO_X3 = 2.5, RADIO_Y3 = 1.6, INCLINA3 = 0.7, GIRO_ANILLO3 = 0.11;
+    focos.push(p.clone().addScaledVector(ARRIBA, 0.9));
+    // La escena de instalar (nota de voz del titular nmw5wbs86tit, 7 de noviembre de 2026: nada que orbite solo porque sí,
+    // sino lo que se va a presentar ahí): a la izquierda de la línea, la pantalla flotante donde se verá «Cómo empezar»,
+    // grande, con su marco de luz y su ▶, que se ve desde lejos; a la derecha, la descarga: un haz de luz que baja del cielo
+    // y deja el paquete del Studio sobre su base, junto a una carpeta abierta; y entre las dos, sobre la línea, la barra
+    // de la instalación que se llena. Nada pasa por donde va la cámara, y la animación de la pantalla empieza solo con un clic
+    const frente3 = Math.atan2(-t.x, -t.z);   // de frente a la cámara, que llega por detrás
     const cajita3 = (w, h, d, material, r = 0.05) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), material);
-    const PIEZAS_COMO = [
-      // 1 · traerlo: un paquete con su flecha hacia abajo
-      (mat, apoyo) => { const g = new THREE.Group(); const flecha = cajita3(0.3, 0.3, 0.3, apoyo, 0.05); flecha.rotation.z = Math.PI / 4; flecha.position.y = 0.62; g.add(cajita3(0.8, 0.8, 0.8, mat, 0.14), flecha); return g; },
-      // 2 · la carpeta donde trabajar: una carpeta con su solapa
-      (mat, apoyo) => { const g = new THREE.Group(); const solapa = cajita3(0.36, 0.12, 0.2, apoyo, 0.04); solapa.position.set(-0.2, 0.34, 0); g.add(cajita3(0.92, 0.6, 0.2, mat, 0.06), solapa); return g; },
-      // 3 · el escaneo de seguridad: un escudo
-      (mat, apoyo) => {
-        const forma = new THREE.Shape(); forma.moveTo(0, 0.5); forma.lineTo(0.42, 0.34); forma.lineTo(0.38, -0.12); forma.quadraticCurveTo(0.3, -0.38, 0, -0.56); forma.quadraticCurveTo(-0.3, -0.38, -0.38, -0.12); forma.lineTo(-0.42, 0.34); forma.closePath();
-        const g = new THREE.Group(); const escudo = new THREE.Mesh(new THREE.ExtrudeGeometry(forma, { depth: 0.14, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 }), mat);
-        escudo.position.z = -0.07; const marca = cajita3(0.1, 0.34, 0.06, apoyo, 0.02); marca.position.set(0, 0.02, 0.15);
-        g.add(escudo, marca); return g;
-      },
-      // 4 · instalarlo: un engranaje (una cruz de ejes con su centro)
-      (mat, apoyo) => { const g = new THREE.Group(); const brazo = cajita3(0.84, 0.22, 0.22, mat, 0.07); const cruce = cajita3(0.22, 0.84, 0.22, mat, 0.07); const diagonal = cajita3(0.7, 0.18, 0.18, mat, 0.06); diagonal.rotation.z = Math.PI / 4; const otra = cajita3(0.7, 0.18, 0.18, mat, 0.06); otra.rotation.z = -Math.PI / 4; g.add(brazo, cruce, diagonal, otra, new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), apoyo)); return g; },
-      // 5 · el Studio te guía paso a paso: una baliza (una cápsula con su luz arriba)
-      (mat, apoyo) => { const g = new THREE.Group(); const punta = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), apoyo); punta.position.y = 0.52; g.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.6, 6, 14), mat), punta); return g; },
-      // 6 · la documentación: una hoja con sus renglones
-      (mat, apoyo) => { const g = new THREE.Group(); g.add(cajita3(0.62, 0.84, 0.08, mat, 0.03)); [0.22, 0.04, -0.14].forEach((y) => { const raya = cajita3(0.4, 0.05, 0.04, apoyo, 0.015); raya.position.set(0, y, 0.06); g.add(raya); }); return g; },
-      // 7 · listo, en marcha: un cristal
-      (mat) => new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 0), mat),
-    ];
-    const COLORES_COMO = [CIAN, ORO, VERDE, MORADO, NARANJA, MODELO, ROJO];
-    const piezas = PIEZAS_COMO.map((hacer, i) => {
-      const mat = brillo(COLORES_COMO[i], 0.5), apoyo = brillo('#ffffff', 0.35);
-      const pieza = hacer(mat, apoyo);
-      pieza.scale.setScalar(0.85);
-      escena.add(pieza);
-      return { pieza, a: Math.PI / 2 + (i * 2 * Math.PI) / PIEZAS_COMO.length, fase: i * 0.9 };
-    });
-    // El resplandor del anillo, siempre de frente y sin niebla: así se ve desde la estación anterior
-    const brilloComo = resplandor('185, 163, 255', MORADO, 17).halo;
-    brilloComo.material.opacity = 0.6;
-    brilloComo.position.copy(centro);
-    escena.add(brilloComo);
-    function moverAnilloComo(s) {
-      piezas.forEach((o) => {
-        const a = o.a + s * GIRO_ANILLO3;
-        o.pieza.position.copy(centro).addScaledVector(lado, Math.cos(a) * RADIO_X3).addScaledVector(ARRIBA, Math.sin(a) * RADIO_Y3 + Math.sin(s * 1.3 + o.fase) * 0.08).addScaledVector(t, Math.sin(a) * INCLINA3);
-        o.pieza.rotation.y = Math.atan2(-t.x, -t.z) + Math.sin(s * 0.8 + o.fase) * 0.5;
-      });
+    const enEscena = (obj, ladoX, alto, adelante = 0) => {
+      obj.position.copy(p).addScaledVector(lado, ladoX).addScaledVector(ARRIBA, alto).addScaledVector(t, adelante);
+      obj.rotation.y = frente3;
+      escena.add(obj);
+      return obj;
+    };
+    // 1 · La pantalla flotante: un panel oscuro con su marco cian y el ▶ dorado en el centro
+    const pantallaComo = new THREE.Group();
+    const marcoLuz = cajita3(4.5, 2.7, 0.06, brillo(CIAN, 0.9), 0.12);
+    const panel = cajita3(4.3, 2.5, 0.1, new THREE.MeshStandardMaterial({ color: '#0b0f1c', roughness: 0.6 }), 0.1);
+    panel.position.z = 0.03;
+    const triangulo = new THREE.Shape();
+    triangulo.moveTo(-0.32, -0.42); triangulo.lineTo(0.5, 0); triangulo.lineTo(-0.32, 0.42); triangulo.closePath();
+    const play = new THREE.Mesh(new THREE.ExtrudeGeometry(triangulo, { depth: 0.06, bevelEnabled: false }), brillo(ORO, 0.9));
+    play.position.z = 0.09;
+    pantallaComo.add(marcoLuz, panel, play);
+    enEscena(pantallaComo, -3.6, 2.2, 0.6);
+    const brilloPantalla = resplandor('90, 209, 255', CIAN, 9).halo;
+    brilloPantalla.material.opacity = 0.45;
+    brilloPantalla.position.copy(pantallaComo.position).addScaledVector(t, 0.4);
+    escena.add(brilloPantalla);
+    // 2 · La descarga: el haz que baja, el paquete que viaja por él y su base, con la carpeta donde queda
+    const haz = new THREE.Mesh(new THREE.BoxGeometry(0.6, 9, 0.6), new THREE.MeshBasicMaterial({ color: CIAN, transparent: true, opacity: 0.14, depthWrite: false, blending: THREE.AdditiveBlending }));
+    enEscena(haz, 3.2, 4.6);
+    const base = enEscena(cajita3(1.6, 0.16, 1.6, brillo(MORADO, 0.45), 0.08), 3.2, 0.1);
+    const paquete = new THREE.Group();
+    const caja = cajita3(0.7, 0.7, 0.7, brillo(CIAN, 0.55), 0.12);
+    const cinta = cajita3(0.74, 0.12, 0.74, brillo('#ffffff', 0.4), 0.03);
+    paquete.add(caja, cinta);
+    enEscena(paquete, 3.2, 0.6);
+    const carpeta = new THREE.Group();
+    const solapa = cajita3(0.42, 0.14, 0.18, brillo(ORO, 0.5), 0.04);
+    solapa.position.set(-0.24, 0.4, 0);
+    carpeta.add(cajita3(1.05, 0.7, 0.18, brillo(ORO, 0.4), 0.06), solapa);
+    enEscena(carpeta, 4.7, 0.55, 0.3);
+    // 3 · La barra de la instalación, sobre la línea, entre la pantalla y la descarga: su riel tenue y su relleno de luz
+    const riel = enEscena(cajita3(3.2, 0.16, 0.12, plano('#2a3150', 0.85), 0.06), 0, 3.4);
+    const relleno = enEscena(cajita3(3.2, 0.12, 0.14, brillo(VERDE, 0.8), 0.05), 0, 3.4);
+    // El paquete baja por el haz, se posa en su base y la barra se llena; al llenarse, todo vuelve a empezar, despacio
+    const CICLO_COMO = 9;
+    function moverEscenaComo(s) {
+      const f = (s % CICLO_COMO) / CICLO_COMO;
+      const baja = suave(tope(f / 0.4));
+      paquete.position.copy(base.position).addScaledVector(ARRIBA, 0.5 + (1 - baja) * 6.5);
+      paquete.rotation.y = frente3 + (1 - baja) * Math.PI;
+      const llena = suave(tope((f - 0.4) / 0.5));
+      relleno.scale.x = Math.max(0.001, llena);
+      relleno.position.copy(riel.position).addScaledVector(lado, -1.6 * (1 - llena));
+      play.material.emissiveIntensity = 0.6 + 0.3 * Math.sin(s * 2);
     }
-    animar.push(deEstacion(2, moverAnilloComo));
+    animar.push(deEstacion(2, moverEscenaComo));
   }
 
   // ── La cámara: arriba, una vista de costado de la línea; al bajar, se mete en ella y la sigue
@@ -2283,7 +2319,22 @@ function iniciar() {
   const MANDOS_ALTO = 64;   // lo que ocupan los mandos, debajo de la animación, dentro del reproductor
   const menuLista = document.querySelector('.menu ol'), lineaDos = document.querySelector('[data-titulo-dos]')?.closest('.tarjeta');
   const enPantalla = new THREE.Vector3();
-  const aPantalla = (v, ancho, alto) => { enPantalla.copy(v).project(camara); return { x: (enPantalla.x + 1) / 2 * ancho, y: (1 - enPantalla.y) / 2 * alto }; };
+  const aPantalla = (v, ancho, alto, cam = camara) => { enPantalla.copy(v).project(cam); return { x: (enPantalla.x + 1) / 2 * ancho, y: (1 - enPantalla.y) / 2 * alto }; };
+  // Al irse de la estación 2 hacia la 3, el anillo queda debajo y detrás de la cámara: medido con la cámara de ahora, su
+  // centro se iba al fondo de la pantalla y el encuadre corría la imagen hacia abajo, como si la cámara mirara el suelo, y
+  // luego la subía (nota de voz del titular nmw5w9ldotit, 7 de noviembre de 2026). Pasada la estación, el encuadre se mide con
+  // la cámara quieta en la estación 2 y solo se apaga: la mirada sigue al frente, como caminando sobre la línea
+  const camaraEnDos = new THREE.PerspectiveCamera();
+  function ponerCamaraEnDos() {
+    camaraEnDos.copy(camara);
+    camaraEnDos.clearViewOffset();
+    const { posicion, mira } = pose(PARADA[1]);
+    camaraEnDos.position.copy(posicion);
+    const ojo = sinMirarAbajo(posicion, mira);
+    camaraEnDos.lookAt(ojo.x, ojo.y, ojo.z);
+    camaraEnDos.updateMatrixWorld();
+    return camaraEnDos;
+  }
   let disposicion = null;   // dónde quedan el reproductor y el anillo, para el cuadro que se dibuja
   // «Cómo empezar», en la estación 3 (nmw4ircrjtit): su reproductor a la izquierda, con la fila del ejemplo y del enlace
   // (EXTRA_ALTO) sobre sus mandos, y la línea a la derecha, donde en la 2 queda el anillo; la imagen se corre para que la
@@ -2311,10 +2362,12 @@ function iniciar() {
     if (encuadrarTres(w, ancho, alto)) return;
     if (cerca <= 0.001 || !anillo.centro || !ancho || !alto) return;
     camara.updateMatrixWorld();
-    // El anillo como se ve ahora, sin correrse: su centro y la mitad de su ancho y de su alto, con el aire de sus íconos
-    const c = aPantalla(anillo.centro, ancho, alto);
-    const ladoX = aPantalla(anillo.centro.clone().addScaledVector(anillo.lado, anillo.radioX * anillo.escala), ancho, alto);
-    const arribaY = aPantalla(anillo.centro.clone().addScaledVector(ARRIBA, anillo.radioY * anillo.escala), ancho, alto);
+    // El anillo como se ve ahora, sin correrse: su centro y la mitad de su ancho y de su alto, con el aire de sus íconos;
+    // pasada la estación, como se ve desde ella (ponerCamaraEnDos)
+    const cam = w > 2 ? ponerCamaraEnDos() : camara;
+    const c = aPantalla(anillo.centro, ancho, alto, cam);
+    const ladoX = aPantalla(anillo.centro.clone().addScaledVector(anillo.lado, anillo.radioX * anillo.escala), ancho, alto, cam);
+    const arribaY = aPantalla(anillo.centro.clone().addScaledVector(ARRIBA, anillo.radioY * anillo.escala), ancho, alto, cam);
     const aire = Math.max(36, alto * 0.06);
     const deAbierto = anillo.abierto / Math.max(anillo.escala, 0.01);
     const medioAncho = Math.abs(ladoX.x - c.x), medioAlto = Math.abs(arribaY.y - c.y);
@@ -2790,10 +2843,9 @@ function iniciar() {
     // scroll, el teclado…), se cierra
     if (seleccionado >= 0 && Math.abs(cur - (seleccionado === GUIA ? 3 : 2)) > 0.45) cerrarPopup();
     const ahoraMs = performance.now(), dt = Math.min(0.1, (ahoraMs - ultimoCuadro) / 1000);
-    // «Cómo empezar» se abre solo al llegar a la estación 3, cuando la cámara ya se detuvo y la rueda lleva un momento quieta
-    // (si no, la misma rueda que trae hasta aquí lo cerraría); una vez por visita
+    // «Cómo empezar» ya no se abre solo al llegar a la estación 3: lo abre el visitante con «▶ Ver cómo empezar» (nota de voz
+    // del titular nmw5wbs86tit, 7 de noviembre de 2026: «el visitante será el que le dé clic a empezar la animación»)
     if (Math.abs(cur - 3) > 0.45) guia.visita = false;
-    else if (!guia.visita && Math.abs(w - 3) < 0.02 && Math.abs(cur - 3) < 0.06 && ahoraMs - ultimaRueda > 700 && seleccionado < 0 && !visorAbierto()) { guia.visita = true; abrirComo(); }
     pintarExtraComo();
     if (verComo) verComo.style.visibility = seleccionado === GUIA ? 'hidden' : '';
     ultimoCuadro = ahoraMs;
