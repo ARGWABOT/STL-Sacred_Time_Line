@@ -2080,6 +2080,14 @@
     'El director se fue a dormir.', 'Esto ya es dispersión, ¿eh?', 'Ni una rama más por aquí.', 'Te prometo que no pasa nada más.',
     '¿Y si mejor instalas el Studio?', 'Ya puedes cerrar esto. Te doy permiso.', 'La línea del tiempo también necesita descansar.',
     'Ok, ya fueron muchos segundos.', 'Sin prisa. Pero aquí no hay nada.'];
+  // En inglés, adaptados: la misma broma como la diría alguien de habla inglesa, no palabra por palabra (nmw33ksa4tit),
+  // en el mismo orden; su voz, como la de las líneas, sigue en español hasta que exista la inglesa
+  const GLOBITOS_EN = ['Hey, are you still here?', 'The show is over.', 'Sure you want to keep going? Who knows what you’ll find.',
+    'No more missions here. Really.', 'The goal is behind you. Way behind.', 'Looking for a secret ending? This is it.',
+    'The director went to bed.', 'Now this is scattered attention, huh?', 'Not one more branch around here.', 'I promise nothing else happens.',
+    'How about installing the Studio instead?', 'You can close this now. You have my permission.', 'The timeline needs a rest too.',
+    'Okay, that’s a lot of seconds.', 'No rush. But there’s nothing here.'];
+  if (typeof EN_LINEA !== 'undefined' && EN_LINEA) GLOBITOS.splice(0, GLOBITOS.length, ...GLOBITOS_EN);
   const CADA_GLOBITO = 10000, DURA_GLOBITO = 4500;
   // La baraja de la vuelta v: siempre la misma para la misma vuelta, así la perilla, hacia atrás y hacia adelante, la
   // repite igual
