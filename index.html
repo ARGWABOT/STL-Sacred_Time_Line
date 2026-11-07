@@ -12,6 +12,10 @@
     var navegador = (navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en';
     var valido = function (x) { return x === 'es' || x === 'en'; };
     document.documentElement.lang = valido(pedido) ? pedido : valido(guardado) ? guardado : navegador;
+    // Mientras carga el recorrido, la página sin 3D no se asoma (nmw6lwwbxtit); si el guion del mundo no llegara, a los 8 s
+    // se ve igual, para leerla sin 3D
+    document.documentElement.classList.add('cargando-3d');
+    setTimeout(function () { document.documentElement.classList.remove('cargando-3d'); }, 8000);
   })();
 </script>
 <title>¿Qué es STL? · El guardrail donde más hacía falta, en el Dev</title>
@@ -69,17 +73,27 @@
   .idioma button:hover { background: rgba(245, 210, 122, .12); }
   .idioma button[aria-pressed="true"] { background: var(--oro); color: #1a1f33; }
   .idioma button:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
-  /* Los textos de cada estación, en una sola línea abajo, al 30 % de lo que medían, para dejarles la pantalla a las
-     animaciones en un portátil (nota de voz del titular nmw5w9ldotit, 7 de noviembre de 2026) */
-  .js-3d .tarjeta.corta { max-width: none; display: flex; align-items: center; gap: 10px; padding: 5px 12px; border-radius: 999px;
+  /* Los textos de cada estación, en una sola línea abajo, al centro, para dejarles la pantalla a las animaciones en un
+     portátil (nmw5w9ldotit); su letra crece con el ancho de la pantalla, legible: el doble de antes en 1360 y casi el triple
+     en 1920 (nota de voz del titular nmw6lwwbxtit, 7 de noviembre de 2026) */
+  .js-3d .tarjeta.corta { max-width: none; display: flex; align-items: center; gap: clamp(10px, .9vw, 18px); padding: clamp(6px, .5vw, 10px) clamp(14px, 1.2vw, 24px); border-radius: 999px;
     bottom: 1.5vh; margin-bottom: 1.5vh; white-space: nowrap; overflow: hidden; }
-  .js-3d .tarjeta.corta h2 { margin: 0; font-size: calc(clamp(22px, 2.4vw, 30px) * .3); line-height: 1.3; white-space: nowrap; text-wrap: nowrap; }
-  .js-3d .tarjeta.corta .boton-ver { padding: 3px 9px; font-size: 10px; gap: 4px; }
+  .js-3d .tarjeta.corta h2 { margin: 0; font-size: clamp(16px, 1.35vw, 28px); line-height: 1.3; white-space: nowrap; text-wrap: nowrap; }
+  .js-3d .tarjeta.corta .boton-ver { padding: clamp(5px, .45vw, 9px) clamp(12px, 1vw, 20px); font-size: clamp(13px, 1vw, 19px); gap: 6px; }
+  /* Las tres estaciones, con su texto al centro, también «Qué es STL» (nmw6lwwbxtit) */
+  .js-3d .estacion { justify-content: center; }
 
-  /* La entrada: el título sobre la vista de costado del mundo */
+  /* La entrada: el título arriba de la portada, sin montarse sobre la animación (nmw6lwwbxtit); al primer acercamiento se
+     va hacia arriba, despacio, y se desvanece (mundo-3d.js › irseLaEntrada) */
   .entrada { padding: 14vh clamp(16px, 5vw, 64px) 8vh; text-align: center; }
-  .js-3d .entrada { height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 12vh; }
+  .js-3d .entrada { height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; padding-top: clamp(14px, 3.5vh, 40px); padding-bottom: 0; }
+  .js-3d .entrada > * { will-change: transform, opacity; }
   .entrada h1 { margin: 0 0 8px; font-size: clamp(36px, 5vw, 64px); line-height: 1.1; color: #fffaf0; }
+  .js-3d .entrada h1 { margin: 0 0 2px; font-size: clamp(26px, 2.4vw, 46px); }
+  .js-3d .entrada .bajar { margin-top: 4px; font-size: clamp(14px, 1vw, 19px); }
+  /* Mientras carga el recorrido, no se ve el contenido de la página sin 3D (las tarjetas de los siete problemas se asomaban,
+     nmw6lwwbxtit): la clase la pone el guion del principio y la quita mundo-3d.js, con 3D o sin él */
+  .cargando-3d:not(.js-3d) #viaje, .cargando-3d:not(.js-3d) .fin { visibility: hidden; }
   .bajar { display: inline-block; margin-top: 18px; color: var(--oro); text-decoration: none; }
   .bajar span { display: inline-block; animation: latido 2.4s ease-in-out infinite; }
   @keyframes latido { 50% { transform: translateY(4px); } }
@@ -161,7 +175,10 @@
   .popup[hidden] { display: none; }
   .popup.sale { animation: crece .5s cubic-bezier(.2, .7, .2, 1); }
   @keyframes crece { from { opacity: 0; transform: scale(.06); } }
-  @media (prefers-reduced-motion: reduce) { .popup.sale { animation: none; } }
+  /* «Cómo empezar» se encoge de vuelta hacia su pantalla 3D al cerrarse (nmw6lwwbxtit) */
+  .popup.vuelve { animation: encoge .45s cubic-bezier(.5, 0, .75, .3) forwards; pointer-events: none; }
+  @keyframes encoge { to { opacity: 0; transform: scale(.06); } }
+  @media (prefers-reduced-motion: reduce) { .popup.sale, .popup.vuelve { animation: none; } }
   .popup canvas { display: block; flex: 1 1 auto; min-height: 0; width: 100%; object-fit: contain; border-radius: 10px; background: #07090f; }
   .popup-barra { flex: none; height: 54px; display: flex; justify-content: center; align-items: center; gap: 14px; margin: 0; }
   /* La perilla chica del clip, como la de la animación del principio (linea-del-proyecto.html › #perilla): se gira, o se
@@ -412,7 +429,7 @@
   @media (prefers-reduced-motion: reduce) { #info-caja { transition: none; } }
 </style>
 <div id="info">
-  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-06</span></div></div>
+  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-07</span></div></div>
   <button type="button" id="info-boton" aria-label="Más información: la versión" aria-expanded="false" aria-describedby="info-caja">i</button>
 </div>
 <script>

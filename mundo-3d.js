@@ -78,6 +78,11 @@ const suavizadoPara = (distancia) => (Math.abs(distancia) > 1.5 ? SUAVIZADO_SALT
 // La cámara siempre mira hacia adelante o hacia atrás por la línea, nunca hacia el piso: lo que mira nunca queda más abajo que
 // ella (nmw5o26vdtit). Pura: recibe la posición y el punto que mira, y devuelve el punto corregido
 const sinMirarAbajo = (posicion, mira) => ({ x: mira.x, y: Math.max(mira.y, posicion.y), z: mira.z });
+// Y el encuadre tampoco la baja: correr la imagen hacia arriba (setViewOffset con un corrimiento vertical positivo) se ve
+// igual que mirar al piso. El corrimiento vertical solo puede subir la mirada, nunca bajarla (nmw6lcanstit)
+const corrimientoSinBajar = (y) => Math.min(0, y);
+// La altura de la cámara sobre la línea, y la del centro del anillo de la estación 2, a la par (nmw6lcanstit)
+const ALTURA_CAMARA = 2.8;
 
 // ── En un teléfono (o una tablet en vertical), una cubierta recomienda verlo en un computador o en una tablet en
 // horizontal: las animaciones no se entienden en una pantalla angosta (nota de voz nmw17l49mtit). Se puede seguir igual
@@ -2005,6 +2010,8 @@ function iniciar() {
   const pantalla2 = { cam: 0, abierta: false };
   // El anillo de íconos de la estación 2: su centro, su costado y su dirección; lo llena la estación
   const anillo = { centro: null, lado: null, tan: null, escala: 1 };
+  // La pantalla 3D de «Cómo empezar» y su brillo (los pone la estación 3), y si el reproductor se está encogiendo hacia ella
+  const como3d = { pantalla: null, brillo: null, volviendo: false };
 
   // ── Estación 2, ¿te ha pasado…?: los seis grandes problemas giran despacio alrededor de la línea, como un anillo (nota de
   // voz nmw40cp3jtit), cada uno un ÍCONO 3D de su problema, en el estilo de los actores de la estación 1 (formas
@@ -2021,7 +2028,10 @@ function iniciar() {
     const frente = Math.atan2(-t.x, -t.z);   // para que el ícono mire hacia la cámara, que viene por detrás de la línea
     // El anillo: una elipse alrededor de la línea, de frente a la cámara (más ancha que alta, para no tocar el suelo), un poco
     // inclinada para que se vea en 3D, con los seis a la misma distancia uno del otro
-    Object.assign(anillo, { centro: p.clone().addScaledVector(ARRIBA, 0.9), lado, tan: t });
+    // Su centro, a la altura de la cámara (2,8 sobre la línea, como en pose): así el anillo queda al centro de la vista con la
+    // mirada nivelada, y al irse de la estación la cámara pasa por el hueco del anillo, sin bajar la mirada para encuadrarlo
+    // (nota de voz del titular nmw6lcanstit, 7 de noviembre de 2026)
+    Object.assign(anillo, { centro: p.clone().addScaledVector(ARRIBA, ALTURA_CAMARA), lado, tan: t });
     const ESFERAS = Array.from({ length: 7 }, (_, i) => ({ a: Math.PI / 2 + (i * 2 * Math.PI) / 7 }));
     const forma = (pts) => { const s = new THREE.Shape(); pts.forEach(([x, y], k) => (k ? s.lineTo(x, y) : s.moveTo(x, y))); s.closePath(); return s; };
     const extr = (s, prof, bisel = 0.03) => {
@@ -2197,48 +2207,58 @@ function iniciar() {
       escena.add(obj);
       return obj;
     };
-    // 1 · La pantalla flotante: un panel oscuro con su marco cian y el ▶ dorado en el centro
+    // 1 · La pantalla flotante, más chica (nmw6lwwbxtit): un panel oscuro con su marco cian y el ▶ dorado en el centro. Es la
+    // misma pantalla de «Cómo empezar»: con «▶ Ver cómo empezar», el reproductor crece desde ella y ella se apaga; al irse de
+    // la estación, el reproductor se encoge de vuelta hacia ella y ella vuelve (como3d, abrirComo, cerrarPopup)
     const pantallaComo = new THREE.Group();
-    const marcoLuz = cajita3(4.5, 2.7, 0.06, brillo(CIAN, 0.9), 0.12);
-    const panel = cajita3(4.3, 2.5, 0.1, new THREE.MeshStandardMaterial({ color: '#0b0f1c', roughness: 0.6 }), 0.1);
+    const marcoLuz = cajita3(3.3, 2, 0.06, brillo(CIAN, 0.9), 0.1);
+    const panel = cajita3(3.12, 1.82, 0.1, new THREE.MeshStandardMaterial({ color: '#0b0f1c', roughness: 0.6 }), 0.08);
     panel.position.z = 0.03;
     const triangulo = new THREE.Shape();
-    triangulo.moveTo(-0.32, -0.42); triangulo.lineTo(0.5, 0); triangulo.lineTo(-0.32, 0.42); triangulo.closePath();
+    triangulo.moveTo(-0.24, -0.32); triangulo.lineTo(0.38, 0); triangulo.lineTo(-0.24, 0.32); triangulo.closePath();
     const play = new THREE.Mesh(new THREE.ExtrudeGeometry(triangulo, { depth: 0.06, bevelEnabled: false }), brillo(ORO, 0.9));
     play.position.z = 0.09;
     pantallaComo.add(marcoLuz, panel, play);
-    enEscena(pantallaComo, -3.6, 2.2, 0.6);
-    const brilloPantalla = resplandor('90, 209, 255', CIAN, 9).halo;
-    brilloPantalla.material.opacity = 0.45;
+    enEscena(pantallaComo, -3.4, 2.4, 0.6);
+    const brilloPantalla = resplandor('90, 209, 255', CIAN, 6).halo;
+    brilloPantalla.material.opacity = 0.4;
     brilloPantalla.position.copy(pantallaComo.position).addScaledVector(t, 0.4);
     escena.add(brilloPantalla);
-    // 2 · La descarga: el haz que baja, el paquete que viaja por él y su base, con la carpeta donde queda
-    const haz = new THREE.Mesh(new THREE.BoxGeometry(0.6, 9, 0.6), new THREE.MeshBasicMaterial({ color: CIAN, transparent: true, opacity: 0.14, depthWrite: false, blending: THREE.AdditiveBlending }));
-    enEscena(haz, 3.2, 4.6);
-    const base = enEscena(cajita3(1.6, 0.16, 1.6, brillo(MORADO, 0.45), 0.08), 3.2, 0.1);
-    const paquete = new THREE.Group();
-    const caja = cajita3(0.7, 0.7, 0.7, brillo(CIAN, 0.55), 0.12);
-    const cinta = cajita3(0.74, 0.12, 0.74, brillo('#ffffff', 0.4), 0.03);
-    paquete.add(caja, cinta);
-    enEscena(paquete, 3.2, 0.6);
+    Object.assign(como3d, { pantalla: pantallaComo, brillo: brilloPantalla });
+    // 2 · Tres referencias pequeñas a la instalación, en columna a la derecha de la línea, con aire entre ellas y lejos de la
+    // pantalla (nmw6lwwbxtit): arriba, la flecha de la descarga; al medio, la carpeta donde queda el Studio; abajo, la
+    // terminal con su cursor. Ninguna se toca con otra ni con la pantalla
+    const COLUMNA = 3.4;
+    const flecha = new THREE.Group();
+    const astil = cajita3(0.16, 0.42, 0.12, brillo(CIAN, 0.7), 0.04); astil.position.y = 0.16;
+    const formaPunta = new THREE.Shape();
+    formaPunta.moveTo(-0.27, 0); formaPunta.lineTo(0.27, 0); formaPunta.lineTo(0, -0.32); formaPunta.closePath();
+    const punta = new THREE.Mesh(new THREE.ExtrudeGeometry(formaPunta, { depth: 0.12, bevelEnabled: false }), brillo(CIAN, 0.7));
+    punta.position.set(0, -0.04, -0.06);
+    const bandeja = cajita3(0.62, 0.08, 0.14, brillo('#ffffff', 0.35), 0.03); bandeja.position.y = -0.44;
+    flecha.add(astil, punta, bandeja);
+    const TAM_REFERENCIA = 1.35;
+    flecha.scale.setScalar(TAM_REFERENCIA);
+    enEscena(flecha, COLUMNA, 4.2);
     const carpeta = new THREE.Group();
-    const solapa = cajita3(0.42, 0.14, 0.18, brillo(ORO, 0.5), 0.04);
-    solapa.position.set(-0.24, 0.4, 0);
-    carpeta.add(cajita3(1.05, 0.7, 0.18, brillo(ORO, 0.4), 0.06), solapa);
-    enEscena(carpeta, 4.7, 0.55, 0.3);
-    // 3 · La barra de la instalación, sobre la línea, entre la pantalla y la descarga: su riel tenue y su relleno de luz
-    const riel = enEscena(cajita3(3.2, 0.16, 0.12, plano('#2a3150', 0.85), 0.06), 0, 3.4);
-    const relleno = enEscena(cajita3(3.2, 0.12, 0.14, brillo(VERDE, 0.8), 0.05), 0, 3.4);
-    // El paquete baja por el haz, se posa en su base y la barra se llena; al llenarse, todo vuelve a empezar, despacio
-    const CICLO_COMO = 9;
+    const solapa = cajita3(0.3, 0.1, 0.12, brillo(ORO, 0.5), 0.03);
+    solapa.position.set(-0.17, 0.27, 0);
+    carpeta.add(cajita3(0.72, 0.48, 0.12, brillo(ORO, 0.4), 0.05), solapa);
+    carpeta.scale.setScalar(TAM_REFERENCIA);
+    enEscena(carpeta, COLUMNA, 2.6);
+    const terminal = new THREE.Group();
+    const bordeTerminal = cajita3(0.86, 0.58, 0.06, brillo(CIAN, 0.45), 0.06); bordeTerminal.position.z = -0.03;
+    terminal.add(bordeTerminal, cajita3(0.8, 0.52, 0.1, plano('#222a44', 0.95), 0.05));
+    terminal.scale.setScalar(TAM_REFERENCIA);
+    const prompt = cajita3(0.14, 0.05, 0.04, brillo(VERDE, 0.8), 0.015); prompt.position.set(-0.24, 0.02, 0.06);
+    const cursor = cajita3(0.08, 0.12, 0.04, brillo(VERDE, 0.9), 0.015); cursor.position.set(-0.06, 0.02, 0.06);
+    terminal.add(prompt, cursor);
+    enEscena(terminal, COLUMNA, 1);
+    // La flecha baja y sube despacio hacia su bandeja, la carpeta respira y el cursor parpadea; nada sale de su lugar
     function moverEscenaComo(s) {
-      const f = (s % CICLO_COMO) / CICLO_COMO;
-      const baja = suave(tope(f / 0.4));
-      paquete.position.copy(base.position).addScaledVector(ARRIBA, 0.5 + (1 - baja) * 6.5);
-      paquete.rotation.y = frente3 + (1 - baja) * Math.PI;
-      const llena = suave(tope((f - 0.4) / 0.5));
-      relleno.scale.x = Math.max(0.001, llena);
-      relleno.position.copy(riel.position).addScaledVector(lado, -1.6 * (1 - llena));
+      flecha.position.y = terminal.position.y + 3.2 - 0.08 * (1 + Math.sin(s * 1.6));
+      carpeta.children[0].material.emissiveIntensity = 0.4 + 0.15 * Math.sin(s * 1.2);
+      cursor.visible = Math.sin(s * 5) > -0.2;
       play.material.emissiveIntensity = 0.6 + 0.3 * Math.sin(s * 2);
     }
     animar.push(deEstacion(2, moverEscenaComo));
@@ -2250,7 +2270,7 @@ function iniciar() {
   const masSuave = (x) => x * x * x * (x * (6 * x - 15) + 10);   // lenta al llegar y al salir de cada estación
   const pose = (u) => {
     const { p, t, lado } = marco(u);
-    const posicion = p.clone().addScaledVector(t, -7.5).addScaledVector(ARRIBA, 2.8).addScaledVector(lado, 1.4);
+    const posicion = p.clone().addScaledVector(t, -7.5).addScaledVector(ARRIBA, ALTURA_CAMARA).addScaledVector(lado, 1.4);
     const adelante = camino.getPointAt(Math.min(u + 0.03, 1)).addScaledVector(ARRIBA, 0.9);
     // Cerca de una estación, la mirada se va hacia lo que hay que ver
     let peso = 0, foco = null;
@@ -2356,7 +2376,9 @@ function iniciar() {
   }
   function encuadrarDos(w) {
     const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
-    const cerca = suave(tope(1 - Math.abs(w - 2) / 0.6));
+    // Hacia la 3, el encuadre de la 2 se apaga antes (en 0,4) de que empiece el de la 3 (en 2,4): antes se encimaban y en 2,4
+    // la imagen saltaba de un encuadre al otro (nmw6lcanstit)
+    const cerca = suave(tope(1 - Math.abs(w - 2) / (w > 2 ? 0.4 : 0.6)));
     camara.clearViewOffset();
     disposicion = null;
     if (encuadrarTres(w, ancho, alto)) return;
@@ -2378,7 +2400,7 @@ function iniciar() {
     // Cerrado, el anillo va al centro de lo libre (entre el borde y el menú, y sobre la línea de abajo); abierto, junto al menú
     const e = suave(pantalla2.cam);
     const dx = lerp(menuIzq / 2, d.anilloX, e) - c.x, dy = lerp(Math.min(alto / 2, lineaArriba / 2 + 8), d.anilloY, e) - c.y;
-    camara.setViewOffset(ancho, alto, -dx * cerca, -dy * cerca, ancho, alto);
+    camara.setViewOffset(ancho, alto, -dx * cerca, corrimientoSinBajar(-dy * cerca), ancho, alto);
     disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
   }
 
@@ -2736,13 +2758,34 @@ function iniciar() {
   cerrarPopup = () => {
     if (seleccionado < 0) return false;
     callar();
-    if (seleccionado === GUIA) salirDeComo();
+    const eraGuia = seleccionado === GUIA;
+    if (eraGuia) salirDeComo();
     seleccionado = -1;
     problemas.forEach((d) => d.classList.remove('activo'));
-    if (popup) popup.hidden = true;
+    if (popup && eraGuia && !quieto) encogerHaciaLaPantalla();
+    else if (popup) popup.hidden = true;
     pantalla2.abierta = false;
     return true;
   };
+  // Dónde queda en la pantalla del navegador la pantalla 3D de «Cómo empezar» (nmw6lwwbxtit)
+  function dondeEstaLaPantalla() {
+    if (!como3d.pantalla || !disposicion) return null;
+    camara.updateMatrixWorld();
+    return aPantalla(como3d.pantalla.position, disposicion.ancho, disposicion.alto);
+  }
+  // Al cerrarse «Cómo empezar» (al irse de la estación, con Esc o con el menú), el reproductor se encoge de vuelta hacia la
+  // pantalla 3D, que reaparece cuando termina: es la misma pantalla, que vuelve a su tamaño (nmw6lwwbxtit)
+  function encogerHaciaLaPantalla() {
+    const o = dondeEstaLaPantalla(), r = popup.getBoundingClientRect();
+    if (o) popup.style.transformOrigin = `${Math.round(o.x - r.left)}px ${Math.round(o.y - r.top)}px`;
+    como3d.volviendo = true;
+    popup.classList.remove('sale'); void popup.offsetWidth; popup.classList.add('vuelve');
+    setTimeout(() => {
+      popup.classList.remove('vuelve');
+      if (seleccionado < 0) popup.hidden = true;
+      como3d.volviendo = false;
+    }, 450);
+  }
   // ── «Cómo empezar» en el reproductor (estación 3; nmw4ircrjtit, nmw4irz3etit): sus mandos son los de los problemas, se abre
   // solo al llegar, una vez por visita, y no se cierra solo al terminar, para que alcance a quedar a la vista el enlace al
   // README; lo cierran Esc, la rueda fuera de él o el menú, y «▶ Ver cómo empezar», en su línea de abajo, lo vuelve a abrir.
@@ -2762,7 +2805,10 @@ function iniciar() {
     popup.classList.add('guia');
     popup.setAttribute('aria-label', 'Cómo empezar a usar STL Studio');
     document.getElementById('popup-respuesta').textContent = [...GUION_COMO.escenas, GUION_COMO.cierre].join(' ');
-    origenPopup = null;
+    // Crece desde la pantalla 3D de la estación, la misma que lo muestra (nmw6lwwbxtit)
+    origenPopup = dondeEstaLaPantalla();
+    como3d.volviendo = false;
+    popup.classList.remove('vuelve');
     popup.hidden = false;
     popup.classList.remove('sale'); void popup.offsetWidth; popup.classList.add('sale');
     pantalla2.abierta = true;
@@ -2848,6 +2894,8 @@ function iniciar() {
     if (Math.abs(cur - 3) > 0.45) guia.visita = false;
     pintarExtraComo();
     if (verComo) verComo.style.visibility = seleccionado === GUIA ? 'hidden' : '';
+    // Mientras «Cómo empezar» está abierto (o se encoge de vuelta), su pantalla 3D se apaga: el reproductor es ella en grande
+    if (como3d.pantalla) como3d.pantalla.visible = como3d.brillo.visible = !(seleccionado === GUIA || como3d.volviendo);
     ultimoCuadro = ahoraMs;
     // El reproductor se abre o se cierra suave: el anillo se achica y se corre hacia el menú, o vuelve
     const meta = pantalla2.abierta ? 1 : 0;
@@ -2885,6 +2933,17 @@ function iniciar() {
   // Las animaciones de las estaciones esperan quietas hasta «Empieza el recorrido», que las echa a andar todas
   // (nmw1khrketit); con un enlace a una estación, la suya empieza sola, y con ?ver=N, todas, para capturarlas
   document.querySelector('.entrada .bajar')?.addEventListener('click', () => relojes.forEach((_, k) => empezarEstacion(k)));
+  // «¿Qué es STL?» y «Empieza el recorrido», arriba de la portada: al primer acercamiento se van hacia arriba, despacio, y
+  // se desvanecen (nota de voz del titular nmw6lwwbxtit); con movimiento reducido, solo se desvanecen
+  const entrada = document.querySelector('.entrada');
+  function irseLaEntrada() {
+    if (!entrada) return;
+    const e = suave(tope(scrollY / Math.max(innerHeight * 0.45, 1)));
+    entrada.style.opacity = String(1 - e);
+    entrada.style.transform = quieto ? '' : `translateY(${(-e * 8).toFixed(2)}vh)`;
+  }
+  addEventListener('scroll', irseLaEntrada, { passive: true });
+  irseLaEntrada();
   if (fijo !== null) relojes.forEach((_, k) => empezarEstacion(k));
   else if (pedida >= 0) empezarEstacion(pedida);
   // ?ver=2&abrir=N&seg=S: para capturar la pantalla del problema N (desde 0) ya abierta, quieta en el segundo S de su animación
@@ -2909,4 +2968,6 @@ if (lienzo && estaciones.length && hayWebGL()) {
   if (compartir) document.documentElement.classList.add('compartir');
   iniciar();
 }
+// Ya se sabe si hay 3D: la página se muestra, con él o sin él (nmw6lwwbxtit)
+document.documentElement.classList.remove('cargando-3d');
 if (enVideo) import('./video-corto.js').then((m) => m.montar({ grandes: GRANDES, pintarClip, duraClip, tramoDeVoz, gancho: ganchoVideo, sinCuenta: () => { sinCuenta = true; } }));
