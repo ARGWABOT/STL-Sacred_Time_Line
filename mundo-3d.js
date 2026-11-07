@@ -24,8 +24,8 @@ const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb3
 // «ES · EN»); el idioma sale de <html lang> (nota de voz nmw1c3q68tit). Los tipos de pedido llevan el nombre de su tipo
 // en el Studio: falla, idea, ajuste, pregunta y respuesta. «pasado» es el título de la estación 2
 const TEXTOS = {
-  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '7 problemas de desarrollar por chat que STL resuelve muy bien', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
-  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: '7 problems of developing through chat that STL solves really well', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
+  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: '7 problemas de desarrollar por chat que STL resuelve muy bien', uno: 'Qué es STL', tres: 'Cómo empezar', ver: '▶ Ver la animación', verComo: '▶ Ver cómo empezar', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
+  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: '7 problems of developing through chat that STL solves really well', uno: 'What is STL', tres: 'Getting started', ver: '▶ Watch the animation', verComo: '▶ Watch how to get started', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
 };
 const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es'];
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
@@ -35,12 +35,24 @@ const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Lost t
 // La línea de la estación 2 sale del diccionario, también en la página en inglés
 const tituloDos = document.querySelector('[data-titulo-dos]');
 if (tituloDos) tituloDos.textContent = T.pasado;
+// Las tarjetas de las estaciones 1 y 3, también en inglés: un solo título cada una y el botón con el mismo formato (nmw5o26vdtit)
+for (const [marca, texto] of [['[data-titulo-uno]', T.uno], ['[data-titulo-tres]', T.tres], ['[data-texto-ver]', T.ver], ['[data-ver-como]', T.verComo]]) {
+  const el = document.querySelector(marca);
+  if (el) el.textContent = texto;
+}
 // Y el título de la animación de la estación 1, arriba a la derecha de su visor (nmw479zmetit)
 const tituloVisor = document.querySelector('[data-titulo-visor]');
 if (tituloVisor) tituloVisor.innerHTML = T.visor;
 // Cuánto de la distancia que le falta recorre la cámara en cada cuadro. Fue 0,085, luego 0,03 y ahora la mitad, 0,015: el
 // cambio entre estaciones mareaba (nota de voz nmw17rx07tit)
-const SUAVIZADO = 0.015;
+//
+// Entre estaciones vecinas la cámara va a la MITAD de esa velocidad otra vez (0,0075: el doble de tiempo), para disfrutar el fondo y los
+// elementos (nmw5o26vdtit); un salto de dos estaciones o más (un clic lejano en el menú) sigue con la de antes, más rápida
+const SUAVIZADO = 0.0075, SUAVIZADO_SALTO = 0.015;
+const suavizadoPara = (distancia) => (Math.abs(distancia) > 1.5 ? SUAVIZADO_SALTO : SUAVIZADO);
+// La cámara siempre mira hacia adelante o hacia atrás por la línea, nunca hacia el piso: lo que mira nunca queda más abajo que
+// ella (nmw5o26vdtit). Pura: recibe la posición y el punto que mira, y devuelve el punto corregido
+const sinMirarAbajo = (posicion, mira) => ({ x: mira.x, y: Math.max(mira.y, posicion.y), z: mira.z });
 
 // ── En un teléfono (o una tablet en vertical), una cubierta recomienda verlo en un computador o en una tablet en
 // horizontal: las animaciones no se entienden en una pantalla angosta (nota de voz nmw17l49mtit). Se puede seguir igual
@@ -1382,15 +1394,17 @@ function iniciar() {
   const CIELO_COLORES = ['#ffffff', '#dfe9ff', '#bcd2ff', '#9fbfff'].map((c) => new THREE.Color(c));
   // radio: a qué distancia; sigue: cuánto de lo que se mueve la cámara la acompaña la capa (1: nada de paralaje)
   const CAPAS_CIELO = [
-    { n: 120, radio: 420, sigue: 0.98, tam: [1.1, 1.9], brillo: [0.3, 0.75], banda: false },   // lejanas: casi no se mueven
-    { n: 90, radio: 260, sigue: 0.9, tam: [1.6, 2.8], brillo: [0.3, 0.8], banda: false },      // intermedias
-    { n: 70, radio: 340, sigue: 0.95, tam: [1.0, 1.7], brillo: [0.15, 0.4], banda: true },     // la banda tenue de galaxia
+    { n: 900, radio: 420, sigue: 0.98, tam: [1.1, 1.9], brillo: [0.3, 0.75], banda: false },   // lejanas: casi no se mueven
+    { n: 700, radio: 260, sigue: 0.9, tam: [1.6, 2.8], brillo: [0.3, 0.8], banda: false },      // intermedias
+    { n: 600, radio: 340, sigue: 0.95, tam: [1.0, 1.7], brillo: [0.15, 0.4], banda: true },     // la banda tenue de galaxia
   ];
   const cieloUniformes = { uTiempo: { value: 0 }, uMueve: { value: quieto ? 0 : 1 }, uPix: { value: renderer.getPixelRatio() } };
   const capasCielo = CAPAS_CIELO.map((capa) => {
-    const pos = new Float32Array(capa.n * 3), col = new Float32Array(capa.n * 3);
-    const tam = new Float32Array(capa.n), brillo = new Float32Array(capa.n), ciclo = new Float32Array(capa.n), fase = new Float32Array(capa.n);
-    for (let i = 0; i < capa.n; i++) {
+    // En un teléfono, la mitad (el sorteo es el mismo: las que quedan son las primeras de siempre)
+    const cantidad = Math.round(capa.n * (movil ? 0.5 : 1));
+    const pos = new Float32Array(cantidad * 3), col = new Float32Array(cantidad * 3);
+    const tam = new Float32Array(cantidad), brillo = new Float32Array(cantidad), ciclo = new Float32Array(cantidad), fase = new Float32Array(cantidad);
+    for (let i = 0; i < cantidad; i++) {
       // Un punto de la esfera; la banda es un círculo máximo inclinado, con algo de grosor
       let y = cieloAzar() * 2 - 1;
       const giro = cieloAzar() * Math.PI * 2;
@@ -1442,6 +1456,57 @@ function iniciar() {
     escena.add(puntos);
     return { puntos, sigue: capa.sigue };
   });
+  // ── El fondo de nebulosa (nmw5o26vdtit): una esfera enorme por dentro, centrada en la cámara, con una nebulosa suave y
+  // procedural (ruido de valor en 3D sobre la DIRECCIÓN, así que no tiene costuras ni polos y es el mismo fondo mire donde
+  // mire la cámara: adelante, atrás, a los lados o arriba). Los tonos son los del fondo de la animación de la línea del
+  // proyecto (azul noche con índigo, un toque de violeta y de cian muy tenue). Determinista: la semilla es una constante
+  // del shader y no hay azar de verdad. No se anima, así que con movimiento reducido es igual.
+  const NEBULOSA_SEMILLA = 7.31;
+  const NEBULOSA_RADIO = 500;   // dentro del plano lejano de la cámara (600) y más allá de las capas de estrellas
+  const nebulosa = new THREE.Mesh(
+    new THREE.SphereGeometry(NEBULOSA_RADIO, 48, 32),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+      defines: { OCTAVAS: movil ? 3 : 5 },
+      vertexShader: `
+        varying vec3 vDir;
+        void main() {
+          vDir = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        varying vec3 vDir;
+        float azar(vec3 p) { p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+        float ruido(vec3 x) {
+          vec3 i = floor(x), f = fract(x);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(azar(i), azar(i + vec3(1.0, 0.0, 0.0)), f.x), mix(azar(i + vec3(0.0, 1.0, 0.0)), azar(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+                     mix(mix(azar(i + vec3(0.0, 0.0, 1.0)), azar(i + vec3(1.0, 0.0, 1.0)), f.x), mix(azar(i + vec3(0.0, 1.0, 1.0)), azar(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+        }
+        float nube(vec3 p) {
+          float suma = 0.0, amp = 0.5;
+          for (int k = 0; k < OCTAVAS; k++) { suma += amp * ruido(p); p = p * 2.03 + vec3(1.7, 9.2, 3.1); amp *= 0.5; }
+          return suma;
+        }
+        void main() {
+          vec3 d = normalize(vDir);
+          vec3 p = d * 2.4 + vec3(${NEBULOSA_SEMILLA.toFixed(2)});
+          float a = nube(p);
+          float b = nube(p * 1.7 + vec3(5.2, 1.3, 8.1) + a * 1.6);
+          float denso = smoothstep(0.38, 0.82, b);
+          float velo = smoothstep(0.30, 0.75, a);
+          vec3 base = vec3(0.039, 0.051, 0.094);                              // #0a0d18, el fondo de siempre
+          vec3 indigo = vec3(0.13, 0.16, 0.38), violeta = vec3(0.36, 0.28, 0.62), cian = vec3(0.10, 0.30, 0.46);
+          vec3 tinte = mix(indigo, violeta, smoothstep(0.35, 0.75, nube(p * 0.6 + vec3(11.0))));
+          tinte = mix(tinte, cian, 0.55 * smoothstep(0.5, 0.8, nube(p * 0.8 + vec3(23.0))));
+          vec3 color = base + tinte * (0.34 * denso + 0.16 * velo) * (0.55 + 0.45 * a);
+          gl_FragColor = vec4(color, 1.0);
+        }`,
+    }),
+  );
+  nebulosa.renderOrder = -20;   // lo primero que se dibuja, detrás de todo
+  nebulosa.frustumCulled = false;
+  escena.add(nebulosa);
   // Sin suelo: bajo la línea queda un resplandor suave y muy tenue que la sostiene, sin bordes duros
   const brilloBajoLaLinea = (() => {
     const c = document.createElement('canvas');
@@ -2088,8 +2153,60 @@ function iniciar() {
 
   // ── Estación 3, «Cómo empezar» (pd_como_empezar): el camino de la 2 a la 3 es la línea sola, como el de la 1 a la 2 pero
   // sin notas que viajan (nmw4isvr9tit); al llegar, su reproductor se abre a la izquierda y la línea queda a la derecha
-  // (nmw4ircrjtit). La cámara mira la línea, un poco arriba
-  focos.push(marco(SITIO[2]).p.clone().addScaledVector(ARRIBA, 0.9));
+  // (nmw4ircrjtit). La cámara mira la línea, un poco arriba. Y, como las estaciones 1 y 2, tiene sus elementos permanentes
+  // (nmw5o26vdtit): siete piezas, una por cada paso de empezar (traerlo, la carpeta, el escaneo de seguridad, instalarlo, la
+  // guía, la documentación y «listo»), que giran despacio alrededor de la línea en un anillo más chico que el de la 2, con un
+  // resplandor detrás que se ve desde lejos. Están siempre, antes de llegar y después de irse, aunque el reproductor esté cerrado
+  {
+    const u = SITIO[2];
+    const { p, t, lado } = marco(u);
+    const centro = p.clone().addScaledVector(ARRIBA, 0.9);
+    focos.push(marco(SITIO[2]).p.clone().addScaledVector(ARRIBA, 0.9));
+    const RADIO_X3 = 2.5, RADIO_Y3 = 1.6, INCLINA3 = 0.7, GIRO_ANILLO3 = 0.11;
+    const cajita3 = (w, h, d, material, r = 0.05) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), material);
+    const PIEZAS_COMO = [
+      // 1 · traerlo: un paquete con su flecha hacia abajo
+      (mat, apoyo) => { const g = new THREE.Group(); const flecha = cajita3(0.3, 0.3, 0.3, apoyo, 0.05); flecha.rotation.z = Math.PI / 4; flecha.position.y = 0.62; g.add(cajita3(0.8, 0.8, 0.8, mat, 0.14), flecha); return g; },
+      // 2 · la carpeta donde trabajar: una carpeta con su solapa
+      (mat, apoyo) => { const g = new THREE.Group(); const solapa = cajita3(0.36, 0.12, 0.2, apoyo, 0.04); solapa.position.set(-0.2, 0.34, 0); g.add(cajita3(0.92, 0.6, 0.2, mat, 0.06), solapa); return g; },
+      // 3 · el escaneo de seguridad: un escudo
+      (mat, apoyo) => {
+        const forma = new THREE.Shape(); forma.moveTo(0, 0.5); forma.lineTo(0.42, 0.34); forma.lineTo(0.38, -0.12); forma.quadraticCurveTo(0.3, -0.38, 0, -0.56); forma.quadraticCurveTo(-0.3, -0.38, -0.38, -0.12); forma.lineTo(-0.42, 0.34); forma.closePath();
+        const g = new THREE.Group(); const escudo = new THREE.Mesh(new THREE.ExtrudeGeometry(forma, { depth: 0.14, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 }), mat);
+        escudo.position.z = -0.07; const marca = cajita3(0.1, 0.34, 0.06, apoyo, 0.02); marca.position.set(0, 0.02, 0.15);
+        g.add(escudo, marca); return g;
+      },
+      // 4 · instalarlo: un engranaje (una cruz de ejes con su centro)
+      (mat, apoyo) => { const g = new THREE.Group(); const brazo = cajita3(0.84, 0.22, 0.22, mat, 0.07); const cruce = cajita3(0.22, 0.84, 0.22, mat, 0.07); const diagonal = cajita3(0.7, 0.18, 0.18, mat, 0.06); diagonal.rotation.z = Math.PI / 4; const otra = cajita3(0.7, 0.18, 0.18, mat, 0.06); otra.rotation.z = -Math.PI / 4; g.add(brazo, cruce, diagonal, otra, new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), apoyo)); return g; },
+      // 5 · el Studio te guía paso a paso: una baliza (una cápsula con su luz arriba)
+      (mat, apoyo) => { const g = new THREE.Group(); const punta = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), apoyo); punta.position.y = 0.52; g.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.6, 6, 14), mat), punta); return g; },
+      // 6 · la documentación: una hoja con sus renglones
+      (mat, apoyo) => { const g = new THREE.Group(); g.add(cajita3(0.62, 0.84, 0.08, mat, 0.03)); [0.22, 0.04, -0.14].forEach((y) => { const raya = cajita3(0.4, 0.05, 0.04, apoyo, 0.015); raya.position.set(0, y, 0.06); g.add(raya); }); return g; },
+      // 7 · listo, en marcha: un cristal
+      (mat) => new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 0), mat),
+    ];
+    const COLORES_COMO = [CIAN, ORO, VERDE, MORADO, NARANJA, MODELO, ROJO];
+    const piezas = PIEZAS_COMO.map((hacer, i) => {
+      const mat = brillo(COLORES_COMO[i], 0.5), apoyo = brillo('#ffffff', 0.35);
+      const pieza = hacer(mat, apoyo);
+      pieza.scale.setScalar(0.85);
+      escena.add(pieza);
+      return { pieza, a: Math.PI / 2 + (i * 2 * Math.PI) / PIEZAS_COMO.length, fase: i * 0.9 };
+    });
+    // El resplandor del anillo, siempre de frente y sin niebla: así se ve desde la estación anterior
+    const brilloComo = resplandor('185, 163, 255', MORADO, 17).halo;
+    brilloComo.material.opacity = 0.6;
+    brilloComo.position.copy(centro);
+    escena.add(brilloComo);
+    function moverAnilloComo(s) {
+      piezas.forEach((o) => {
+        const a = o.a + s * GIRO_ANILLO3;
+        o.pieza.position.copy(centro).addScaledVector(lado, Math.cos(a) * RADIO_X3).addScaledVector(ARRIBA, Math.sin(a) * RADIO_Y3 + Math.sin(s * 1.3 + o.fase) * 0.08).addScaledVector(t, Math.sin(a) * INCLINA3);
+        o.pieza.rotation.y = Math.atan2(-t.x, -t.z) + Math.sin(s * 0.8 + o.fase) * 0.5;
+      });
+    }
+    animar.push(deEstacion(2, moverAnilloComo));
+  }
 
   // ── La cámara: arriba, una vista de costado de la línea; al bajar, se mete en ella y la sigue
   const INTRO_POS = portada.posicion.clone().addScaledVector(portada.lado, 17).addScaledVector(ARRIBA, 5);
@@ -2154,7 +2271,8 @@ function iniciar() {
       }
     }
     camara.position.copy(posicion);
-    camara.lookAt(mira);
+    const ojo = sinMirarAbajo(posicion, mira);
+    camara.lookAt(ojo.x, ojo.y, ojo.z);
     farol.position.copy(posicion).addScaledVector(ARRIBA, 1.5);
     encuadrarDos(w);
   }
@@ -2163,7 +2281,7 @@ function iniciar() {
   // (setViewOffset) para que el anillo quede en el centro de lo que deja libre el menú, y con un reproductor abierto, pegado
   // al menú, con el reproductor en todo lo que queda a su izquierda (disponerReproductor). Lejos de la estación 2, nada se corre
   const MANDOS_ALTO = 64;   // lo que ocupan los mandos, debajo de la animación, dentro del reproductor
-  const menuLista = document.querySelector('.menu ol'), lineaDos = document.querySelector('[data-titulo-dos]');
+  const menuLista = document.querySelector('.menu ol'), lineaDos = document.querySelector('[data-titulo-dos]')?.closest('.tarjeta');
   const enPantalla = new THREE.Vector3();
   const aPantalla = (v, ancho, alto) => { enPantalla.copy(v).project(camara); return { x: (enPantalla.x + 1) / 2 * ancho, y: (1 - enPantalla.y) / 2 * alto }; };
   let disposicion = null;   // dónde quedan el reproductor y el anillo, para el cuadro que se dibuja
@@ -2171,7 +2289,7 @@ function iniciar() {
   // (EXTRA_ALTO) sobre sus mandos, y la línea a la derecha, donde en la 2 queda el anillo; la imagen se corre para que la
   // línea quede ahí cuando el reproductor está abierto, y al centro de lo libre cuando no
   const EXTRA_ALTO = 40;
-  const lineaTres = document.querySelector('[data-linea-tres]');
+  const lineaTres = document.querySelector('[data-titulo-tres]')?.closest('.tarjeta');
   function encuadrarTres(w, ancho, alto) {
     const cerca = suave(tope(1 - Math.abs(w - 3) / 0.6));
     if (cerca <= 0.001 || !focos[2] || !ancho || !alto) return false;
@@ -2666,7 +2784,7 @@ function iniciar() {
     // En ?ver=N, unos segundos de cuadros y se queda quieta: así se puede capturar sin pantalla
     if (fijo !== null && !enVideo && ++dibujados > 150) return;
     const w = objetivo();
-    cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * SUAVIZADO;
+    cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * suavizadoPara(w - cur);
     primera = false;
     // Si la persona se va de la estación 2 (o de la 3, con «Cómo empezar») con un reproductor abierto (por la barra de
     // scroll, el teclado…), se cierra
@@ -2677,7 +2795,7 @@ function iniciar() {
     if (Math.abs(cur - 3) > 0.45) guia.visita = false;
     else if (!guia.visita && Math.abs(w - 3) < 0.02 && Math.abs(cur - 3) < 0.06 && ahoraMs - ultimaRueda > 700 && seleccionado < 0 && !visorAbierto()) { guia.visita = true; abrirComo(); }
     pintarExtraComo();
-    if (verComo) verComo.hidden = seleccionado === GUIA;
+    if (verComo) verComo.style.visibility = seleccionado === GUIA ? 'hidden' : '';
     ultimoCuadro = ahoraMs;
     // El reproductor se abre o se cierra suave: el anillo se achica y se corre hacia el menú, o vuelve
     const meta = pantalla2.abierta ? 1 : 0;
@@ -2699,6 +2817,7 @@ function iniciar() {
     // El cielo, en el mismo bucle: cada capa acompaña a la cámara (paralaje) y el tiempo del titileo avanza; con movimiento
     // reducido uMueve vale 0 y ninguna estrella titila (el cielo no se mueve por su cuenta)
     for (const c of capasCielo) c.puntos.position.copy(camara.position).multiplyScalar(c.sigue);
+    nebulosa.position.copy(camara.position);   // el fondo acompaña a la cámara: el mismo en todas las direcciones
     if (!quieto) cieloUniformes.uTiempo.value = ahoraMs / 1000;
     renderer.render(escena, camara);
     requestAnimationFrame(cuadro);
