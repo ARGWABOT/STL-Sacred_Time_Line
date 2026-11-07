@@ -91,6 +91,28 @@ if (tituloVisor) tituloVisor.innerHTML = T.visor;
 // elementos (nmw5o26vdtit); un salto de dos estaciones o más (un clic lejano en el menú) sigue con la de antes, más rápida
 const SUAVIZADO = 0.0075, SUAVIZADO_SALTO = 0.015;
 const suavizadoPara = (distancia) => (Math.abs(distancia) > 1.5 ? SUAVIZADO_SALTO : SUAVIZADO);
+// «Empieza el recorrido» llega a la estación 1 en la mitad del tiempo de un paso entre estaciones vecinas: el doble de lo
+// que recorre la cámara en cada cuadro (nota de voz del titular nmw6xuro1tit, 7 de noviembre de 2026: «reduce ese tiempo a
+// la mitad»). Solo en ese viaje: lo apaga la llegada o la rueda del ratón
+const SUAVIZADO_ARRANQUE = SUAVIZADO * 2;
+// Lo que flota junto a la línea nunca queda detrás del menú flotante (nota de voz del titular nmw6z8b3btit, con su captura):
+// si su caja en la pantalla cruza la del menú (con su aire), sube al espacio libre que queda sobre el menú, como lo marcó el
+// titular; si arriba no cabe, baja al que queda debajo, y si tampoco, sube lo que puede y se corre a la izquierda del menú. Nunca sale de la pantalla. Pura: recibe
+// la caja ({ x, y, w, h }, en píxeles), la del menú y el tamaño de la pantalla, y devuelve cuánto correrla ({ dx, dy })
+const AIRE_MENU = 16;
+function apartarDelMenu(caja, menu, ancho, alto) {
+  if (!caja || !menu || !menu.w || !menu.h || !ancho || !alto) return { dx: 0, dy: 0 };
+  const cruza = (dx, dy) => caja.x + dx < menu.x + menu.w + AIRE_MENU && menu.x - AIRE_MENU < caja.x + caja.w + dx
+    && caja.y + dy < menu.y + menu.h + AIRE_MENU && menu.y - AIRE_MENU < caja.y + caja.h + dy;
+  if (!cruza(0, 0)) return { dx: 0, dy: 0 };
+  const subir = menu.y - AIRE_MENU - (caja.y + caja.h), bajar = menu.y + menu.h + AIRE_MENU - caja.y;
+  // Arriba primero, como lo marcó el titular; si arriba no cabe, debajo del menú
+  if (caja.y + subir >= AIRE_MENU) return { dx: 0, dy: subir };
+  if (caja.y + caja.h + bajar <= alto - AIRE_MENU) return { dx: 0, dy: bajar };
+  const dy = Math.min(0, AIRE_MENU - caja.y);
+  const dx = Math.max(AIRE_MENU - caja.x, menu.x - AIRE_MENU - (caja.x + caja.w));
+  return { dx: Math.min(0, dx), dy };
+}
 // La cámara siempre mira hacia adelante o hacia atrás por la línea, nunca hacia el piso: lo que mira nunca queda más abajo que
 // ella (nmw5o26vdtit). Pura: recibe la posición y el punto que mira, y devuelve el punto corregido
 const sinMirarAbajo = (posicion, mira) => ({ x: mira.x, y: Math.max(mira.y, posicion.y), z: mira.z });
@@ -144,7 +166,8 @@ const visorAbierto = () => !!visor && !visor.hidden;
 function abrirVisor(desde) {
   if (!visor || !visorIframe) return;
   abridor = desde;
-  if (!visorIframe.getAttribute('src')) visorIframe.setAttribute('src', visorIframe.dataset.src);
+  // En el idioma del recorrido: con «EN», «What is STL» se lee en inglés (pd_bilingue, nmw6z8wj2tit)
+  if (!visorIframe.getAttribute('src')) visorIframe.setAttribute('src', `${visorIframe.dataset.src}?lang=${EN ? 'en' : 'es'}`);
   visor.hidden = false;
   visor.querySelector('[data-cerrar-visor]')?.focus({ preventScroll: true });
 }
@@ -2103,6 +2126,9 @@ function iniciar() {
   const anillo = { centro: null, lado: null, tan: null, escala: 1 };
   // La pantalla 3D de «Cómo empezar» y su brillo (los pone la estación 3), y si el reproductor se está encogiendo hacia ella
   const como3d = { pantalla: null, brillo: null, volviendo: false };
+  // Las tres referencias de la estación 3 con sus rótulos, en un grupo que se aparta del menú (apartarColumna, nmw6z8b3btit)
+  const columnaComo = new THREE.Group();
+  escena.add(columnaComo);
 
   // ── Estación 2, ¿te ha pasado…?: los seis grandes problemas giran despacio alrededor de la línea, como un anillo (nota de
   // voz nmw40cp3jtit), cada uno un ÍCONO 3D de su problema, en el estilo de los actores de la estación 1 (formas
@@ -2343,6 +2369,8 @@ function iniciar() {
     // pantalla (nmw6lwwbxtit): arriba, la flecha de la descarga; al medio, la carpeta donde queda el Studio; abajo, la
     // terminal con su cursor. Ninguna se toca con otra ni con la pantalla
     const COLUMNA = 3.4;
+    // Las tres, con sus rótulos, van juntas en un grupo que se corre entero si quedan detrás del menú (apartarColumna)
+    const enColumna = (obj) => { columnaComo.add(obj); return obj; };
     const flecha = new THREE.Group();
     const astil = cajita3(0.16, 0.42, 0.12, brillo(CIAN, 0.7), 0.04); astil.position.y = 0.16;
     const formaPunta = new THREE.Shape();
@@ -2353,13 +2381,13 @@ function iniciar() {
     flecha.add(astil, punta, bandeja);
     const TAM_REFERENCIA = 1.35;
     flecha.scale.setScalar(TAM_REFERENCIA);
-    enEscena(flecha, COLUMNA, 4.2);
+    enColumna(enEscena(flecha, COLUMNA, 4.2));
     const carpeta = new THREE.Group();
     const solapa = cajita3(0.3, 0.1, 0.12, brillo(ORO, 0.5), 0.03);
     solapa.position.set(-0.17, 0.27, 0);
     carpeta.add(cajita3(0.72, 0.48, 0.12, brillo(ORO, 0.4), 0.05), solapa);
     carpeta.scale.setScalar(TAM_REFERENCIA);
-    enEscena(carpeta, COLUMNA, 2.6);
+    enColumna(enEscena(carpeta, COLUMNA, 2.6));
     const terminal = new THREE.Group();
     const bordeTerminal = cajita3(0.86, 0.58, 0.06, brillo(CIAN, 0.45), 0.06); bordeTerminal.position.z = -0.03;
     terminal.add(bordeTerminal, cajita3(0.8, 0.52, 0.1, plano('#222a44', 0.95), 0.05));
@@ -2367,12 +2395,12 @@ function iniciar() {
     const prompt = cajita3(0.14, 0.05, 0.04, brillo(VERDE, 0.8), 0.015); prompt.position.set(-0.24, 0.02, 0.06);
     const cursor = cajita3(0.08, 0.12, 0.04, brillo(VERDE, 0.9), 0.015); cursor.position.set(-0.06, 0.02, 0.06);
     terminal.add(prompt, cursor);
-    enEscena(terminal, COLUMNA, 1);
+    enColumna(enEscena(terminal, COLUMNA, 1));
     // Un rótulo a la derecha de cada referencia (como los de la estación 1, en el idioma de la página): empieza pasado el
     // borde de la figura (0,8 desde su centro), a su altura, así que no toca la figura ni a las otras (hay 1,6 entre ellas)
     for (const [texto, color, y] of [[T.descargalo, CIAN, 4.2], [T.tuCarpeta, ORO, 2.6], [T.pideAgente, VERDE, 1]]) {
       const r = rotulo(texto, color, 0.45);
-      enEscena(r, COLUMNA + 0.8 + r.scale.x / 2, y);
+      enColumna(enEscena(r, COLUMNA + 0.8 + r.scale.x / 2, y));
       r.rotation.y = 0;
     }
     // La flecha baja y sube despacio hacia su bandeja, la carpeta respira y el cursor parpadea; nada sale de su lugar
@@ -2459,6 +2487,7 @@ function iniciar() {
     camara.lookAt(ojo.x, ojo.y, ojo.z);
     farol.position.copy(posicion).addScaledVector(ARRIBA, 1.5);
     encuadrarDos(w);
+    apartarColumna();
   }
 
   // ── El encuadre de la estación 2 (nota de voz nmw40cp3jtit): la cámara no se mueve, pero la imagen se corre
@@ -2532,6 +2561,51 @@ function iniciar() {
     const dx = lerp(menuIzq / 2, d.anilloX, e) - c.x, dy = lerp(Math.min(alto / 2, lineaArriba / 2 + 8), d.anilloY, e) - c.y;
     camara.setViewOffset(ancho, alto, -dx * cerca, corrimientoSinBajar(-dy * cerca), ancho, alto);
     disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
+  }
+
+  // ── Las referencias de «Cómo empezar» nunca quedan detrás del menú flotante (nota de voz del titular nmw6z8b3btit): en
+  // cada cuadro se mide dónde caería su columna en su lugar; si ahí no toca el menú, vuelve a él (el reproductor cerrado,
+  // otra estación). Si lo toca, se mide donde va ahora y se corre lo que aún pida apartarDelMenu, en el plano de la
+  // pantalla y a su profundidad, hasta que ya no pide nada: así llega aunque la perspectiva no sea pareja
+  const menuEntero = document.querySelector('.menu');
+  const cajaColumna = new THREE.Box3(), esquina = new THREE.Vector3(), medioColumna = new THREE.Vector3();
+  const corrida = new THREE.Vector3(), derechaCam = new THREE.Vector3(), arribaCam = new THREE.Vector3();
+  function columnaEnPantalla(ancho, alto) {
+    columnaComo.updateMatrixWorld(true);
+    cajaColumna.setFromObject(columnaComo);
+    const hondo = -cajaColumna.getCenter(medioColumna).applyMatrix4(camara.matrixWorldInverse).z;
+    if (!(hondo > 1)) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let k = 0; k < 8; k++) {
+      esquina.set(k & 1 ? cajaColumna.max.x : cajaColumna.min.x, k & 2 ? cajaColumna.max.y : cajaColumna.min.y, k & 4 ? cajaColumna.max.z : cajaColumna.min.z);
+      const p = aPantalla(esquina, ancho, alto);
+      x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
+    }
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0, hondo };
+  }
+  function apartarColumna() {
+    const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
+    const antes = columnaComo.position.clone();
+    corrida.set(0, 0, 0);
+    const r = movil || !menuEntero ? null : menuEntero.getBoundingClientRect();
+    if (r && r.width && r.height && ancho && alto && columnaComo.children.length) {
+      camara.updateMatrixWorld();
+      const menu = { x: r.left, y: r.top, w: r.width, h: r.height };
+      columnaComo.position.set(0, 0, 0);
+      const enSuLugar = columnaEnPantalla(ancho, alto);
+      const pide = enSuLugar ? apartarDelMenu(enSuLugar, menu, ancho, alto) : { dx: 0, dy: 0 };
+      if (pide.dx || pide.dy) {
+        columnaComo.position.copy(antes);
+        const ahora = columnaEnPantalla(ancho, alto);
+        const { dx, dy } = ahora ? apartarDelMenu(ahora, menu, ancho, alto) : { dx: 0, dy: 0 };
+        const porPixel = (2 * (ahora ?? enSuLugar).hondo * Math.tan(THREE.MathUtils.degToRad(camara.fov) / 2)) / alto;
+        derechaCam.setFromMatrixColumn(camara.matrixWorld, 0);
+        arribaCam.setFromMatrixColumn(camara.matrixWorld, 1);
+        corrida.copy(antes).addScaledVector(derechaCam, dx * porPixel).addScaledVector(arribaCam, -dy * porPixel);
+      }
+    }
+    columnaComo.position.copy(quieto ? corrida : antes.lerp(corrida, 0.3));
+    columnaComo.updateMatrixWorld(true);
   }
 
   // ── La estación actual: su tarjeta aparece solo cuando la cámara llega a ella, y se va al avanzar o retroceder (nota de
@@ -3020,8 +3094,8 @@ function iniciar() {
   lienzo.addEventListener('pointerleave', () => mostrarNombre(-1));
 
   // ── El bucle: solo dibuja mientras el recorrido está a la vista
-  let enVista = false, cur = 0, primera = true, ultimoCuadro = performance.now(), ultimaRueda = 0;
-  addEventListener('wheel', () => { ultimaRueda = performance.now(); }, { passive: true });
+  let enVista = false, cur = 0, primera = true, ultimoCuadro = performance.now(), ultimaRueda = 0, arranque = false;
+  addEventListener('wheel', () => { ultimaRueda = performance.now(); arranque = false; }, { passive: true });
   new IntersectionObserver(([e]) => { enVista = e.isIntersecting; if (enVista) requestAnimationFrame(cuadro); }, { rootMargin: '200px' })
     .observe(document.getElementById('viaje'));
   let dibujados = 0;
@@ -3030,7 +3104,8 @@ function iniciar() {
     // En ?ver=N, unos segundos de cuadros y se queda quieta: así se puede capturar sin pantalla
     if (fijo !== null && !enVideo && ++dibujados > 150) return;
     const w = objetivo();
-    cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * suavizadoPara(w - cur);
+    cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * (arranque ? SUAVIZADO_ARRANQUE : suavizadoPara(w - cur));
+    if (arranque && Math.abs(cur - 1) <= LLEGADA / 4) arranque = false;   // llegó a la estación 1
     primera = false;
     // Si la persona se va de la estación 2 (o de la 3, con «Cómo empezar») con un reproductor abierto (por la barra de
     // scroll, el teclado…), se cierra
@@ -3080,7 +3155,18 @@ function iniciar() {
   if (pedida >= 0 && fijo === null) addEventListener('load', () => { medir(); scrollTo({ top: anclas[pedida + 1] }); });
   // Las animaciones de las estaciones esperan quietas hasta «Empieza el recorrido», que las echa a andar todas
   // (nmw1khrketit); con un enlace a una estación, la suya empieza sola, y con ?ver=N, todas, para capturarlas
-  document.querySelector('.entrada .bajar')?.addEventListener('click', () => relojes.forEach((_, k) => empezarEstacion(k)));
+  // «Empieza el recorrido» lleva hasta la estación 1, justo donde la cámara se detiene y «Qué es STL» queda listo para leer,
+  // el mismo punto al que lleva su entrada del menú (antes el enlace caía al borde de arriba de su bloque y se quedaba antes
+  // de llegar), y en la mitad del tiempo (SUAVIZADO_ARRANQUE; nota de voz del titular nmw6xuro1tit)
+  document.querySelector('.entrada .bajar')?.addEventListener('click', (e) => {
+    relojes.forEach((_, k) => empezarEstacion(k));
+    if (fijo !== null) return;
+    e.preventDefault();
+    medir();
+    arranque = true;
+    scrollTo({ top: anclas[1], behavior: quieto ? 'auto' : 'smooth' });
+    history.replaceState(null, '', '#e-que-es');
+  });
   // «¿Qué es STL?» y «Empieza el recorrido», arriba de la portada: al primer acercamiento se van hacia arriba, despacio, y
   // se desvanecen (nota de voz del titular nmw6lwwbxtit); con movimiento reducido, solo se desvanecen
   const entrada = document.querySelector('.entrada');
@@ -3102,6 +3188,8 @@ function iniciar() {
     clipT = Number(new URLSearchParams(location.search).get('seg')) || 0; pausado = true;
     pintarClip(ctxClip, Number(abrirN), clipT);
   }
+  // ?ver=3&abrir=como: «Cómo empezar» ya abierto, para capturar dónde quedan sus referencias junto al menú (nmw6z8b3btit)
+  if (fijo !== null && abrirN === 'como') { guia.visita = true; abrirComo(); pantalla2.cam = 1; }
   // Todo en su lugar desde el primer cuadro (con movimiento reducido, nada más se mueve)
   animar.forEach((f) => f(0));
   colocar(0);

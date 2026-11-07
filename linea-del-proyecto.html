@@ -339,6 +339,81 @@
       'como una sola línea, consistente y estratégica.',
       'Menos agotamiento, menos costo. Eso es STL.'],
   };
+  // «What is STL» en inglés (pd_bilingue): fiel al español, frase por frase, como eligió el titular (nmw6z8wj2tit), con las
+  // mismas claves y el mismo número de líneas, para que cada una dure lo que la suya. Se leen con ?lang=en o con el inglés
+  // del recorrido que abre esta animación (o el que se eligió con «ES · EN»). La voz sigue en español, con sus tiempos,
+  // hasta que exista la inglesa, que se genera después de que el titular revise este texto (nmw33ke9ytit)
+  const GUION_EN = {
+    sinIntro: ['Today we use chat-based coding agents, like Claude Code or Codex,',
+      'you talk straight to the model,',
+      'you ask, it answers, you “review” it… and repeat.'],
+    sinRamas: ['Then you get a brilliant idea: why not ask for several things at once?',
+      'You open another session to get ahead on something else.',
+      'Then another, and another, and another.',
+      'It seems more efficient, but… you forget something.',
+      'The model can do a thousand things at once. You can’t.',
+      'Each new session splits your attention',
+      'and wastes tokens sending the same context over and over again.',
+      'You stop reviewing what it hands you, even more,',
+      'and you start approving on autopilot…',
+      'In the end you wear yourself out more and spend more, but get less done.'],
+    sinFin: ['What does STL propose?'],
+    inicio: ['You hand the Studio your project and the goal you want.',
+      'The Studio uses its built-in director, which talks to the model for you.',
+      'It diagnoses and charts the best route to that goal.',
+      'And it gives you strategic missions: one at a time.',
+      'Like in a game: with levels, achievements and confetti when you complete one.'],
+    trabajo1: ['As you complete your missions,',
+      'new ideas, comments or tweaks may come to you.',
+      'But instead of opening new sessions, you hand them to the Studio.',
+      'The Studio gathers all your comments and holds them, organized,',
+      'without sending them to the model yet,',
+      'freeing your attention so you stay focused on just one thing:',
+      'your current mission.'],
+    llega1: ['When you feel you have gathered enough ideas, tweaks or comments,',
+      'you ask the director for a review.'],
+    invoca: ['The Studio hands what is queued to the director.'],
+    procesa: ['It assesses the current state, drops what is redundant, checks what helps and what doesn’t,',
+      'organizes it and defines a mini execution plan.',
+      'Then it uses the model to carry it out in the most efficient way.'],
+    reparte: ['When it is done, it reports what it did in a very clear, easy-to-understand way',
+      'and sorts your contributions against the plan: what is key becomes a mission.',
+      'What does not belong to this phase waits for its own.',
+      'What does not help is dropped or rethought, and it tells you why.'],
+    entrega: ['So, after each review you get what matters most:',
+      'the next most strategic missions, one at a time.',
+      'You keep your focus and don’t burn out analyzing ten new fronts at once.'],
+    brota: ['And what if an urgent change comes up?'],
+    dispara: ['The Studio gives it priority, everything else waits'],
+    saleUrg: ['and processes that request right away with the director'],
+    procesaUrg: ['and the model.'],
+    devuelveUrg: ['Done: the result of just that request comes back to the Studio,'],
+    avisaUrg: ['which gives you, as your next priority mission, checking this result,',
+      'before going on with the main flow, without losing focus,'],
+    sigue: ['putting you back on the best route.'],
+    llega2: ['And so the cycle repeats:'],
+    invoca2: ['you gather your requests,'],
+    procesa2: ['the director organizes them into a mini plan and carries it out with the model',
+      'and you hold your focus,'],
+    reparte2: ['until you reach the goal you set',
+      'by the best route.'],
+    meta: ['Goal reached!',
+      'Many ideas, improvements and tweaks processed by the Studio and its director',
+      'as a single line, consistent and strategic.',
+      'Less burnout, less cost. That is STL.'],
+  };
+  // El idioma: el de su enlace (?lang=en o ?lang=es); si no, el del recorrido que la abre en grande; si no, el que se eligió
+  // con «ES · EN» en el recorrido. Sin ninguno, en español, como siempre
+  const EN_LINEA = (() => {
+    const pedido = new URLSearchParams(location.search).get('lang');
+    if (pedido === 'en' || pedido === 'es') return pedido === 'en';
+    try { if (window.parent !== window && window.parent.document.documentElement.lang) return window.parent.document.documentElement.lang.toLowerCase().startsWith('en'); } catch { /* otro origen */ }
+    try { return localStorage.getItem('stl-idioma') === 'en'; } catch { return false; }
+  })();
+  if (EN_LINEA) {
+    document.documentElement.lang = 'en';
+    for (const [momento, ls] of Object.entries(GUION_EN)) GUION[momento] = ls;
+  }
   // El narrador: cuánto tarda en leerse (o en contarse en voz alta) una línea, en milisegundos reales
   // (algunas llevan después una pausa dramática, también en milisegundos)
   // (antes del cambio urgente, dos segundos menos que antes: nota de voz del 20 de octubre)
@@ -347,12 +422,15 @@
   // (nota de voz nmw27xhb6tit, 4 de noviembre: un 20 % más rápida, con las pausas donde las haría un narrador
   // profesional: una pausa larga tras el remate de una idea y antes de que cambie la escena, una corta antes de la
   // sorpresa, y ninguna donde la frase sigue en la siguiente)
-  const PAUSAS = { 'El modelo puede hacer mil cosas a la vez. Tú no.': 1500,
-    'Parece más eficiente, pero… olvidas algo.': 500,
-    'Al final te agotas más y gastas más, pero avanzas menos.': 700,
-    '¿Qué propone STL?': 900,
-    'Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.': 500,
-    '¿Y si aparece un cambio urgente?': 300 };
+  // (por su lugar en el guion y no por su texto, así valen igual en inglés: «El modelo puede hacer mil cosas a la vez. Tú
+  // no.», «Parece más eficiente, pero… olvidas algo.», «Al final te agotas más…», «¿Qué propone STL?», «Mantienes tu
+  // enfoque…» y «¿Y si aparece un cambio urgente?»)
+  const PAUSAS = { [GUION.sinRamas[4]]: 1500,
+    [GUION.sinRamas[3]]: 500,
+    [GUION.sinRamas[9]]: 700,
+    [GUION.sinFin[0]]: 900,
+    [GUION.entrega[2]]: 500,
+    [GUION.brota[0]]: 300 };
   // (ninguna pausa es negativa: una línea con menos tiempo que su clip deja la escena quieta esperando a la voz, como
   // pasaba con «Luego se te ocurre una idea brillante», nota de voz nmw2n33o6tit)
   // Toda la escena va un 20 % más rápida (nmw27xhb6tit): el reloj de la escena corre 1,2 veces el real
