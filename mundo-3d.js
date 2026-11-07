@@ -7,7 +7,9 @@
 // después de terminar). «Cómo funciona» y «Lo que ya trae» salieron del recorrido: repetían lo que ya cuentan la estación
 // 1 y las soluciones de la 2 (notas de voz nmw3xje22tit, nmw40cp3jtit y nmw40fizktit). Lo aprendido, en la skill
 // «sitio-3d-scroll»: un escenario fijo detrás, el scroll convertido en el avance de la cámara y suavizado en cada cuadro, y
-// el texto siempre en HTML. Con lo que pidió el titular al verlo, en dos vueltas: sin estrellas, fragmentos ni postes, la
+// el texto siempre en HTML. Con lo que pidió el titular al verlo, en dos vueltas: sin fragmentos ni postes (y, desde las
+// decisiones nmw5erxrytit, nmw5es4cgtit, nmw5es6twtit, nmw5gvj21tit, nmw5iur8itit y nmw5mkt58tit, un cielo de estrellas
+// lejanas en tres capas en lugar del suelo, con semilla fija, y una de cada diez que titila despacio), la
 // cámara más lenta, las bolitas del camino con los colores de cada tipo de nota y la animación de la estación 1 en
 // grande, sin tapar el menú. Sin WebGL, las estaciones se leen de corrido y lo demás (el menú, los problemas
 // con su respuesta en el mismo lugar y la animación en grande) funciona igual; con movimiento reducido, la cámara salta de
@@ -1360,14 +1362,102 @@ function iniciar() {
   const farol = new THREE.PointLight(ORO, 40, 26, 1.6);   // va con la cámara: ilumina lo que tiene cerca
   escena.add(farol);
 
-  // ── El suelo (sin estrellas ni adornos: solo la línea, su halo y la rejilla)
-  const suelo = new THREE.Mesh(new THREE.PlaneGeometry(500, 700), new THREE.MeshStandardMaterial({ color: '#0a0e1a', roughness: 1 }));
-  suelo.rotation.x = -Math.PI / 2;
-  suelo.position.set(0, -3, -220);
-  escena.add(suelo);
-  const rejilla = new THREE.GridHelper(700, 140, '#1c2540', '#121a30');
-  rejilla.position.set(0, -2.98, -220);
-  escena.add(rejilla);
+  // ── El cielo de estrellas, en lugar del suelo (decisiones del titular nmw5erxrytit, nmw5es4cgtit, nmw5es6twtit,
+  // nmw5gvj21tit y nmw5iur8itit; nota .stl/docs/director/estaciones-decoradas.md, partes 3 y 4). Se genera por código al
+  // cargar, sin imágenes, en tres capas a distintas profundidades (lejanas, intermedias y una banda tenue de galaxia),
+  // lejos (varias veces los 28 de distancia entre estaciones), pequeñas y tenues, solo blancos y azules fríos: nada de
+  // dorado, que es de la línea. Cada capa es un THREE.Points (un solo dibujo) que acompaña a la cámara en paralaje.
+  // La semilla es fija: el mismo cielo en cada visita (nunca Math.random aquí).
+  const CIELO_SEMILLA = 0x5eed5ca1;
+  const mulberry32 = (a) => () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const cieloAzar = mulberry32(CIELO_SEMILLA);
+  // Una de cada diez, despacio (decisión del titular nmw5mkt58tit): 1 de cada 10 estrellas, elegida con la misma semilla,
+  // titila con un ciclo propio de 3 a 6 s entre el 35 % y el 100 % de su brillo. Con movimiento reducido ninguna titila.
+  const TITILA = 1 / 10, CICLO_MIN = 3, CICLO_MAX = 6, BRILLO_MIN = 0.35;
+  const CIELO_COLORES = ['#ffffff', '#dfe9ff', '#bcd2ff', '#9fbfff'].map((c) => new THREE.Color(c));
+  // radio: a qué distancia; sigue: cuánto de lo que se mueve la cámara la acompaña la capa (1: nada de paralaje)
+  const CAPAS_CIELO = [
+    { n: 120, radio: 420, sigue: 0.98, tam: [1.1, 1.9], brillo: [0.3, 0.75], banda: false },   // lejanas: casi no se mueven
+    { n: 90, radio: 260, sigue: 0.9, tam: [1.6, 2.8], brillo: [0.3, 0.8], banda: false },      // intermedias
+    { n: 70, radio: 340, sigue: 0.95, tam: [1.0, 1.7], brillo: [0.15, 0.4], banda: true },     // la banda tenue de galaxia
+  ];
+  const cieloUniformes = { uTiempo: { value: 0 }, uMueve: { value: quieto ? 0 : 1 }, uPix: { value: renderer.getPixelRatio() } };
+  const capasCielo = CAPAS_CIELO.map((capa) => {
+    const pos = new Float32Array(capa.n * 3), col = new Float32Array(capa.n * 3);
+    const tam = new Float32Array(capa.n), brillo = new Float32Array(capa.n), ciclo = new Float32Array(capa.n), fase = new Float32Array(capa.n);
+    for (let i = 0; i < capa.n; i++) {
+      // Un punto de la esfera; la banda es un círculo máximo inclinado, con algo de grosor
+      let y = cieloAzar() * 2 - 1;
+      const giro = cieloAzar() * Math.PI * 2;
+      const grosor = (cieloAzar() + cieloAzar() + cieloAzar() - 1.5) * 0.28;
+      if (capa.banda) y = grosor;
+      const r = Math.sqrt(Math.max(0, 1 - y * y));
+      let x = Math.cos(giro) * r, z = Math.sin(giro) * r;
+      if (capa.banda) { const k = 0.5; const y2 = y * Math.cos(k) - z * Math.sin(k); z = y * Math.sin(k) + z * Math.cos(k); y = y2; }
+      pos.set([x * capa.radio, y * capa.radio, z * capa.radio], i * 3);
+      const c = CIELO_COLORES[Math.floor(cieloAzar() * CIELO_COLORES.length)];
+      col.set([c.r, c.g, c.b], i * 3);
+      tam[i] = capa.tam[0] + cieloAzar() * (capa.tam[1] - capa.tam[0]);
+      brillo[i] = capa.brillo[0] + cieloAzar() * (capa.brillo[1] - capa.brillo[0]);
+      const titila = cieloAzar() < TITILA;   // se sortea siempre, titile o no, para que el cielo no cambie
+      const dura = CICLO_MIN + cieloAzar() * (CICLO_MAX - CICLO_MIN);
+      ciclo[i] = titila ? dura : 0;
+      fase[i] = cieloAzar() * Math.PI * 2;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('aTam', new THREE.BufferAttribute(tam, 1));
+    geo.setAttribute('aBrillo', new THREE.BufferAttribute(brillo, 1));
+    geo.setAttribute('aCiclo', new THREE.BufferAttribute(ciclo, 1));
+    geo.setAttribute('aFase', new THREE.BufferAttribute(fase, 1));
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), capa.radio * 1.01);   // no se dibuja lo que no se ve
+    const mat = new THREE.ShaderMaterial({
+      uniforms: cieloUniformes, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `
+        attribute vec3 aColor; attribute float aTam; attribute float aBrillo; attribute float aCiclo; attribute float aFase;
+        uniform float uTiempo; uniform float uMueve; uniform float uPix;
+        varying vec3 vColor; varying float vAlfa;
+        void main() {
+          float f = 1.0;
+          if (aCiclo > 0.0 && uMueve > 0.5) f = ${BRILLO_MIN.toFixed(2)} + ${(1 - BRILLO_MIN).toFixed(2)} * (0.5 + 0.5 * sin(uTiempo * 6.2831853 / aCiclo + aFase));
+          vColor = aColor; vAlfa = aBrillo * f;
+          gl_PointSize = aTam * uPix;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        varying vec3 vColor; varying float vAlfa;
+        void main() {
+          float d = length(gl_PointCoord - 0.5);
+          gl_FragColor = vec4(vColor, vAlfa * smoothstep(0.5, 0.05, d));
+        }`,
+    });
+    const puntos = new THREE.Points(geo, mat);
+    puntos.renderOrder = -10;   // detrás de todo
+    escena.add(puntos);
+    return { puntos, sigue: capa.sigue };
+  });
+  // Sin suelo: bajo la línea queda un resplandor suave y muy tenue que la sostiene, sin bordes duros
+  const brilloBajoLaLinea = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255, 207, 90, 0.16)'); g.addColorStop(0.5, 'rgba(255, 207, 90, 0.05)'); g.addColorStop(1, 'rgba(255, 207, 90, 0)');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(70, 440), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(0, -3, -182);
+    return m;
+  })();
+  escena.add(brilloBajoLaLinea);
 
   // ── La línea del tiempo: un camino de luz que serpentea hacia adelante. Sigue más allá de la estación 2, hacia las
   // estaciones del tramo siguiente, y se pierde en la niebla
@@ -2606,6 +2696,10 @@ function iniciar() {
     }
     ponerReproductor();
     ponerGlobo();
+    // El cielo, en el mismo bucle: cada capa acompaña a la cámara (paralaje) y el tiempo del titileo avanza; con movimiento
+    // reducido uMueve vale 0 y ninguna estrella titila (el cielo no se mueve por su cuenta)
+    for (const c of capasCielo) c.puntos.position.copy(camara.position).multiplyScalar(c.sigue);
+    if (!quieto) cieloUniformes.uTiempo.value = ahoraMs / 1000;
     renderer.render(escena, camara);
     requestAnimationFrame(cuadro);
   }
