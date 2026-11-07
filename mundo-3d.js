@@ -24,8 +24,8 @@ const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb3
 // «ES · EN»); el idioma sale de <html lang> (nota de voz nmw1c3q68tit). Los tipos de pedido llevan el nombre de su tipo
 // en el Studio: falla, idea, ajuste, pregunta y respuesta. «pasado» es el título de la estación 2
 const TEXTOS = {
-  es: { dev: 'Desarrollador', estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: 'Problemas de desarrollar por chat que STL resuelve muy bien', uno: 'Qué es STL', tres: 'Cómo empezar', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
-  en: { dev: 'Dev', estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Problems of developing through chat that STL solves really well', uno: 'What is STL', tres: 'Getting started', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
+  es: { descargalo: 'Descárgalo', tuCarpeta: 'Tu carpeta', pideAgente: 'Pídeselo a tu agente', dev: 'Desarrollador',estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: 'Problemas de desarrollar por chat que STL resuelve muy bien', uno: 'Qué es STL', tres: 'Cómo empezar', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
+  en: { descargalo: 'Download it', tuCarpeta: 'Your folder', pideAgente: 'Ask your agent', dev: 'Dev',estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Problems of developing through chat that STL solves really well', uno: 'What is STL', tres: 'Getting started', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
 };
 const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es'];
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
@@ -2293,6 +2293,13 @@ function iniciar() {
     const cursor = cajita3(0.08, 0.12, 0.04, brillo(VERDE, 0.9), 0.015); cursor.position.set(-0.06, 0.02, 0.06);
     terminal.add(prompt, cursor);
     enEscena(terminal, COLUMNA, 1);
+    // Un rótulo a la derecha de cada referencia (como los de la estación 1, en el idioma de la página): empieza pasado el
+    // borde de la figura (0,8 desde su centro), a su altura, así que no toca la figura ni a las otras (hay 1,6 entre ellas)
+    for (const [texto, color, y] of [[T.descargalo, CIAN, 4.2], [T.tuCarpeta, ORO, 2.6], [T.pideAgente, VERDE, 1]]) {
+      const r = rotulo(texto, color, 0.45);
+      enEscena(r, COLUMNA + 0.8 + r.scale.x / 2, y);
+      r.rotation.y = 0;
+    }
     // La flecha baja y sube despacio hacia su bandeja, la carpeta respira y el cursor parpadea; nada sale de su lugar
     function moverEscenaComo(s) {
       flecha.position.y = terminal.position.y + 3.2 - 0.08 * (1 + Math.sin(s * 1.6));
