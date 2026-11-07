@@ -2420,6 +2420,24 @@ function iniciar() {
     animar.push(deEstacion(2, moverEscenaComo));
   }
 
+  // ── Un arco en cada parada (pd_estaciones_decoradas; «Over the line, as you recommend», nmw6z9v94tit): un arco dorado y
+  // delgado sobre la línea, unos metros antes de cada estación, que la cámara cruza al llegar, como una puerta que dice
+  // «estás llegando». Ancho y alto de sobra: la cámara pasa a 1,4 del centro de la línea y a 2,8 de altura (unos 3,1 del
+  // centro del arco), y el arco mide 4,2 de radio, así que nada cruza la vista. Quieto, sin animación
+  const ARCO_RADIO = 4.2, ARCO_ANTES = 0.035;
+  // Un medio círculo hecho tubo (no un anillo: la portada no lleva anillos ni fragmentos), en el plano de su costado y arriba
+  const medioCirculo = Array.from({ length: 37 }, (_, k) => new THREE.Vector3(Math.cos((k / 36) * Math.PI) * ARCO_RADIO, Math.sin((k / 36) * Math.PI) * ARCO_RADIO, 0));
+  const formaArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(medioCirculo), 72, 0.05, 8, false);
+  const materialArco = brillo(ORO, 0.6);
+  for (const u of PARADA) {
+    const { p, lado } = marco(Math.max(0, u - ARCO_ANTES));
+    const hacia = new THREE.Vector3().crossVectors(lado, ARRIBA).normalize();
+    const arco = new THREE.Mesh(formaArco, materialArco);
+    arco.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(lado, ARRIBA, hacia));
+    arco.position.copy(p);
+    escena.add(arco);
+  }
+
   // ── La cámara: arriba, una vista de costado de la línea; al bajar, se mete en ella y la sigue
   const INTRO_POS = portada.posicion.clone().addScaledVector(portada.lado, 17).addScaledVector(ARRIBA, 5);
   const INTRO_MIRA = portada.mira.clone().addScaledVector(ARRIBA, 0.8);
