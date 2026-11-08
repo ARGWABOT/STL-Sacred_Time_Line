@@ -420,10 +420,12 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
 const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9731,"g4-e":7646,"g5-e":9878,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":1421,"s9-p2":4019,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":2872,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
-// La voz en inglés de «Getting started» (nmw6xp1d1tit): la gemela de Kai, en voz/en/, con su pista (tools/vozRecorrido.ts --en)
+// La voz en inglés de «Getting started» (nmw6xp1d1tit) y de la estación 2 (nmw74uq8qtit): la gemela de Kai, en voz/en/, con
+// su pista (tools/vozRecorrido.ts --en). De la estación 2, solo las animaciones con su voz entera: las demás callan enteras
+// hasta que la cuota del día de Google alcance para todas sus frases
 const PISTA_VOZ_EN = {"como-1":3243,"como-2":5061,"como-3":2188,"como-4":6867,"como-5":1983,"como-6":2947,"como-7":3326,"como-c":2074};
-// La pista de cada clave en el idioma de la página: «Cómo empezar» en inglés, con la suya; la estación 2 en inglés, sin pista
-// todavía (su voz en inglés espera a que el titular lea su texto, nmw33ke9ytit); lo demás, con la de Kai
+// La pista de cada clave en el idioma de la página: en inglés, «Cómo empezar» y la estación 2 con la suya (lo que aún no la
+// tiene calla, nunca con la voz en español); lo demás, con la de Kai
 const vozEnIngles = (clave) => EN_DIBUJO && /^(como-|s\d+-|g\d+-e$)/.test(clave);
 const pistaVoz = (clave) => (vozEnIngles(clave) ? PISTA_VOZ_EN : PISTA_VOZ_ES)[clave];
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
@@ -475,6 +477,20 @@ const lerp = (a, b, k) => a + (b - a) * k;
 const tope = (k) => Math.max(0, Math.min(1, k));
 const suave = (k) => k * k * (3 - 2 * k);
 const tramo = (p, a, b) => suave(tope((p - a) / (b - a)));
+// Qué tan lejos está la cámara de algo: 0 a «cerca» o menos, 1 a «lejos» o más, suave entre los dos. Con ella el emblema de
+// la estación 1 crece al acercarte y el anillo de la 2 se ve en color desde lejos (pd_estaciones_decoradas, nmw74wypntit)
+const lejania = (distancia, cerca, lejos) => tramo(distancia, cerca, lejos);
+// Dónde va cada anillo dorado de la línea (de 0 a 1 en la curva, que se recorre por su largo): tres entre cada estación y la
+// siguiente, a la misma distancia uno del otro, y el último el de la llegada, «antes» antes de la parada (nmw74wypntit: «three
+// rings between every station except before the first one», para sentir que se avanza un poco más rápido). Antes de la
+// estación 1, ninguno. Pura
+const ANILLOS_POR_TRAMO = 3;
+function lugaresDeAnillos(paradas, antes) {
+  return paradas.slice(1).flatMap((u, k) => {
+    const desde = paradas[k], hasta = Math.max(desde, u - antes);
+    return Array.from({ length: ANILLOS_POR_TRAMO }, (_, m) => desde + ((hasta - desde) * (m + 1)) / ANILLOS_POR_TRAMO);
+  });
+}
 // Un resplandor tibio detrás de un actor, como el de la estación 1 (resplandor()): rgb, como «255, 241, 196»
 function brilloActor(c, x, y, r, rgb) {
   const g = c.createRadialGradient(x, y, 0, x, y, r);
@@ -1740,6 +1756,9 @@ function iniciar() {
     { n: 700, radio: 260, sigue: 0.9, tam: [1.6, 2.8], brillo: [0.3, 0.8], banda: false },      // intermedias
     { n: 600, radio: 340, sigue: 0.95, tam: [1.0, 1.7], brillo: [0.15, 0.4], banda: true },     // la banda tenue de galaxia
   ];
+  // El paralaje, un 25 % más rápido (nota de voz del titular nmw753vdutit): lo que cada capa se queda atrás de la cámara,
+  // (1 − sigue), por 1,25. La cantidad de estrellas no cambia
+  const PARALAJE_CIELO = 1.25;
   const cieloUniformes = { uTiempo: { value: 0 }, uMueve: { value: quieto ? 0 : 1 }, uPix: { value: renderer.getPixelRatio() } };
   const capasCielo = CAPAS_CIELO.map((capa) => {
     // En un teléfono, la mitad (el sorteo es el mismo: las que quedan son las primeras de siempre)
@@ -1796,7 +1815,7 @@ function iniciar() {
     const puntos = new THREE.Points(geo, mat);
     puntos.renderOrder = -10;   // detrás de todo
     escena.add(puntos);
-    return { puntos, sigue: capa.sigue };
+    return { puntos, sigue: 1 - (1 - capa.sigue) * PARALAJE_CIELO };
   });
   // ── El fondo de nebulosa (nmw5o26vdtit): una esfera enorme por dentro, centrada en la cámara, con una nebulosa suave y
   // procedural (ruido de valor en 3D sobre la DIRECCIÓN, así que no tiene costuras ni polos y es el mismo fondo mire donde
@@ -1805,6 +1824,8 @@ function iniciar() {
   // del shader y no hay azar de verdad. No se anima, así que con movimiento reducido es igual.
   const NEBULOSA_SEMILLA = 7.31;
   const NEBULOSA_RADIO = 500;   // dentro del plano lejano de la cámara (600) y más allá de las capas de estrellas
+  // Cuánto del tono de las nubes toma el arcoíris de las nebulosas reales (nmw753vdutit): poco, para que solo se adivine
+  const NEBULOSA_ARCOIRIS = 0.3;
   const nebulosa = new THREE.Mesh(
     new THREE.SphereGeometry(NEBULOSA_RADIO, 48, 32),
     new THREE.ShaderMaterial({
@@ -1841,6 +1862,14 @@ function iniciar() {
           vec3 indigo = vec3(0.13, 0.16, 0.38), violeta = vec3(0.36, 0.28, 0.62), cian = vec3(0.10, 0.30, 0.46);
           vec3 tinte = mix(indigo, violeta, smoothstep(0.35, 0.75, nube(p * 0.6 + vec3(11.0))));
           tinte = mix(tinte, cian, 0.55 * smoothstep(0.5, 0.8, nube(p * 0.8 + vec3(23.0))));
+          // Un arcoíris muy tenue, con los colores de las nebulosas reales (nota de voz del titular nmw753vdutit): el rosa del
+          // hidrógeno (H-alfa), el turquesa del oxígeno (O III), el ámbar del polvo y el azul de las de reflexión, en manchas
+          // muy grandes que cambian despacio de una a otra. Solo tiñe las nubes que ya había, sin sumar brillo, para que el
+          // fondo no compita con lo que está delante
+          vec3 rosa = vec3(0.56, 0.20, 0.36), turquesa = vec3(0.12, 0.44, 0.44), ambar = vec3(0.52, 0.36, 0.16), azul = vec3(0.18, 0.28, 0.62);
+          float h = nube(p * 0.45 + vec3(31.0));
+          vec3 arcoiris = mix(mix(rosa, ambar, smoothstep(0.30, 0.48, h)), mix(turquesa, azul, smoothstep(0.55, 0.72, h)), smoothstep(0.44, 0.60, h));
+          tinte = mix(tinte, arcoiris, ${NEBULOSA_ARCOIRIS.toFixed(2)});
           vec3 color = base + tinte * (0.34 * denso + 0.16 * velo) * (0.55 + 0.45 * a);
           gl_FragColor = vec4(color, 1.0);
         }`,
@@ -1886,6 +1915,9 @@ function iniciar() {
   const SITIO = PARADA.map((u) => u + 0.022);
   const focos = [];   // lo que mira la cámara en cada estación
   const animar = [];  // lo que se mueve: funciones (t) => void
+  // Lo que cambia con la distancia a la cámara (el emblema de la estación 1): cada cuadro, después de colocarla, también con
+  // movimiento reducido, porque no se anima solo: sigue a la cámara
+  const segunLejania = [];
   // El reloj de cada estación: ninguna se anima hasta que se oprime «Empieza el recorrido», y un clic en una estación del
   // menú vuelve a empezar la suya, para repetirla cuando se quiera (nota de voz nmw1khrketit). null: aún no empieza
   const relojes = [null, null, null];
@@ -2279,6 +2311,37 @@ function iniciar() {
     // antes, porque ahora hay más alto y más ancho. Centrada en el Studio y no 5 antes: así el modelo no queda bajo el
     // menú de la derecha (se veía en la captura con WebGL por software, a 1440 × 900), y las misiones que pasan a tu
     // izquierda se pierden por el borde, hacia el horizonte
+    // Su emblema (pd_estaciones_decoradas; el emblema por estación, nmw5eregptit): los tres actores que ya están, con un
+    // halo suave y dorado detrás de los tres y su nombre flotando sobre el Studio. Desde lejos (la entrada, o al volver de la
+    // estación 2) se ve chico y tenue, y crece a la vista al acercarte; al llegar, entero. Sin niebla, para que se vea de lejos
+    const CENTRO_EMBLEMA = enLinea(0).addScaledVector(ARRIBA, 5).addScaledVector(lado, -5);
+    const EMBLEMA_HALO = 44, EMBLEMA_CERCA = 36, EMBLEMA_LEJOS = 80;
+    const haloEmblema = (() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 256;
+      const x = c.getContext('2d'), g = x.createRadialGradient(128, 128, 0, 128, 128, 128);
+      g.addColorStop(0, 'rgba(255, 214, 140, .22)'); g.addColorStop(0.45, 'rgba(255, 214, 140, .08)'); g.addColorStop(1, 'rgba(255, 214, 140, 0)');
+      x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    })();
+    haloEmblema.position.copy(CENTRO_EMBLEMA);
+    haloEmblema.renderOrder = -5;   // detrás de los actores, delante del cielo
+    const nombreUno = rotulo(T.uno, ORO, 1.5);
+    const sobreStudio = centro.clone().addScaledVector(ARRIBA, LADO_S / 2 + ROTULO_SOBRE_STUDIO + 2.4);
+    nombreUno.position.copy(sobreStudio);
+    const altoNombre = nombreUno.scale.clone();
+    escena.add(haloEmblema, nombreUno);
+    segunLejania.push(() => {
+      const lejos = lejania(camara.position.distanceTo(CENTRO_EMBLEMA), EMBLEMA_CERCA, EMBLEMA_LEJOS);
+      const crece = lerp(1, 0.55, lejos);
+      haloEmblema.scale.setScalar(EMBLEMA_HALO * crece);
+      haloEmblema.material.opacity = lerp(1, 0.5, lejos);
+      nombreUno.scale.copy(altoNombre).multiplyScalar(crece);
+      nombreUno.material.opacity = lerp(1, 0.6, lejos);
+    });
+
     const mitad = enLinea(0).addScaledVector(ARRIBA, 5);
     portada = {
       posicion: mitad.clone().addScaledVector(lado, 34).addScaledVector(ARRIBA, 0.8),
@@ -2477,22 +2540,27 @@ function iniciar() {
       escena.add(orbe);
       orbes.push({ orbe, hit, titulo, mat, casa, a: pos.a, fase: Math.random() * 6, grande: 1, color: new THREE.Color(COLOR_PROBLEMA[i]) });
     });
-    const gris = new THREE.Color(GRIS_PROBLEMA);
+    const gris = new THREE.Color(GRIS_PROBLEMA), tono = new THREE.Color();
+    // Desde lejos, el anillo va en sus siete colores, y al llegar a la estación se vuelve gris hasta que abres cada uno
+    // (t_decide_anillo_lejos, nmw74wypntit): desde la línea se ve algo de color esperando, y de cerca nada cambia. La cámara
+    // se detiene a unos 16 de su centro
+    const COLOR_CERCA = 22, COLOR_LEJOS = 48;
     // Cada cuadro: el anillo gira, y con el reproductor abierto se achica (sus íconos, un poco menos) para dejarle sitio. Cada
     // ícono va en gris hasta que el ratón pasa por él o se abre, y entonces toma su color (nmw46qjootit)
     function moverAnillo(s) {
       const abierto = suave(pantalla2.cam);
       anillo.escala = lerp(1, ANILLO_ABIERTO, abierto);
+      const deLejos = lejania(camara.position.distanceTo(anillo.centro), COLOR_CERCA, COLOR_LEJOS);
       orbes.forEach((o, i) => {
         const visto = enColor(i, sobre, seleccionado, resueltos);
-        const tono = visto ? o.color : gris;
+        if (visto) tono.copy(o.color); else tono.copy(gris).lerp(o.color, deLejos);
         o.mat.color.lerp(tono, quieto ? 1 : 0.15); o.mat.emissive.lerp(tono, quieto ? 1 : 0.15);
         o.grande += ((seleccionado === i ? 1.25 : sobre === i ? 1.12 : 1) - o.grande) * (quieto ? 1 : 0.12);
         o.orbe.scale.setScalar(o.grande * ESCALA_ICONO * lerp(1, 0.78, abierto));
         lugarEnAnillo(o.a + s * GIRO_ANILLO, anillo.escala, o.casa);
         o.orbe.position.copy(o.casa).addScaledVector(ARRIBA, Math.sin(s * 1.4 + o.fase) * 0.1);
         o.orbe.rotation.y = frente + Math.sin(s * 0.9 + o.fase) * 0.4;
-        o.mat.emissiveIntensity = visto ? 0.55 : 0.15 + 0.15 * Math.sin(s * 2 + o.fase) ** 2;
+        o.mat.emissiveIntensity = visto ? 0.55 : lerp(0.15 + 0.15 * Math.sin(s * 2 + o.fase) ** 2, 0.55, deLejos);
       });
     }
     anillo.mover = moverAnillo;
@@ -2624,7 +2692,8 @@ function iniciar() {
   // remove the first one, add them some glow»): un anillo dorado y delgado alrededor de la línea, unos metros antes de cada
   // estación, que la cámara cruza al llegar, como una puerta que dice «estás llegando». La estación 1 no lo lleva: el
   // recorrido empieza ahí y no pasa por él. Ancho y alto de sobra: la cámara pasa a 1,4 del centro de la línea y a 2,8 de
-  // altura (unos 3,1 del centro del anillo), y el anillo mide 4,2 de radio, así que nada cruza la vista. Quieto, sin animación
+  // altura (unos 3,1 del centro del anillo), y el anillo mide 4,2 de radio, así que nada cruza la vista. Quieto, sin animación.
+  // Desde nmw74wypntit, tres por tramo, a la misma distancia (lugaresDeAnillos): dos en el camino y el de la llegada
   const ARCO_RADIO = 4.2, ARCO_ANTES = 0.035;
   // Un círculo entero hecho tubo, en el plano de su costado y arriba, con su halo: un tubo más grueso, tenue y aditivo
   const circulo = Array.from({ length: 72 }, (_, k) => new THREE.Vector3(Math.cos((k / 72) * Math.PI * 2) * ARCO_RADIO, Math.sin((k / 72) * Math.PI * 2) * ARCO_RADIO, 0));
@@ -2632,8 +2701,8 @@ function iniciar() {
   const formaHaloArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(circulo, true), 144, 0.24, 8, true);
   const materialArco = brillo(ORO, 0.9);
   const materialHaloArco = new THREE.MeshBasicMaterial({ color: ORO, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false });
-  for (const u of PARADA.slice(1)) {
-    const { p, lado } = marco(Math.max(0, u - ARCO_ANTES));
+  for (const u of lugaresDeAnillos(PARADA, ARCO_ANTES)) {
+    const { p, lado } = marco(u);
     const hacia = new THREE.Vector3().crossVectors(lado, ARRIBA).normalize();
     const arco = new THREE.Group();
     arco.add(new THREE.Mesh(formaArco, materialArco), new THREE.Mesh(formaHaloArco, materialHaloArco));
@@ -3372,6 +3441,7 @@ function iniciar() {
     if (quieto) anillo.mover?.(0);
     colocar(cur);
     marcar(cur);
+    segunLejania.forEach((f) => f());
     if (!quieto) {
       const t = ahoraMs / 1000;
       animar.forEach((f) => f(t));
@@ -3439,6 +3509,7 @@ function iniciar() {
   // Todo en su lugar desde el primer cuadro (con movimiento reducido, nada más se mueve)
   animar.forEach((f) => f(0));
   colocar(0);
+  segunLejania.forEach((f) => f());
   renderer.render(escena, camara);
 }
 
