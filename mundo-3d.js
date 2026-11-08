@@ -1632,11 +1632,11 @@ function carpeta(c, x, y, w, h, color, nombre) {
   if (nombre) letrero(c, nombre, x + w / 2, y + h + 13, color, 8.5);
 }
 // Lo que escribes en la ventana de Claude Code, letra a letra, con su «>» (en renglones si no cabe)
-function pedidoEscrito(c, x, y, w, texto, k) {
+function pedidoEscrito(c, x, y, w, texto, k, maxRenglones = 3) {
   const va = texto.slice(0, Math.round(texto.length * tope(k)));
   letrero(c, '>', x, y, CIAN, 9, 'left');
   c.font = '600 8.5px system-ui, sans-serif';
-  renglonesDe(c, va, w).slice(0, 3).forEach((r, m) => letrero(c, r, x + 9, y + m * 11, '#fffaf0', 8.5, 'left'));
+  renglonesDe(c, va, w).slice(0, maxRenglones).forEach((r, m) => letrero(c, r, x + 9, y + m * 11, '#fffaf0', 8.5, 'left'));
 }
 const ESCENAS_COMO = [
   // 1 · ¿Quieres probarlo? Tú y el Studio, y el camino entre los dos
@@ -2233,7 +2233,91 @@ const VERTICALES = {
     },
   },
 };
-const esVertical = (i) => { const g = GRANDES[i]; return !!g && g.every((j) => VERTICALES[j]); };
+// Las escenas de «Cómo empezar» de pie, en 180 × 320 (nmw8cs8bytit: la ventana de Claude Code, más angosta y más alta, con
+// su pedido en renglones; el ejemplo de arriba de la animación, como está: nmw865tnttit). Cada cosa, reubicada de arriba
+// abajo y no encogida; la píldora, el subtítulo y la barra van fuera del dibujo, en HTML
+const ESCENAS_COMO_VERTICAL = [
+  // 1 · ¿Quieres probarlo? Tú arriba, el Studio abajo y el camino entre los dos
+  (c, q) => {
+    actorDev(c, 90, 70, 2, q > 0.6);
+    if (q < 0.6) ['?', '?'].forEach((s, k) => letrero(c, s, 116 + k * 10, 46 - k * 7, ORO, 12 + k * 2, 'left'));
+    trazo(c, 90, 100, 90, lerp(100, 176, tramo(q, 0.15, 0.6)), ORO, 0.8, true);
+    actorStudio(c, 35, 190, 110, 92); letrero(c, 'STL Studio', 90, 184, MORADO, 10);
+  },
+  // 2 · Tráelo a tu computador: GitHub arriba, el computador abajo, y por el medio baja lo clonado o lo descargado
+  (c, q) => {
+    ventana(c, 16, 24, 148, 104, 'GitHub', LUZ);
+    letrero(c, 'STL-Sacred_Time_Line', 90, 50, '#fffaf0', 8.5);
+    const clona = q < 0.5;
+    caja(c, 28, 62, 124, 22, CIAN, clona ? 0.35 : 0.1, 6); letrero(c, L('clonar el repositorio', 'clone the repository'), 90, 76.5, '#fffaf0', 8);
+    caja(c, 28, 92, 124, 22, ORO, clona ? 0.1 : 0.35, 6); letrero(c, L('descargar el ZIP', 'download the ZIP'), 90, 106.5, '#fffaf0', 8);
+    // El computador
+    caja(c, 45, 214, 90, 62, LUZ, 0.08, 6); caja(c, 78, 276, 24, 8, LUZ, 0.2, 2); caja(c, 64, 284, 52, 5, LUZ, 0.2, 2);
+    letrero(c, L('tu computador', 'your computer'), 90, 308, LUZ, 9);
+    // Lo que viaja: por la izquierda si lo clonas, por la derecha si lo descargas
+    const u = clona ? tramo(q, 0.1, 0.42) : tramo(q, 0.58, 0.9), x0 = clona ? 56 : 124;
+    trazo(c, x0, 128, 90, 214, clona ? CIAN : ORO, 0.6, true);
+    // El paquete solo se dibuja mientras viaja: quieto, invisible, igual ocuparía lugar sobre la ventana y sobre su destino (nmw5eoz0rtit)
+    if (u > 0 && u < 1) caja(c, lerp(x0 - 7, 77, u), lerp(130, 232, u), 14, 12, MORADO, 0.5, 3);
+    if (q > 0.42) { caja(c, 77, 232, 26, 26, MORADO, 0.35, 5); letrero(c, 'STL', 90, 248, '#fffaf0', 8); }
+  },
+  // 3 · Ponlo en la carpeta donde quieras trabajar: el Studio cae en su carpeta
+  (c, q) => {
+    carpeta(c, 34, 150, 112, 70, ORO, L('donde quieras trabajar', 'where you want to work'));
+    const cae = tramo(q, 0.1, 0.55);
+    caja(c, 70, lerp(24, 168, cae), 40, 34, MORADO, 0.4, 6); letrero(c, 'STL', 90, lerp(24, 168, cae) + 21, '#fffaf0', 9);
+    if (q > 0.6) palomita(c, 90, 262, 7, tramo(q, 0.6, 0.7));
+    actorDev(c, 90, 296, 1.1, q > 0.6);
+  },
+  // 4 · El escaneo de seguridad: la ventana de Claude Code, angosta y alta, con su pedido en renglones; abajo la carpeta y la lupa
+  (c, q) => {
+    ventana(c, 16, 22, 148, 100, VENTANA_COMO, CIAN);
+    pedidoEscrito(c, 24, 48, 132, PEDIDOS_COMO[3], tramo(q, 0.04, 0.4), 6);
+    actorModelo(c, 36, 148, 9); letrero(c, L('tu modelo', 'your model'), 36, 172, MODELO, 8);
+    // Los archivos del Studio, en su carpeta, y la lupa que los recorre
+    carpeta(c, 30, 196, 120, 98, ORO, '');
+    for (let k = 0; k < 6; k++) {
+      renglones(c, 40, 208 + k * 14, 78, 1, 'rgba(255, 255, 255, .4)');
+      if (q > 0.5 + k * 0.05) palomita(c, 136, 209.5 + k * 14, 3.2, tramo(q, 0.5 + k * 0.05, 0.54 + k * 0.05));
+    }
+    if (q > 0.42 && q < 0.86) { const u = tramo(q, 0.44, 0.84); lupa(c, 100, lerp(208, 284, u), 8); trazo(c, 50, 150, 70, 196, CIAN, 0.5, true); }
+    if (q > 0.86) letrero(c, L('nada malicioso', 'nothing malicious'), 90, 313, VERDE, 10);
+  },
+  // 5 · Después, pídele que lo instale: «Inicializa STL Studio» y su barra que se llena
+  (c, q) => {
+    ventana(c, 16, 22, 148, 62, VENTANA_COMO, CIAN);
+    pedidoEscrito(c, 24, 48, 132, PEDIDOS_COMO[4], tramo(q, 0.04, 0.3), 3);
+    const k = tramo(q, 0.34, 0.82);
+    if (q > 0.32) { barra(c, 22, 108, 136, k, VERDE); letrero(c, k < 1 ? L('instalando…', 'installing…') : L('instalado', 'installed'), 90, 138, k < 1 ? '#fffaf0' : VERDE, 9); }
+    if (k >= 1) palomita(c, 90, 158, 6);
+    actorStudio(c, 40, 196, 100, 90); letrero(c, 'STL Studio', 90, 190, MORADO, 9);
+  },
+  // 6 · Desde ahí, el Studio te guía paso a paso: tu primera misión, cada paso con su ✓
+  (c, q) => {
+    actorStudio(c, 40, 34, 100, 84); letrero(c, 'STL Studio', 90, 28, MORADO, 9);
+    letrero(c, L('tu primera misión', 'your first mission'), 90, 150, ORO, 9.5);
+    [1, 2, 3].map((n) => L(`Paso ${n}`, `Step ${n}`)).forEach((paso, m) => {
+      const a = 0.12 + m * 0.24;
+      if (q > a - 0.1) placaMision(c, 26, 162 + m * 28, 128, paso, q > a + 0.16, tramo(q, a - 0.1, a));
+    });
+    actorDev(c, 90, 276, 1.4, q > 0.8);
+  },
+  // 7 · Si te queda alguna duda, la documentación: tú arriba y el README abajo, en una ventana alta
+  (c, q) => {
+    actorDev(c, 90, 62, 1.6, q > 0.55);
+    if (q < 0.55) letrero(c, '?', 112, 38, ORO, 13, 'left');
+    ventana(c, 16, 108, 148, 196, L('README · la documentación', 'README · the documentation'), ORO);
+    renglones(c, 28, 134, 124, 14, 'rgba(255, 241, 196, .45)', tramo(q, 0.1, 0.4), 10);
+    if (q > 0.3) lupa(c, lerp(50, 130, tramo(q, 0.3, 0.8)), lerp(140, 250, tramo(q, 0.3, 0.8)), 8);
+  },
+];
+// Una escena de «Cómo empezar» de pie (k, de 0; la última es su cierre), q de 0 a 1 dentro de ella
+function pintarComoVertical(c, k, q) {
+  if (k >= GUION_COMO.escenas.length) pintarCierreVertical(c, L('En marcha', 'Up and running'), GUION_COMO.cierre, q, L('Listo', 'Done'));
+  else ESCENAS_COMO_VERTICAL[k](c, q);
+}
+// «Cómo empezar» (GUIA) también se dibuja de pie
+const esVertical = (i) => { if (i === GUIA) return true; const g = GRANDES[i]; return !!g && g.every((j) => VERTICALES[j]); };
 // El enunciado de pie: tú, pensándolo, arriba, y el enunciado en renglones más angostos, debajo
 function pintarEnunciadoVertical(c, texto, q) {
   actorDev(c, 90, 96 - Math.abs(Math.sin(q * 9)) * 2, 2);
@@ -2285,7 +2369,7 @@ function pintarClip(ctx, i, t) {
   const { n, p, enEnunciado, enProblema, enCierre, k, q, j, texto: paso } = pasoDeClip(i, t);
   const segmento = SEGMENTOS[j];
   // De pie, en 180 × 320, solo en el reproductor del teléfono o la tableta, con su lienzo de 720 × 1280 (ajustarLienzo)
-  const vertical = !!aparte && i !== GUIA && ctx.canvas?.height > ctx.canvas?.width && esVertical(i);
+  const vertical = !!aparte && ctx.canvas?.height > ctx.canvas?.width && esVertical(i);
   const W = vertical ? VERTICAL.ancho : 320, H = vertical ? VERTICAL.alto : 200;
   ctx.setTransform(4, 0, 0, 4, 0, 0);
   ctx.clearRect(0, 0, W, H);
@@ -2294,10 +2378,13 @@ function pintarClip(ctx, i, t) {
   ctx.fillStyle = fondo; ctx.fillRect(0, 0, W, H);
   if (aparte) {
     const cuenta = n > 1 || !sinCuenta ? `${k + 1} ${L('de', 'of')} ${n}` : '';
-    aparte.pildoras(i === GUIA || enEnunciado || enCierre ? null : enProblema ? 'sin' : 'con', i === GUIA || enEnunciado ? '' : cuenta);
-    aparte.sub(i === GUIA || enEnunciado || enCierre ? '' : paso ?? '', enProblema);
+    // «Cómo empezar» de pie no pinta su rótulo ni su «k de n» en el dibujo: van fuera, como en los problemas (en su cierre, nada)
+    const comoDePie = i === GUIA && vertical && k < GUION_COMO.escenas.length;
+    aparte.pildoras(i === GUIA || enEnunciado || enCierre ? null : enProblema ? 'sin' : 'con',
+      comoDePie ? `${k + 1} ${L('de', 'of')} ${GUION_COMO.escenas.length}` : i === GUIA || enEnunciado ? '' : cuenta);
+    aparte.sub(comoDePie ? paso ?? '' : i === GUIA || enEnunciado || enCierre ? '' : paso ?? '', comoDePie ? false : enProblema);
   }
-  if (i === GUIA) return void pintarComo(ctx, k, q, p);
+  if (i === GUIA) return void (vertical ? pintarComoVertical(ctx, k, q) : pintarComo(ctx, k, q, p));
   if (vertical) {
     if (enEnunciado) pintarEnunciadoVertical(ctx, paso, q);
     else if (enCierre) pintarCierreVertical(ctx, CIERRES[j]?.[0] ?? '', paso, q);
@@ -4090,7 +4177,7 @@ function iniciar() {
   // (nmw8cpyomtit). Cambia solo si hace falta, porque cambiar su tamaño lo borra
   function ajustarLienzo() {
     if (!clip || !aparte) return;
-    const v = seleccionado >= 0 && seleccionado !== GUIA && innerHeight > innerWidth && esVertical(seleccionado);
+    const v = seleccionado >= 0 && innerHeight > innerWidth && esVertical(seleccionado);
     const w = v ? VERTICAL.ancho * 4 : 1280, h = v ? VERTICAL.alto * 4 : 800;
     if (clip.width !== w || clip.height !== h) { clip.width = w; clip.height = h; popup?.classList.toggle('de-pie', v); }
   }

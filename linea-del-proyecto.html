@@ -307,12 +307,14 @@
   // (la línea termina antes del borde derecho: abajo a la derecha va la perilla)
   const W = 1000, H = 460, Y = 372, X0 = 60, META = 830;
   // El modelo (Claude Code, Codex…): sin STL le habla todo; con STL, solo el director
-  // (de pie, en un teléfono, va arriba a la derecha: disponer() lo mueve, PIE)
+  // (de pie, en un teléfono, va al centro del encuadre y un poco más abajo: PIE)
   let MX = W / 2, MY = 30;
-  // De pie, en un teléfono (nota de voz del titular nmw86aqe2tit, 8 de noviembre de 2026): el dibujo se rehace para lo
-  // alto. Se ve un trecho más corto de la línea, más de cerca (de x0 a x1 del mundo), y arriba una banda (banda) donde tu
-  // atención y los tokens gastados van uno sobre otro, a la izquierda y más grandes (s), y el modelo arriba a la derecha
-  const PIE = { activo: false, x0: 12, x1: 880, banda: 270, s: 1.9 };
+  // De pie, en un teléfono (nota de voz del titular nmw8fv481tit, 8 de noviembre de 2026, que reemplaza la banda de
+  // nmw86aqe2tit): el dibujo no se reacomoda. Tu atención y los tokens gastados van lado a lado en una franja arriba, bajo
+  // «Sin STL · Con STL» (hud: su escala; franja: su alto, en px); el modelo vuelve al centro, un poco más abajo (my); y un
+  // encuadre vertical se acerca a la escena y avanza a la derecha siguiéndote, dejando atrás lo que ya pasó (ancho: lo
+  // que se ve del mundo a lo ancho; de piso a cima, lo que se ve a lo alto). Al pasar a «Con STL» vuelve al inicio
+  const PIE = { activo: false, ancho: 868, hud: 1, franja: 0, cssW: 0, cssH: 0, r: 1, my: 46, piso: 452, cima: 18 };
   // Las fases de la ruta: donde empieza cada una
   const FASES = [X0, 252, 445, 637, META];
   // Las ramas empiezan a la tercera parte de la fase 1
@@ -723,15 +725,42 @@
     // En pantallas muy densas, como mucho 1,5 píxeles por punto: se ve igual de nítido y pinta muchos menos píxeles
     const r = Math.min(1.5, window.devicePixelRatio || 1), w = cv.clientWidth || W;
     if (PIE.activo) {
-      // De pie: el trecho de x0 a x1, con la banda de arriba (y negativa en el mundo)
-      const ancho = PIE.x1 - PIE.x0, alto = H + PIE.banda;
-      cv.width = Math.round(w * r); cv.height = Math.round(w * alto / ancho * r);
-      const k = cv.width / ancho;
-      ctx.setTransform(k, 0, 0, k, -PIE.x0 * k, PIE.banda * k);
+      // De pie: el lienzo del tamaño que le dio disponer(); el encuadre se pone en cada cuadro (encuadrar)
+      PIE.r = r;
+      cv.width = Math.round(PIE.cssW * r); cv.height = Math.round(PIE.cssH * r);
+      encuadrar();
       return;
     }
     cv.width = Math.round(w * r); cv.height = Math.round(w * H / W * r);
     ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+  }
+  // De pie, dónde va el centro del encuadre: un poco adelante de ti (sin STL, la punta de la línea; con STL, tu cubito),
+  // sin pasarse del inicio ni de la meta. El modelo va ahí (MX). Pura: sale de dónde va la escena, así la perilla puede
+  // volver atrás y todo se repite igual
+  function centroDePie() {
+    const yo = modo === 'sin' ? (hebras?.[0]?.x ?? X0) : (cabeza ?? X0), F = PIE.ancho;
+    return Math.max(8 + F / 2, Math.min(META + 62 - F / 2, yo + 0.12 * F));
+  }
+  // El encuadre de pie: el trecho del mundo alrededor de ese centro y, para que nada se corte a los lados, lo que actúa
+  // lejos de ti (el Studio, el director y la urgencia que atienden aparte) lo abre lo justo, poco a poco con su aparición
+  function encuadrar() {
+    if (!PIE.activo) return;
+    const c = centroDePie();
+    MX = c;
+    let lo = c - PIE.ancho / 2, hi = c + PIE.ancho / 2;
+    const incluye = (x, a, m) => {
+      if (x == null || !(a > 0.01)) return;
+      const k = tope(a);
+      lo = Math.min(lo, lerp(lo, x - m, k)); hi = Math.max(hi, lerp(hi, x + m, k));
+    };
+    if (modo === 'con') {
+      if (st) incluye(st.x, st.a, 44);
+      incluye(dirX, dirA, 70);
+      if (u && u.caja) { incluye(u.caja.x0, aisla, 0); incluye(u.caja.x1, aisla, 0); }
+    }
+    lo = Math.max(0, lo); hi = Math.min(W, hi);
+    const z = PIE.cssW / (hi - lo), r = PIE.r;
+    ctx.setTransform(z * r, 0, 0, z * r, -lo * z * r, (PIE.cssH - PIE.piso * z) * r);
   }
 
   // El fondo: estrellas tenues, que se apagan cerca del borde para que no se note el cuadro del dibujo
@@ -1909,12 +1938,14 @@
   }
   // El contador de tokens, arriba a la derecha, del mismo tamaño que tu atención, al otro lado: lo que lleva gastado la
   // escena y, debajo, a qué ritmo. Sin STL se pone rojo cuando el ritmo se dispara
-  // De pie (PIE), los dos recuadros de arriba van en la banda, uno sobre otro a la izquierda y más grandes: k es su puesto
+  // De pie (PIE), los dos recuadros de arriba van lado a lado en la franja de arriba del lienzo, quietos aunque el encuadre
+  // avance (nmw8fv481tit): k es su puesto, 0 a la izquierda (tu atención) y 1 a la derecha (los tokens)
   function enBanda(k, x, y, dibuja) {
     if (!PIE.activo) return dibuja();
     ctx.save();
-    ctx.translate(PIE.x0 + 12, -PIE.banda + 12 + k * (62 * PIE.s + 10));
-    ctx.scale(PIE.s, PIE.s); ctx.translate(-x, -y);
+    const s = PIE.hud, r = PIE.r, hueco = (PIE.cssW - 2 * 228 * s) / 3;
+    ctx.setTransform(r * s, 0, 0, r * s, r * (hueco + k * (228 * s + hueco)), r * 6 * s);
+    ctx.translate(-x, -y);
     dibuja();
     ctx.restore();
   }
@@ -2274,8 +2305,9 @@
   // Con STL la escena va más despacio que sin STL, para que alcances a leer lo que pasa
   const PAUSADO = 0.72;
 
-  function paso(now, dt) { if (modo === 'sin') pasoSin(now, dt); else pasoCon(now, dt); }
-  function dibujar(now) { if (modo === 'sin') dibujarSin(now); else { dibujarCon(now); globitoDeMeta(now); } }
+  // De pie, el modelo va al centro del encuadre (centroDePie) antes de cada paso, y el encuadre se pone antes de cada cuadro
+  function paso(now, dt) { if (PIE.activo) MX = centroDePie(); if (modo === 'sin') pasoSin(now, dt); else pasoCon(now, dt); }
+  function dibujar(now) { encuadrar(); if (modo === 'sin') dibujarSin(now); else { dibujarCon(now); globitoDeMeta(now); } }
 
   // ══ El chiste escondido (pd_globitos, la propuesta aceptada «Los globitos de después de la meta»): si sigues
   //    adelantando la animación después de la meta, con la perilla o la rueda, cada 10 segundos de escena de más sale un
@@ -2577,11 +2609,10 @@
   function disponer() {
     const todo = $('todo'), recto = derecho.matches, rot = vertical.matches && !recto;
     todo.classList.toggle('vertical', recto);
-    // De pie, el dibujo rehecho para lo alto (PIE, nmw86aqe2tit): el modelo arriba a la derecha, en la banda
+    // De pie, el encuadre que avanza contigo (PIE, nmw8fv481tit): el modelo al centro del encuadre, un poco más abajo
     PIE.activo = recto;
-    MX = recto ? PIE.x1 - 150 : W / 2; MY = recto ? -PIE.banda / 2 : 30;
-    if (recto) todo.style.setProperty('--aspecto', `${PIE.x1 - PIE.x0} / ${H + PIE.banda}`);
-    else todo.style.removeProperty('--aspecto');
+    MX = W / 2; MY = recto ? PIE.my : 30;
+    if (!recto) todo.style.removeProperty('--aspecto');
     if (recto) {
       // Sin girar: el dibujo a todo el ancho; los subtítulos, grandes; la barra de abajo, fija (su alto reserva el lugar)
       todo.style.width = innerWidth + 'px'; todo.style.height = innerHeight + 'px'; todo.style.transform = '';
@@ -2594,11 +2625,16 @@
       if (boton.parentElement !== mando) mando.append(boton);
       todo.style.setProperty('--ancho', innerWidth + 'px'); todo.style.setProperty('--mando', '0px');
       todo.style.setProperty('--barra', $('mando').offsetHeight + 'px');
-      // El dibujo, a su escala en lo que queda entre «Sin STL · Con STL» y los subtítulos (un renglón): a todo el ancho o,
-      // si el alto no alcanza, más angosto y al centro
+      // El lienzo, a todo el ancho y en todo el alto que queda entre «Sin STL · Con STL» y los subtítulos (un renglón): arriba
+      // la franja de tu atención y los tokens, y debajo el encuadre, tan de cerca como lo permita ese alto (sin ver menos de
+      // 340 puntos del mundo a lo ancho, para que lo que pasa a tu alrededor quepa, ni más de 868, el trecho de la línea)
       const libre = innerHeight - $('mando').offsetHeight - cabecera.offsetHeight - (parseFloat(getComputedStyle($('estado')).fontSize) || 16) * 1.3 - 14;
-      const anchoPie = Math.floor(Math.min(innerWidth, (libre * (PIE.x1 - PIE.x0)) / (H + PIE.banda)));
-      todo.style.setProperty('--lienzo', Math.max(200, anchoPie) + 'px');
+      const ancho = innerWidth, alto = PIE.piso - PIE.cima;
+      PIE.hud = Math.min(1.3, (ancho - 24) / 456); PIE.franja = Math.round(74 * PIE.hud);
+      PIE.ancho = Math.max(340, Math.min(868, (ancho * alto) / Math.max(1, libre - PIE.franja)));
+      PIE.cssW = ancho; PIE.cssH = Math.round(Math.min(libre, PIE.franja + (alto * ancho) / PIE.ancho));
+      todo.style.setProperty('--aspecto', `${PIE.cssW} / ${PIE.cssH}`);
+      todo.style.setProperty('--lienzo', PIE.cssW + 'px');
       ajustar();
       portada();
       return;
