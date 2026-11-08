@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
   // El idioma de la página (pd_bilingue), antes de pintar nada: el que lleva su enlace (?lang=en, nmw5it25ntit); si no, el
   // que se eligió con «ES · EN» (nmw2lz2bvtit); si no, el del navegador, y en cualquier otro idioma, inglés (nmw5gv8ymtit)
@@ -57,7 +57,28 @@
        centro es el de la ventana y no el del contenido */
     .js-3d .estacion { padding-left: calc(clamp(16px, 5vw, 64px) + 100vw - 100%); padding-right: clamp(16px, 5vw, 64px); }
   }
-  @media (max-width: 900px) { .js-3d .menu { position: fixed; left: 0; right: 0; } }
+  /* En un teléfono, el menú es un solo botón redondo arriba a la derecha: plegado, toda la pantalla es del recorrido; un toque
+     despliega las cuatro estaciones y «ES · EN», y elegir una estación, tocar fuera o el botón otra vez lo pliega (nota de voz
+     nmw7yg7m2tit). Respeta los bordes seguros (la muesca, la barra de abajo). En el computador, nada cambia */
+  .menu-boton { display: none; }
+  @media (max-width: 900px) {
+    .js-3d .menu { position: fixed; top: 0; right: 0; left: auto; align-items: flex-end; padding: calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 0 0; }
+    .js-3d .menu-boton { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border-radius: 50%; pointer-events: auto; cursor: pointer;
+      background: rgba(8, 11, 20, .78); border: 1px solid rgba(245, 210, 122, .35); color: var(--luz); font: 22px/1 system-ui, sans-serif;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .4); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+    .js-3d .menu-boton:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+    .js-3d .menu:not(.abierto) .idioma, .js-3d .menu:not(.abierto) ol { display: none; }
+    .js-3d .menu.abierto .menu-boton { background: var(--oro); color: #1a1f33; }
+    .js-3d .menu.abierto ol { flex-direction: column; flex-wrap: nowrap; border-radius: 18px; padding: 6px; }
+    .js-3d .menu.abierto ol a, .js-3d .menu.abierto ol span { padding: 12px 18px; font-size: 16px; }
+    .js-3d .menu.abierto .idioma button { min-width: 48px; min-height: 40px; }
+    /* La altura que siempre se ve (sin la barra de direcciones) y la barra de abajo del teléfono */
+    .js-3d .entrada { height: 100svh; }
+    .js-3d .tarjeta.corta { bottom: calc(1.5vh + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); box-sizing: border-box; white-space: normal; }
+    .js-3d .tarjeta.corta h2 { white-space: normal; text-wrap: balance; }
+    /* Nada se sale por los lados: la página nunca es más ancha que el teléfono */
+    html, body { overflow-x: clip; }
+  }
   .menu ol { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin: 0; padding: 5px; list-style: none; pointer-events: auto;
     border-radius: 999px; background: rgba(8, 11, 20, .78); border: 1px solid rgba(245, 210, 122, .22); box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
     -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
@@ -288,14 +309,12 @@
   .globo-problema.visto { border-color: rgba(111, 227, 161, .8); }
   .globo-problema[hidden] { display: none; }
 
-  /* En un teléfono o una tablet en vertical: una cubierta que recomienda verlo en un computador o en una tablet en
-     horizontal, como el Studio (nota de voz nmw17l49mtit). «Verlo aquí de todos modos» la quita */
+  /* Un teléfono abre el recorrido directo, sin aviso (nmw7y7d0ktit). Solo el que no puede con él (sin WebGL, o con muy pocos
+     cuadros por segundo al empezar) queda cubierto por este aviso, que invita a verlo en un computador o en un teléfono más
+     rápido, sin versión simple ni botón para pasar (nmw7yb1bttit). La pone mundo-3d.js › cubrirLento */
   .cubierta-movil { display: none; }
-  @media (max-width: 899px), (pointer: coarse) and (orientation: portrait) {
-    .cubierta-movil { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; box-sizing: border-box; background: rgba(7, 9, 15, .97); text-align: center; }
-  }
-  .cubierta-movil.cerrada { display: none !important; }
-  .cubierta-movil > div { max-width: 420px; }
+  .cubierta-movil.lenta { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; box-sizing: border-box; background: rgba(7, 9, 15, .97); text-align: center; }
+  .cubierta-movil > div { max-width: min(420px, 100%); }
   .cubierta-movil h2 { margin: 6px 0 12px; font-size: 24px; line-height: 1.25; color: #fffaf0; }
   .cubierta-movil p { color: #d9d5ca; }
   .cubierta-icono { font-size: 44px; line-height: 1; margin: 0 0 8px; }
@@ -339,16 +358,16 @@
   <div>
     <p class="cubierta-icono" aria-hidden="true">🖥️</p>
     <p class="eyebrow">¿Qué es STL?</p>
-    <h2 id="cubierta-titulo">Este recorrido se entiende mejor en una pantalla ancha</h2>
-    <p>Sus animaciones no caben bien en un teléfono. Te recomendamos verlo en un computador, o en una tablet puesta en horizontal.</p>
-    <p><button type="button" class="boton-ver" data-cerrar-cubierta>Verlo aquí de todos modos</button></p>
+    <h2 id="cubierta-titulo">Tu teléfono es demasiado lento para este recorrido</h2>
+    <p>Te invitamos a verlo en un computador o en un teléfono más rápido.</p>
   </div>
 </div>
 <a class="saltar" href="#fin">Saltar el recorrido</a>
 
 <nav class="menu" aria-label="Las estaciones de «Qué es STL»">
+  <button type="button" class="menu-boton" data-menu-boton aria-expanded="false" aria-controls="menu-estaciones" aria-label="Las estaciones y el idioma">☰</button>
   <div class="idioma" role="group" aria-label="Idioma · Language"><button type="button" data-idioma="es" lang="es">ES</button><b aria-hidden="true">·</b><button type="button" data-idioma="en" lang="en">EN</button></div>
-  <ol>
+  <ol id="menu-estaciones">
     <li><a href="#e-que-es">Qué es STL</a></li>
     <li><a href="#e-te-ha-pasado">¿Te ha pasado…?</a></li>
     <li><a href="#e-como-empezar">Cómo empezar</a></li>

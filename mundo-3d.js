@@ -47,10 +47,9 @@ const FIJO_EN = {
   '¿Qué es STL? Un recorrido en 3D por la línea del tiempo de un proyecto: STL Studio, la interfaz entre tú y el modelo, y los problemas de trabajar con IA por chat que resuelve.':
     'What is STL? A 3D tour along a project’s timeline: STL Studio, the interface between you and the model, and the problems of working with AI through chat that it solves.',
   '¿Qué es STL?': 'What is STL?',
-  'Este recorrido se entiende mejor en una pantalla ancha': 'This tour is best seen on a wide screen',
-  'Sus animaciones no caben bien en un teléfono. Te recomendamos verlo en un computador, o en una tablet puesta en horizontal.':
-    'Its animations don’t fit well on a phone. We recommend seeing it on a computer, or on a tablet turned sideways.',
-  'Verlo aquí de todos modos': 'See it here anyway',
+  'Tu teléfono es demasiado lento para este recorrido': 'Your phone is too slow for this tour',
+  'Te invitamos a verlo en un computador o en un teléfono más rápido.': 'We invite you to see it on a computer or on a faster phone.',
+  'Las estaciones y el idioma': 'The stations and the language',
   '▶ Bájalo en GitHub': '▶ Get it on GitHub',
   'STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).': 'STL Studio, created by ARGWABOT (A Regular Guy With A Bunch Of Tokens).',
   'La animación de la línea del proyecto, en grande': 'The project line animation, large',
@@ -270,9 +269,27 @@ const corrimientoSinBajar = (y) => Math.min(0, y);
 // La altura de la cámara sobre la línea, y la del centro del anillo de la estación 2, a la par (nmw6lcanstit)
 const ALTURA_CAMARA = 2.8;
 
-// ── En un teléfono (o una tablet en vertical), una cubierta recomienda verlo en un computador o en una tablet en
-// horizontal: las animaciones no se entienden en una pantalla angosta (nota de voz nmw17l49mtit). Se puede seguir igual
-document.querySelector('[data-cerrar-cubierta]')?.addEventListener('click', () => document.getElementById('cubierta-movil')?.classList.add('cerrada'));
+// ── Un teléfono abre el recorrido directo, sin aviso (nmw7y7d0ktit). Solo el que no puede con él queda cubierto: sin WebGL,
+// o con menos de FPS_MINIMO cuadros por segundo en sus primeros segundos. El aviso invita a verlo en un computador o en un
+// teléfono más rápido, sin versión simple ni botón para pasar (nmw7yb1bttit); el mundo deja de dibujarse. ?lento lo muestra
+// a propósito, para revisarlo
+const FPS_MINIMO = 20, MS_MEDIR_FPS = 3000;
+let cubierto = false;
+function cubrirLento() {
+  cubierto = true;
+  document.getElementById('cubierta-movil')?.classList.add('lenta');
+  document.documentElement.classList.add('cubierta-lenta');
+}
+// El menú en un teléfono: un solo botón que despliega las estaciones y «ES · EN» (nmw7yg7m2tit); elegir una estación, tocar
+// fuera o el botón otra vez lo pliega
+const menuNav = document.querySelector('.menu'), menuBoton = document.querySelector('[data-menu-boton]');
+function plegarMenu(abrir = false) {
+  menuNav?.classList.toggle('abierto', abrir);
+  menuBoton?.setAttribute('aria-expanded', String(abrir));
+}
+menuBoton?.addEventListener('click', () => plegarMenu(!menuNav.classList.contains('abierto')));
+document.querySelectorAll('.menu ol a').forEach((a) => a.addEventListener('click', () => plegarMenu(false)));
+document.addEventListener('pointerdown', (e) => { if (menuNav?.classList.contains('abierto') && !menuNav.contains(e.target)) plegarMenu(false); });
 
 const lienzo = document.getElementById('mundo');
 const estaciones = [...document.querySelectorAll('.estacion')];
@@ -3550,8 +3567,22 @@ function iniciar() {
   new IntersectionObserver(([e]) => { enVista = e.isIntersecting; if (enVista) requestAnimationFrame(cuadro); }, { rootMargin: '200px' })
     .observe(document.getElementById('viaje'));
   let dibujados = 0;
+  // En un teléfono: sus primeros segundos se miden (cuántos cuadros dibuja), y el que no alcanza FPS_MINIMO queda cubierto
+  // (nmw7yb1bttit); y el mundo descansa cuando nada se mueve: con la cámara quieta, ningún reproductor abierto y
+  // MS_REPOSO sin tocar la pantalla, deja de dibujar hasta el próximo toque o desplazamiento (pd_telefono_vertical, pieza 1)
+  const MS_REPOSO = 20000;
+  let medidaFps = null, ultimoToque = performance.now(), enReposo = false;
+  // ?sinmedir: sin esa medida, para capturar el recorrido con un navegador sin pantalla, que dibuja el 3D con el procesador
+  const medirFps = movil && fijo === null && !enVideo && !compartir && !new URLSearchParams(location.search).has('sinmedir');
+  if (medirFps) addEventListener('load', () => setTimeout(() => { if (!document.hidden) medidaFps = { desde: performance.now(), n: 0 }; }, 1000), { once: true });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) medidaFps = null; });
+  function despertar() {
+    ultimoToque = performance.now();
+    if (enReposo && enVista && !cubierto) { enReposo = false; requestAnimationFrame(cuadro); }
+  }
+  if (movil) for (const ev of ['scroll', 'touchstart', 'pointerdown', 'keydown']) addEventListener(ev, despertar, { passive: true });
   function cuadro() {
-    if (!enVista) return;
+    if (!enVista || cubierto) return;
     // En ?ver=N, unos segundos de cuadros y se queda quieta: así se puede capturar sin pantalla
     if (fijo !== null && !enVideo && ++dibujados > 150) return;
     const w = objetivo();
@@ -3595,6 +3626,15 @@ function iniciar() {
     nebulosa.position.copy(camara.position);   // el fondo acompaña a la cámara: el mismo en todas las direcciones
     if (!quieto) cieloUniformes.uTiempo.value = ahoraMs / 1000;
     renderer.render(escena, camara);
+    if (medidaFps && ++medidaFps.n && ahoraMs - medidaFps.desde >= MS_MEDIR_FPS) {
+      const fps = (medidaFps.n * 1000) / (ahoraMs - medidaFps.desde);
+      medidaFps = null;
+      if (fps < FPS_MINIMO) return cubrirLento();
+    }
+    if (movil && !quieto && !medidaFps && seleccionado < 0 && !pantalla2.abierta && Math.abs(w - cur) < 1e-3 && ahoraMs - ultimoToque > MS_REPOSO) {
+      enReposo = true;
+      return;
+    }
     requestAnimationFrame(cuadro);
   }
   // Se vuelve a medir cada vez que cambia el tamaño del lienzo o de la página (también si al cargar aún no tenía ancho)
@@ -3656,7 +3696,9 @@ if (lienzo && estaciones.length && hayWebGL()) {
   if (fijo !== null) document.documentElement.classList.add('ver-parada');
   if (compartir) document.documentElement.classList.add('compartir');
   iniciar();
-}
+} else if (movil && lienzo && estaciones.length) cubrirLento();
+// ?lento: el aviso del teléfono lento, a propósito, para revisarlo
+if (new URLSearchParams(location.search).has('lento')) cubrirLento();
 // Ya se sabe si hay 3D: la página se muestra, con él o sin él (nmw6lwwbxtit), cuando está lista: la carga a página completa
 // (nmw6p3dj8tit) espera el evento load y un instante más (el primer cuadro ya se dibujó en iniciar), para que el menú y «ES · EN» ya estén en su lugar, y se desvanece
 // despacio. Para capturar (?ver=N, la imagen al compartir) o grabar el video, sin carga
