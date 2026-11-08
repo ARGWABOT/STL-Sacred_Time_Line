@@ -1776,11 +1776,59 @@ function pintarBucleInstalar(c, s) {
 // ── Las animaciones de pie, en un cuadro fijo de 9:16 (pd_telefono_vertical; nmw7y9vw9tit, nmw8aincatit): en un teléfono o
 // una tableta de pie, el reproductor dibuja en 180 × 320 (escalado a 720 × 1280) lo mismo que en 320 × 200, con cada cosa
 // reubicada a lo alto y sin acercamientos, salvo para un detalle (nmw84zsedtit). Las píldoras, el subtítulo y la barra
-// siguen fuera del dibujo, en HTML (la fila de arriba, como está: nmw8b1td5tit). Primero, solo «Atención dispersa» (sus
-// segmentos 2 y 3, de 1): los otros cuatro van juntos cuando se apruebe este (nmw8cp1h3tit). Un problema se dibuja de pie
-// solo si todos sus segmentos lo tienen (esVertical)
+// siguen fuera del dibujo, en HTML (la fila de arriba, como está: nmw8b1td5tit). Ya están los siete problemas de pie
+// (nmw8cp1h3tit aprobó el primero): «Mensajes incompletos» como un chat de teléfono, con tus mensajes de un lado y los del
+// modelo del otro (nmw8e2ry6tit); «Respuestas largas» con la respuesta en una ventana alta y la barra de atención a lo
+// ancho, debajo (nmw8e34lktit); «Modelo olvidadizo» con el director arriba y el modelo abajo (nmw8e39mmtit); y los demás
+// (hilo perdido, sin internet, cansancio de escribir), reubicados a lo alto, sin acercamientos salvo para un detalle
+// (nmw84zsedtit). Un problema se dibuja de pie solo si todos sus segmentos lo tienen (esVertical)
 const VERTICAL = { ancho: 180, alto: 320 };
+// Un texto en renglones que caben en `ancho`, desde `y` hacia abajo (o, con sube, con el último renglón en `y`). Devuelve
+// cuántos renglones fueron. Los renglones salen ya traducidos de D(): letrero() no los vuelve a buscar
+function parrafoVertical(c, texto, x, y, color, tam = 9.5, ancho = 164, alinea = 'center', sube = false) {
+  c.font = `600 ${tam}px system-ui, sans-serif`;
+  const lineas = renglonesDe(c, D(texto), ancho);
+  lineas.forEach((r, m) => letrero(c, r, x, y + (m - (sube ? lineas.length - 1 : 0)) * (tam + 3), color, tam, alinea));
+  return lineas.length;
+}
+// El globo de texto de pie: igual que globo(), pero en varios renglones si no cabe en `ancho`. Devuelve [ancho, alto]
+function globoVertical(c, x, y, texto, color, derecha = false, alfa = 1, ancho = 140) {
+  c.font = '600 8.5px system-ui, sans-serif';
+  const lineas = renglonesDe(c, D(texto), ancho - 14);
+  const w = Math.max(...lineas.map((r) => c.measureText(r).width)) + 14, h = 4.5 + 10.5 * lineas.length, x0 = derecha ? x - w : x;
+  c.save(); c.globalAlpha *= alfa;
+  caja(c, x0, y, w, h, color, 0.22, 7.5);
+  lineas.forEach((r, m) => letrero(c, r, x0 + 7, y + 10.5 + m * 10.5, '#fffaf0', 8.5, 'left'));
+  c.restore();
+  return [w, h];
+}
 const VERTICALES = {
+  0: { // 1. El mensaje que se fue incompleto: un chat de teléfono en una ventana alta; tus globos a la izquierda, los del modelo a la derecha, de arriba abajo
+    problema: (c, q) => {
+      ventana(c, 8, 22, 164, 252, 'el chat con el modelo');
+      actorDev(c, 34, 246, 1.3);
+      actorModelo(c, 150, 66, 9);
+      if (q > 0.06) globoVertical(c, 16, 214 - tramo(q, 0.06, 0.3) * 114, 'Hazme el inicio de sesión', CIAN);
+      if (q > 0.35) globoVertical(c, 164, 124, 'Escribiendo…', MODELO, true, 0.6 + 0.4 * Math.sin(q * 30) ** 2);
+      if (q > 0.4) { globoVertical(c, 16, 150, '…y que entre con Google', ROJO); cruz(c, 152, 158, 4); }
+      // Cada corrección es otro mensaje, y los tokens se multiplican (nmw262jl0tit)
+      if (q > 0.4) letrero(c, `${q > 0.75 ? 3 : q > 0.55 ? 2 : 1} × ${L('los tokens', 'the tokens')}`, 164, 46, ROJO, 9, 'right');
+      if (q > 0.7) parrafoVertical(c, 'otro mensaje, y otro, para corregir', 90, 296, ROJO, 9.5, 164, 'center', true);
+    },
+    // Tú abajo, el Buzón en medio y, arriba, el director y el modelo: tu pedido sube por la columna
+    solucion: (c, p, tinta) => {
+      actorDev(c, 90, 256, 1.6); letrero(c, 'tú', 90, 288, '#cfe0ff');
+      actorStudio(c, 30, 120, 120, 70, false); letrero(c, 'Buzón del Studio', 90, 208, MORADO);
+      actorDirector(c, 50, 60, 11); letrero(c, 'el director', 50, 36, ORO);
+      actorModelo(c, 130, 60, 10, 0.5); letrero(c, 'el modelo', 130, 36, MODELO, 9);
+      const k = tramo(p, 0, 0.3), sube = tramo(p, 0.7, 0.9), editada = p > 0.45;
+      const x = p < 0.3 ? 90 + Math.sin(k * Math.PI) * 34 : p < 0.7 ? 90 : lerp(90, 52, sube);
+      const y = p < 0.3 ? lerp(232, 150, k) : p < 0.7 ? 150 : lerp(150, 78, sube);
+      bola(c, x, y, 7, editada ? VERDE : tinta);
+      if (p > 0.3 && p < 0.7) letrero(c, editada ? 'la corriges' : 'te faltó algo', 90, 184, editada ? VERDE : ROJO, 9.5);
+      if (p > 0.92) palomita(c, 52, 96, 5);
+    },
+  },
   1: { // 2. Las varias sesiones a la vez: las cuatro ventanas, dos arriba y dos abajo, y tú en medio, mirando de una a otra
     problema: (c, q) => {
       const foco = Math.floor(q * 9) % 4;
@@ -1829,6 +1877,359 @@ const VERTICALES = {
       const k1 = tramo(q, 0, 0.25), k2 = tramo(q, 0.35, 0.65);
       if (q > 0.3) { c.save(); c.globalAlpha *= tramo(q, 0.3, 0.38); actorDirector(c, 112, 210, 7); c.restore(); }
       iconoNota(c, 'idea', q < 0.35 ? lerp(54, 131, k1) : lerp(131, 146, k2), q < 0.35 ? lerp(104, 118, k1) - Math.sin(k1 * Math.PI) * 24 : lerp(118, 236, k2), 1.4);
+    },
+  },
+  3: { // 4. Las respuestas largas: la respuesta en una ventana alta, arriba; la barra de atención a lo ancho, debajo
+    problema: (c, q) => {
+      ventana(c, 14, 20, 152, 200, 'la respuesta del modelo');
+      c.save(); c.beginPath(); c.rect(16, 34, 148, 184); c.clip();
+      renglones(c, 28, 40 - q * 130, 124, 36, 'rgba(255, 255, 255, .35)', 1, 9);
+      c.restore();
+      const a = 1 - tramo(q, 0.1, 0.9);
+      letrero(c, 'tu atención', 14, 244, LUZ, 8.5, 'left');
+      caja(c, 14, 252, 152, 16, '#8f8a7d', 0.06, 5);
+      c.fillStyle = a > 0.4 ? VERDE : ROJO; c.beginPath(); c.roundRect(16, 254, Math.max(0.5, 148 * a), 12, 4); c.fill();
+      if (q > 0.65) parrafoVertical(c, 'y le dices «sí» a todo', 90, 296, ROJO, 9.5, 164, 'center', true);
+    },
+    // Tres ideas, una bajo otra, con su «Entendido»; debajo, tú, la lectura en voz alta y el comentario en su lugar
+    solucion: (c, q, tinta) => {
+      const p = Math.min(1, q / 0.6), n = Math.min(2, Math.floor(p * 3)), r = (p * 3) % 1;
+      for (let k = 0; k < 3; k++) {
+        const y = 40 + k * 58, hecho = k < n, activa = k === n;
+        c.fillStyle = 'rgba(255, 255, 255, .07)'; c.beginPath(); c.roundRect(14, y, 152, 50, 8); c.fill();
+        c.fillStyle = hecho || activa ? tinta : 'rgba(255, 255, 255, .15)'; c.globalAlpha = hecho ? 0.45 : 1;
+        c.beginPath(); c.roundRect(26, y + 9, activa ? 110 : 80, 5, 3); c.fill(); c.beginPath(); c.roundRect(26, y + 19, activa ? 80 : 56, 5, 3); c.fill(); c.globalAlpha = 1;
+        if (hecho) palomita(c, 150, y + 14, 6);
+        if (activa && r > 0.6) { c.fillStyle = ORO; c.beginPath(); c.roundRect(98, y + 27, 62, 18, 9); c.fill(); letrero(c, 'Entendido', 129, y + 39.5, '#1a1f33', 9); }
+        if (k > n) { c.fillStyle = 'rgba(11, 15, 28, .78)'; c.beginPath(); c.roundRect(14, y, 152, 50, 8); c.fill(); }
+      }
+      actorDev(c, 30, 246, 1.2);
+      if (q > 0.62) { altavoz(c, 100, 240); letrero(c, 'en voz alta', 100, 264, LUZ, 8); }
+      // Y cada idea se comenta en su lugar, con su ✉, sin explicar a qué parte te refieres (nmw26xb5ltit)
+      if (q > 0.78) { caja(c, 132, 228, 28, 20, ORO, 0.3, 6); letrero(c, '✉', 146, 242, '#fffaf0', 11); letrero(c, 'comenta aquí', 146, 276, LUZ, 8); }
+    },
+  },
+  4: { // 5. Lo que ya leíste y lo que no: el documento en una ventana alta, con tú debajo
+    problema: (c, q) => {
+      ventana(c, 14, 20, 152, 224, 'el documento', '#8f8a7d');
+      for (let k = 0; k < 5; k++) {
+        renglones(c, 26, 44 + k * 42, 112, 2, 'rgba(255, 255, 255, .35)', 1, 8);
+        if (q > 0.15 + k * 0.12) letrero(c, '?', 150, 53 + k * 42, ROJO, 13);
+      }
+      actorDev(c, 36, 280, 1.2);
+      if (q > 0.6) parrafoVertical(c, '¿esto ya lo leí?', 112, 286, ROJO, 9.5, 120);
+    },
+    solucion: (c, q, tinta) => {
+      ventana(c, 14, 20, 152, 224, 'el documento', '#8f8a7d');
+      letrero(c, 'Parte 2', 26, 46, ORO, 9.5, 'left');
+      const n = Math.min(5, Math.floor(q / 0.15));
+      for (let k = 0; k < 5; k++) {
+        const y = 66 + k * 34;
+        if (k === n) { c.fillStyle = tinta; c.fillRect(20, y - 2, 3, 13); }
+        renglones(c, 26, y, 112, 2, k < n ? 'rgba(255, 255, 255, .25)' : 'rgba(255, 255, 255, .45)', 1, 6);
+        if (k < n) palomita(c, 150, y + 4, 4.5);
+      }
+      actorDev(c, 36, 280, 1.2);
+      if (q > 0.8) { caja(c, 108, 33, 50, 15, VERDE, 0.3, 7); letrero(c, 'leída', 133, 44, '#dff5e8', 8.5); }
+    },
+  },
+  5: { // 6. El documento que te mandan a releer: lo ya leído arriba, y lo nuevo llega desde abajo
+    problema: (c, q) => {
+      ventana(c, 14, 20, 140, 232, 'el documento que ya leíste', '#8f8a7d');
+      for (let k = 0; k < 5; k++) {
+        renglones(c, 26, 46 + k * 38, 100, 2, 'rgba(255, 255, 255, .35)', 1, 8);
+        if (q < 0.5) palomita(c, 138, 50 + k * 38, 4.5);
+      }
+      if (q > 0.3) { c.fillStyle = ROJO; c.fillRect(20, 120, 3, 14); parrafoVertical(c, 'le cambiaron algo', 84, 150, ROJO, 9, 124); }
+      if (q > 0.55) {
+        trazo(c, 166, 244, 166, 40, ROJO, 0.8); trazo(c, 166, 40, 161, 48, ROJO, 0.8); trazo(c, 166, 40, 171, 48, ROJO, 0.8);
+        parrafoVertical(c, 'léelo otra vez entero', 90, 286, ROJO, 9.5);
+      }
+    },
+    solucion: (c, q) => {
+      ventana(c, 14, 20, 152, 176, 'lo que ya leíste', '#8f8a7d');
+      for (let k = 0; k < 5; k++) { renglones(c, 26, 40 + k * 24, 100, 2, 'rgba(255, 255, 255, .35)', 1, 8); palomita(c, 150, 44 + k * 24, 4.5); }
+      if (q > 0.1) { bola(c, 140, 172, 14, ORO, tramo(q, 0.1, 0.25)); letrero(c, 'sellado', 140, 175, '#1a1f33', 8); }
+      // Lo nuevo sube desde abajo, sin salirse del cuadro
+      const k = tramo(q, 0.3, 0.55), y = lerp(250, 212, k);
+      c.save(); c.globalAlpha *= tramo(q, 0.3, 0.4);
+      ventana(c, 14, y, 152, 64, 'lo nuevo', VERDE);
+      renglones(c, 26, y + 24, 120, 2, VERDE, 1, 9);
+      c.restore();
+      if (q > 0.65) parrafoVertical(c, 'solo lo que cambió', 90, 300, VERDE, 9.5);
+    },
+  },
+  6: { // 7. La pregunta que ya decidiste: el chat de teléfono, en una ventana alta; lo tuyo a la izquierda, lo del modelo a la derecha
+    problema: (c, q) => {
+      ventana(c, 8, 22, 164, 262, 'el chat con el modelo');
+      const sube = tramo(q, 0.15, 0.4);
+      // Sube y se apaga, pero se queda debajo del nombre de la ventana, sin pisarlo (nmw5d6iqctit)
+      globoVertical(c, 16, 60 - sube * 8, 'Usemos la opción A', CIAN, false, 1 - sube * 0.7);
+      if (q > 0.4) globoVertical(c, 164, 128, '¿Usamos A o B?', MODELO, true);
+      if (q > 0.7) { globoVertical(c, 164, 196, 'Hice la B', ROJO, true); parrafoVertical(c, 'ya lo habías decidido', 90, 258, ROJO, 9.5, 148); }
+    },
+    // El director arriba; la nota «En firme» en medio, donde la lupa busca; la respuesta, debajo
+    solucion: (c, q) => {
+      actorDirector(c, 90, 44, 12); letrero(c, 'el director', 90, 72, ORO, 9);
+      caja(c, 20, 100, 140, 84, ORO, 0.1); letrero(c, 'En firme', 90, 116, ORO, 9.5);
+      ['opción A', 'sin Google', 'en español'].forEach((t, k) => letrero(c, `· ${D(t)}`, 34, 140 + k * 16, LUZ, 8.5, 'left'));
+      // La lupa se queda a la derecha de la lista, junto a lo que encontró, sin tapar el texto (nmw5eoz0rtit)
+      if (q < 0.55) lupa(c, lerp(146, 122, tramo(q, 0.1, 0.45)), 142, 7);
+      if (q > 0.5) { c.save(); c.strokeStyle = VERDE; c.lineWidth = 1.5; c.strokeRect(30, 131, 64, 12); c.restore(); }
+      if (q > 0.6) globoVertical(c, 18, 202, 'Ya lo decidiste: la opción A', VERDE, false, tramo(q, 0.6, 0.7), 150);
+      if (q > 0.8) parrafoVertical(c, 'no te lo vuelve a preguntar', 90, 256, VERDE, 9.5);
+    },
+  },
+  7: { // 8. Los tokens que se van: el modelo y su contador arriba, los seis archivos en columna, a su izquierda
+    problema: (c, q) => {
+      actorModelo(c, 136, 104, 14); letrero(c, 'el modelo', 136, 78, MODELO, 9);
+      const leyendo = Math.floor(q * 14) % 6;
+      for (let k = 0; k < 6; k++) {
+        const y = 62 + k * 38;
+        caja(c, 14, y, 72, 28, k === leyendo ? ROJO : '#8f8a7d', 0.12, 4); letrero(c, 'archivo', 50, y + 18, LUZ, 8);
+        if (k === leyendo) trazo(c, 124, 108, 86, y + 14, ROJO, 0.8);
+      }
+      letrero(c, `${Math.round(q * q * 184000).toLocaleString(L('es', 'en'))} tokens`, 170, 36, ROJO, 11, 'right');
+      if (q > 0.6) parrafoVertical(c, 'lee lo mismo una y otra vez', 90, 304, ROJO, 9.5);
+    },
+    solucion: (c, q) => {
+      actorStudio(c, 14, 50, 70, 44, false); letrero(c, 'el Studio', 49, 44, MORADO, 9);
+      actorDirector(c, 136, 70, 12); letrero(c, 'el director', 136, 46, ORO, 9);
+      const k = tramo(q, 0.05, 0.3);
+      caja(c, lerp(25, 112, k), lerp(62, 100, k), 48, 16, ORO, 0.3, 5); letrero(c, 'todo junto', lerp(49, 136, k), lerp(73, 111, k), '#fffaf0', 8);
+      for (let j = 0; j < 6; j++) {
+        const y = 126 + j * 30, cambio = j === 1 || j === 4;
+        caja(c, 14, y, 72, 24, cambio ? VERDE : '#5b6482', cambio ? 0.2 : 0.06, 4);
+        letrero(c, cambio ? 'cambió' : 'igual', 50, y + 15.5, cambio ? '#dff5e8' : '#8f8a7d', 8);
+        if (cambio && q > 0.35) trazo(c, 112, 118, 86, y + 12, VERDE, tramo(q, 0.35, 0.5));
+      }
+      letrero(c, `${Math.round(tramo(q, 0.3, 0.9) * 21000).toLocaleString(L('es', 'en'))} tokens`, 170, 28, VERDE, 11, 'right');
+      if (q > 0.8) parrafoVertical(c, 'en «Modelo y consumo»', 172, 286, LUZ, 8, 74, 'right');
+    },
+  },
+  8: { // 9. Vuelves de una pausa: la luna y «otro día» arriba, la sesión nueva en medio, y tú con tus dudas abajo
+    problema: (c, q) => {
+      bola(c, 140, 44, 14, '#e8e4d6'); bola(c, 147, 39, 12, '#121829'); letrero(c, 'otro día', 140, 74, LUZ, 9);
+      ventana(c, 14, 96, 152, 100, 'sesión nueva', '#8f8a7d');
+      if (Math.floor(q * 8) % 2) { c.fillStyle = LUZ; c.fillRect(26, 122, 2, 10); }
+      actorDev(c, 90, 232, 1.4);
+      if (q > 0.3) letrero(c, '?', 118, 228, ROJO, 18);
+      if (q > 0.3) letrero(c, '¿en qué iba?', 90, 272, ROJO, 11);
+      if (q > 0.55) letrero(c, '¿y qué sigue?', 90, 294, ROJO, 11);
+    },
+    solucion: (c, q) => {
+      caja(c, 10, 30, 160, 150, ORO, 0.08); letrero(c, '¿Dónde quedamos?', 90, 52, ORO, 10.5);
+      ['Lo que se hizo', 'Dónde quedó el proyecto', 'Lo nuevo desde tu visita'].forEach((t, k) => {
+        c.save(); c.globalAlpha *= tramo(q, 0.1 + k * 0.13, 0.2 + k * 0.13); letrero(c, `· ${D(t)}`, 20, 80 + k * 22, LUZ, 9, 'left'); c.restore();
+      });
+      // Una sola misión siguiente a la vista, y solo retomas
+      if (q > 0.54) placaMision(c, 20, 146, 140, 'Tu misión siguiente', q > 0.84, tramo(q, 0.54, 0.62));
+      // Llega desde abajo y se queda debajo de la tarjeta, sin cruzar su borde (nmw5eoz0rtit)
+      const v = tramo(q, 0.7, 0.84);
+      actorDev(c, lerp(30, 90, v), lerp(262, 216, v), 1.2);
+      if (q > 0.86) parrafoVertical(c, 'solo retomas: ya sabes qué sigue', 90, 300, VERDE, 9.5, 164, 'center', true);
+    },
+  },
+  10: { // 11. Explicar otra vez el proyecto: la sesión en una ventana alta, y tú abajo, con tu «otra vez»
+    problema: (c, q) => {
+      const s = Math.min(2, Math.floor(q * 3)), k = (q * 3) % 1;
+      // Una sesión tras otra, cada una en lugar de la anterior: ya no se apilan una encima de otra (nmw5d6iqctit)
+      ventana(c, 14, 30, 152, 180, `${L('sesión', 'session')} ${s + 1}`, ROJO);
+      globoVertical(c, 24, 52, 'Mi proyecto es…', CIAN);
+      renglones(c, 26, 82, 128, Math.max(1, Math.round(1 + k * 6)), '#9fd8ff', 1, 8);
+      actorDev(c, 90, 250, 1.6);
+      if (s > 0) letrero(c, 'otra vez', 90, 290, ROJO, 11);
+    },
+    // Las pastillas de la misión en una línea a lo ancho; tú caminas hacia ella y arriba van las tarjetas guardadas
+    solucion: (c, p, tinta) => {
+      c.strokeStyle = LINEA; c.lineWidth = 3; c.beginPath(); c.moveTo(14, 232); c.lineTo(166, 232); c.stroke();
+      for (let k = 0; k < 5; k++) {
+        const hecho = k < 2, sigue = k === 2, x = 26 + k * 32;
+        bola(c, x, 232, sigue ? 7 + Math.sin(p * 30) * 1.3 : 5, hecho ? VERDE : sigue ? ORO : '#5b6482');
+        if (hecho) palomita(c, x, 232, 3);
+      }
+      letrero(c, 'tu misión', 90, 212, ORO, 10);
+      actorDev(c, lerp(22, 90, tramo(p, 0, 0.35)), 168, 1.5);
+      ['el plan', 'el mapa', 'lo que dijiste'].forEach((t, k) => {
+        c.save(); c.globalAlpha *= tramo(p, 0.4 + k * 0.12, 0.52 + k * 0.12);
+        caja(c, 20, 40 + k * 32, 140, 22, MORADO, 0.16, 5); letrero(c, t, 90, 55 + k * 32, LUZ, 9);
+        c.restore();
+      });
+      parrafoVertical(c, 'estado guardado: no repites nada', 90, 298, tinta, 9.5, 164, 'center', true);
+    },
+  },
+  11: { // 12. El contexto que se contamina: la ventana alta del historial, arriba; el modelo, abajo
+    problema: (c, q) => {
+      ventana(c, 8, 24, 164, 230, 'el historial del chat, o una búsqueda');
+      letrero(c, 'hace dos semanas', 22, 58, '#8f8a7d', 8, 'left');
+      const [w, h] = globoVertical(c, 20, 70, 'Usemos Google para entrar', ORO, false, 0.8);
+      globoVertical(c, 20, 122, 'Cambiamos: sin Google', CIAN, false, 0.9);
+      // La lupa termina a la derecha de la lista, sin pisar los globos (nmw5eoz0rtit)
+      if (q > 0.25) lupa(c, 150, lerp(190, 110, tramo(q, 0.25, 0.5)), 6);
+      // El resaltado, justo alrededor del globo viejo, y la respuesta del modelo, dentro de la ventana (nmw5d6iqctit)
+      if (q > 0.5) caja(c, 16, 66, w + 8, h + 8, ROJO, 0.12, 8);
+      actorModelo(c, 146, 282, 11);
+      if (q > 0.62) globoVertical(c, 164, 170, 'Hice el inicio con Google', ROJO, true);
+      if (q > 0.8) parrafoVertical(c, 'una decisión vieja se coló', 90, 232, ROJO, 9.5, 148);
+    },
+    // El director arriba a la derecha, con la tarjeta reemplazada y la que está en vigor, una bajo la otra
+    solucion: (c, q) => {
+      const vieja = tramo(q, 0.12, 0.3);
+      // «Reemplazado» va dentro de su tarjeta, debajo de lo tachado, sin pisar su borde (nmw5d6iqctit)
+      caja(c, 10, 110, 104, 40, '#8f8a7d', 0.08); letrero(c, 'Usemos Google', 22, 126, vieja > 0.5 ? '#8f8a7d' : LUZ, 9.5, 'left');
+      if (q > 0.12) { trazo(c, 20, 123, 92, 123, ROJO, vieja); caja(c, 36, 130, 64, 14, NARANJA, 0.3, 7); letrero(c, 'Reemplazado', 68, 140, '#fff1de', 8.5); }
+      caja(c, 10, 206, 104, 40, ORO, 0.12); letrero(c, 'En vigor', 62, 200, ORO, 8.5); letrero(c, 'Sin Google', 22, 222, '#fffaf0', 9.5, 'left');
+      actorDirector(c, 142, 70, 12); letrero(c, 'el director', 142, 46, ORO, 9);
+      if (q > 0.45) { trazo(c, 138, 80, 116, 226, VERDE, tramo(q, 0.45, 0.55)); palomita(c, 100, 226, 5, tramo(q, 0.5, 0.6)); }
+      if (q > 0.6) { trazo(c, 134, 66, 116, 128, ROJO, 0.55 * tramo(q, 0.6, 0.7), true); cruz(c, 125, 97, 4, tramo(q, 0.65, 0.75)); }
+      if (q > 0.82) parrafoVertical(c, 'al modelo, solo lo que aprobaste', 90, 300, VERDE, 9.5, 164, 'center', true);
+    },
+  },
+  12: { // 13. El modelo, una caja negra: el director arriba y el modelo abajo, con el chat entre los dos, de arriba abajo
+    problema: (c, q) => {
+      actorDev(c, 90, 44, 1.4);
+      caja(c, 20, 134, 140, 116, '#3a3f55', 0.7, 10);
+      actorModelo(c, 90, 190, 14, 0.25 + 0.2 * Math.sin(q * 12) ** 2);
+      letrero(c, 'el modelo', 90, 126, MODELO, 9);
+      const k = tramo(q, 0.05, 0.35);
+      if (k < 1) globoVertical(c, 60, lerp(68, 100, k), 'Haz esto', CIAN, false, 1 - k * 0.6);
+      [0, 1, 2].forEach((m) => { if (q > 0.35 + m * 0.12) letrero(c, '?', [44, 90, 136][m], [162, 230, 162][m], ROJO, 14); });   // el del medio, más abajo: no pisa al modelo (nmw5eoz0rtit)
+      if (q > 0.7) parrafoVertical(c, '¿qué recuerda, qué no y por qué?', 90, 296, ROJO, 9.5, 164, 'center', true);
+    },
+    // El director arriba y el modelo abajo; entre los dos, los globos de lo que pide uno (a la izquierda) y responde el otro
+    // (a la derecha); debajo, los tokens de entrada y de salida; al final, todo se pliega en el historial
+    solucion: (c, q) => {
+      actorDirector(c, 90, 32, 11); letrero(c, 'el director', 90, 58, ORO, 8);
+      actorModelo(c, 90, 284, 10); letrero(c, 'el modelo', 90, 308, MODELO, 8);
+      const historial = tramo(q, 0.86, 0.94);
+      if (q < 0.86) {
+        const espera = (desde, hasta, y) => {
+          if (q <= desde || q >= hasta) return;
+          const s = Math.round(lerp(1, 38, tramo(q, desde, hasta)));
+          const [, h] = globoVertical(c, 10, y, `${L('El director espera al modelo', 'The director waits for the model')} · ${s} s`, '#8f8a7d', false, 0.9, 140);
+          relojito(c, 162, y + h / 2, 5, tramo(q, desde, hasta));
+        };
+        if (q > 0.04) globoVertical(c, 10, 70, 'El director solicita: lo que cambió', CIAN, false, tramo(q, 0.04, 0.1));
+        espera(0.1, 0.24, 108);
+        if (q >= 0.24) globoVertical(c, 170, 108, 'El modelo responde: 3 archivos', VERDE, true, tramo(q, 0.24, 0.3));
+        if (q > 0.5) globoVertical(c, 10, 146, 'El director solicita: las pruebas', CIAN, false, tramo(q, 0.5, 0.56));
+        espera(0.56, 0.68, 184);
+        if (q >= 0.68) globoVertical(c, 170, 184, 'El modelo responde: todas pasan', VERDE, true, tramo(q, 0.68, 0.74));
+      } else {
+        // Y se pliegan en el historial, para auditarlo y aprender
+        c.save(); c.globalAlpha *= historial;
+        ventana(c, 10, 66, 160, 100, 'el historial: cada paso, auditable', ORO);
+        ['solicita: lo que cambió', 'responde: 3 archivos', 'solicita: las pruebas', 'responde: todas pasan'].forEach((t, k) => {
+          letrero(c, t, 22, 92 + k * 20, LUZ, 8, 'left'); palomita(c, 154, 89 + k * 20, 3.5);
+        });
+        c.restore();
+      }
+      const entrada = Math.round(lerp(0, 9800, tramo(q, 0.04, 0.12)) + lerp(0, 4300, tramo(q, 0.5, 0.58)));
+      const salida = Math.round(lerp(0, 1900, tramo(q, 0.24, 0.32)) + lerp(0, 800, tramo(q, 0.68, 0.76)));
+      if (q > 0.34) letrero(c, 'la caja negra, a la vista', 90, 270, LUZ, 8.5);
+      caja(c, 10, 222, 76, 30, CIAN, 0.12, 6); letrero(c, 'tokens de entrada', 48, 233, CIAN, 8); letrero(c, entrada.toLocaleString(L('es', 'en')), 48, 247, '#fffaf0', 10);
+      caja(c, 94, 222, 76, 30, VERDE, 0.12, 6); letrero(c, 'tokens de salida', 132, 233, VERDE, 8); letrero(c, salida.toLocaleString(L('es', 'en')), 132, 247, '#fffaf0', 10);
+    },
+  },
+  13: { // 14. Se cae el internet: el chat de teléfono en una ventana alta, y la señal cortada en medio
+    problema: (c, q) => {
+      ventana(c, 8, 22, 164, 252, 'el chat con el modelo');
+      actorDev(c, 34, 246, 1.3);
+      const cae = tramo(q, 0.35, 0.5);
+      actorModelo(c, 150, 56, 9, 1 - 0.7 * cae);
+      if (q > 0.06) globoVertical(c, 16, 214 - tramo(q, 0.06, 0.3) * 114, 'Sigue con el login', CIAN);
+      if (q > 0.3 && q < 0.5) globoVertical(c, 164, 124, 'Escribiendo…', MODELO, true, 0.6 + 0.4 * Math.sin(q * 30) ** 2);
+      // El corte: la señal con su raya y el chat quieto
+      if (q > 0.35) { wifi(c, 90, 160, ROJO, true, cae); letrero(c, 'sin conexión', 90, 198, ROJO, 10); cruz(c, 150, 76, 4, cae); }   // la ✗ debajo del modelo, no encima de él (nmw5eoz0rtit)
+      if (q > 0.7) parrafoVertical(c, 'el chat se congeló: ¿y ahora qué?', 90, 226, ROJO, 9.5, 148, 'center', true);
+    },
+    // Arriba, al volver la conexión, el director y el modelo; en medio, tú, la señal y el Buzón; abajo, el documento y el historial
+    solucion: (c, q) => {
+      // Sin conexión hasta casi el final, cuando vuelve
+      const vuelve = tramo(q, 0.86, 0.92), color = vuelve > 0.5 ? VERDE : ROJO;
+      wifi(c, 22, 80, color, vuelve < 0.5); letrero(c, vuelve > 0.5 ? 'conexión' : 'sin conexión', 8, 118, color, 8, 'left');
+      actorDev(c, 28, 156, 1.2); letrero(c, 'tú', 28, 182, '#cfe0ff', 8.5);
+      actorStudio(c, 74, 78, 96, 70, false); letrero(c, 'Buzón del Studio', 122, 72, MORADO, 9);
+      // Tus notas, ajustes y entregas llegan al Buzón aunque no haya internet
+      [['nota', CIAN], ['ajuste', NARANJA], ['entrega', ORO]].forEach(([texto, tono], k) => {
+        const a = 0.2 + k * 0.06, u = tramo(q, a, a + 0.12), x = lerp(24, 81, u), y = lerp(172, 86 + k * 21, u);
+        if (q > a) { c.save(); c.globalAlpha *= Math.min(1, u * 3); caja(c, x, y, 82, 15, tono, 0.3, 6); letrero(c, texto, x + 41, y + 10.5, '#fffaf0', 8.5); c.restore(); }
+      });
+      // Sigues leyendo un documento, con su «Entendido»
+      if (q > 0.4) {
+        const a = tramo(q, 0.4, 0.46);
+        c.save(); c.globalAlpha *= a;
+        ventana(c, 7, 200, 82, 56, 'documento', ORO);
+        renglones(c, 15, 219, 64, 2, 'rgba(255, 255, 255, .35)', 1, 7);
+        c.fillStyle = ORO; c.beginPath(); c.roundRect(14, 234, 56, 14, 7); c.fill(); letrero(c, 'Entendido', 42, 244.5, '#1a1f33', 8.5);
+        c.restore();
+        if (q > 0.52) palomita(c, 79, 241, 4, tramo(q, 0.52, 0.56));
+      }
+      // O auditas el trabajo del modelo en su historial
+      if (q > 0.58) {
+        c.save(); c.globalAlpha *= tramo(q, 0.58, 0.64);
+        ventana(c, 91, 200, 82, 56, 'historial', MORADO);
+        for (let k = 0; k < 3; k++) { renglones(c, 99, 216 + k * 12, 46, 1, 'rgba(255, 255, 255, .35)'); palomita(c, 160, 218 + k * 12, 3.5, tramo(q, 0.62 + k * 0.04, 0.68 + k * 0.04)); }
+        c.restore();
+      }
+      if (q > 0.74) parrafoVertical(c, 'nada se pierde: queda en la memoria del proyecto', 90, 302, VERDE, 9, 164, 'center', true);
+      // Vuelve la conexión: el director lo recibe todo junto y habla con el modelo
+      if (q > 0.86) {
+        const u = tramo(q, 0.88, 0.95);
+        actorDirector(c, 122, 30, 9); letrero(c, 'el director', 122, 52, ORO, 8.5);
+        [CIAN, NARANJA, ORO].forEach((col, k) => bola(c, 114 + k * 8, lerp(104, 60, u), 3.5, col, 0.4 + 0.6 * u));
+        actorModelo(c, 30, 30, 8); letrero(c, 'el modelo', 30, 50, MODELO, 8);
+        if (q > 0.94) { trazo(c, 108, 30, 46, 30, VERDE, tramo(q, 0.94, 0.98)); letrero(c, 'todo junto', 77, 22, VERDE, 8.5); }
+      }
+    },
+  },
+  14: { // 15. El cansancio de escribir: el chat en una ventana alta; la idea arriba, el modelo en medio, y el teclado y tú abajo
+    problema: (c, q) => {
+      ventana(c, 8, 22, 164, 262, 'el chat con el modelo');
+      // Tu idea, entera, en la cabeza: la bombilla y sus renglones
+      caja(c, 18, 44, 144, 62, ORO, 0.1, 12);
+      iconoNota(c, 'idea', 36, 66, 1.1);
+      renglones(c, 54, 56, 96, 4, 'rgba(255, 241, 196, .55)', 1, 10);
+      actorDev(c, 96, 262, 1.3);
+      // Escribirla toda cansa: el teclado avanza despacio, y sale solo la mitad
+      if (q > 0.3) {
+        const escrito = tramo(q, 0.3, 0.62);
+        caja(c, 50, 214, 92, 22, '#8f8a7d', 0.1, 5);
+        for (let k = 0; k < 8; k++) bola(c, 59 + k * 10.5, 225, 2.6, k < escrito * 4 ? ROJO : 'rgba(255, 255, 255, .3)');
+        letrero(c, 'escribirlo todo…', 96, 206, '#ffc2cf', 8.5);
+      }
+      actorModelo(c, 148, 134, 9);
+      if (q > 0.66) {
+        globoVertical(c, 18, 126, 'Haz que el botón…', ROJO, false, tramo(q, 0.66, 0.74));
+        letrero(c, 'le llega la mitad', 62, 160, ROJO, 8.5);
+        cruz(c, 148, 154, 4, tramo(q, 0.74, 0.8));   // debajo del modelo, no encima de él (nmw5eoz0rtit)
+      }
+    },
+    // Tú y el micrófono arriba, el Buzón con tu nota en medio y, abajo, el modelo que la recibe al final
+    solucion: (c, q) => {
+      actorDev(c, 48, 54, 1.3, q > 0.82);
+      microfono(c, 84, 56, VERDE_DICTADO);
+      if (q < 0.52) for (const r of [8, 13, 18]) { c.save(); c.globalAlpha *= 0.3 + 0.7 * Math.sin(q * 40 - r) ** 2; c.strokeStyle = VERDE_DICTADO; c.lineWidth = 1.4; c.beginPath(); c.arc(84, 50, r, -0.9, 0.9); c.stroke(); c.restore(); }
+      if (q > 0.5) { caja(c, 14, 94, 6, 6, VERDE_DICTADO, 0.4, 2); letrero(c, 'se transcribe en tu computador', 26, 100, VERDE_DICTADO, 8.5, 'left'); }
+      // Tu nota, en el Buzón: la lees y la corriges antes de que salga
+      actorStudio(c, 22, 130, 136, 100, false); letrero(c, 'Buzón del Studio', 90, 124, MORADO, 9);
+      const escrita = tramo(q, 0.1, 0.56);
+      caja(c, 32, 142, 116, 82, VERDE_DICTADO, 0.1, 7);
+      letrero(c, 'tu nota', 38, 154, VERDE_DICTADO, 8, 'left');
+      for (let k = 0; k < 4; k++) {
+        const visible = escrita * 4 > k;
+        if (!visible) continue;
+        const quitada = k === 2 && q > 0.78, agregada = k === 3;
+        if (agregada && q < 0.88) continue;
+        renglones(c, 38, 164 + k * 13, k === 3 ? 60 : 84, 1, agregada ? VERDE : 'rgba(255, 255, 255, .45)', quitada ? 0.35 : 1);
+        if (quitada) trazo(c, 36, 165.5 + k * 13, 128, 165.5 + k * 13, ROJO, tramo(q, 0.78, 0.84));
+        if (agregada) letrero(c, '+', 110, 170 + k * 13, VERDE, 9, 'left');
+      }
+      // La lupa va adentro de la tarjeta de tu nota (arriba a la derecha) y el rótulo, debajo del Buzón, no sobre su borde
+      if (q > 0.74) { lupa(c, 132, 157, 6); letrero(c, 'la lees y la corriges', 14, 246, '#fffaf0', 8.5, 'left'); }
+      // Y solo entonces la recibe el modelo, que queda abajo a la derecha
+      actorModelo(c, 148, 272, 9);
+      if (q > 0.93) { const u = tramo(q, 0.93, 0.99); bola(c, 148, lerp(196, 256, u), 3.5, VERDE, 0.5 + 0.5 * u); if (u > 0.95) palomita(c, 148, 298, 4); }
     },
   },
 };
