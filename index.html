@@ -297,7 +297,9 @@
   .js-3d .estacion.actual .documentacion.abierta { display: block; }
   .doc-titulo { margin: 0 0 12px; font-size: clamp(20px, 1.6vw, 28px); color: #fffaf0; }
   .js-3d .doc-titulo { display: none; }
-  .doc-pestanas { display: flex; gap: 8px; margin-bottom: 14px; }
+  .doc-arriba { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .cerrar-doc { display: none; }
+  .doc-pestanas { display: flex; gap: 8px; flex: 1 1 auto; min-width: 0; }
   .doc-pestanas button { padding: 6px 14px; border: 1px solid rgba(245, 210, 122, .4); border-radius: 999px; background: transparent; color: #d9d5ca;
     font: inherit; font-weight: 600; cursor: pointer; }
   .doc-pestanas button[aria-selected="true"] { background: var(--oro); color: #1a1f33; border-color: var(--oro); }
@@ -421,9 +423,18 @@
     .js-3d .tarjeta.corta h2 { font-size: 16px; padding: 4px 8px 0; }
     .ver-parada .estacion.actual { justify-content: center; align-items: flex-end; padding-bottom: 0; }
     .js-3d .tarjeta.corta .boton-ver { justify-content: center; min-height: 44px; font-size: 16px; }
-    /* «La documentación» en un teléfono: un lector a todo el ancho, entre el botón del menú y la píldora de abajo
-       (nmw86lki4tit), con sus pestañas en un renglón que cabe y se lee (nmw88lkhftit, t_decide_lector_pestanas) */
-    .js-3d .documentacion { left: 10px; right: 10px; width: auto; top: calc(66px + env(safe-area-inset-top)); max-height: calc(100svh - 160px); padding: 14px 16px; }
+    /* «La documentación» en un teléfono: un lector que cubre toda la pantalla, encima del menú y de la píldora, con «✕» a la
+       izquierda de sus pestañas para cerrarlo, y que abre siempre en «Instalar» (nmw86lki4tit, nmw8cshdztit); sus pestañas,
+       en un renglón que cabe y se lee (nmw88lkhftit, t_decide_lector_pestanas) */
+    .js-3d .documentacion { inset: 0; width: auto; max-width: none; max-height: none; border: 0; border-radius: 0; z-index: 26; box-sizing: border-box;
+      padding: calc(8px + env(safe-area-inset-top)) max(14px, calc((100% - 640px) / 2)) calc(20px + env(safe-area-inset-bottom)); background: #07090f; }
+    .js-3d .doc-arriba { position: sticky; top: calc(-8px - env(safe-area-inset-top)); z-index: 1; margin: calc(-8px - env(safe-area-inset-top)) 0 14px;
+      padding: calc(8px + env(safe-area-inset-top)) 0 8px; background: #07090f; gap: 6px; }
+    .js-3d .cerrar-doc { display: grid; flex: none; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+      background: var(--oro); color: #1a1f33; font: 700 18px/1 system-ui, sans-serif; }
+    .js-3d .cerrar-doc:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+    /* Mientras el lector está abierto, el botón del menú no lo pisa: se cierra con «✕» y el menú vuelve */
+    .js-3d:has(.estacion.actual .documentacion.abierta) .menu { display: none; }
     .js-3d .doc-pestanas { gap: 6px; flex-wrap: nowrap; }
     .js-3d .doc-pestanas button { flex: 1 1 0; min-width: 0; padding: 8px 6px; min-height: 40px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     /* Los siete nombres del anillo de la estación 2, debajo de él, para tocarlos (pieza 5; nmw7yjlhntit; mundo-3d.js › ponerNombres) */
@@ -548,10 +559,13 @@
       </div>
       <section class="documentacion" id="documentacion" data-documentacion aria-labelledby="doc-titulo">
         <h2 id="doc-titulo" class="doc-titulo">La documentación</h2>
+        <div class="doc-arriba">
+        <button type="button" class="cerrar-doc" data-cerrar-doc aria-label="Cerrar la documentación">✕</button>
         <div class="doc-pestanas" role="tablist" aria-label="Las partes de la documentación">
           <button type="button" role="tab" id="pestana-instalar" aria-controls="doc-instalar" aria-selected="true">Instalar</button>
           <button type="button" role="tab" id="pestana-glosario" aria-controls="doc-glosario" aria-selected="false" tabindex="-1">Glosario</button>
           <button type="button" role="tab" id="pestana-metodo" aria-controls="doc-metodo" aria-selected="false" tabindex="-1">Método</button>
+        </div>
         </div>
         <div class="doc-panel" role="tabpanel" id="doc-instalar" aria-labelledby="pestana-instalar">
           <ol class="doc-pasos">

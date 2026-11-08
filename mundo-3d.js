@@ -143,7 +143,19 @@ botonDoc?.addEventListener('click', () => {
   if (abre) elegirPestana(0);
   tarjetaDoc?.classList.toggle('abierta', abre);
   botonDoc.setAttribute('aria-expanded', String(abre));
+  if (abre && tarjetaDoc) tarjetaDoc.scrollTop = 0;
 });
+// En un teléfono el lector cubre la pantalla (nmw86lki4tit): su «✕», o Esc, lo cierra y devuelve el foco a su «▶»
+const cerrarDoc = document.querySelector('[data-cerrar-doc]');
+function cerrarLectorDoc() {
+  if (!tarjetaDoc?.classList.contains('abierta')) return;
+  tarjetaDoc.classList.remove('abierta');
+  botonDoc?.setAttribute('aria-expanded', 'false');
+  botonDoc?.focus();
+}
+cerrarDoc?.addEventListener('click', cerrarLectorDoc);
+tarjetaDoc?.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarLectorDoc(); });
+if (EN) cerrarDoc?.setAttribute('aria-label', 'Close the documentation');
 // Lo fijo de «Cómo empezar» en la página, también en inglés (nmw6r9827tit): «▶ Empezar con voz», el enlace a la
 // documentación y, sin 3D, sus siete pasos
 if (EN) {
@@ -4056,6 +4068,8 @@ function iniciar() {
   }
   // ?ver=3&abrir=como: «Cómo empezar» ya abierto, para capturar dónde quedan sus referencias junto al menú (nmw6z8b3btit)
   if (fijo !== null && abrirN === 'como') { guia.visita = true; abrirComo(); pantalla2.cam = 1; }
+  // ?ver=4&abrir=doc: el lector de «La documentación» ya abierto, para capturarlo (en un teléfono, a pantalla completa)
+  if (fijo !== null && abrirN === 'doc') botonDoc?.click();
   // Todo en su lugar desde el primer cuadro (con movimiento reducido, nada más se mueve)
   animar.forEach((f) => f(0));
   colocar(0);
