@@ -341,7 +341,33 @@
     .js-3d .estacion { justify-content: center; flex-direction: column; align-items: center; }
     .js-3d .tarjeta { opacity: 0; }
     .menu a, .menu span { padding: 5px 9px; font-size: 13px; }
+    /* La tarjeta de cada estación, un panel abajo, de lado a lado (pd_telefono_vertical, pieza 2; nmw7yh2tntit): su título
+       arriba y su botón debajo, grande para el dedo, sobre la barra de abajo del teléfono */
+    .js-3d .estacion { position: relative; padding-left: 0; padding-right: 0; }
+    .js-3d .tarjeta.corta { width: 100%; max-width: none; bottom: 0; margin-bottom: 0; border-radius: 18px 18px 0 0; border-bottom: 0;
+      flex-direction: column; align-items: stretch; gap: 10px; text-align: center; padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); }
+    .js-3d .tarjeta.corta, .js-3d .tarjeta.corta h2 { white-space: normal; text-wrap: balance; }
+    .js-3d .tarjeta.corta h2 { font-size: 18px; }
+    .ver-parada .estacion.actual { justify-content: flex-end; padding-bottom: 0; }
+    .js-3d .tarjeta.corta .boton-ver { justify-content: center; min-height: 44px; font-size: 16px; }
+    /* Los siete nombres del anillo de la estación 2, debajo de él, para tocarlos (pieza 5; nmw7yjlhntit; mundo-3d.js › ponerNombres) */
+    .nombres-anillo { position: fixed; left: 8px; right: 8px; z-index: 12; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+    .nombres-anillo[hidden] { display: none; }
+    .nombres-anillo button { min-height: 36px; padding: 6px 12px; border-radius: 999px; font: 600 13px/1.2 system-ui, sans-serif; cursor: pointer;
+      background: rgba(8, 11, 20, .82); color: var(--luz); border: 1px solid rgba(245, 210, 122, .35); }
+    .nombres-anillo button.visto::after { content: ' ✓'; color: var(--verde); }
   }
+  /* La parada suave de cada estación en un teléfono (nmw84zgrttit): el desplazamiento que termina cerca del centro de una
+     estación se asienta en él, y uno rápido no se lo salta; entre estaciones, libre (mundo-3d.js pone el punto) */
+  @media (max-width: 900px), (pointer: coarse) {
+    html.js-3d { scroll-snap-type: y proximity; }
+    .js-3d .estacion { position: relative; }
+    .parada-suave { position: absolute; left: 0; top: 50%; width: 1px; height: 1px; pointer-events: none; scroll-snap-align: center; scroll-snap-stop: always; }
+  }
+  /* Sin la barra de desplazamiento, en todas las pantallas (nmw84v293tit): la rueda, el dedo y el teclado siguen moviendo el
+     recorrido */
+  html { scrollbar-width: none; }
+  html::-webkit-scrollbar { display: none; }
 </style>
 </head>
 <body>

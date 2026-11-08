@@ -307,7 +307,9 @@ const MOMENTO_COMPARTIR = 11.2;
 // con la cámara fija en la estación 1, que sigue animándose mientras se ve
 const enVideo = new URLSearchParams(location.search).has('video');
 const ganchoVideo = {};
-const fijo = compartir ? 0 : enVideo ? 1 : verTexto === null ? null : Math.max(0, Math.min(estaciones.length, Math.round(Number(verTexto)) || 0));
+// Con decimales (?ver=3.4), la cámara queda fija entre dos estaciones: para revisar un tramo cuadro a cuadro (nmw84v293tit)
+const fijo = compartir ? 0 : enVideo ? 1 : verTexto === null ? null
+  : Math.max(0, Math.min(estaciones.length, verTexto.includes('.') ? Number(verTexto) || 0 : Math.round(Number(verTexto)) || 0));
 
 // ── «¿Te ha pasado…?»: cada problema abierto se marca con su ✓ (t_decide_cierre_problemas); la cuenta «Abriste N de 6»
 // salió, con la tarjeta (nota de voz nmw40cp3jtit)
@@ -2051,6 +2053,10 @@ function iniciar() {
   const PARADA = [0.1, 0.42, 0.7, 0.9];   // dónde se detiene la cámara en cada estación (de 0 a 1); la última, «La documentación»
   // Dónde está lo que se ve en cada estación: un poco más adelante, para que la cámara lo vea de frente y no encima
   const SITIO = PARADA.map((u) => u + 0.022);
+  // La entrada (nmw84xwcrtit): la cámara nace al frente de la línea (U_NACE), cruza sus tres anillos y, ya en U_SALE, antes
+  // del desarrollador de la estación 1, se abre a la vista de costado
+  const U_NACE = 0.012, U_SALE = 0.06;
+  const ANILLOS_ENTRADA = [0.018, 0.036, 0.054];
   const focos = [];   // lo que mira la cámara en cada estación
   const animar = [];  // lo que se mueve: funciones (t) => void
   // Lo que cambia con la distancia a la cámara (el emblema de la estación 1): cada cuadro, después de colocarla, también con
@@ -2854,7 +2860,10 @@ function iniciar() {
   const formaHaloArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(circulo, true), 144, 0.24, 8, true);
   const materialArco = brillo(ORO, 0.9);
   const materialHaloArco = new THREE.MeshBasicMaterial({ color: ORO, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false });
-  for (const u of lugaresDeAnillos(PARADA, ARCO_ANTES)) {
+  // Y tres antes de la estación 1, en el trecho donde nace la línea (nota de voz del titular nmw84xwcrtit, 8 de noviembre de
+  // 2026): el recorrido empieza parado al frente de la línea, con el primero a la vista, y la cámara los cruza hacia «Qué es
+  // STL» antes de abrirse a la vista de costado de la estación
+  for (const u of [...ANILLOS_ENTRADA, ...lugaresDeAnillos(PARADA, ARCO_ANTES)]) {
     const { p, lado } = marco(u);
     const hacia = new THREE.Vector3().crossVectors(lado, ARRIBA).normalize();
     const arco = new THREE.Group();
@@ -2864,9 +2873,9 @@ function iniciar() {
     escena.add(arco);
   }
 
-  // ── La cámara: arriba, una vista de costado de la línea; al bajar, se mete en ella y la sigue
-  const INTRO_POS = portada.posicion.clone().addScaledVector(portada.lado, 17).addScaledVector(ARRIBA, 5);
-  const INTRO_MIRA = portada.mira.clone().addScaledVector(ARRIBA, 0.8);
+  // ── La cámara: arriba, parada al frente de la línea, donde nace, con el primer anillo a la vista y el recorrido tenue al
+  // fondo (nmw84v293tit, nmw84xwcrtit; igual en el computador y en el teléfono); al bajar, avanza por la línea cruzando los
+  // anillos de la entrada y se abre a la vista de costado de la estación 1; después se mete en la línea y la sigue
   const masSuave = (x) => x * x * x * (x * (6 * x - 15) + 10);   // lenta al llegar y al salir de cada estación
   const pose = (u) => {
     const { p, t, lado } = marco(u);
@@ -2905,15 +2914,27 @@ function iniciar() {
     return anclas.length - 1;
   }
   const ultima = PARADA.length;
+  // Cuánto alejar la cámara para que una estación quepa a lo ancho: el ancho que se ve (la tangente de la mitad del campo
+  // horizontal) frente al de un computador, ANCHO_VISTA; en un computador, 1, y nada cambia
+  const ANCHO_VISTA = 0.62, ALEJAR_MAX = 2.2;
+  const alejarPorAncho = () => tope((ANCHO_VISTA / (Math.tan(THREE.MathUtils.degToRad(camara.fov) / 2) * camara.aspect) - 1) / (ALEJAR_MAX - 1)) * (ALEJAR_MAX - 1) + 1;
+  // La parada suave de un teléfono (nmw84zgrttit): un punto invisible en el centro de cada estación, donde se detiene la
+  // cámara, que el desplazamiento busca al terminar cerca de él y que un movimiento rápido no se salta (mundo-3d.html ›
+  // .parada-suave); entre estaciones, el dedo se mueve libre
+  if (movil) estaciones.forEach((el) => { const m = document.createElement('span'); m.className = 'parada-suave'; m.setAttribute('aria-hidden', 'true'); el.append(m); });
   // El problema abierto (−1, ninguno) y el que está bajo el ratón. Al abrir uno, la cámara no se mueve: el recuadro lo
   // tapaba y el acercamiento la dejaba pegada a la estación 2 (t_decide_acercar_problema, nota nmw19elcqtit)
   let seleccionado = -1, sobre = -1;
   function colocar(w) {
     let posicion, mira;
     if (w < 1) {
-      const e = masSuave(Math.max(0, w));
-      posicion = INTRO_POS.clone().lerp(portada.posicion, e);
-      mira = INTRO_MIRA.clone().lerp(portada.mira, e);
+      // De 0 a 1: avanza por la línea desde donde nace hasta pasar el último anillo de la entrada, y en la segunda mitad se
+      // abre a la vista de costado de la estación 1 (el espejo de la salida de la estación 1, k === 1)
+      const e = masSuave(tope(w));
+      ({ posicion, mira } = pose(lerp(U_NACE, U_SALE, e)));
+      const b = masSuave(tope((w - 0.35) / 0.65));
+      posicion.lerp(portada.posicion, b);
+      mira.lerp(portada.mira, b);
     } else {
       // w = 1 es la primera estación y w = 2 la segunda; entre una y otra, la cámara avanza por la línea
       const k = Math.floor(w), f = w - k;
@@ -2925,6 +2946,13 @@ function iniciar() {
         posicion = portada.posicion.clone().lerp(posicion, e);
         mira = portada.mira.clone().lerp(mira, e);
       }
+    }
+    // En una pantalla angosta (un teléfono o una tableta de pie), cada estación cabe a lo ancho (pd_telefono_vertical, pieza 2):
+    // cerca de su parada, la cámara se aleja de lo que mira lo que le falta de ancho; entre estaciones, va por la línea
+    const k = Math.round(w), ancho = alejarPorAncho();
+    if (ancho > 1 && k >= 1) {
+      const cerca = suave(tope(1 - Math.abs(w - k) / 0.5));
+      posicion = mira.clone().lerp(posicion, 1 + (ancho - 1) * cerca);
     }
     camara.position.copy(posicion);
     const ojo = sinMirarAbajo(posicion, mira);
@@ -2947,11 +2975,15 @@ function iniciar() {
   // centro se iba al fondo de la pantalla y el encuadre corría la imagen hacia abajo, como si la cámara mirara el suelo, y
   // luego la subía (nota de voz del titular nmw5w9ldotit, 7 de noviembre de 2026). Pasada la estación, el encuadre se mide con
   // la cámara quieta en la estación 2 y solo se apaga: la mirada sigue al frente, como caminando sobre la línea
+  // Lo mismo al irse de la estación 3 hacia la 4 (nota de voz del titular nmw84v293tit, 8 de noviembre de 2026): medido con
+  // la cámara que avanza, «Cómo empezar» se iba de lado, el encuadre corría la imagen y la cámara parecía girar rápido a la
+  // izquierda y seguir por otra línea. Pasada la 3, se mide desde ella, quieta (ponerCamaraEn(2))
   const camaraEnDos = new THREE.PerspectiveCamera();
-  function ponerCamaraEnDos() {
+  const ponerCamaraEnDos = () => ponerCamaraEn(1);
+  function ponerCamaraEn(i) {
     camaraEnDos.copy(camara);
     camaraEnDos.clearViewOffset();
-    const { posicion, mira } = pose(PARADA[1]);
+    const { posicion, mira } = pose(PARADA[i]);
     camaraEnDos.position.copy(posicion);
     const ojo = sinMirarAbajo(posicion, mira);
     camaraEnDos.lookAt(ojo.x, ojo.y, ojo.z);
@@ -2965,14 +2997,16 @@ function iniciar() {
   const EXTRA_ALTO = 40;
   const lineaTres = document.querySelector('[data-titulo-tres]')?.closest('.tarjeta');
   function encuadrarTres(w, ancho, alto) {
-    const cerca = suave(tope(1 - Math.abs(w - 3) / 0.6));
+    // Hacia la 4, se apaga en 0,4, como el de la 2 hacia la 3, y medido desde la estación 3 (nmw84v293tit)
+    const cerca = suave(tope(1 - Math.abs(w - 3) / (w > 3 ? 0.4 : 0.6)));
     if (cerca <= 0.001 || !focos[2] || !ancho || !alto) return false;
     camara.updateMatrixWorld();
+    const cam = w > 3 ? ponerCamaraEn(2) : camara;
     const menuIzq = movil || !menuLista ? ancho : menuLista.getBoundingClientRect().left;
     const arriba = arribaDe(lineaTres);
     const lineaArriba = arriba !== null && arriba < alto ? arriba : alto;
     const d = disponerReproductor({ ancho, alto, menuIzq, lineaArriba, anilloMedio: menuIzq * 0.12, anilloAlto: 0, mandos: MANDOS_ALTO + EXTRA_ALTO });
-    const c = aPantalla(focos[2], ancho, alto), e = seleccionado === GUIA ? suave(pantalla2.cam) : 0;
+    const c = aPantalla(focos[2], ancho, alto, cam), e = seleccionado === GUIA ? suave(pantalla2.cam) : 0;
     camara.setViewOffset(ancho, alto, -(lerp(menuIzq / 2, d.anilloX, e) - c.x) * cerca, 0, ancho, alto);
     disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
     return true;
@@ -3560,6 +3594,35 @@ function iniciar() {
     if (i !== sobre) mostrarNombre(i);
   });
   lienzo.addEventListener('pointerleave', () => mostrarNombre(-1));
+  // ── En un teléfono, el anillo de la estación 2 se toca (pd_telefono_vertical, pieza 5; nmw7yjlhntit): sin ratón no hay
+  // globo al pasar, así que sus siete nombres van debajo del anillo, cada uno un botón que abre o cierra su problema, como
+  // un toque en su ícono; el que ya se vio lleva su ✓. Solo en la estación 2 y con ningún reproductor abierto
+  const nombresAnillo = movil ? document.createElement('div') : null;
+  if (nombresAnillo) {
+    nombresAnillo.className = 'nombres-anillo';
+    nombresAnillo.hidden = true;
+    orbes.forEach((o, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = o.titulo;
+      b.addEventListener('click', () => alternarProblema(i));
+      nombresAnillo.append(b);
+    });
+    document.body.append(nombresAnillo);
+    alResolver.push((i) => nombresAnillo.children[i]?.classList.add('visto'));
+  }
+  function ponerNombres() {
+    if (!nombresAnillo) return;
+    const ver = actual === 1 && seleccionado < 0 && !pantalla2.abierta && !visorAbierto() && !!anillo.centro && !!disposicion;
+    nombresAnillo.hidden = !ver;
+    if (!ver) return;
+    camara.updateMatrixWorld();
+    const abajo = aPantalla(anillo.centro.clone().addScaledVector(ARRIBA, -anillo.radioY * anillo.escala), disposicion.ancho, disposicion.alto);
+    // Nunca debajo del panel de la estación, abajo
+    const panel = lineaDos?.getBoundingClientRect(), fondo = panel?.height ? panel.top : disposicion.alto;
+    const limite = Math.max(0, fondo - nombresAnillo.offsetHeight - 8);
+    nombresAnillo.style.top = `${Math.round(Math.min(limite, Math.max(60, abajo.y + 18)))}px`;
+  }
 
   // ── El bucle: solo dibuja mientras el recorrido está a la vista
   let enVista = false, cur = 0, primera = true, ultimoCuadro = performance.now(), ultimaRueda = 0, arranque = false;
@@ -3620,6 +3683,7 @@ function iniciar() {
     }
     ponerReproductor();
     ponerGlobo();
+    ponerNombres();
     // El cielo, en el mismo bucle: cada capa acompaña a la cámara (paralaje) y el tiempo del titileo avanza; con movimiento
     // reducido uMueve vale 0 y ninguna estrella titila (el cielo no se mueve por su cuenta)
     for (const c of capasCielo) c.puntos.position.copy(camara.position).multiplyScalar(c.sigue);
