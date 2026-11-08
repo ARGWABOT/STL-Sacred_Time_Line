@@ -73,7 +73,9 @@
     .js-3d .menu.abierto ol a, .js-3d .menu.abierto ol span { padding: 12px 18px; font-size: 16px; }
     .js-3d .menu.abierto .idioma button { min-width: 48px; min-height: 40px; }
     /* La altura que siempre se ve (sin la barra de direcciones) y la barra de abajo del teléfono */
-    .js-3d .entrada { height: 100svh; }
+    /* «Qué es STL» y su línea, centrados entre el borde de arriba y el dibujo de la línea, sin pisar los primeros anillos
+       (nota de voz del titular nmw87ytm7tit) */
+    html.js-3d .entrada { height: 100svh; justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 18svh); }
     .js-3d .tarjeta.corta { bottom: calc(1.5vh + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); box-sizing: border-box; white-space: normal; }
     .js-3d .tarjeta.corta h2 { white-space: normal; text-wrap: balance; }
     /* Nada se sale por los lados: la página nunca es más ancha que el teléfono */
@@ -310,6 +312,57 @@
   .doc-glosario dd { margin: 2px 0 0; }
   .lista-como q { color: #fffaf0; }
   /* La respuesta de STL la dice la animación (su cierre); aquí queda solo para los lectores de pantalla */
+  /* Lo del reproductor que solo va en un teléfono */
+  .arriba-clip, .sub-clip, .carril-clip, .crono-clip, .siguiente-clip { display: none; }
+  /* ══ En un teléfono, el reproductor de los problemas y de «Cómo empezar» es el mismo de «Qué es STL» de pie, a pantalla
+     completa (nmw8652hjtit, nmw88hxyftit): arriba «✕», «Sin STL» y «1 de 3», pegados al borde (nmw87ytm7tit); el dibujo en
+     todo lo que queda, a su escala; el subtítulo en una franja delgada de un renglón justo sobre la barra (nmw887qwvtit); la
+     barra baja, con el carril para adelantar o devolver y, en su renglón, el tiempo, la voz, las velocidades y una pausa
+     chica a la derecha, sin perilla ni «↻ Repetir» (nmw87ytm7tit); al terminar, «Siguiente problema ›» (nmw88fyfctit) */
+  @media (max-width: 900px) {
+    .js-3d .popup { left: 0 !important; top: 0 !important; width: 100vw !important; height: 100svh !important; border-radius: 0; border: 0;
+      padding: calc(6px + env(safe-area-inset-top)) 0 0; gap: 0; z-index: 25; box-shadow: none; touch-action: none; overscroll-behavior: contain; }
+    .js-3d .popup.sale { animation: aparece-clip .3s ease-out; }
+    @keyframes aparece-clip { from { opacity: 0; } }
+    .js-3d .popup .arriba-clip { display: flex; flex: none; align-items: center; gap: 6px; padding: 0 10px 4px; }
+    .cerrar-clip { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+      background: var(--oro); color: #1a1f33; font: 700 17px/1 system-ui, sans-serif; }
+    .cerrar-clip:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+    .pildora-clip { padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .pildora-clip[hidden] { display: none; }
+    .pildora-clip.sin { background: rgba(255, 107, 138, .22); border: 1px solid rgba(255, 107, 138, .6); color: #ffc2cf; }
+    .pildora-clip.con { background: rgba(111, 227, 161, .2); border: 1px solid rgba(111, 227, 161, .6); color: #dff5e8; }
+    .pildora-clip[data-pildora-cuenta] { margin-left: auto; }
+    .js-3d .popup canvas { border-radius: 0; background: transparent; order: 1; }
+    .js-3d .popup .arriba-clip { order: -1; } .js-3d .popup .sub-clip { order: 2; } .js-3d .popup .carril-clip { order: 3; } .js-3d .popup .popup-barra { order: 4; }
+    .js-3d .popup .sub-clip { display: block; flex: none; margin: 0; padding: 3px 10px; min-height: 1.3em; line-height: 1.3; text-align: center;
+      font-size: 16px; font-weight: 500; color: #fffaf0; background: rgba(4, 6, 12, .8); white-space: nowrap; }
+    .js-3d .popup .sub-clip.rojo { color: #ffc2cf; }
+    .js-3d .popup .carril-clip { display: block; flex: none; position: relative; height: 28px; margin: 0 10px; cursor: pointer; touch-action: none; --pos: 0; }
+    .carril-clip::before { content: ''; position: absolute; left: 8px; right: 8px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px;
+      background: linear-gradient(90deg, var(--oro) calc(var(--pos) * 100%), rgba(245, 210, 122, .22) calc(var(--pos) * 100%)); }
+    .carril-clip span { position: absolute; top: 50%; left: calc(8px + (100% - 16px) * var(--pos)); width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 32%, #fff0c2, #e8b955 62%, #a07728); box-shadow: 0 2px 6px rgba(0, 0, 0, .55); }
+    .js-3d .popup .popup-barra { height: auto; justify-content: flex-start; gap: 6px; padding: 0 10px calc(6px + env(safe-area-inset-bottom)); }
+    .js-3d .popup .crono-clip { display: inline; flex: none; font-size: 12px; color: var(--oro); font-variant-numeric: tabular-nums; }
+    .js-3d .popup [data-repetir-clip] { display: none; }
+    .js-3d .popup .voz { padding: 6px 8px; font-size: 12px; min-height: 36px; }
+    .js-3d .popup .velocidad { flex: 1 1 0; min-width: 0; justify-content: space-between; }
+    .js-3d .popup .velocidad button { flex: 1 1 0; min-width: 0; padding: 6px 2px; font-size: 12px; min-height: 36px; }
+    .js-3d .popup .siguiente-clip { display: inline-flex; flex: none; align-items: center; min-height: 36px; padding: 6px 12px; border: 0; border-radius: 999px; cursor: pointer;
+      background: var(--oro); color: #1a1f33; font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .js-3d .popup .siguiente-clip[hidden] { display: none; }
+    /* Al final, «Siguiente problema ›» ocupa el lugar de las velocidades */
+    .js-3d .popup.al-final .velocidad { display: none; }
+    .js-3d .popup.al-final .siguiente-clip:not([hidden]) { margin-left: auto; }
+    .js-3d .popup .mini-perilla { width: 36px; cursor: pointer; }
+    .js-3d .popup .mini-perilla > svg { display: none; }
+    .js-3d .popup .mini-pausa { width: 100%; height: 100%; }
+    .js-3d .popup .mini-pausa svg { width: 46%; height: 46%; }
+    /* «Cómo empezar»: su ejemplo, en una fila sobre el dibujo (nmw865tnttit) */
+    .js-3d .popup.guia .popup-extra { order: 0; height: auto; min-height: 28px; padding: 0 10px; }
+    .js-3d .popup .popup-extra .ejemplo-como, .js-3d .popup .popup-extra a { font-size: 13px; }
+  }
   .popup-respuesta { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* El globo de cada ícono: su nombre en dos palabras, al pasar el ratón o al hacer clic; lo pone mundo-3d.js › ponerGlobo,
      donde no pisa nada */
@@ -361,10 +414,17 @@
     .js-3d .tarjeta.corta h2 { font-size: 16px; padding: 4px 8px 0; }
     .ver-parada .estacion.actual { justify-content: center; align-items: flex-end; padding-bottom: 0; }
     .js-3d .tarjeta.corta .boton-ver { justify-content: center; min-height: 44px; font-size: 16px; }
+    /* «La documentación» en un teléfono: un lector a todo el ancho, entre el botón del menú y la píldora de abajo
+       (nmw86lki4tit), con sus pestañas en un renglón que cabe y se lee (nmw88lkhftit, t_decide_lector_pestanas) */
+    .js-3d .documentacion { left: 10px; right: 10px; width: auto; top: calc(66px + env(safe-area-inset-top)); max-height: calc(100svh - 160px); padding: 14px 16px; }
+    .js-3d .doc-pestanas { gap: 6px; flex-wrap: nowrap; }
+    .js-3d .doc-pestanas button { flex: 1 1 0; min-width: 0; padding: 8px 6px; min-height: 40px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     /* Los siete nombres del anillo de la estación 2, debajo de él, para tocarlos (pieza 5; nmw7yjlhntit; mundo-3d.js › ponerNombres) */
-    .nombres-anillo { position: fixed; left: 8px; right: 8px; z-index: 12; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+    /* En dos renglones, 4 y 3, por el largo de su texto (nmw87ytm7tit) */
+    .nombres-anillo { position: fixed; left: 6px; right: 6px; z-index: 12; display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+    .nombres-anillo .fila { display: flex; flex-wrap: nowrap; justify-content: center; gap: 4px; min-width: 0; }
     .nombres-anillo[hidden] { display: none; }
-    .nombres-anillo button { min-height: 36px; padding: 6px 12px; border-radius: 999px; font: 600 13px/1.2 system-ui, sans-serif; cursor: pointer;
+    .nombres-anillo button { flex: none; white-space: nowrap; min-height: 32px; padding: 4px 8px; border-radius: 999px; font: 600 var(--letra-nombres, 13px)/1.2 system-ui, sans-serif; cursor: pointer;
       background: rgba(8, 11, 20, .82); color: var(--luz); border: 1px solid rgba(245, 210, 122, .35); }
     .nombres-anillo button.visto::after { content: ' ✓'; color: var(--verde); }
   }
@@ -548,13 +608,18 @@
      él, el menú, o solo, 4 s después de terminar. Y el globo con el nombre de cada ícono, en dos palabras -->
 <div class="globo-problema" id="globo-problema" role="tooltip" hidden></div>
 <aside class="popup" id="popup" role="dialog" aria-label="Cómo lo resuelve STL" hidden>
+  <!-- Solo en un teléfono (nmw8652hjtit, nmw87ytm7tit): «✕» y, arriba, «Sin STL» y «1 de 3»; bajo el dibujo, el subtítulo en
+       un renglón y la barra para adelantar o devolver; al final, «Siguiente problema ›» (nmw88fyfctit) -->
+  <div class="arriba-clip"><button type="button" class="cerrar-clip" data-cerrar-clip aria-label="Cerrar">✕</button><span class="pildora-clip" data-pildora-modo hidden></span><span class="pildora-clip" data-pildora-cuenta hidden></span></div>
   <canvas id="popup-clip" width="1280" height="800" role="img" aria-label="Una animación de este gran problema: cada situación como pasa al trabajar con IA por chat, seguida de cómo la resuelve STL, paso a paso"></canvas>
   <!-- Solo con «Cómo empezar»: si el navegador no deja sonar la voz al llegar, espera con este botón (nmw4isbmktit); y la
        fila con un ejemplo de lo que se le puede pedir al modelo, como texto y sin «Copiar» (nmw56hkz8tit), o el enlace al
        README (nmw4f6lictit) -->
   <button type="button" class="empezar-voz" data-empezar-voz hidden>▶ Empezar con voz</button>
   <div class="popup-extra" data-extra-como><span class="ejemplo-como" data-pedido-como hidden></span><a data-enlace-como href="https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme" target="_blank" rel="noopener" hidden>Abrir la documentación (el README en GitHub) ↗</a></div>
-  <div class="popup-barra"><button type="button" class="voz" data-voz-clip aria-pressed="true" aria-label="La voz que lee cada rótulo: oprímelo para callarla o para volver a oírla">🔊 Voz</button><button type="button" class="voz" data-repetir-clip aria-label="Repetir la animación; el reproductor se queda abierto">↻ Repetir</button>
+  <p class="sub-clip" data-sub-clip aria-hidden="true"></p>
+  <div class="carril-clip" data-carril-clip aria-hidden="true"><span></span></div>
+  <div class="popup-barra"><span class="crono-clip" data-crono-clip></span><button type="button" class="siguiente-clip" data-siguiente-clip hidden>Siguiente problema ›</button><button type="button" class="voz" data-voz-clip aria-pressed="true" aria-label="La voz que lee cada rótulo: oprímelo para callarla o para volver a oírla">🔊 Voz</button><button type="button" class="voz" data-repetir-clip aria-label="Repetir la animación; el reproductor se queda abierto">↻ Repetir</button>
     <div class="velocidad" data-velocidad-clip role="group" aria-label="Velocidad de la voz y de la animación"><button type="button" data-v="1" aria-pressed="false">1x</button><button type="button" data-v="1.25" aria-pressed="true">1.25x</button><button type="button" data-v="1.5" aria-pressed="false">1.5x</button><button type="button" data-v="2" aria-pressed="false">2x</button></div>
     <div class="mini-perilla" data-perilla-clip role="slider" tabindex="0" aria-valuemin="0" aria-valuenow="0" aria-valuetext="segundo 0"
       aria-label="Perilla de la animación: con la rueda del ratón, o girándola, la adelantas o la devuelves; con las flechas, de a un segundo">

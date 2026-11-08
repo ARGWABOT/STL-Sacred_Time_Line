@@ -77,7 +77,10 @@
      mandos salen del dibujo a su derecha, en el espacio libre, sin amontonarse (nota de voz nmw40vdvitit): --mando es su
      columna, y el dibujo usa el resto (--lienzo). En el visor del recorrido, el interruptor «Sin STL · Con STL» también
      baja a esa columna, y el dibujo gana el alto del encabezado (nmw479zmetit) */
-  #todo.mando-fuera #mando { right: 0; bottom: 4%; width: var(--mando); gap: 5px; }
+  /* Pegada al borde derecho y de abajo de la ventana (en el visor, del modal), no junto al dibujo: el dibujo se centra en
+     lo que queda y crece con todo ese ancho (nota de voz del titular nmw88ew0rtit, 8 de noviembre de 2026, portátil de 1360) */
+  #todo.mando-fuera #mando { position: fixed; right: 12px; bottom: 12px; width: var(--mando); gap: 5px; }
+  #todo.mando-fuera #estado { min-height: 0; padding: 4px 14px; }
   #todo.mando-fuera #perilla { width: min(100%, 80px); }
   #todo.mando-fuera #crono { font-size: 12px; }
   #todo.mando-fuera .pista { font-size: 11px; }
@@ -183,40 +186,47 @@
      centro; el título más chico, en dos renglones; los subtítulos solo toman alto cuando se parten en varios renglones; y
      abajo, en un solo renglón a lo ancho, el tiempo, la voz y las cuatro velocidades. El dibujo, en PIE (más de cerca, con
      tu atención y los tokens a la izquierda y el modelo arriba a la derecha) */
-  #todo.vertical { padding: 8px 0 var(--barra, 110px); gap: 6px; justify-content: center; }
-  #todo.vertical header { grid-template-columns: 1fr; justify-items: center; gap: 6px; padding: 0 12px; box-sizing: border-box; }
+  /* Ajustado con la nota de voz del titular nmw87ytm7tit (8 de noviembre de 2026): «Sin STL · Con STL» pegado arriba; el
+     dibujo en todo lo que queda, a su escala; los subtítulos en una franja delgada de un renglón, justo sobre la barra, sin
+     aire entre las dos; y la barra más baja: el carril para adelantar o devolver a todo el ancho y, en el renglón de abajo, el
+     tiempo, la voz, las velocidades y un botón chico de pausa a la derecha (sin perilla) */
+  #todo.vertical { padding: 4px 0 var(--barra, 76px); gap: 0; justify-content: flex-start; }
+  #todo.vertical header { grid-template-columns: 1fr; justify-items: center; gap: 4px; padding: 0 12px; box-sizing: border-box; flex: none; }
   #todo.vertical #modos { order: -1; justify-self: center; }
+  #todo.vertical #modos button { padding: 4px 16px; font-size: 13px; }
   #todo.vertical h1 { justify-self: center; text-align: center; font-size: clamp(12px, 3.6vw, 16px); }
-  #todo.vertical #escena { width: 100%; }
-  #todo.vertical canvas { width: 100%; }
+  #todo.vertical #escena { width: 100%; flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  #todo.vertical canvas { width: var(--lienzo, 100%); }
   #todo.vertical #estado {
-    width: 100%; min-height: 0; padding: 6px 14px; border-radius: 0;
-    font-size: var(--letra); font-weight: 500; background: rgba(4, 6, 12, .8); box-shadow: none; overflow-wrap: anywhere;
+    width: 100%; min-height: 0; padding: 3px 10px; border-radius: 0; line-height: 1.3;
+    font-size: var(--letra); font-weight: 500; background: rgba(4, 6, 12, .8); box-shadow: none;
   }
   /* La barra de abajo: fija, a todo el ancho; arriba, el arrastre; abajo, el reloj, la voz y la velocidad */
   #todo.vertical #mando {
     position: fixed; left: 0; right: 0; bottom: 0; width: auto; z-index: 5; box-sizing: border-box;
-    flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px;
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
-    background: rgba(7, 9, 15, .94); box-shadow: 0 -1px 0 rgba(245, 210, 122, .25), 0 -8px 24px rgba(0, 0, 0, .45);
+    flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 8px;
+    padding: 0 10px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: rgba(7, 9, 15, .94); box-shadow: 0 -1px 0 rgba(245, 210, 122, .25);
   }
+  /* El carril: delgado a la vista, con 28 px para el dedo */
   #todo.vertical #perilla {
-    order: -1; flex: 0 0 100%; width: 100%; height: 48px; aspect-ratio: auto; border-radius: 24px; cursor: pointer;
-    background: rgba(12, 15, 26, .92); box-shadow: inset 0 0 0 1px rgba(245, 210, 122, .3); --pos: 0;
+    order: -1; flex: 0 0 100%; width: 100%; height: 28px; aspect-ratio: auto; border-radius: 0; cursor: pointer;
+    background: none; box-shadow: none; --pos: 0;
   }
   #todo.vertical #perilla svg { display: none; }
-  /* El carril y su relleno hasta donde va la historia, y el pomo que se arrastra */
+  /* El carril y su relleno hasta donde va la historia, y el pomo que se arrastra (de borde a borde: lo que lee angulo()) */
   #todo.vertical #perilla::before {
-    content: ''; position: absolute; left: 62px; right: 18px; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px;
+    content: ''; position: absolute; left: 8px; right: 8px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px;
     background: linear-gradient(90deg, #f5d27a calc(var(--pos) * 100%), rgba(245, 210, 122, .22) calc(var(--pos) * 100%));
   }
   #todo.vertical #perilla::after {
-    content: ''; position: absolute; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
-    left: calc(62px + (100% - 80px) * var(--pos)); background: radial-gradient(circle at 40% 32%, #fff0c2, #e8b955 62%, #a07728);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .55);
+    content: ''; position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+    left: calc(8px + (100% - 16px) * var(--pos)); background: radial-gradient(circle at 40% 32%, #fff0c2, #e8b955 62%, #a07728);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .55);
   }
-  #todo.vertical #perilla.gira::after { box-shadow: 0 0 0 6px rgba(245, 210, 122, .3), 0 2px 8px rgba(0, 0, 0, .55); }
-  #todo.vertical #pausa { left: 2px; top: 2px; width: 44px; height: 44px; margin: 0; transform: none; z-index: 1; }
+  #todo.vertical #perilla.gira::after { box-shadow: 0 0 0 5px rgba(245, 210, 122, .3), 0 2px 6px rgba(0, 0, 0, .55); }
+  /* La pausa, chica, abajo a la derecha (disponer() la saca de la perilla) */
+  #todo.vertical #pausa { position: relative; left: auto; top: auto; order: 9; flex: none; width: 36px; height: 36px; margin: 0; transform: none; }
   #todo.vertical #pausa:active { transform: scale(.93); }
   #todo.vertical #pausa svg { width: 46%; height: 46%; }
   /* «Iniciar la presentación» sale encima de la barra, centrada */
@@ -883,10 +893,20 @@
   function subtitulo(texto) {
     const s = $('estado');
     // Al girar la perilla, el texto cambia al instante: siempre se ve qué dice ese momento
-    if (quieto || saltando) { clearTimeout(pausaSub); s.classList.remove('cambia'); s.textContent = texto; return; }
+    if (quieto || saltando) { clearTimeout(pausaSub); s.classList.remove('cambia'); unRenglon(s, texto); return; }
     s.classList.add('cambia');
     clearTimeout(pausaSub);
-    pausaSub = setTimeout(() => { s.textContent = texto; s.classList.remove('cambia'); }, 220);
+    pausaSub = setTimeout(() => { unRenglon(s, texto); s.classList.remove('cambia'); }, 220);
+  }
+  // Cada subtítulo en un solo renglón, en una franja delgada (nmw87ytm7tit, nmw88ew0rtit): si no cabe, la letra baja hasta
+  // un 72 % de la suya; si ni así cabe, se parte en dos, para que nunca se corte
+  function unRenglon(s, texto) {
+    s.textContent = texto;
+    s.style.fontSize = ''; s.style.whiteSpace = 'nowrap';
+    const base = parseFloat(getComputedStyle(s).fontSize) || 16;
+    let f = base;
+    while (s.scrollWidth > s.clientWidth + 1 && f > base * 0.72) { f -= 0.5; s.style.fontSize = f + 'px'; }
+    if (s.scrollWidth > s.clientWidth + 1) { s.style.fontSize = ''; s.style.whiteSpace = ''; }
   }
   function mostrar(t, en = reloj) { actual = t; actualEn = en; vistaDesde = performance.now(); subtitulo(t); }
   // Cada cuadro: si ya le toca a la línea siguiente, se muestra cuando la que se ve ya se alcanzó a leer. La escena
@@ -2446,7 +2466,7 @@
   function angulo(e) {
     const b = perilla.getBoundingClientRect();
     // En el teléfono derecho la perilla es una barra: lo que cuenta es el punto a lo ancho (de 0 a 1 del carril)
-    if (derecho.matches) return (e.clientX - b.left - 62) / Math.max(1, b.width - 80);
+    if (derecho.matches) return (e.clientX - b.left - 8) / Math.max(1, b.width - 16);
     return Math.atan2(e.clientY - (b.top + b.height / 2), e.clientX - (b.left + b.width / 2));
   }
   perilla.addEventListener('pointerdown', (e) => {
@@ -2455,6 +2475,8 @@
     perilla.setPointerCapture(e.pointerId);
     arrastre = { a: angulo(e), seguia: reproduce }; reproduce = false;
     perilla.classList.add('gira');
+    // De pie, la barra es para adelantar o devolver: un toque lleva la historia a ese punto (nmw87ytm7tit)
+    if (derecho.matches) mover((Math.max(0, Math.min(1, arrastre.a)) - posHistoria) * largoHistoria);
   });
   perilla.addEventListener('pointermove', (e) => {
     if (!arrastre) return;
@@ -2563,13 +2585,21 @@
       const cabecera = document.querySelector('header'), modos = $('modos');
       if (modos.parentElement !== cabecera) cabecera.append(modos);
       cabecera.hidden = false;
-      todo.classList.remove('mando-fuera');
-      todo.style.setProperty('--ancho', innerWidth + 'px'); todo.style.setProperty('--lienzo', '100%'); todo.style.setProperty('--mando', '0px');
+      todo.classList.remove('mando-fuera'); todo.style.paddingRight = '';
+      // La pausa sale de la perilla, chica, al final del renglón de abajo (nmw87ytm7tit)
+      if (boton.parentElement !== mando) mando.append(boton);
+      todo.style.setProperty('--ancho', innerWidth + 'px'); todo.style.setProperty('--mando', '0px');
       todo.style.setProperty('--barra', $('mando').offsetHeight + 'px');
+      // El dibujo, a su escala en lo que queda entre «Sin STL · Con STL» y los subtítulos (un renglón): a todo el ancho o,
+      // si el alto no alcanza, más angosto y al centro
+      const libre = innerHeight - $('mando').offsetHeight - cabecera.offsetHeight - (parseFloat(getComputedStyle($('estado')).fontSize) || 16) * 1.3 - 14;
+      const anchoPie = Math.floor(Math.min(innerWidth, (libre * (PIE.x1 - PIE.x0)) / (H + PIE.banda)));
+      todo.style.setProperty('--lienzo', Math.max(200, anchoPie) + 'px');
       ajustar();
       portada();
       return;
     }
+    if (boton.parentElement !== perilla) perilla.insertBefore(boton, $('invita'));
     const vw = rot ? innerHeight : innerWidth, vh = rot ? innerWidth : innerHeight;
     todo.style.width = vw + 'px'; todo.style.height = vh + 'px';
     todo.style.transform = rot ? 'rotate(90deg) translateY(-100%)' : '';
@@ -2585,17 +2615,19 @@
     // Si el alto limita el dibujo y sobra ancho a los lados, la perilla y sus mandos van afuera, a su derecha, en una columna
     // propia, y el título y los subtítulos toman todo ese ancho (nota de voz nmw40vdvitit)
     let columna = mandoAfuera(vw, ancho);
+    // Con la columna, los subtítulos en una franja de un renglón (nmw88ew0rtit: siempre caben en uno) y la columna pegada al
+    // borde derecho: el dibujo crece con el alto y el ancho que eso libera, y se centra en lo que queda a su izquierda
+    const unSub = letra * 1.3 + 8 + 12 + 16;
+    if (columna) ancho = Math.min(anchoDelDibujo(vw, vh, cabecera.offsetHeight + unSub), Math.max(280, vw - columna - 40));
     // En el visor, con esa columna, el interruptor baja a ella y el encabezado se va: el dibujo gana su alto (nmw479zmetit)
     if (enVisor && columna) {
       $('mando').prepend(modos);
       cabecera.hidden = true;
-      const sinCabecera = anchoDelDibujo(vw, vh, subtitulos);
-      const otra = mandoAfuera(vw, sinCabecera);
-      if (otra) { ancho = sinCabecera; columna = otra; }
-      else { cabecera.append(modos); cabecera.hidden = false; }
+      ancho = Math.min(anchoDelDibujo(vw, vh, unSub), Math.max(280, vw - columna - 40));
     }
     todo.classList.toggle('mando-fuera', columna > 0);
-    todo.style.setProperty('--ancho', (ancho + (columna ? columna + 20 : 0)) + 'px');
+    todo.style.paddingRight = columna ? (columna + 24) + 'px' : '';
+    todo.style.setProperty('--ancho', ancho + 'px');
     todo.style.setProperty('--lienzo', columna ? ancho + 'px' : '100%');
     todo.style.setProperty('--mando', columna + 'px');
     ajustar();
