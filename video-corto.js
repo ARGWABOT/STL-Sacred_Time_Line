@@ -10,7 +10,7 @@
 // - y la pantalla final de GitHub con el enlace a la página pública (nmw47pe1qtit).
 // Lleva una música suave de fondo, muy baja bajo la voz (nmw3q8tr7tit). Su licencia, revisada antes de usarla: la música
 // no se baja de ningún lado, la toca esta misma página con el audio del navegador (Web Audio), cuatro acordes lentos
-// escritos aquí (ACORDES). Es parte del código del Studio, bajo su misma licencia MIT (LICENSE), sin derechos de nadie
+// escritos aquí (ACORDES). Es parte del código del Studio, bajo su misma licencia PolyForm Shield (LICENSE), sin derechos de nadie
 // más que pedir ni atribuir.
 //
 // La velocidad: todo el video suena y se mueve a 1,25x (nota de voz nmw4ioo37tit, del titular): la voz de Kai, la animación
