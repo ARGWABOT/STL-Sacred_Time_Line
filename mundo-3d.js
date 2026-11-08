@@ -55,6 +55,24 @@ if (EN) {
   if (ultimo) { const a = document.createElement('a'); a.href = 'https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme'; a.textContent = 'the documentation'; ultimo.textContent = 'If you have any doubt, read '; ultimo.append(a, '.'); }
   const listo = document.querySelector('p.lista-como');
   if (listo) listo.textContent = 'Done: you are up and running.';
+  // La estación 2, «Has this happened to you?», en inglés (nmw738o1ktit): el enunciado de cada problema, que también abre
+  // su animación, y su respuesta de la lista sin 3D, fieles al español (nmw3q7lw7tit)
+  const PROBLEMAS_EN = [
+    ['Do you open 4 or more sessions at once, struggle to know where each one is and, when an idea comes up in the middle of something, put it in any of them and end up not knowing what comes next?', 'With STL everything comes in through a single channel: ideas and tweaks go to the Inbox and to their phase on the route, you don’t overload your attention and you always know what comes next.'],
+    ['Do you send a message to the model and realize, 3 seconds later, that you left something out or got something wrong?', 'Your note waits in the Inbox and you can edit it; what you decided stays settled, and every change of decision is properly documented.'],
+    ['Do you come back from a break not knowing where you were or what’s next, and in every new session explain everything to the model again?', 'With STL, «Where we left off» is waiting for you with a single mission in view, and the director already knows it all: you pick up without repeating anything.'],
+    ['Do long answers tire you out, do you lose track of what you already read, and does the model ask you to reread documentation you already reviewed?', 'You read one idea at a time, with «Got it»; what you already read stays marked and sealed, and what is new arrives in a short document.'],
+    ['Do your tokens go on sessions that reread the same things, does your context get polluted every time you change a decision, and you don’t know what the model remembers?', 'With STL the director reads only what changed, what you replaced leaves the context, and you see each step between the director and the model.'],
+    ['Did your internet go down and your work with AI stopped?', 'With STL Studio you keep working offline: the Inbox collects your notes, tweaks and deliveries, and you keep reading your documents and answers and auditing the model’s work. Nothing is lost, and when the connection comes back the director receives it all together.'],
+    ['Does writing down everything you think tire you, and your messages to the model come out half-done?', 'With STL you dictate your notes: you talk as you would with a friend, naturally, and you can even ramble, since the director will understand you; they are transcribed on your computer and, since they go to the Inbox and not straight to the model, you read and correct them before they arrive.'],
+  ];
+  document.querySelectorAll('details.problema').forEach((d, i) => {
+    const [enunciado, respuesta] = PROBLEMAS_EN[i] ?? [];
+    const s = d.querySelector('summary'), r = d.querySelector('p');
+    if (s && enunciado) s.textContent = enunciado;
+    if (r && respuesta) r.textContent = respuesta;
+  });
+  document.getElementById('popup-clip')?.setAttribute('aria-label', 'An animation of this problem: each situation as it happens when working with AI by chat, followed by how STL solves it, step by step');
 }
 // El menú, la entrada y «ES · EN» en el idioma de la página (pd_bilingue; los nombres en inglés, t_decide_nombres_en y
 // t_decide_nombre_como_empezar_en). El otro idioma recarga la página con su ?lang, y la elección se guarda (nmw2lz2bvtit)
@@ -242,6 +260,130 @@ function enColor(i, sobre, seleccionado, resueltos) {
 const COLORES_TIPO = Object.values(COLOR_TIPO);
 // El idioma de lo que se dibuja, sin depender de la página (las pruebas lo dibujan sin documento)
 const EN_DIBUJO = typeof document !== 'undefined' && (document.documentElement?.lang || 'es').toLowerCase().startsWith('en');
+// Las palabras dibujadas dentro de las escenas de «¿Te ha pasado…?», en inglés (t_decide_estacion2_textos, nmw738o1ktit: los
+// tres tipos de texto de la estación 2, también lo que va escrito en cada escena). letrero y globo las cambian al dibujar;
+// lo que no está aquí (un nombre, un número, «STL») se dibuja tal cual
+const DIBUJO_EN = {
+  "tú": "you",
+  "Buzón del Studio": "Studio's Inbox",
+  "el director": "the director",
+  "el modelo": "the model",
+  "el Studio": "the Studio",
+  "el Buzón": "the Inbox",
+  "la corriges": "you fix it",
+  "te faltó algo": "something missing",
+  "Entendido": "Got it",
+  "tu misión": "your mission",
+  "el plan": "the plan",
+  "el mapa": "the map",
+  "lo que dijiste": "what you said",
+  "estado guardado: no repites nada": "state saved: you repeat nothing",
+  "el chat con el modelo": "the chat with the model",
+  "Hazme el inicio de sesión": "Build me the login",
+  "Escribiendo…": "Typing…",
+  "…y que entre con Google": "…and Google sign-in",
+  "otro mensaje, y otro, para corregir": "message after message to correct it",
+  "sesión": "session",
+  "¿en qué iba?": "where was I?",
+  "el Studio: un solo canal": "the Studio: a single channel",
+  "Tu misión de ahora": "Your current mission",
+  "un proyecto · una misión": "one project · one mission",
+  "lo que ibas a hacer": "what you were going to do",
+  "y lo otro se quedó a medias": "and the rest was left half-done",
+  "fase 1": "phase 1",
+  "fase 2": "phase 2",
+  "fase 3": "phase 3",
+  "la respuesta del modelo": "the model's answer",
+  "tu atención": "your focus",
+  "y le dices «sí» a todo": "and you say «yes» to everything",
+  "en voz alta": "aloud",
+  "✉": "✉",
+  "comenta aquí": "comment here",
+  "el documento": "the document",
+  "Parte 2": "Part 2",
+  "leída": "read",
+  "¿esto ya lo leí?": "did I read this already?",
+  "lo que ya leíste": "what you already read",
+  "el documento que ya leíste": "the document you already read",
+  "sellado": "sealed",
+  "le cambiaron algo": "something was changed",
+  "léelo otra vez entero": "read it all again",
+  "lo nuevo": "what's new",
+  "solo lo que cambió": "only what changed",
+  "Usemos la opción A": "Let's use option A",
+  "¿Usamos A o B?": "Should we use A or B?",
+  "Hice la B": "I did B",
+  "ya lo habías decidido": "you had already decided it",
+  "En firme": "Settled",
+  "opción A": "option A",
+  "sin Google": "no Google",
+  "en español": "in Spanish",
+  "Ya lo decidiste: la opción A": "You already decided: option A",
+  "no te lo vuelve a preguntar": "it doesn't ask you again",
+  "archivo": "file",
+  "lee lo mismo una y otra vez": "reads the same over and over",
+  "cambió": "changed",
+  "igual": "same",
+  "en «Modelo y consumo»": "in «Model & usage»",
+  "otro día": "another day",
+  "sesión nueva": "new session",
+  "¿y qué sigue?": "what's next?",
+  "¿Dónde quedamos?": "Where we left off",
+  "Lo que se hizo": "What was done",
+  "Dónde quedó el proyecto": "Where the project stands",
+  "Lo nuevo desde tu visita": "What's new since your visit",
+  "Tu misión siguiente": "Your next mission",
+  "solo retomas: ya sabes qué sigue": "you just pick up: you know what's next",
+  "Mi proyecto es…": "My project is…",
+  "otra vez": "again",
+  "el historial del chat, o una búsqueda": "the chat history, or a search",
+  "hace dos semanas": "two weeks ago",
+  "Usemos Google para entrar": "Let's sign in with Google",
+  "Cambiamos: sin Google": "Change: no Google",
+  "Hice el inicio con Google": "I built the Google sign-in",
+  "una decisión vieja se coló": "an old decision slipped in",
+  "Usemos Google": "Let's use Google",
+  "Reemplazado": "Replaced",
+  "En vigor": "In force",
+  "Sin Google": "No Google",
+  "al modelo, solo lo que aprobaste": "to the model, only what you approved",
+  "Haz esto": "Do this",
+  "¿qué recuerda, qué no y por qué?": "what does it remember, what not, and why?",
+  "El director solicita: lo que cambió": "The director asks: what changed",
+  "El modelo responde: 3 archivos": "The model answers: 3 files",
+  "El director solicita: las pruebas": "The director asks: the tests",
+  "El modelo responde: todas pasan": "The model answers: all pass",
+  "el historial: cada paso, auditable": "the history: every step, auditable",
+  "solicita: lo que cambió": "asks: what changed",
+  "responde: 3 archivos": "answers: 3 files",
+  "solicita: las pruebas": "asks: the tests",
+  "responde: todas pasan": "answers: all pass",
+  "tokens de entrada": "input tokens",
+  "tokens de salida": "output tokens",
+  "la caja negra, a la vista": "the black box, in plain sight",
+  "Sigue con el login": "Go on with the login",
+  "sin conexión": "offline",
+  "conexión": "online",
+  "el chat se congeló: ¿y ahora qué?": "the chat froze: now what?",
+  "nota": "note",
+  "ajuste": "tweak",
+  "entrega": "delivery",
+  "documento": "document",
+  "historial": "history",
+  "nada se pierde: queda en la memoria del proyecto": "nothing is lost: it stays in the project memory",
+  "todo junto": "all at once",
+  "escribirlo todo…": "typing it all out…",
+  "Haz que el botón…": "Make the button…",
+  "le llega la mitad": "only half arrives",
+  "se transcribe en tu computador": "transcribed on your computer",
+  "tu nota": "your note",
+  "la lees y la corriges": "you read it and correct it",
+  "Sin STL": "Without STL",
+  "Con STL": "With STL",
+  "Resuelto": "Solved",
+  "✓ Resuelto": "✓ Solved",
+};
+const D = (texto) => (EN_DIBUJO && Object.hasOwn(DIBUJO_EN, texto) ? DIBUJO_EN[texto] : texto);
 // Los quince problemas de antes (nota de voz nmw19elcqtit) siguen como dieciséis SEGMENTOS: cada uno dibuja su situación
 // y cómo la resuelve STL (el dieciseisavo, «una decisión vieja se cuela», es nuevo: pd_memoria_ventaja). Desde la nota de
 // voz nmw1bwnvztit, el titular pidió unificarlos y sintetizarlos en cinco grandes problemas y alargar cada animación para
@@ -280,8 +422,9 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9731,"g4-e":7646,"g5-e":9878,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":1421,"s9-p2":4019,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":2872,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
 // La voz en inglés de «Getting started» (nmw6xp1d1tit): la gemela de Kai, en voz/en/, con su pista (tools/vozRecorrido.ts --en)
 const PISTA_VOZ_EN = {"como-1":3243,"como-2":5061,"como-3":2188,"como-4":6867,"como-5":1983,"como-6":2947,"como-7":3326,"como-c":2074};
-// La pista de cada clave en el idioma de la página: «Cómo empezar» en inglés, con la suya; lo demás, con la de Kai
-const vozEnIngles = (clave) => EN_DIBUJO && /^como-/.test(clave);
+// La pista de cada clave en el idioma de la página: «Cómo empezar» en inglés, con la suya; la estación 2 en inglés, sin pista
+// todavía (su voz en inglés espera a que el titular lea su texto, nmw33ke9ytit); lo demás, con la de Kai
+const vozEnIngles = (clave) => EN_DIBUJO && /^(como-|s\d+-|g\d+-e$)/.test(clave);
 const pistaVoz = (clave) => (vozEnIngles(clave) ? PISTA_VOZ_EN : PISTA_VOZ_ES)[clave];
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
@@ -435,7 +578,7 @@ function placaMision(c, x, y, w, texto, hecha = false, alfa = 1) {
 }
 function bola(c, x, y, r, color, alfa = 1) { c.save(); c.globalAlpha *= alfa; c.fillStyle = color; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.restore(); }
 function letrero(c, texto, x, y, color = LUZ, tam = 10, alinea = 'center') {
-  c.font = `600 ${tam}px system-ui, sans-serif`; c.textAlign = alinea; c.fillStyle = color; c.fillText(texto, x, y);
+  c.font = `600 ${tam}px system-ui, sans-serif`; c.textAlign = alinea; c.fillStyle = color; c.fillText(D(texto), x, y);
 }
 function palomita(c, x, y, r, alfa = 1) {
   c.save(); c.globalAlpha *= alfa; c.strokeStyle = VERDE; c.lineWidth = 2.2; c.lineCap = 'round'; c.lineJoin = 'round';
@@ -458,6 +601,7 @@ function ventana(c, x, y, w, h, titulo, color = ROJO) {
 // Un globo de texto: de ti, hacia la derecha desde x; del modelo (derecha = true), hacia la izquierda desde x
 function globo(c, x, y, texto, color, derecha = false, alfa = 1) {
   c.font = '600 8.5px system-ui, sans-serif';
+  texto = D(texto);
   const w = c.measureText(texto).width + 14, x0 = derecha ? x - w : x;
   c.save(); c.globalAlpha *= alfa;
   caja(c, x0, y, w, 15, color, 0.22, 7.5);
@@ -582,7 +726,7 @@ const SEGMENTOS = [
       if (q > 0.35) globo(c, 250, 76, 'Escribiendo…', MODELO, true, 0.6 + 0.4 * Math.sin(q * 30) ** 2);
       if (q > 0.4) { globo(c, 70, 112, '…y que entre con Google', ROJO); cruz(c, 200, 119, 4); }
       // Cada corrección es otro mensaje, y los tokens se multiplican (nmw262jl0tit)
-      if (q > 0.4) letrero(c, `${q > 0.75 ? 3 : q > 0.55 ? 2 : 1} × los tokens`, 282, 40, ROJO, 9, 'right');
+      if (q > 0.4) letrero(c, `${q > 0.75 ? 3 : q > 0.55 ? 2 : 1} × ${L('los tokens', 'the tokens')}`, 282, 40, ROJO, 9, 'right');
       if (q > 0.7) letrero(c, 'otro mensaje, y otro, para corregir', 160, 156, ROJO, 9.5);
     },
     solucion: (c, q, tinta) => DE_ANTES[0](c, q, tinta),
@@ -591,7 +735,7 @@ const SEGMENTOS = [
     problema: (c, q) => {
       const foco = Math.floor(q * 9) % 4;
       [[30, 22], [180, 22], [30, 92], [180, 92]].forEach(([x, y], k) => {
-        ventana(c, x, y, 110, 54, `sesión ${k + 1}`, k === foco ? ROJO : '#8f8a7d');
+        ventana(c, x, y, 110, 54, `${L('sesión', 'session')} ${k + 1}`, k === foco ? ROJO : '#8f8a7d');
         renglones(c, x + 8, y + 18, 80, 4, k === foco ? '#ffd0da' : 'rgba(255, 255, 255, .25)', 1, 8);
         if (k === foco) trazo(c, 160, 84, x + 55, y + 27, ROJO, 0.7, true);
       });
@@ -715,7 +859,7 @@ const SEGMENTOS = [
     },
     solucion: (c, q) => {
       caja(c, 30, 30, 110, 70, ORO, 0.1); letrero(c, 'En firme', 85, 44, ORO, 9.5);
-      ['opción A', 'sin Google', 'en español'].forEach((t, k) => letrero(c, `· ${t}`, 42, 60 + k * 13, LUZ, 8.5, 'left'));
+      ['opción A', 'sin Google', 'en español'].forEach((t, k) => letrero(c, `· ${D(t)}`, 42, 60 + k * 13, LUZ, 8.5, 'left'));
       actorDirector(c, 222, 60, 12); letrero(c, 'el director', 222, 84, ORO, 9);
       // La lupa se queda a la derecha de la lista, junto a lo que encontró, sin tapar el texto (nmw5eoz0rtit)
       if (q < 0.55) lupa(c, lerp(170, 122, tramo(q, 0.1, 0.45)), 57, 7);
@@ -733,7 +877,7 @@ const SEGMENTOS = [
         caja(c, x - 18, 118, 36, 24, k === leyendo ? ROJO : '#8f8a7d', 0.12, 4); letrero(c, 'archivo', x, 133, LUZ, 7);
         if (k === leyendo) trazo(c, 160, 76, x, 118, ROJO, 0.8);
       }
-      letrero(c, `${Math.round(q * q * 184000).toLocaleString('es')} tokens`, 304, 28, ROJO, 11, 'right');
+      letrero(c, `${Math.round(q * q * 184000).toLocaleString(L('es', 'en'))} tokens`, 304, 28, ROJO, 11, 'right');
       if (q > 0.6) letrero(c, 'lee lo mismo una y otra vez', 160, 166, ROJO, 9.5);
     },
     solucion: (c, q) => {
@@ -747,7 +891,7 @@ const SEGMENTOS = [
         letrero(c, cambio ? 'cambió' : 'igual', x, 133, cambio ? '#dff5e8' : '#8f8a7d', 7);
         if (cambio && q > 0.35) trazo(c, 160, 104, x, 118, VERDE, tramo(q, 0.35, 0.5));
       }
-      letrero(c, `${Math.round(tramo(q, 0.3, 0.9) * 21000).toLocaleString('es')} tokens`, 304, 28, VERDE, 11, 'right');
+      letrero(c, `${Math.round(tramo(q, 0.3, 0.9) * 21000).toLocaleString(L('es', 'en'))} tokens`, 304, 28, VERDE, 11, 'right');
       if (q > 0.8) letrero(c, 'en «Modelo y consumo»', 304, 44, LUZ, 8, 'right');
     },
   },
@@ -765,7 +909,7 @@ const SEGMENTOS = [
     solucion: (c, q) => {
       caja(c, 70, 20, 180, 120, ORO, 0.08); letrero(c, '¿Dónde quedamos?', 160, 37, ORO, 10.5);
       ['Lo que se hizo', 'Dónde quedó el proyecto', 'Lo nuevo desde tu visita'].forEach((t, k) => {
-        c.save(); c.globalAlpha *= tramo(q, 0.1 + k * 0.13, 0.2 + k * 0.13); letrero(c, `· ${t}`, 84, 58 + k * 18, LUZ, 9, 'left'); c.restore();
+        c.save(); c.globalAlpha *= tramo(q, 0.1 + k * 0.13, 0.2 + k * 0.13); letrero(c, `· ${D(t)}`, 84, 58 + k * 18, LUZ, 9, 'left'); c.restore();
       });
       // Una sola misión siguiente a la vista, y solo retomas
       if (q > 0.54) placaMision(c, 100, 112, 120, 'Tu misión siguiente', q > 0.84, tramo(q, 0.54, 0.62));
@@ -779,7 +923,7 @@ const SEGMENTOS = [
     problema: (c, q) => {
       const s = Math.min(2, Math.floor(q * 3)), k = (q * 3) % 1;
       // Una sesión tras otra, cada una en lugar de la anterior: ya no se apilan una encima de otra (nmw5d6iqctit)
-      ventana(c, 38, 32, 200, 110, `sesión ${s + 1}`, ROJO);
+      ventana(c, 38, 32, 200, 110, `${L('sesión', 'session')} ${s + 1}`, ROJO);
       const x0 = 38, y0 = 32;
       globo(c, x0 + 10, y0 + 22, 'Mi proyecto es…', CIAN);
       renglones(c, x0 + 12, y0 + 46, 170, Math.max(1, Math.round(1 + k * 6)), '#9fd8ff', 1, 8);
@@ -839,7 +983,7 @@ const SEGMENTOS = [
         const espera = (desde, hasta, y) => {
           if (q <= desde || q >= hasta) return;
           const s = Math.round(lerp(1, 38, tramo(q, desde, hasta)));
-          globo(c, 64, y, `El director espera al modelo · ${s} s`, '#8f8a7d', false, 0.9);
+          globo(c, 64, y, `${L('El director espera al modelo', 'The director waits for the model')} · ${s} s`, '#8f8a7d', false, 0.9);
           relojito(c, 250, y + 7.5, 5, tramo(q, desde, hasta));
         };
         if (q > 0.04) globo(c, 64, 24, 'El director solicita: lo que cambió', CIAN, false, tramo(q, 0.04, 0.1));
@@ -861,8 +1005,8 @@ const SEGMENTOS = [
       const entrada = Math.round(lerp(0, 9800, tramo(q, 0.04, 0.12)) + lerp(0, 4300, tramo(q, 0.5, 0.58)));
       const salida = Math.round(lerp(0, 1900, tramo(q, 0.24, 0.32)) + lerp(0, 800, tramo(q, 0.68, 0.76)));
       if (q > 0.34) letrero(c, 'la caja negra, a la vista', 160, 168, LUZ, 8.5);
-      caja(c, 64, 108, 92, 30, CIAN, 0.12, 6); letrero(c, 'tokens de entrada', 110, 119, CIAN, 7.5); letrero(c, entrada.toLocaleString('es'), 110, 133, '#fffaf0', 10);
-      caja(c, 164, 108, 92, 30, VERDE, 0.12, 6); letrero(c, 'tokens de salida', 210, 119, VERDE, 7.5); letrero(c, salida.toLocaleString('es'), 210, 133, '#fffaf0', 10);
+      caja(c, 64, 108, 92, 30, CIAN, 0.12, 6); letrero(c, 'tokens de entrada', 110, 119, CIAN, 7.5); letrero(c, entrada.toLocaleString(L('es', 'en')), 110, 133, '#fffaf0', 10);
+      caja(c, 164, 108, 92, 30, VERDE, 0.12, 6); letrero(c, 'tokens de salida', 210, 119, VERDE, 7.5); letrero(c, salida.toLocaleString(L('es', 'en')), 210, 133, '#fffaf0', 10);
     },
   },
   { // 14. Se cae el internet: el Buzón sigue recogiendo y tú sigues leyendo y auditando, sin conexión (sexto problema; su voz espera el «Confirmo»)
@@ -1052,6 +1196,47 @@ const CIERRES = [
   ['Sin internet, todo se detenía', 'Sin internet, tu trabajo sigue.'],
   ['El cansancio de escribir', 'Hablas, corriges y envías: sin escribir de más.'],
 ];
+// La estación 2 en inglés (pd_bilingue; t_decide_estacion2_textos, nmw738o1ktit): los guiones, fieles al español frase por
+// frase, con los mismos cortes (nmw3q7lw7tit), y los cierres adaptados, como los diría alguien de habla inglesa
+// (nmw3y11qftit). Los de arriba siguen siendo los que lee tools/vozRecorrido.ts para la voz en español
+const PASOS_SEG_EN = [
+  { problema: [[0, 'If you sent it and something was missing,'], [0.4, 'you send another and another to correct it,'], [0.72, 'multiplying your token usage']], solucion: [[0, 'With STL, your notes go to an Inbox first:'], [0.3, 'they wait there, and you can review and edit them as much as you want'], [0.68, 'before the director actually sends them to the model']] },
+  { problema: [[0, 'With four or more sessions at once,'], [0.35, 'your attention splits'], [0.6, 'and you wear yourself out trying to follow them all']], solucion: [[0, 'With STL, everything comes in through a single channel'], [0.35, 'and gets organized automatically'], [0.55, 'so you focus only'], [0.72, 'on the next strategic step, one at a time']] },
+  { problema: [[0, 'When ideas or tweaks come up in the middle of something,'], [0.5, 'the rest falls behind and gets lost']], solucion: [[0, 'With STL, your idea goes to the Inbox,'], [0.18, 'the director gives it its place on the route'], [0.36, 'and, if doing it now is not strategic, it waits in its phase.'], [0.6, 'So you finish what you were going to do first,'], [0.76, 'without losing that new idea or tweak,'], [0.88, 'and it stays on the route where it belongs']] },
+  { problema: [[0, 'Reading three pages of an answer in a row wears you out,'], [0.3, 'and your attention drifts.'], [0.45, 'You end up not reading what the model answers'], [0.75, 'and just saying «yes» to everything']], solucion: [[0, 'STL shows you one idea at a time,'], [0.14, 'with a «Got it» button before uncovering the next.'], [0.36, 'What comes next waits covered until you get there.'], [0.54, 'It can also read it aloud to you,'], [0.68, 'and you can comment on each idea or paragraph'], [0.82, 'without explaining to the model which part you mean']] },
+  { problema: [[0, 'How do you know what you already read and what you didn\'t?']], solucion: [[0, 'With STL, each idea you read stays marked'], [0.4, 'and you know exactly where you are:'], [0.7, 'what you have read and what you haven\'t']] },
+  { problema: [[0, 'Does the model change documents and ask you to reread them?']], solucion: [[0, 'With STL, what you already read stays sealed;'], [0.3, 'what is new arrives separately, in a short document,'], [0.65, 'with only what changed, and easy to read']] },
+  { problema: [[0, 'Does the model ask you something you already decided?']], solucion: [[0, 'STL has its own project memory system:'], [0.16, 'what you decided stays settled,'], [0.3, 'and, before asking you, the director searches.'], [0.55, 'It was already decided: option A.'], [0.8, 'It doesn\'t ask you again']] },
+  { problema: [[0, 'Each new session rereads the same things,'], [0.5, 'and the tokens evaporate']], solucion: [[0, 'With STL, the director receives everything together, with the map,'], [0.4, 'and reads only what changed,'], [0.62, 'optimizing your input token usage']] },
+  { problema: [[0, 'Do you come back from a break'], [0.4, 'and not know where you were or what\'s next in each session?']], solucion: [[0, 'With STL, the «Where we left off» section is waiting for you:'], [0.2, 'an always up-to-date report of what was done'], [0.38, 'and of where the project stands,'], [0.54, 'with a single next mission in view:'], [0.78, 'you just pick up, and you already know what\'s next']] },
+  { problema: [], solucion: [] },   // 10. (salió: se juntó con la 9)
+  { problema: [[0, 'In every new session, do you explain everything to it again'], [0.55, 'to define what it will be about?']], solucion: [[0, 'STL builds its own optimized system'], [0.2, 'of project memory:'], [0.36, 'the state stays in files, in your project map'], [0.6, 'and in everything you said.'], [0.76, 'The director already knows it all: you need to repeat nothing']] },
+  { problema: [[0, 'Does your context get polluted'], [0.4, 'by frequent changes of decision?']], solucion: [[0, 'With STL, a decision you change is marked replaced in the history'], [0.4, 'and is no longer part of the new context that goes to the model:'], [0.72, 'you only send decisions you approved']] },
+  { problema: [[0, 'The model is a black box:'], [0.4, 'sometimes you don\'t know what it remembers, what it doesn\'t, and why']], solucion: [[0, 'STL shows you, graphically, the whole inference cycle:'], [0.2, 'how your team and the model communicate,'], [0.34, 'how long each one takes to carry out its parts, and its usage,'], [0.52, 'and exactly who asks what of whom.'], [0.68, 'So you understand what happens each time you ask the model something'], [0.85, 'and you keep this history, to audit it and learn']] },
+  { problema: [[0, 'Your internet goes down in the middle of your work,'], [0.45, 'and the chat with the model stops: now what?']], solucion: [[0, 'With STL Studio, you keep working offline:'], [0.2, 'the Inbox collects your notes, tweaks and deliveries,'], [0.4, 'and you keep reading documents and answers'], [0.58, 'or auditing the model\'s work.'], [0.74, 'Nothing is lost: everything stays in the project memory.'], [0.88, 'When the connection comes back, the director receives it all together.']] },
+  { problema: [[0, 'You have the idea clear in your head,'], [0.36, 'but writing it all out is tiring,'], [0.66, 'and only half of it reaches the model.']], solucion: [[0, 'With STL, you dictate it: you talk as you would with a friend,'], [0.1, 'naturally, explaining what you have in mind.'], [0.2, 'You can even ramble, it doesn\'t matter: the director will understand you.'], [0.32, 'What matters is that you express your idea the way you really want it,'], [0.42, 'in your natural language: leave the understanding to the director.'], [0.52, 'Your note is transcribed on your computer.'], [0.62, 'Since it goes to the Inbox and not straight to the model,'], [0.74, 'you read it and correct it before it arrives:'], [0.86, 'you take out or add whatever you want.']] },
+];
+const CIERRES_EN = [
+  ['Half-finished messages', 'Goodbye to fixing half-finished messages: you check it before it goes.'],
+  ['Your divided attention', 'Free from juggling sessions: your attention, on a single step.'],
+  ['The ideas that got lost', 'No idea gets lost, and you finish what you started.'],
+  ['Exhausting answers', 'Reading no longer wears you out: one idea at a time.'],
+  ['Not knowing what you read', 'You always know where you are.'],
+  ['Rereading what you read', 'Never reread what you already read.'],
+  ['Repeated questions', 'What you decided stays decided.'],
+  ['Tokens that evaporate', 'Your tokens, only for what is new.'],
+  ['Losing your place and what\'s next', 'You pick up right where you left off.'],
+  null,   // 10. (salió: se juntó con la 9)
+  ['Explaining it all again', 'No more repeating yourself to the model.'],
+  ['A polluted context', 'A clean context, with only what you approved.'],
+  ['The model, a black box', 'The black box, now in plain sight.'],
+  ['Without internet, it all stopped', 'No internet, and your work goes on.'],
+  ['The fatigue of typing', 'Talk, correct and send: no extra typing.'],
+];
+if (EN_DIBUJO) {
+  PASOS_SEG.forEach((s, j) => Object.assign(s, PASOS_SEG_EN[j]));
+  CIERRES.splice(0, CIERRES.length, ...CIERRES_EN);
+}
 // Lo que dura el cierre: al menos CIERRE_SEG (cuatro segundos, para que se alcance a leer el ✓, el problema resuelto y la
 // frase de Kai; nota de voz del 5 de noviembre), y si su voz tarda más, lo que tarda con un respiro
 const CIERRE_SEG = 4;
@@ -1429,7 +1614,7 @@ function pintarClip(ctx, i, t) {
     return;
   }
   if (enCierre) {
-    pintarCierre(ctx, CIERRES[j]?.[0] ?? '', paso, q, n > 1 || !sinCuenta ? `${k + 1} de ${n}` : '');
+    pintarCierre(ctx, CIERRES[j]?.[0] ?? '', paso, q, n > 1 || !sinCuenta ? `${k + 1} ${L('de', 'of')} ${n}` : '');
     pintarBarra(ctx, p);
     return;
   }
@@ -1440,12 +1625,14 @@ function pintarClip(ctx, i, t) {
   if (enProblema) segmento.problema(ctx, q);
   else segmento.solucion(ctx, q, TINTAS[(i + k) % TINTAS.length]);
   ctx.restore();
-  caja(ctx, 8, 5, 52, 14, enProblema ? ROJO : VERDE, 0.25, 7);
-  letrero(ctx, enProblema ? 'Sin STL' : 'Con STL', 34, 15.5, enProblema ? '#ffc2cf' : '#dff5e8', 8.5);
+  // «Without STL» es más largo que «Sin STL»: su píldora, un poco más ancha
+  const pildora = L(52, 62);
+  caja(ctx, 8, 5, pildora, 14, enProblema ? ROJO : VERDE, 0.25, 7);
+  letrero(ctx, enProblema ? 'Sin STL' : 'Con STL', 8 + pildora / 2, 15.5, enProblema ? '#ffc2cf' : '#dff5e8', 8.5);
   // Cuál de las situaciones se ve: «1 de 3» (en el video, con una sola, no va)
   if (n > 1 || !sinCuenta) {
     caja(ctx, 262, 5, 50, 14, enProblema ? ROJO : VERDE, 0.2, 7);
-    letrero(ctx, `${k + 1} de ${n}`, 287, 15.5, enProblema ? '#ffc2cf' : '#dff5e8', 8.5);
+    letrero(ctx, `${k + 1} ${L('de', 'of')} ${n}`, 287, 15.5, enProblema ? '#ffc2cf' : '#dff5e8', 8.5);
   }
   if (paso) letrero(ctx, paso, 160, 190, enProblema ? '#ffc2cf' : '#fffaf0', tamanoQueCabe(ctx, paso, 11, 300));
   pintarBarra(ctx, p);
