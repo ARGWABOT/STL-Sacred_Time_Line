@@ -75,7 +75,7 @@ const FIJO_EN = {
 const REPO = 'https://github.com/ARGWABOT/STL-Sacred_Time_Line';
 const METODO_EN = `${REPO}/blob/main/docs/metodo/metodologia.md`;
 const PARTES_EN = [['#1-what-it-is-and-the-problem-it-solves', 'What it is and the problem it solves'], ['#2-the-cycle-of-a-review', 'The cycle of a review'],
-  ['#3-the-route', 'The route'], ['#4-what-the-director-can-and-cannot-do', 'What the director can and cannot do'],
+  ['#3-the-roadmap', 'The roadmap'], ['#4-what-the-director-can-and-cannot-do', 'What the director can and cannot do'],
   ['#5-the-memory-in-your-repository', 'The memory in your repository'], ['#6-when-not-to-use-it', 'When not to use it']];
 const DOC_EN = {
   titulo: 'Documentation', boton: '▶ Documentation', pestanas: ['Install', 'Glossary', 'Method'], partes: 'The parts of the documentation',
