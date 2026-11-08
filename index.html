@@ -257,6 +257,27 @@
   .js-3d .ver-como { display: inline-flex; }
   .js-3d .ver-como[hidden] { display: none; }
   .js-3d .lista-como { display: none; }
+  /* «La documentación»: sin 3D, se lee en su lugar; con 3D, una tarjeta de texto a la izquierda de la línea, que abre su
+     «▶» y se va al dejar la estación; la rueda la recorre por dentro */
+  .documentacion { max-width: 640px; margin: 16px auto 0; padding: 18px 22px; border: 1px solid rgba(245, 210, 122, .28); border-radius: 18px;
+    background: rgba(10, 13, 24, .9); color: #d9d5ca; text-align: left; }
+  .js-3d .documentacion { display: none; position: fixed; left: clamp(16px, 2.4vw, 48px); top: 12vh; width: min(560px, 38vw); max-height: 72vh;
+    overflow-y: auto; overscroll-behavior: contain; margin: 0; pointer-events: auto; z-index: 5; }
+  .js-3d .estacion.actual .documentacion.abierta { display: block; }
+  .doc-titulo { margin: 0 0 12px; font-size: clamp(20px, 1.6vw, 28px); color: #fffaf0; }
+  .js-3d .doc-titulo { display: none; }
+  .doc-pestanas { display: flex; gap: 8px; margin-bottom: 14px; }
+  .doc-pestanas button { padding: 6px 14px; border: 1px solid rgba(245, 210, 122, .4); border-radius: 999px; background: transparent; color: #d9d5ca;
+    font: inherit; font-weight: 600; cursor: pointer; }
+  .doc-pestanas button[aria-selected="true"] { background: var(--oro); color: #1a1f33; border-color: var(--oro); }
+  .doc-pestanas button:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  .doc-panel a { color: var(--oro); }
+  .doc-pasos, .doc-metodo { margin: 0 0 12px; padding-left: 22px; }
+  .doc-pasos li, .doc-metodo li { margin-bottom: 8px; }
+  .doc-enlaces { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; }
+  .doc-glosario { margin: 0; }
+  .doc-glosario dt { margin-top: 10px; font-weight: 700; }
+  .doc-glosario dd { margin: 2px 0 0; }
   .lista-como q { color: #fffaf0; }
   /* La respuesta de STL la dice la animación (su cierre); aquí queda solo para los lectores de pantalla */
   .popup-respuesta { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -331,7 +352,7 @@
     <li><a href="#e-que-es">Qué es STL</a></li>
     <li><a href="#e-te-ha-pasado">¿Te ha pasado…?</a></li>
     <li><a href="#e-como-empezar">Cómo empezar</a></li>
-    <li><span title="Llega en el siguiente tramo del recorrido">La documentación</span></li>
+    <li><a href="#e-documentacion">La documentación</a></li>
   </ol>
 </nav>
 
@@ -389,11 +410,67 @@
       </div>
     </article>
 
+    <div class="camino-texto" aria-hidden="true"></div>
+
+    <!-- La última estación, «La documentación» (pd_pagina_unica), donde termina la línea, en su libro abierto (nmw76f854tit): con 3D, abajo solo su botón, y al oprimirlo se abre a la izquierda
+         de la línea su tarjeta de texto, en la pestaña de instalar (nmw76dn24tit); sin 3D, se lee aquí. Tres pestañas cortas
+         (nmw76dxyhtit): los tres pasos del README y el enlace a la guía (nmw73ypystit), el glosario con los textos del «?» en
+         el orden del ciclo, cada palabra con su enlace a su parte del método (nmw72c311tit, nmw76eqautit), y solo los títulos
+         de las seis partes del método, cada uno con su enlace a GitHub en el idioma de la página (nmw76ej5vtit, nmw728gogtit).
+         Sin voz (nmw3s6d7ktit). En inglés, mundo-3d.js › DOC_EN la escribe entera -->
+    <article class="estacion cuatro" id="e-documentacion">
+      <div class="tarjeta corta">
+        <h2 class="sin-3d" data-titulo-doc>La documentación</h2>
+        <div class="acciones"><button type="button" class="boton-ver ver-doc" data-ver-doc aria-controls="documentacion" aria-expanded="false">▶ La documentación</button></div>
+      </div>
+      <section class="documentacion" id="documentacion" data-documentacion aria-labelledby="doc-titulo">
+        <h2 id="doc-titulo" class="doc-titulo">La documentación</h2>
+        <div class="doc-pestanas" role="tablist" aria-label="Las partes de la documentación">
+          <button type="button" role="tab" id="pestana-instalar" aria-controls="doc-instalar" aria-selected="true">Instalar</button>
+          <button type="button" role="tab" id="pestana-glosario" aria-controls="doc-glosario" aria-selected="false" tabindex="-1">Glosario</button>
+          <button type="button" role="tab" id="pestana-metodo" aria-controls="doc-metodo" aria-selected="false" tabindex="-1">Método</button>
+        </div>
+        <div class="doc-panel" role="tabpanel" id="doc-instalar" aria-labelledby="pestana-instalar">
+          <ol class="doc-pasos">
+            <li><strong>Baja STL Studio</strong> (<a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/releases/latest" target="_blank" rel="noopener">la última versión</a>), descomprímelo y abre Claude Code en su carpeta.</li>
+            <li><strong>Pídele «inicializa STL Studio»</strong>: instala todo y abre el Studio en tu navegador.</li>
+            <li><strong>Entrega tu proyecto</strong> con «Entregar proyectos»: el director lo diagnostica y te da tu primera misión.</li>
+          </ol>
+          <p class="doc-enlaces"><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/INSTALAR.md" target="_blank" rel="noopener">La guía de instalación completa (INSTALAR.md) ↗</a> <a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/README.es.md" target="_blank" rel="noopener">El README en GitHub ↗</a></p>
+        </div>
+        <div class="doc-panel" role="tabpanel" id="doc-glosario" aria-labelledby="pestana-glosario" hidden>
+          <dl class="doc-glosario">
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">Misión</a></dt><dd>lo único que tienes que hacer ahora, con sus pasos y un botón a cada lugar; las demás esperan su turno.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">Revisión</a></dt><dd>cuando la pides, el director recibe todo junto, responde cada nota y te deja tu siguiente misión.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">Buzón</a></dt><dd>donde esperan tus notas, ideas y ajustes, y puedes editarlas, hasta que pidas la revisión.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#4-lo-que-el-director-puede-y-no-puede-hacer" target="_blank" rel="noopener">Director</a></dt><dd>el modelo que trabaja para ti dentro del Studio: ordena lo que dices, propone y te da una misión a la vez; tú decides.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#5-la-memoria-en-tu-repositorio" target="_blank" rel="noopener">Memoria</a></dt><dd>los archivos del proyecto donde queda todo lo que decidiste, para que nadie tenga que preguntártelo otra vez.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#1-qué-es-y-qué-problema-resuelve" target="_blank" rel="noopener">Dispersión</a></dt><dd>lo que pasa cuando abres muchas sesiones a la vez y pierdes el hilo; STL existe para evitarla.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">Ruta</a></dt><dd>el camino del proyecto hasta su meta, dividido en fases.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">Fase</a></dt><dd>un tramo de la ruta con un solo propósito, por ejemplo «Se entiende de un vistazo».</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">Puerta</a></dt><dd>lo que tiene que pasar para cambiar de fase; la cruzas tú, cuando se cumplen sus criterios.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">Propuesta</a></dt><dd>una idea del director con su porqué y sus riesgos, que tú aceptas o descartas.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">Pedido</a></dt><dd>lo que pediste en una nota, guardado en su fase hasta que se hace.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#5-la-memoria-en-tu-repositorio" target="_blank" rel="noopener">Línea del tiempo</a></dt><dd>la historia del proyecto como una línea: lo que ya pasó, dónde estás y lo que viene.</dd>
+          </dl>
+        </div>
+        <div class="doc-panel" role="tabpanel" id="doc-metodo" aria-labelledby="pestana-metodo" hidden>
+          <ol class="doc-metodo">
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#1-qué-es-y-qué-problema-resuelve" target="_blank" rel="noopener">Qué es y qué problema resuelve</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">El ciclo de una revisión</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">La ruta</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#4-lo-que-el-director-puede-y-no-puede-hacer" target="_blank" rel="noopener">Lo que el director puede y no puede hacer</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#5-la-memoria-en-tu-repositorio" target="_blank" rel="noopener">La memoria en tu repositorio</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#6-cuándo-no-usarlo" target="_blank" rel="noopener">Cuándo no usarlo</a></li>
+          </ol>
+        </div>
+      </section>
+    </article>
+
   </div>
 </main>
 
 <footer class="fin" id="fin">
-  <p>Aquí termina este tramo del recorrido. La estación que sigue, «La documentación», llega en el siguiente.</p>
   <p><a class="boton" href="https://github.com/ARGWABOT/STL-Sacred_Time_Line">▶ Bájalo en GitHub</a></p>
   <p>STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).</p>
 </footer>

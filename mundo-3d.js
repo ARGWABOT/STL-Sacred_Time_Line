@@ -51,9 +51,6 @@ const FIJO_EN = {
   'Sus animaciones no caben bien en un teléfono. Te recomendamos verlo en un computador, o en una tablet puesta en horizontal.':
     'Its animations don’t fit well on a phone. We recommend seeing it on a computer, or on a tablet turned sideways.',
   'Verlo aquí de todos modos': 'See it here anyway',
-  'Llega en el siguiente tramo del recorrido': 'Coming in the next stretch of the tour',
-  'Aquí termina este tramo del recorrido. La estación que sigue, «La documentación», llega en el siguiente.':
-    'This stretch of the tour ends here. The next station, «Documentation», comes in the next one.',
   '▶ Bájalo en GitHub': '▶ Get it on GitHub',
   'STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).': 'STL Studio, created by ARGWABOT (A Regular Guy With A Bunch Of Tokens).',
   'La animación de la línea del proyecto, en grande': 'The project line animation, large',
@@ -70,6 +67,81 @@ const FIJO_EN = {
   'Pausar la animación': 'Pause the animation',
   '🔊 Voz': '🔊 Voice',
 };
+// «La documentación», la última estación, en inglés (pd_pagina_unica, pd_bilingue): sus pestañas cortas (nmw76dxyhtit), los
+// tres pasos del README.md con la guía INSTALL.md (nmw73ypystit, nmw6ze91ltit), el glosario con los textos del «?» de la
+// interfaz en inglés (estudio/src/textos/en.ts › palabra.*, en el orden del ciclo: nmw72c311tit, nmw3s4h3dtit), cada palabra
+// con su enlace a su parte del método (nmw76eqautit), y solo los títulos de las seis partes, con su enlace a la metodología
+// en inglés (nmw76ej5vtit, nmw728gogtit). La página en español los trae escritos en mundo-3d.html
+const REPO = 'https://github.com/ARGWABOT/STL-Sacred_Time_Line';
+const METODO_EN = `${REPO}/blob/main/docs/metodo/metodologia.md`;
+const PARTES_EN = [['#1-what-it-is-and-the-problem-it-solves', 'What it is and the problem it solves'], ['#2-the-cycle-of-a-review', 'The cycle of a review'],
+  ['#3-the-route', 'The route'], ['#4-what-the-director-can-and-cannot-do', 'What the director can and cannot do'],
+  ['#5-the-memory-in-your-repository', 'The memory in your repository'], ['#6-when-not-to-use-it', 'When not to use it']];
+const DOC_EN = {
+  titulo: 'Documentation', boton: '▶ Documentation', pestanas: ['Install', 'Glossary', 'Method'], partes: 'The parts of the documentation',
+  pasos: [`<strong>Download STL Studio</strong> (<a href="${REPO}/releases/latest" target="_blank" rel="noopener">the latest version</a>), unzip it and open Claude Code in its folder.`,
+    '<strong>Ask it «initialize STL Studio»</strong>: it installs everything and opens the Studio in your browser.',
+    '<strong>Hand over your project</strong> with «Hand over projects»: the director diagnoses it and gives you your first mission.'],
+  enlaces: [[`${REPO}/blob/main/INSTALL.md`, 'The full installation guide (INSTALL.md) ↗'], [`${REPO}#readme`, 'The README on GitHub ↗']],
+  // [la palabra, su frase, su parte del método (1 a 6)]
+  glosario: [['Mission', 'the only thing you have to do now, with its steps and a button to each place; the others wait their turn.', 3],
+    ['Review', 'when you ask for it, the director gets everything together, answers each note and leaves you your next mission.', 2],
+    ['Inbox', 'where your notes, ideas and adjustments wait, and you can edit them, until you ask for the review.', 2],
+    ['Director', 'the model that works for you inside the Studio: it sorts what you say, proposes and gives you one mission at a time; you decide.', 4],
+    ['Memory', 'the project files where everything you decided stays, so nobody has to ask you again.', 5],
+    ['Scattering', 'what happens when you open many sessions at once and lose the thread; STL exists to avoid it.', 1],
+    ['Roadmap', 'the path of the project to its goal, split into phases.', 3],
+    ['Phase', 'a stretch of the roadmap with a single purpose, for example «Understood at a glance».', 3],
+    ['Gate', 'what has to happen to change phase; you cross it, when its criteria are met.', 3],
+    ['Proposal', 'an idea from the director with its why and its risks, which you accept or discard.', 2],
+    ['Request', 'what you asked for in a note, kept in its phase until it is done.', 2],
+    ['Timeline', 'the history of the project as a line: what already happened, where you are and what comes next.', 5]],
+};
+const enlaceDoc = (href, texto) => `<a href="${href}" target="_blank" rel="noopener">${texto}</a>`;
+if (EN) {
+  const doc = document.querySelector('[data-documentacion]');
+  if (doc) {
+    doc.querySelector('.doc-titulo').textContent = DOC_EN.titulo;
+    doc.querySelector('[role="tablist"]')?.setAttribute('aria-label', DOC_EN.partes);
+    doc.querySelectorAll('[role="tab"]').forEach((b, i) => { b.textContent = DOC_EN.pestanas[i]; });
+    doc.querySelector('.doc-pasos').innerHTML = DOC_EN.pasos.map((p) => `<li>${p}</li>`).join('');
+    doc.querySelector('.doc-enlaces').innerHTML = DOC_EN.enlaces.map(([href, texto]) => enlaceDoc(href, texto)).join(' ');
+    doc.querySelector('.doc-glosario').innerHTML = DOC_EN.glosario.map(([palabra, frase, parte]) => `<dt>${enlaceDoc(METODO_EN + PARTES_EN[parte - 1][0], palabra)}</dt><dd>${frase}</dd>`).join('');
+    doc.querySelector('.doc-metodo').innerHTML = PARTES_EN.map(([ancla, titulo]) => `<li>${enlaceDoc(METODO_EN + ancla, titulo)}</li>`).join('');
+  }
+  const tituloDoc = document.querySelector('[data-titulo-doc]'), verDoc = document.querySelector('[data-ver-doc]');
+  if (tituloDoc) tituloDoc.textContent = DOC_EN.titulo;
+  if (verDoc) verDoc.textContent = DOC_EN.boton;
+}
+// Sus pestañas: un clic o las flechas cambian de parte; abre siempre en la de instalar (nmw74xul6tit)
+const pestanasDoc = [...document.querySelectorAll('[data-documentacion] [role="tab"]')];
+function elegirPestana(k) {
+  pestanasDoc.forEach((b, i) => {
+    const esta = i === k;
+    b.setAttribute('aria-selected', String(esta));
+    b.tabIndex = esta ? 0 : -1;
+    const panel = document.getElementById(b.getAttribute('aria-controls'));
+    if (panel) panel.hidden = !esta;
+  });
+}
+pestanasDoc.forEach((b, i) => {
+  b.addEventListener('click', () => elegirPestana(i));
+  b.addEventListener('keydown', (e) => {
+    const paso = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!paso) return;
+    const k = (i + paso + pestanasDoc.length) % pestanasDoc.length;
+    elegirPestana(k);
+    pestanasDoc[k].focus();
+  });
+});
+// Su «▶» abre la tarjeta de texto en la pestaña de instalar, y otro clic la cierra; al dejar la estación se va sola (CSS)
+const tarjetaDoc = document.querySelector('[data-documentacion]'), botonDoc = document.querySelector('[data-ver-doc]');
+botonDoc?.addEventListener('click', () => {
+  const abre = !tarjetaDoc?.classList.contains('abierta');
+  if (abre) elegirPestana(0);
+  tarjetaDoc?.classList.toggle('abierta', abre);
+  botonDoc.setAttribute('aria-expanded', String(abre));
+});
 // Lo fijo de «Cómo empezar» en la página, también en inglés (nmw6r9827tit): «▶ Empezar con voz», el enlace a la
 // documentación y, sin 3D, sus siete pasos
 if (EN) {
@@ -1945,9 +2017,13 @@ function iniciar() {
   const puntos = [];
   for (let i = 0; i <= 13; i++) puntos.push(new THREE.Vector3(Math.sin(i * 0.7) * 7 + (i % 3 - 1) * 1.5, 0.6 + Math.sin(i * 0.45) * 1.1, -i * 28));
   const camino = new THREE.CatmullRomCurve3(puntos, false, 'centripetal');
-  escena.add(new THREE.Mesh(new THREE.TubeGeometry(camino, 1400, 0.11, 10, false), new THREE.MeshBasicMaterial({ color: LINEA })));
+  // La línea termina en el libro abierto de «La documentación», la última estación (nmw76f854tit): se dibuja solo hasta
+  // FIN_LINEA, el lugar de esa estación (SITIO[3]), y ahí entra en sus páginas
+  const FIN_LINEA = 0.922;
+  const trazo = new THREE.CatmullRomCurve3(Array.from({ length: 161 }, (_, k) => camino.getPointAt((k / 160) * FIN_LINEA)), false, 'centripetal');
+  escena.add(new THREE.Mesh(new THREE.TubeGeometry(trazo, 1400, 0.11, 10, false), new THREE.MeshBasicMaterial({ color: LINEA })));
   const halo = new THREE.MeshBasicMaterial({ color: LINEA, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false });
-  escena.add(new THREE.Mesh(new THREE.TubeGeometry(camino, 700, 0.34, 10, false), halo));
+  escena.add(new THREE.Mesh(new THREE.TubeGeometry(trazo, 700, 0.34, 10, false), halo));
 
   const ARRIBA = new THREE.Vector3(0, 1, 0);
   const marco = (u) => {   // dónde está la línea en u, hacia dónde va y cuál es su costado
@@ -1955,7 +2031,7 @@ function iniciar() {
     const lado = new THREE.Vector3(-t.z, 0, t.x).normalize();
     return { p, t, lado };
   };
-  const PARADA = [0.1, 0.42, 0.7];   // dónde se detiene la cámara en cada estación (de 0 a 1)
+  const PARADA = [0.1, 0.42, 0.7, 0.9];   // dónde se detiene la cámara en cada estación (de 0 a 1); la última, «La documentación»
   // Dónde está lo que se ve en cada estación: un poco más adelante, para que la cámara lo vea de frente y no encima
   const SITIO = PARADA.map((u) => u + 0.022);
   const focos = [];   // lo que mira la cámara en cada estación
@@ -1965,7 +2041,7 @@ function iniciar() {
   const segunLejania = [];
   // El reloj de cada estación: ninguna se anima hasta que se oprime «Empieza el recorrido», y un clic en una estación del
   // menú vuelve a empezar la suya, para repetirla cuando se quiera (nota de voz nmw1khrketit). null: aún no empieza
-  const relojes = [null, null, null];
+  const relojes = [null, null, null, null];
   const empezarEstacion = (k) => { if (k >= 0 && k < relojes.length) relojes[k] = performance.now() / 1000; };
   // El video empieza el ciclo de la estación 1 en el segundo que pide, para que se vea al director hablar con el modelo
   ganchoVideo.estacion1 = (seg) => { relojes[0] = performance.now() / 1000 - seg; };
@@ -2703,6 +2779,49 @@ function iniciar() {
       play.material.emissiveIntensity = 0.6 + 0.3 * Math.sin(s * 2);
     }
     animar.push(deEstacion(2, moverEscenaComo));
+  }
+
+  // ── Estación 4, «La documentación» (pd_pagina_unica): su emblema es un libro abierto, dorado y blanco, con un halo suave
+  // (nmw6zaitctit), y la línea del tiempo termina en él: su último tramo entra por el lomo entre las dos páginas
+  // (nmw76f854tit). Echado sobre la línea, con el lomo en su dirección, de frente a la cámara que llega; sin voz
+  // (nmw3s6d7ktit). Su tarjeta de texto se abre a la izquierda con su «▶» (mundo-3d.html, #documentacion)
+  {
+    const u = SITIO[3];
+    const { p, t } = marco(u);
+    const libro = new THREE.Group();
+    const caja4 = (w, h, d, material, r = 0.04) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), material);
+    const LARGO_LIBRO = 2.4, ANCHO_HOJA = 1.7;
+    const tapaMat = brillo(ORO, 0.55), hojaMat = brillo('#fffaf0', 0.5), renglonMat = brillo(ORO, 0.35);
+    const lomo = caja4(0.18, 0.12, LARGO_LIBRO + 0.16, tapaMat, 0.05);
+    libro.add(lomo);
+    for (const costado of [-1, 1]) {
+      // Cada mitad, un poco levantada desde el lomo, como un libro abierto sobre la mesa: su tapa y su hoja, y unos renglones
+      const mitad = new THREE.Group();
+      const tapa = caja4(ANCHO_HOJA + 0.12, 0.06, LARGO_LIBRO + 0.16, tapaMat);
+      const hoja = caja4(ANCHO_HOJA, 0.08, LARGO_LIBRO, hojaMat, 0.03);
+      tapa.position.set(costado * (ANCHO_HOJA + 0.12) / 2, -0.02, 0);
+      hoja.position.set(costado * ANCHO_HOJA / 2, 0.05, 0);
+      mitad.add(tapa, hoja);
+      for (let r = 0; r < 5; r++) {
+        const renglon = caja4(ANCHO_HOJA * (r === 4 ? 0.45 : 0.7), 0.02, 0.06, renglonMat, 0.01);
+        renglon.position.set(costado * ANCHO_HOJA * 0.5, 0.1, -0.8 + r * 0.4);
+        mitad.add(renglon);
+      }
+      mitad.rotation.z = costado * 0.22;
+      libro.add(mitad);
+    }
+    // El lomo en la dirección de la línea, y su borde de atrás justo donde ella termina
+    libro.rotation.y = Math.atan2(t.x, t.z);
+    libro.position.copy(p).addScaledVector(t, LARGO_LIBRO / 2 - 0.1).addScaledVector(ARRIBA, 0.02);
+    escena.add(libro);
+    const haloLibro = resplandor('255, 214, 140', ORO, 9).halo;
+    haloLibro.material.opacity = 0.55;
+    haloLibro.position.copy(libro.position).addScaledVector(ARRIBA, 0.4);
+    haloLibro.renderOrder = -5;
+    escena.add(haloLibro);
+    focos.push(libro.position.clone().addScaledVector(ARRIBA, 0.9));
+    // Solo el halo respira, despacio; el libro no se mueve
+    animar.push(deEstacion(3, (s) => { haloLibro.material.opacity = 0.45 + 0.12 * Math.sin(s * 1.1) ** 2; }));
   }
 
   // ── Un anillo en cada parada desde la 2 (pd_estaciones_decoradas; nmw6z9v94tit, y nmw727omntit: «make them full rings,
