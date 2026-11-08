@@ -53,7 +53,7 @@
   #modos button[aria-pressed="true"] { background: #f5d27a; color: #1a1f33; font-weight: 600; }
   #modos button:focus-visible { outline: 2px solid #fff6d8; outline-offset: 2px; }
   #escena { position: relative; width: var(--ancho); flex: none; }
-  canvas { width: var(--lienzo, 100%); aspect-ratio: 1000 / 460; display: block; }
+  canvas { width: var(--lienzo, 100%); aspect-ratio: var(--aspecto, 1000 / 460); display: block; }
   /* Los subtítulos: narran la historia mientras pasa */
   #estado {
     min-height: 2.9em; width: min(800px, var(--ancho)); padding: 8px 18px; box-sizing: border-box; flex: none;
@@ -179,13 +179,18 @@
      computador): sin girar nada. El dibujo toma todo el ancho, los subtítulos van grandes en una banda oscura justo
      debajo, y la perilla pasa a ser una BARRA a lo ancho de la parte de abajo, fácil de arrastrar con el dedo (48 px de
      alto). disponer() pone la clase «vertical»; el resto (teléfono acostado, computador) no cambia en nada */
-  #todo.vertical { padding: 8px 0 var(--barra, 130px); gap: 8px; justify-content: center; }
-  #todo.vertical header { grid-template-columns: 1fr; justify-items: center; gap: 8px; padding: 0 12px; box-sizing: border-box; }
-  #todo.vertical h1 { justify-self: center; text-align: center; font-size: clamp(14px, 4.2vw, 19px); }
+  /* Rehecho para lo alto (nota de voz del titular nmw86aqe2tit, 8 de noviembre de 2026): «Sin STL · Con STL» arriba al
+     centro; el título más chico, en dos renglones; los subtítulos solo toman alto cuando se parten en varios renglones; y
+     abajo, en un solo renglón a lo ancho, el tiempo, la voz y las cuatro velocidades. El dibujo, en PIE (más de cerca, con
+     tu atención y los tokens a la izquierda y el modelo arriba a la derecha) */
+  #todo.vertical { padding: 8px 0 var(--barra, 110px); gap: 6px; justify-content: center; }
+  #todo.vertical header { grid-template-columns: 1fr; justify-items: center; gap: 6px; padding: 0 12px; box-sizing: border-box; }
+  #todo.vertical #modos { order: -1; justify-self: center; }
+  #todo.vertical h1 { justify-self: center; text-align: center; font-size: clamp(12px, 3.6vw, 16px); }
   #todo.vertical #escena { width: 100%; }
   #todo.vertical canvas { width: 100%; }
   #todo.vertical #estado {
-    width: 100%; min-height: calc(var(--letra) * 1.4 * 4 + 20px); padding: 10px 16px; border-radius: 0;
+    width: 100%; min-height: 0; padding: 6px 14px; border-radius: 0;
     font-size: var(--letra); font-weight: 500; background: rgba(4, 6, 12, .8); box-shadow: none; overflow-wrap: anywhere;
   }
   /* La barra de abajo: fija, a todo el ancho; arriba, el arrastre; abajo, el reloj, la voz y la velocidad */
@@ -217,10 +222,12 @@
   /* «Iniciar la presentación» sale encima de la barra, centrada */
   #todo.vertical #invita { right: auto; left: 50%; top: auto; bottom: calc(100% + 12px); transform: translateX(-50%); font-size: 15px; padding: 8px 16px; }
   #todo.vertical .pista { display: none; }
-  #todo.vertical #crono { margin: 0; font-size: 14px; }
-  #todo.vertical #voz { margin: 0; font-size: 14px; padding: 8px 12px; min-height: 36px; }
-  #todo.vertical #velocidad { margin: 0; gap: 4px; flex-wrap: nowrap; }
-  #todo.vertical #velocidad button { font-size: 13px; padding: 8px 8px; min-height: 36px; }
+  /* El tiempo, la voz y las cuatro velocidades, en un solo renglón a todo el ancho (nmw86aqe2tit) */
+  #todo.vertical #mando { flex-wrap: wrap; gap: 6px; padding-left: 8px; padding-right: 8px; }
+  #todo.vertical #crono { flex: none; margin: 0; font-size: 12px; }
+  #todo.vertical #voz { flex: none; margin: 0; font-size: 12px; padding: 6px 8px; min-height: 36px; }
+  #todo.vertical #velocidad { flex: 1 1 0; min-width: 0; margin: 0; gap: 3px; flex-wrap: nowrap; justify-content: space-between; }
+  #todo.vertical #velocidad button { flex: 1 1 0; min-width: 0; font-size: 12px; padding: 6px 2px; min-height: 36px; }
 </style>
 </head>
 <body>
@@ -286,7 +293,12 @@
   // (la línea termina antes del borde derecho: abajo a la derecha va la perilla)
   const W = 1000, H = 460, Y = 372, X0 = 60, META = 830;
   // El modelo (Claude Code, Codex…): sin STL le habla todo; con STL, solo el director
-  const MX = W / 2, MY = 30;
+  // (de pie, en un teléfono, va arriba a la derecha: disponer() lo mueve, PIE)
+  let MX = W / 2, MY = 30;
+  // De pie, en un teléfono (nota de voz del titular nmw86aqe2tit, 8 de noviembre de 2026): el dibujo se rehace para lo
+  // alto. Se ve un trecho más corto de la línea, más de cerca (de x0 a x1 del mundo), y arriba una banda (banda) donde tu
+  // atención y los tokens gastados van uno sobre otro, a la izquierda y más grandes (s), y el modelo arriba a la derecha
+  const PIE = { activo: false, x0: 12, x1: 880, banda: 270, s: 1.9 };
   // Las fases de la ruta: donde empieza cada una
   const FASES = [X0, 252, 445, 637, META];
   // Las ramas empiezan a la tercera parte de la fase 1
@@ -696,6 +708,14 @@
   function ajustar() {
     // En pantallas muy densas, como mucho 1,5 píxeles por punto: se ve igual de nítido y pinta muchos menos píxeles
     const r = Math.min(1.5, window.devicePixelRatio || 1), w = cv.clientWidth || W;
+    if (PIE.activo) {
+      // De pie: el trecho de x0 a x1, con la banda de arriba (y negativa en el mundo)
+      const ancho = PIE.x1 - PIE.x0, alto = H + PIE.banda;
+      cv.width = Math.round(w * r); cv.height = Math.round(w * alto / ancho * r);
+      const k = cv.width / ancho;
+      ctx.setTransform(k, 0, 0, k, -PIE.x0 * k, PIE.banda * k);
+      return;
+    }
     cv.width = Math.round(w * r); cv.height = Math.round(w * H / W * r);
     ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
   }
@@ -1865,7 +1885,17 @@
   }
   // El contador de tokens, arriba a la derecha, del mismo tamaño que tu atención, al otro lado: lo que lleva gastado la
   // escena y, debajo, a qué ritmo. Sin STL se pone rojo cuando el ritmo se dispara
-  function contadorTokens(now) {
+  // De pie (PIE), los dos recuadros de arriba van en la banda, uno sobre otro a la izquierda y más grandes: k es su puesto
+  function enBanda(k, x, y, dibuja) {
+    if (!PIE.activo) return dibuja();
+    ctx.save();
+    ctx.translate(PIE.x0 + 12, -PIE.banda + 12 + k * (62 * PIE.s + 10));
+    ctx.scale(PIE.s, PIE.s); ctx.translate(-x, -y);
+    dibuja();
+    ctx.restore();
+  }
+  function contadorTokens(now) { enBanda(1, W - 16 - 228, 10, () => contadorTokensAqui(now)); }
+  function contadorTokensAqui(now) {
     const w = 228, h = 62, x = W - 16 - w, y = 10;
     const caliente = modo === 'sin' ? tope(ritmo / 120) : 0;
     const borde = caliente > 0.5 ? ROJO : '#8fa3c0';
@@ -1924,7 +1954,8 @@
   // Tú, de cerca, arriba a la izquierda: tu carita y la atención que te pide el proyecto. Sin STL sube con cada sesión
   // que abres, hasta agotarte; con STL sube despacio con tus ideas y vuelve a cero cuando el director te devuelve una
   // misión
-  function zoomAtencion(now) {
+  function zoomAtencion(now) { enBanda(0, 16, 10, () => zoomAtencionAqui(now)); }
+  function zoomAtencionAqui(now) {
     const a = tope(atencion), x = 16, y = 10, w = 228, h = 62;
     ctx.fillStyle = 'rgba(12, 15, 26, .8)'; ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill();
     trazar(() => ctx.roundRect(x, y, w, h, 12), a > 0.75 ? ROJO : '#8f8a7d', 1, 0.45);
@@ -1980,7 +2011,8 @@
   }
 
   function fondo(now) {
-    ctx.clearRect(0, 0, W, H);
+    // Todo el lienzo, también la banda de arriba de pie (PIE)
+    ctx.clearRect(-W, -H, 3 * W, 3 * H);
     ctx.fillStyle = '#fff';
     for (const e of ESTRELLAS) { ctx.globalAlpha = e.a; ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 7); ctx.fill(); }
     ctx.globalAlpha = 1;
@@ -2010,7 +2042,7 @@
   function cubrir() {
     if (velo <= 0.01) return;
     ctx.save(); ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = '#000'; ctx.globalAlpha = tope(velo); ctx.fillRect(0, 0, W, H); ctx.restore();
+    ctx.fillStyle = '#000'; ctx.globalAlpha = tope(velo); ctx.fillRect(-W, -H, 3 * W, 3 * H); ctx.restore();
   }
 
   function dibujarSin(now) {
@@ -2519,6 +2551,11 @@
   function disponer() {
     const todo = $('todo'), recto = derecho.matches, rot = vertical.matches && !recto;
     todo.classList.toggle('vertical', recto);
+    // De pie, el dibujo rehecho para lo alto (PIE, nmw86aqe2tit): el modelo arriba a la derecha, en la banda
+    PIE.activo = recto;
+    MX = recto ? PIE.x1 - 150 : W / 2; MY = recto ? -PIE.banda / 2 : 30;
+    if (recto) todo.style.setProperty('--aspecto', `${PIE.x1 - PIE.x0} / ${H + PIE.banda}`);
+    else todo.style.removeProperty('--aspecto');
     if (recto) {
       // Sin girar: el dibujo a todo el ancho; los subtítulos, grandes; la barra de abajo, fija (su alto reserva el lugar)
       todo.style.width = innerWidth + 'px'; todo.style.height = innerHeight + 'px'; todo.style.transform = '';
