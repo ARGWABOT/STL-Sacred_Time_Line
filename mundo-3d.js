@@ -10,7 +10,7 @@
 // el texto siempre en HTML. Con lo que pidió el titular al verlo, en dos vueltas: sin fragmentos ni postes (y, desde las
 // decisiones nmw5erxrytit, nmw5es4cgtit, nmw5es6twtit, nmw5gvj21tit, nmw5iur8itit y nmw5mkt58tit, un cielo de estrellas
 // lejanas en tres capas en lugar del suelo, con semilla fija, y una de cada diez que titila despacio), la
-// cámara más lenta, las bolitas del camino con los colores de cada tipo de nota y la animación de la estación 1 en
+// cámara más lenta, el camino solo con la línea (sin las esferas de colores, nmw76cwtctit) y la animación de la estación 1 en
 // grande, sin tapar el menú. Sin WebGL, las estaciones se leen de corrido y lo demás (el menú, los problemas
 // con su respuesta en el mismo lugar y la animación en grande) funciona igual; con movimiento reducido, la cámara salta de
 // estación en estación y nada se anima.
@@ -41,6 +41,35 @@ for (const [marca, texto] of [['[data-titulo-tres]', T.tres], ['[data-texto-ver]
   const el = document.querySelector(marca);
   if (el) el.textContent = texto;
 }
+// Lo fijo de la página que no tiene su propio gancho, en inglés, por su texto en español (nmw766nyutit)
+const FIJO_EN = {
+  '¿Qué es STL? · El recorrido': 'What is STL? · The tour',
+  '¿Qué es STL? Un recorrido en 3D por la línea del tiempo de un proyecto: STL Studio, la interfaz entre tú y el modelo, y los problemas de trabajar con IA por chat que resuelve.':
+    'What is STL? A 3D tour along a project’s timeline: STL Studio, the interface between you and the model, and the problems of working with AI through chat that it solves.',
+  '¿Qué es STL?': 'What is STL?',
+  'Este recorrido se entiende mejor en una pantalla ancha': 'This tour is best seen on a wide screen',
+  'Sus animaciones no caben bien en un teléfono. Te recomendamos verlo en un computador, o en una tablet puesta en horizontal.':
+    'Its animations don’t fit well on a phone. We recommend seeing it on a computer, or on a tablet turned sideways.',
+  'Verlo aquí de todos modos': 'See it here anyway',
+  'Llega en el siguiente tramo del recorrido': 'Coming in the next stretch of the tour',
+  'Aquí termina este tramo del recorrido. La estación que sigue, «La documentación», llega en el siguiente.':
+    'This stretch of the tour ends here. The next station, «Documentation», comes in the next one.',
+  '▶ Bájalo en GitHub': '▶ Get it on GitHub',
+  'STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).': 'STL Studio, created by ARGWABOT (A Regular Guy With A Bunch Of Tokens).',
+  'La animación de la línea del proyecto, en grande': 'The project line animation, large',
+  '← Volver al recorrido': '← Back to the tour',
+  'Esc también vuelve': 'Esc also goes back',
+  'Cómo lo resuelve STL': 'How STL solves it',
+  'La voz que lee cada rótulo: oprímelo para callarla o para volver a oírla': 'The voice that reads each label: press it to mute it or to hear it again',
+  'Repetir la animación; el reproductor se queda abierto': 'Replay the animation; the player stays open',
+  '↻ Repetir': '↻ Replay',
+  'Velocidad de la voz y de la animación': 'Speed of the voice and the animation',
+  'segundo 0': 'second 0',
+  'Perilla de la animación: con la rueda del ratón, o girándola, la adelantas o la devuelves; con las flechas, de a un segundo':
+    'Animation knob: with the mouse wheel, or by turning it, you move it forward or back; with the arrow keys, one second at a time',
+  'Pausar la animación': 'Pause the animation',
+  '🔊 Voz': '🔊 Voice',
+};
 // Lo fijo de «Cómo empezar» en la página, también en inglés (nmw6r9827tit): «▶ Empezar con voz», el enlace a la
 // documentación y, sin 3D, sus siete pasos
 if (EN) {
@@ -73,6 +102,24 @@ if (EN) {
     if (r && respuesta) r.textContent = respuesta;
   });
   document.getElementById('popup-clip')?.setAttribute('aria-label', 'An animation of this problem: each situation as it happens when working with AI by chat, followed by how STL solves it, step by step');
+  // Lo demás que está fijo en la página, en inglés (nota del titular nmw766nyutit: con «EN» no queda nada en español): la
+  // cubierta del teléfono, el final del tramo, el visor con «← Back to the tour», los mandos del reproductor y sus
+  // etiquetas para lectores de pantalla. Por su texto en español: cada texto y cada aria-label, title o aria-valuetext
+  // que coincide se cambia (tools/recorrido3d.test.ts comprueba que no quede ninguno sin su inglés)
+  document.title = FIJO_EN[document.title] ?? document.title;
+  const descripcion = document.querySelector('meta[name="description"]');
+  if (descripcion) descripcion.setAttribute('content', FIJO_EN[descripcion.getAttribute('content')] ?? descripcion.getAttribute('content'));
+  const recorre = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = recorre.nextNode(); n; n = recorre.nextNode()) {
+    const clave = n.nodeValue.trim();
+    if (clave && Object.hasOwn(FIJO_EN, clave)) n.nodeValue = n.nodeValue.replace(clave, FIJO_EN[clave]);
+  }
+  for (const el of document.querySelectorAll('[aria-label], [title], [aria-valuetext]')) {
+    for (const atributo of ['aria-label', 'title', 'aria-valuetext']) {
+      const valor = el.getAttribute(atributo);
+      if (valor && Object.hasOwn(FIJO_EN, valor)) el.setAttribute(atributo, FIJO_EN[valor]);
+    }
+  }
 }
 // El menú, la entrada y «ES · EN» en el idioma de la página (pd_bilingue; los nombres en inglés, t_decide_nombres_en y
 // t_decide_nombre_como_empezar_en). El otro idioma recarga la página con su ?lang, y la elección se guarda (nmw2lz2bvtit)
@@ -242,8 +289,7 @@ function hayWebGL() {
 // íconos de cada tipo de nota (error, idea, ajuste, petición y comentario), con sus colores del Studio. Los dibujan unas
 // pocas funciones compartidas (actorDev, actorStudio, actorDirector, actorModelo, iconoNota, placaMision), que repiten
 // las formas y los colores con que la estación 1 los arma en la función iniciar; la línea, dorada.
-// Los colores de cada tipo de nota, los mismos del Studio (estudio/src/estilos.css › --lv-respuesta, --lv-ajuste…): las
-// bolitas del camino, lo que le entregas al Studio en la estación 1 y los íconos 2D de las animaciones los llevan (nota
+// Los colores de cada tipo de nota, los mismos del Studio (estudio/src/estilos.css › --lv-respuesta, --lv-ajuste…): lo que le entregas al Studio en la estación 1 y los íconos 2D de las animaciones los llevan (nota
 // de voz nmw17rx07tit)
 const COLOR_TIPO = { respuesta: '#f5d27a', ajuste: '#7fe0d6', idea: '#f7a8d8', falla: '#ff6b8a', pregunta: '#c9b8ff', eleccion: '#7fb2ff', hazlo: '#ffb27a', entrega: '#6fe3a1' };
 // Los íconos de la estación 2, de un solo color con el blanco, con la paleta de las notas de la estación 1 (nota de voz del
@@ -257,7 +303,6 @@ const GRIS_PROBLEMA = '#8d929e';
 function enColor(i, sobre, seleccionado, resueltos) {
   return sobre === i || seleccionado === i || resueltos.has(i);
 }
-const COLORES_TIPO = Object.values(COLOR_TIPO);
 // El idioma de lo que se dibuja, sin depender de la página (las pruebas lo dibujan sin documento)
 const EN_DIBUJO = typeof document !== 'undefined' && (document.documentElement?.lang || 'es').toLowerCase().startsWith('en');
 // Las palabras dibujadas dentro de las escenas de «¿Te ha pasado…?», en inglés (t_decide_estacion2_textos, nmw738o1ktit: los
@@ -2312,7 +2357,7 @@ function iniciar() {
     // menú de la derecha (se veía en la captura con WebGL por software, a 1440 × 900), y las misiones que pasan a tu
     // izquierda se pierden por el borde, hacia el horizonte
     // Su emblema (pd_estaciones_decoradas; el emblema por estación, nmw5eregptit): los tres actores que ya están, con un
-    // halo suave y dorado detrás de los tres y su nombre flotando sobre el Studio. Desde lejos (la entrada, o al volver de la
+    // halo suave y dorado detrás de los tres. Desde lejos (la entrada, o al volver de la
     // estación 2) se ve chico y tenue, y crece a la vista al acercarte; al llegar, entero. Sin niebla, para que se vea de lejos
     const CENTRO_EMBLEMA = enLinea(0).addScaledVector(ARRIBA, 5).addScaledVector(lado, -5);
     const EMBLEMA_HALO = 44, EMBLEMA_CERCA = 36, EMBLEMA_LEJOS = 80;
@@ -2328,18 +2373,13 @@ function iniciar() {
     })();
     haloEmblema.position.copy(CENTRO_EMBLEMA);
     haloEmblema.renderOrder = -5;   // detrás de los actores, delante del cielo
-    const nombreUno = rotulo(T.uno, ORO, 1.5);
-    const sobreStudio = centro.clone().addScaledVector(ARRIBA, LADO_S / 2 + ROTULO_SOBRE_STUDIO + 2.4);
-    nombreUno.position.copy(sobreStudio);
-    const altoNombre = nombreUno.scale.clone();
-    escena.add(haloEmblema, nombreUno);
+    // Sin su nombre flotando sobre el Studio: el rótulo «STL Studio» de abajo ya lo dice (nota de voz nmw766nyutit)
+    escena.add(haloEmblema);
     segunLejania.push(() => {
       const lejos = lejania(camara.position.distanceTo(CENTRO_EMBLEMA), EMBLEMA_CERCA, EMBLEMA_LEJOS);
       const crece = lerp(1, 0.55, lejos);
       haloEmblema.scale.setScalar(EMBLEMA_HALO * crece);
       haloEmblema.material.opacity = lerp(1, 0.5, lejos);
-      nombreUno.scale.copy(altoNombre).multiplyScalar(crece);
-      nombreUno.material.opacity = lerp(1, 0.6, lejos);
     });
 
     const mitad = enLinea(0).addScaledVector(ARRIBA, 5);
@@ -2351,34 +2391,11 @@ function iniciar() {
     focos.push(centro.clone().addScaledVector(ARRIBA, -3));
   }
 
-  // ── El camino entre la estación 1 y la 2: solo la línea del tiempo y las bolitas que salen de ella en arcos y vuelven
-  // a juntarse, de la dispersión del comienzo (arcos largos) al orden (arcos cortos). Cada bolita lleva el color de un
-  // tipo de nota del Studio. Sin los postes con su farol que había antes de la estación 2, ni el trazo de cada arco (nota
-  // de voz nmw17rx07tit). Empieza pasado el modelo de la estación 1, que ahora está más lejos (nmw197t4jtit)
-  const DESDE = SITIO[0] + 0.08, HASTA = PARADA[1] - 0.03;
-  {
-    const nRamas = movil ? 12 : 20;
-    const bolitas = [];
-    for (let k = 0; k < nRamas; k++) {
-      const s = k / (nRamas - 1);                      // 0, la dispersión; 1, el orden
-      const ua = DESDE + s * (HASTA - DESDE - 0.025);
-      const ub = Math.min(ua + azar(0.014, 0.03) + (1 - s) * 0.02, HASTA);
-      const { p: pa } = marco(ua), { p: pb } = marco(ub), { lado } = marco((ua + ub) / 2);
-      const amplitud = (1 - s) * azar(2.5, 5) + s * azar(1, 1.8);
-      const costado = Math.random() < 0.5 ? -1 : 1;
-      const m1 = pa.clone().lerp(pb, 0.33).addScaledVector(lado, costado * amplitud).addScaledVector(ARRIBA, amplitud * azar(0.3, 0.8));
-      const m2 = pa.clone().lerp(pb, 0.66).addScaledVector(lado, costado * amplitud * 0.9).addScaledVector(ARRIBA, amplitud * azar(0.2, 0.6));
-      const curva = new THREE.CatmullRomCurve3([pa, m1, m2, pb]);
-      const bolita = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), brillo(COLORES_TIPO[k % COLORES_TIPO.length], 0.9));
-      escena.add(bolita);
-      bolitas.push({ curva, bolita, vel: azar(0.12, 0.3), fase: Math.random() });
-    }
-    // Cada bolita sale de la línea en su arco y vuelve a ella: el director junta lo que salió
-    animar.push((t) => {
-      bolitas.forEach((b) => b.bolita.position.copy(b.curva.getPointAt((t * b.vel + b.fase) % 1)));
-      halo.opacity = 0.18 + 0.08 * Math.sin(t * 1.2) ** 2;
-    });
-  }
+  // ── El camino entre la estación 1 y la 2: solo la línea del tiempo, que late despacio. Sin las esferas de colores que
+  // salían de ella en arcos (nota de voz nmw76cwtctit), ni los postes con su farol de antes (nmw17rx07tit)
+  animar.push((t) => {
+    halo.opacity = 0.18 + 0.08 * Math.sin(t * 1.2) ** 2;
+  });
 
   // La estación 2: cuánto está abierto el reproductor de un problema (cam, de 0 a 1, suavizado), que lleva el anillo hacia el
   // menú y lo achica para dejarle sitio
@@ -2971,7 +2988,7 @@ function iniciar() {
   const pintarBotonVoz = () => {
     if (!botonVoz) return;
     botonVoz.setAttribute('aria-pressed', String(conVoz));
-    botonVoz.textContent = conVoz ? '🔊 Voz' : '🔇 Sin voz';
+    botonVoz.textContent = conVoz ? L('🔊 Voz', '🔊 Voice') : L('🔇 Sin voz', '🔇 No voice');
   };
   pintarBotonVoz();
   const voces = new Map();   // un Audio por clave, pedido antes de que suene
@@ -3079,13 +3096,13 @@ function iniciar() {
   function pintarMando() {
     const corre = !pausado && !terminado();
     pausaClip?.querySelector('path')?.setAttribute('d', corre ? ICONO_PAUSA : ICONO_SEGUIR);
-    pausaClip?.setAttribute('aria-label', corre ? 'Pausar la animación' : terminado() ? 'Verla otra vez' : 'Seguir la animación');
+    pausaClip?.setAttribute('aria-label', corre ? L('Pausar la animación', 'Pause the animation') : terminado() ? L('Verla otra vez', 'Watch it again') : L('Seguir la animación', 'Resume the animation'));
     giroClip?.setAttribute('transform', `rotate(${((clipT / VUELTA_CLIP) * 360) % 360} 60 60)`);
     const s = Math.floor(clipT);
     if (perillaClip && s !== segundoClip) {
       segundoClip = s;
       perillaClip.setAttribute('aria-valuenow', String(s));
-      perillaClip.setAttribute('aria-valuetext', `segundo ${s} de ${Math.round(seleccionado >= 0 ? duraClip(seleccionado) : 0)}`);
+      perillaClip.setAttribute('aria-valuetext', `${L('segundo', 'second')} ${s} ${L('de', 'of')} ${Math.round(seleccionado >= 0 ? duraClip(seleccionado) : 0)}`);
     }
   }
   // El reloj de la pantalla de un problema: se cierra sola 4 s después de que su animación termina, salvo que la persona la

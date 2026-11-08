@@ -414,6 +414,96 @@
     document.documentElement.lang = 'en';
     for (const [momento, ls] of Object.entries(GUION_EN)) GUION[momento] = ls;
   }
+  // Todo lo que se dibuja en la escena, en inglés (nota del titular nmw766nyutit: con «EN» no queda nada en español): las
+  // frases de las ramas, las charlas de cada sesión con el modelo, lo que piensa el director y cada rótulo. texto() y
+  // rotulo() lo cambian al dibujar (mayus); lo que lleva un número (misión 2, parada 1, +1.200 por segundo), con su patrón
+  const DIBUJO_EN = {
+    'nuevo feature': 'new feature', 'agrega un buscador': 'add a search box', '¿y si mejor…?': 'what if instead…?',
+    'agrega un botón': 'add a button', 'que mande un correo': 'make it send an email',
+    'hazlo verde': 'make it green', 'hazlo más grande': 'make it bigger', 'muévelo a la derecha': 'move it to the right',
+    'hazlo blanco': 'make it white', 'hazlo negro': 'make it black', 'hazlo naranja': 'make it orange',
+    'no me gustó': 'I didn’t like it', 'quedó mal, corrígelo': 'it’s wrong, fix it', 'vuelve a como estaba': 'put it back how it was',
+    'eso no era': 'that’s not it', 'trabaja en la base de datos': 'work on the database', 'trabaja en el front': 'work on the front end',
+    'trabaja en el servidor': 'work on the server', 'trabaja en comunicaciones': 'work on messaging', '¡cambio urgente!': 'urgent change!',
+    'haz la base de datos': 'build the database', '¡Sí, capitán! Ya está': 'Aye, captain! Done', 'De una': 'On it',
+    'Listo. ¿Así?': 'Done. Like this?', 'esto no era así': 'this isn’t how it was', 'Ups, lo siento': 'Oops, sorry',
+    '¿estás seguro?': 'are you sure?', 'Totalmente… creo': 'Totally… I think', '¿en serio?': 'seriously?',
+    'Perdón, ya lo arreglo': 'Sorry, fixing it now', 'Verde. Muy verde': 'Green. Very green', 'no, el otro verde': 'no, the other green',
+    'Entendido: otro verde': 'Got it: another green', 'Vamos, a toda máquina': 'Full speed ahead', '¡Me encanta! ¿Cuál?': 'Love it! Which one?',
+    'revisa si así era': 'check if that was it', 'Revisado: casi': 'Checked: almost', 'Ok… ¿a cuál de todas?': 'Ok… which of them all?',
+    'Tienes toda la razón': 'You’re absolutely right', 'Busca todo… menos eso': 'It finds everything… but that',
+    'Puse tres, por si acaso': 'I added three, just in case', 'Como digas, jefe': 'Whatever you say, boss',
+    'Servidor listo… creo': 'Server ready… I think', 'Mandé 400. Ups': 'I sent 400. Oops', 'eso ya lo habíamos hecho': 'we already did that',
+    '¿Ah, sí? No lo recuerdo': 'Oh, really? I don’t remember', 'Blanco, como antes del rojo': 'White, like before the red',
+    'Ups. Va otra vez': 'Oops. Here we go again', 'revisa la base de datos': 'check the database',
+    'Está perfecta (no la vi)': 'It’s perfect (didn’t look)', '¿por qué se rompió?': 'why did it break?', 'Buena pregunta': 'Good question',
+    '¡Naranja! Entendido': 'Orange! Got it',
+    'leyendo todo junto…': 'reading it all together…', 'unificando…': 'merging…', 'descartando…': 'discarding…',
+    'reformulando…': 'rewording…', 'hablando con el modelo…': 'talking to the model…', 'comparando con la ruta…': 'checking the route…',
+    'organizando las misiones…': 'organizing the missions…', 'definiendo la estrategia…': 'setting the strategy…',
+    '¡urgente! solo esto…': 'urgent! only this…', 'pidiéndole el cambio al modelo…': 'asking the model for the change…',
+    'recibí la respuesta: hecho': 'got the answer: done',
+    'detenido: primero lo urgente': 'paused: urgent first', 'resultado → tú': 'result → you', '¡urgente! → director': 'urgent! → director',
+    'lo demás espera aquí': 'the rest waits here', 'el modelo': 'the model', 'tokens gastados': 'tokens spent', 'en reposo': 'idle',
+    'atención requerida': 'attention required', 'agotado': 'exhausted', 'muy cansado': 'very tired', 'cansado': 'tired',
+    'atento': 'alert', 'fresco: una cosa a la vez': 'fresh: one thing at a time', 'fresco': 'fresh',
+    'director: solo lo urgente': 'director: only the urgent', 'inicio': 'start', 'Meta': 'Goal',
+    'le hablan todas a la vez': 'they all talk to it at once', '✉ reporte: cambio hecho': '✉ report: change done',
+    'en «Dónde quedamos»': 'in «Where we left off»', '✓ resultado': '✓ result', 'reformulada': 'reworded', 'descartada': 'discarded',
+    'proyecto + meta': 'project + goal', 'tú': 'you', 'misión final': 'final mission', 'revisa lo urgente': 'review the urgent one',
+    'urgente ✓ hecho': 'urgent ✓ done', 'cambio urgente': 'urgent change',
+  };
+  const DIBUJO_EN_PATRONES = [[/^misión (\d+)$/, 'mission $1'], [/^parada (\d+)$/, 'stop $1'], [/^\+([\d.,]+) por segundo$/, '+$1 per second']];
+  const enIngles = typeof EN_LINEA !== 'undefined' && EN_LINEA;
+  const LOCAL_NUMEROS = enIngles ? 'en-US' : 'es-CO';
+  function dibujoEn(t) {
+    if (!enIngles) return t;
+    const s = String(t);
+    if (Object.hasOwn(DIBUJO_EN, s)) return DIBUJO_EN[s];
+    for (const [re, en] of DIBUJO_EN_PATRONES) if (re.test(s)) return s.replace(re, en);
+    return s;
+  }
+  // Lo fijo de la página, también en inglés, por su texto en español: el título, los modos, la perilla, la voz, la velocidad
+  // y la bienvenida, con sus etiquetas para lectores de pantalla (lo que cambia al usarla lo pone su código, con textoLinea).
+  // tools/vozLinea.test.ts comprueba que no quede ningún texto ni etiqueta de la página sin su inglés
+  const textoLinea = (es, en) => (enIngles ? en : es);
+  const FIJO_EN = {
+    'Boceto · La línea del proyecto': 'Sketch · The project line',
+    '¿Qué es STL?:': 'What is STL?:',
+    'El guardrail donde más hacía falta, en el Dev': 'The guardrail where it was needed most, in Dev',
+    'Ver el proyecto': 'See the project',
+    'Sin STL': 'Without STL',
+    'Con STL': 'With STL',
+    'Sin STL, el desarrollador avanza por la línea del proyecto y cada sesión que abre aparte es una rama hacia arriba que conversa de ida y vuelta con el modelo; entre más ramas, más lento avanza, no llega a la meta, se agota y el contador de tokens se dispara. Con STL, el desarrollador le entrega su proyecto y su meta al Studio, que se los da al director, y va siempre a su mismo paso; el Studio, como una barrera, va hasta cada idea y la atrapa antes de que llegue al modelo, la guarda y la organiza, y al soltarla la atención del desarrollador baja; en dos paradas, cuando el desarrollador termina sus misiones, el Studio saca de adentro al director, que recibe todo junto, descarta o reformula lo que hace falta, habla con el modelo y lo reparte en misiones. Entre las dos, un cambio urgente: el Studio va rápido a atraparlo, se aparta con él, saca al director, que lo resuelve con el modelo, y le trae al desarrollador el resultado; su siguiente misión es revisarlo. Al final, dos misiones y la misión final llevan a la meta. Arriba a la izquierda, la carita del desarrollador y la atención que le pide el proyecto; arriba a la derecha, los tokens gastados':
+      'Without STL, the developer moves along the project line and each session opened apart is a branch going up that talks back and forth with the model; the more branches, the slower they move, they never reach the goal, they burn out and the token counter shoots up. With STL, the developer hands their project and goal to the Studio, which gives them to the director, and always keeps the same pace; the Studio, like a barrier, goes to each idea and catches it before it reaches the model, keeps it and organizes it, and when it lets go the developer’s attention drops; at two stops, when the developer finishes their missions, the Studio brings out the director, who receives everything together, discards or rewords what is needed, talks to the model and splits it into missions. Between the two, an urgent change: the Studio rushes to catch it, steps aside with it, brings out the director, who solves it with the model, and brings the result to the developer; their next mission is to review it. At the end, two missions and the final mission lead to the goal. Top left, the developer’s face and the attention the project asks of them; top right, the tokens spent',
+    'Perilla de la animación: gírala a la derecha para adelantar y a la izquierda para volver; con las flechas, de a un segundo':
+      'Animation knob: turn it right to go forward and left to go back; with the arrow keys, one second at a time',
+    'segundo 0 de esta escena': 'second 0 of this scene',
+    'Pausar la animación': 'Pause the animation',
+    'Iniciar la presentación ▸': 'Start the presentation ▸',
+    'Gírala para controlar la animación': 'Turn it to control the animation',
+    'La voz que narra cada subtítulo: oprímelo para callarla o para volver a oírla': 'The voice that narrates each subtitle: press it to mute it or to hear it again',
+    '🔊 Voz': '🔊 Voice',
+    'Velocidad de la voz y de la animación': 'Speed of the voice and the animation',
+    'Bienvenido a «¿Qué es STL?»': 'Welcome to «What is STL?»',
+    'Te lo explicamos clarito, en versión para dummies (sin ofender: nosotros también la necesitábamos).': 'We explain it plainly, in a version for dummies (no offense: we needed it too).',
+    'Con la rueda del ratón la adelantas o la devuelves, y con el clic de la rueda la pausas.': 'With the mouse wheel you move it forward or back, and clicking the wheel pauses it.',
+    '▶ Iniciar la presentación': '▶ Start the presentation',
+  };
+  if (enIngles) {
+    document.title = FIJO_EN[document.title] ?? document.title;
+    const recorre = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = recorre.nextNode(); n; n = recorre.nextNode()) {
+      const clave = n.nodeValue.trim();
+      if (clave && Object.hasOwn(FIJO_EN, clave)) n.nodeValue = n.nodeValue.replace(clave, FIJO_EN[clave]);
+    }
+    for (const el of document.querySelectorAll('[aria-label], [title], [aria-valuetext]')) {
+      for (const atributo of ['aria-label', 'title', 'aria-valuetext']) {
+        const valor = el.getAttribute(atributo);
+        if (valor && Object.hasOwn(FIJO_EN, valor)) el.setAttribute(atributo, FIJO_EN[valor]);
+      }
+    }
+  }
   // El narrador: cuánto tarda en leerse (o en contarse en voz alta) una línea, en milisegundos reales
   // (algunas llevan después una pausa dramática, también en milisegundos)
   // (antes del cambio urgente, dos segundos menos que antes: nota de voz del 20 de octubre)
@@ -710,7 +800,7 @@
     const b = $('voz');
     if (!b) return;
     b.setAttribute('aria-pressed', String(conVoz));
-    b.textContent = conVoz ? '🔊 Voz' : '🔇 Sin voz';
+    b.textContent = conVoz ? textoLinea('🔊 Voz', '🔊 Voice') : textoLinea('🔇 Sin voz', '🔇 No voice');
   }
   function pintarVelocidad() {
     document.querySelectorAll('#velocidad button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === velocidad)));
@@ -833,7 +923,8 @@
     if (t !== textoReloj) {
       textoReloj = t;
       $('crono').textContent = t;
-      $('crono').title = c ? 'Va en este punto de la historia completa (sin STL y con STL) / lo que dura toda' : 'Va en este punto de la escena / lo que dura';
+      $('crono').title = c ? textoLinea('Va en este punto de la historia completa (sin STL y con STL) / lo que dura toda', 'Where it is in the whole story (without STL and with STL) / how long it all lasts')
+        : textoLinea('Va en este punto de la escena / lo que dura', 'Where it is in the scene / how long it lasts');
     }
   }
   // Empieza la escena en curso desde su principio (también al volver atrás con la perilla)
@@ -1570,7 +1661,7 @@
   }
   // Todo rótulo del dibujo empieza con mayúscula, aunque empiece con un signo («¡Urgente!», «✉ Reporte»); una cifra
   // («+1.200 por segundo») se queda como está
-  const mayus = (t) => String(t).replace(/^([^\p{L}\p{N}]*)(\p{L})/u, (_, a, b) => a + b.toUpperCase());
+  const mayus = (t) => String(dibujoEn(t)).replace(/^([^\p{L}\p{N}]*)(\p{L})/u, (_, a, b) => a + b.toUpperCase());
   function texto(t, x, y, color, tam, alfa, extra, alinear) {
     if (alfa <= 0.01) return;
     t = mayus(t);
@@ -1729,9 +1820,9 @@
     ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill();
     trazar(() => ctx.roundRect(x, y, w, h, 12), borde, 1, 0.45 + (caliente > 0.5 ? 0.4 + 0.15 * Math.sin(now / 120) : 0));
     texto('tokens gastados', x + 14, y + 20, '#b9b4a6', 11, 0.95, '600', 'left');
-    texto(Math.round(tokens).toLocaleString('es-CO'), x + w - 14, y + 22, caliente > 0.5 ? '#ffd0da' : '#fff1c4', 19, 1, '700', 'right');
+    texto(Math.round(tokens).toLocaleString(LOCAL_NUMEROS), x + w - 14, y + 22, caliente > 0.5 ? '#ffd0da' : '#fff1c4', 19, 1, '700', 'right');
     const ps = Math.round(ritmo * 1000);
-    texto(ps ? `+${ps.toLocaleString('es-CO')} por segundo` : 'en reposo', x + w - 14, y + 47, caliente > 0.5 ? '#ffb3c2' : '#8f8a7d', 10.5, 0.95, 'italic', 'right');
+    texto(ps ? `+${ps.toLocaleString(LOCAL_NUMEROS)} por segundo` : 'en reposo', x + w - 14, y + 47, caliente > 0.5 ? '#ffb3c2' : '#8f8a7d', 10.5, 0.95, 'italic', 'right');
   }
   // Un color entre dos (de 0, el primero, a 1, el segundo)
   function mezclar(c1, c2, k) {
@@ -2221,7 +2312,8 @@
   let espera = true;
   function iconoBoton() {
     $('icono').setAttribute('d', reproduce ? 'M7 5h3.6v14H7zM13.4 5H17v14h-3.6z' : 'M8.5 5.2v13.6L19 12z');
-    boton.setAttribute('aria-label', reproduce ? 'Pausar la animación' : espera ? 'Iniciar la presentación' : 'Seguir la animación');
+    boton.setAttribute('aria-label', reproduce ? textoLinea('Pausar la animación', 'Pause the animation')
+      : espera ? textoLinea('Iniciar la presentación', 'Start the presentation') : textoLinea('Seguir la animación', 'Resume the animation'));
   }
   function alternar() {
     // Solo detiene o sigue, también después de la meta: nunca la vuelve a empezar (nmw2cw8xmtit)
@@ -2337,7 +2429,8 @@
     if (s !== segundo) {
       segundo = s;
       perilla.setAttribute('aria-valuenow', String(s));
-      perilla.setAttribute('aria-valuetext', `segundo ${s} de la escena ${modo === 'sin' ? 'sin STL' : 'con STL'}`);
+      perilla.setAttribute('aria-valuetext', textoLinea(`segundo ${s} de la escena ${modo === 'sin' ? 'sin STL' : 'con STL'}`,
+        `second ${s} of the scene ${modo === 'sin' ? 'without STL' : 'with STL'}`));
     }
   }
 
