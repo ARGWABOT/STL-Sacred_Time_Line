@@ -107,10 +107,12 @@
   /* Las tres estaciones, con su texto al centro, también «Qué es STL» (nmw6lwwbxtit) */
   .js-3d .estacion { justify-content: center; }
 
-  /* La entrada: el título arriba de la portada, sin montarse sobre la animación (nmw6lwwbxtit); al primer acercamiento se
-     va hacia arriba, despacio, y se desvanece (mundo-3d.js › irseLaEntrada) */
+  /* La entrada: desde que el recorrido nace lejos, frente a la línea y sin la animación a la vista, sus dos líneas van al
+     centro, dentro del primer anillo, y es lo único que se ve en el centro (nmw85pz2mtit, nmw86na4vtit; antes, arriba, para
+     no montarse sobre la portada, nmw6lwwbxtit); al primer acercamiento se va hacia arriba, despacio, y se desvanece
+     (mundo-3d.js › irseLaEntrada) */
   .entrada { padding: 14vh clamp(16px, 5vw, 64px) 8vh; text-align: center; }
-  .js-3d .entrada { height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; padding-top: clamp(14px, 3.5vh, 40px); padding-bottom: 0; }
+  .js-3d .entrada { height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding-top: 0; padding-bottom: 0; }
   .js-3d .entrada > * { will-change: transform, opacity; }
   .entrada h1 { margin: 0 0 8px; font-size: clamp(36px, 5vw, 64px); line-height: 1.1; color: #fffaf0; }
   .js-3d .entrada h1 { margin: 0 0 2px; font-size: clamp(26px, 2.4vw, 46px); }
@@ -204,6 +206,13 @@
   .volver:hover { background: var(--luz); }
   .visor iframe { flex: 1; min-height: 0; width: 100%; border: 0; border-radius: 10px; background: #07090f; }
   @media (max-width: 900px) { .visor { top: 84px; bottom: 2vh; left: 2vw; right: 2vw; } }
+  /* En un teléfono o una pantalla táctil, el visor se cierra con «✕», sin texto, y sin la nota de Esc, que no hay (nmw86aqe2tit) */
+  .volver-x { display: none; }
+  @media (max-width: 900px), (pointer: coarse) {
+    .visor .volver { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; font-size: 20px; line-height: 1; }
+    .visor .volver-largo, .visor-barra .visor-esc { display: none; }
+    .visor .volver-x { display: inline; }
+  }
 
   /* La estación 2: su frase va en la misma tarjeta que las demás (una sola tarjeta para todas las estaciones, nmw5o26vdtit);
      los siete problemas son íconos que giran en el mundo. La lista sigue en la página, oculta con el 3D (sin 3D se ve y se
@@ -338,17 +347,19 @@
   .ver-parada .estacion.actual .tarjeta { position: static; margin: 0; opacity: 1; transform: none; pointer-events: auto; }
 
   @media (max-width: 900px) {
-    .js-3d .estacion { justify-content: center; flex-direction: column; align-items: center; }
+    .js-3d .estacion { justify-content: center; align-items: flex-end; }
     .js-3d .tarjeta { opacity: 0; }
     .menu a, .menu span { padding: 5px 9px; font-size: 13px; }
-    /* La tarjeta de cada estación, un panel abajo, de lado a lado (pd_telefono_vertical, pieza 2; nmw7yh2tntit): su título
-       arriba y su botón debajo, grande para el dedo, sobre la barra de abajo del teléfono */
-    .js-3d .estacion { position: relative; padding-left: 0; padding-right: 0; }
-    .js-3d .tarjeta.corta { width: 100%; max-width: none; bottom: 0; margin-bottom: 0; border-radius: 18px 18px 0 0; border-bottom: 0;
-      flex-direction: column; align-items: stretch; gap: 10px; text-align: center; padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); }
+    /* La tarjeta de cada estación, una píldora abajo y al centro, como en el computador (nota de voz del titular nmw86ofbytit,
+       8 de noviembre de 2026, que reemplaza el panel de lado a lado de nmw7yh2tntit): nunca al centro de la pantalla ni de
+       lado a lado, solo un poco más ancha que su botón, para no tapar la animación; el botón, grande para el dedo, sobre la
+       barra de abajo del teléfono */
+    .js-3d .estacion { position: relative; padding-left: 12px; padding-right: 12px; }
+    .js-3d .tarjeta.corta { width: auto; max-width: calc(100vw - 24px); bottom: calc(1.5vh + env(safe-area-inset-bottom)); margin-bottom: calc(1.5vh + env(safe-area-inset-bottom));
+      border-radius: 28px; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 10px; text-align: center; padding: 6px; }
     .js-3d .tarjeta.corta, .js-3d .tarjeta.corta h2 { white-space: normal; text-wrap: balance; }
-    .js-3d .tarjeta.corta h2 { font-size: 18px; }
-    .ver-parada .estacion.actual { justify-content: flex-end; padding-bottom: 0; }
+    .js-3d .tarjeta.corta h2 { font-size: 16px; padding: 4px 8px 0; }
+    .ver-parada .estacion.actual { justify-content: center; align-items: flex-end; padding-bottom: 0; }
     .js-3d .tarjeta.corta .boton-ver { justify-content: center; min-height: 44px; font-size: 16px; }
     /* Los siete nombres del anillo de la estación 2, debajo de él, para tocarlos (pieza 5; nmw7yjlhntit; mundo-3d.js › ponerNombres) */
     .nombres-anillo { position: fixed; left: 8px; right: 8px; z-index: 12; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
@@ -523,8 +534,9 @@
 <!-- La animación en grande: se abre desde «▶ Ver la animación» o «Ver». Esc, el botón o el desplazamiento la cierran -->
 <div class="visor" id="visor" role="dialog" aria-label="La animación de la línea del proyecto, en grande" hidden>
   <div class="visor-barra">
-    <button type="button" class="volver" data-cerrar-visor>← Volver al recorrido</button>
-    <span>Esc también vuelve</span>
+    <!-- En un teléfono, solo «✕», y sin «Esc también vuelve», que no tiene tecla Esc (nmw86aqe2tit) -->
+    <button type="button" class="volver" data-cerrar-visor aria-label="Volver al recorrido"><span class="volver-largo">← Volver al recorrido</span><span class="volver-x" aria-hidden="true">✕</span></button>
+    <span class="visor-esc">Esc también vuelve</span>
     <!-- El título de la animación, arriba a la derecha del visor y no dentro del dibujo (nota de voz nmw479zmetit) -->
     <h2 class="visor-titulo" data-titulo-visor>¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span></h2>
   </div>

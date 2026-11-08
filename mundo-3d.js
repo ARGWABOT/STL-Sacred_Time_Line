@@ -54,6 +54,7 @@ const FIJO_EN = {
   'STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).': 'STL Studio, created by ARGWABOT (A Regular Guy With A Bunch Of Tokens).',
   'La animación de la línea del proyecto, en grande': 'The project line animation, large',
   '← Volver al recorrido': '← Back to the tour',
+  'Volver al recorrido': 'Back to the tour',
   'Esc también vuelve': 'Esc also goes back',
   'Cómo lo resuelve STL': 'How STL solves it',
   'La voz que lee cada rótulo: oprímelo para callarla o para volver a oírla': 'The voice that reads each label: press it to mute it or to hear it again',
@@ -626,6 +627,16 @@ function lugaresDeAnillos(paradas, antes) {
     const desde = paradas[k], hasta = Math.max(desde, u - antes);
     return Array.from({ length: ANILLOS_POR_TRAMO }, (_, m) => desde + ((hasta - desde) * (m + 1)) / ANILLOS_POR_TRAMO);
   });
+}
+// La entrada, mucho más atrás (nota de voz del titular nmw85pz2mtit, 8 de noviembre de 2026): la cámara nace lejos, frente
+// a la línea, y antes del primer anillo hay el mismo trecho que entre dos anillos de las estaciones 1 y 2; los tres anillos,
+// a ese mismo paso, y el último, «antes» antes de la estación 1, como el de llegada de cada estación. Así, del inicio a la
+// estación 1 hay lo mismo que de la estación 1 a la 2. Lo que queda antes de 0 se dibuja sobre la recta con que nace la
+// línea (iniciar() › puntoEn). Pura
+function entradaDeAnillos(paradas, antes) {
+  const paso = (paradas[1] - antes - paradas[0]) / ANILLOS_POR_TRAMO, ultimo = paradas[0] - antes;
+  const anillos = Array.from({ length: ANILLOS_POR_TRAMO }, (_, m) => ultimo - (ANILLOS_POR_TRAMO - 1 - m) * paso);
+  return { nace: anillos[0] - paso, anillos, paso };
 }
 // Un resplandor tibio detrás de un actor, como el de la estación 1 (resplandor()): rgb, como «255, 241, 196»
 function brilloActor(c, x, y, r, rgb) {
@@ -2024,9 +2035,10 @@ function iniciar() {
     x.fillStyle = g; x.fillRect(0, 0, 128, 128);
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(70, 440), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
+    // Más largo hacia atrás desde que la entrada nace lejos (nmw85pz2mtit): también bajo la recta donde nace la línea
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(70, 560), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
     m.rotation.x = -Math.PI / 2;
-    m.position.set(0, -3, -182);
+    m.position.set(0, -3, -122);
     return m;
   })();
   escena.add(brilloBajoLaLinea);
@@ -2039,24 +2051,31 @@ function iniciar() {
   // La línea termina en el libro abierto de «La documentación», la última estación (nmw76f854tit): se dibuja solo hasta
   // FIN_LINEA, el lugar de esa estación (SITIO[3]), y ahí entra en sus páginas
   const FIN_LINEA = 0.922;
-  const trazo = new THREE.CatmullRomCurve3(Array.from({ length: 161 }, (_, k) => camino.getPointAt((k / 160) * FIN_LINEA)), false, 'centripetal');
+  // Antes de 0, la línea sigue recta hacia atrás, por donde nace (la entrada, nmw85pz2mtit): u negativo es esa recta
+  const LARGO_LINEA = camino.getLength(), NACE_P = camino.getPointAt(0), NACE_T = camino.getTangentAt(0);
+  const puntoEn = (u) => u >= 0 ? camino.getPointAt(Math.min(u, 1)) : NACE_P.clone().addScaledVector(NACE_T, u * LARGO_LINEA);
+  const tangenteEn = (u) => camino.getTangentAt(tope(u));
+  const PARADA = [0.1, 0.42, 0.7, 0.9];   // dónde se detiene la cámara en cada estación (de 0 a 1); la última, «La documentación»
+  // Los anillos dorados: ARCO_ANTES, cuánto antes de su parada va el de llegada
+  const ARCO_RADIO = 4.2, ARCO_ANTES = 0.035;
+  // La entrada (nmw84xwcrtit, nmw85pz2mtit): la cámara nace lejos al frente de la línea (U_NACE), cruza sus tres anillos y,
+  // ya en U_SALE, pasado el último, se abre a la vista de costado de la estación 1
+  const { nace: U_NACE, anillos: ANILLOS_ENTRADA } = entradaDeAnillos(PARADA, ARCO_ANTES);
+  const U_SALE = 0.09;
+  const INICIO_LINEA = U_NACE - 0.02;
+  const trazo = new THREE.CatmullRomCurve3(Array.from({ length: 201 }, (_, k) => puntoEn(INICIO_LINEA + (k / 200) * (FIN_LINEA - INICIO_LINEA))), false, 'centripetal');
   escena.add(new THREE.Mesh(new THREE.TubeGeometry(trazo, 1400, 0.11, 10, false), new THREE.MeshBasicMaterial({ color: LINEA })));
   const halo = new THREE.MeshBasicMaterial({ color: LINEA, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false });
   escena.add(new THREE.Mesh(new THREE.TubeGeometry(trazo, 700, 0.34, 10, false), halo));
 
   const ARRIBA = new THREE.Vector3(0, 1, 0);
   const marco = (u) => {   // dónde está la línea en u, hacia dónde va y cuál es su costado
-    const p = camino.getPointAt(u), t = camino.getTangentAt(u);
+    const p = puntoEn(u), t = tangenteEn(u);
     const lado = new THREE.Vector3(-t.z, 0, t.x).normalize();
     return { p, t, lado };
   };
-  const PARADA = [0.1, 0.42, 0.7, 0.9];   // dónde se detiene la cámara en cada estación (de 0 a 1); la última, «La documentación»
   // Dónde está lo que se ve en cada estación: un poco más adelante, para que la cámara lo vea de frente y no encima
   const SITIO = PARADA.map((u) => u + 0.022);
-  // La entrada (nmw84xwcrtit): la cámara nace al frente de la línea (U_NACE), cruza sus tres anillos y, ya en U_SALE, antes
-  // del desarrollador de la estación 1, se abre a la vista de costado
-  const U_NACE = 0.012, U_SALE = 0.06;
-  const ANILLOS_ENTRADA = [0.018, 0.036, 0.054];
   const focos = [];   // lo que mira la cámara en cada estación
   const animar = [];  // lo que se mueve: funciones (t) => void
   // Lo que cambia con la distancia a la cámara (el emblema de la estación 1): cada cuadro, después de colocarla, también con
@@ -2853,7 +2872,6 @@ function iniciar() {
   // recorrido empieza ahí y no pasa por él. Ancho y alto de sobra: la cámara pasa a 1,4 del centro de la línea y a 2,8 de
   // altura (unos 3,1 del centro del anillo), y el anillo mide 4,2 de radio, así que nada cruza la vista. Quieto, sin animación.
   // Desde nmw74wypntit, tres por tramo, a la misma distancia (lugaresDeAnillos): dos en el camino y el de la llegada
-  const ARCO_RADIO = 4.2, ARCO_ANTES = 0.035;
   // Un círculo entero hecho tubo, en el plano de su costado y arriba, con su halo: un tubo más grueso, tenue y aditivo
   const circulo = Array.from({ length: 72 }, (_, k) => new THREE.Vector3(Math.cos((k / 72) * Math.PI * 2) * ARCO_RADIO, Math.sin((k / 72) * Math.PI * 2) * ARCO_RADIO, 0));
   const formaArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(circulo, true), 144, 0.05, 8, true);
@@ -2880,7 +2898,7 @@ function iniciar() {
   const pose = (u) => {
     const { p, t, lado } = marco(u);
     const posicion = p.clone().addScaledVector(t, -7.5).addScaledVector(ARRIBA, ALTURA_CAMARA).addScaledVector(lado, 1.4);
-    const adelante = camino.getPointAt(Math.min(u + 0.03, 1)).addScaledVector(ARRIBA, 0.9);
+    const adelante = puntoEn(Math.min(u + 0.03, 1)).addScaledVector(ARRIBA, 0.9);
     // Cerca de una estación, la mirada se va hacia lo que hay que ver
     let peso = 0, foco = null;
     PARADA.forEach((s, i) => {
@@ -2930,9 +2948,10 @@ function iniciar() {
     if (w < 1) {
       // De 0 a 1: avanza por la línea desde donde nace hasta pasar el último anillo de la entrada, y en la segunda mitad se
       // abre a la vista de costado de la estación 1 (el espejo de la salida de la estación 1, k === 1)
+      // Desde que la entrada nace mucho más atrás (nmw85pz2mtit), se abre más tarde, en el último cuarto: antes cruza los anillos
       const e = masSuave(tope(w));
       ({ posicion, mira } = pose(lerp(U_NACE, U_SALE, e)));
-      const b = masSuave(tope((w - 0.35) / 0.65));
+      const b = masSuave(tope((w - 0.75) / 0.25));
       posicion.lerp(portada.posicion, b);
       mira.lerp(portada.mira, b);
     } else {
