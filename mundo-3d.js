@@ -96,15 +96,26 @@ const suavizadoPara = (distancia) => (Math.abs(distancia) > 1.5 ? SUAVIZADO_SALT
 // la mitad»). Solo en ese viaje: lo apaga la llegada o la rueda del ratón
 const SUAVIZADO_ARRANQUE = SUAVIZADO * 2;
 // Lo que flota junto a la línea nunca queda detrás del menú flotante (nota de voz del titular nmw6z8b3btit, con su captura):
-// si su caja en la pantalla cruza la del menú (con su aire), sube al espacio libre que queda sobre el menú, como lo marcó el
-// titular; si arriba no cabe, baja al que queda debajo, y si tampoco, sube lo que puede y se corre a la izquierda del menú. Nunca sale de la pantalla. Pura: recibe
-// la caja ({ x, y, w, h }, en píxeles), la del menú y el tamaño de la pantalla, y devuelve cuánto correrla ({ dx, dy })
+// si su caja en la pantalla cruza la del menú (con su aire), se corre a la izquierda, a su misma altura, hasta quedar justo
+// sobre la línea amarilla (nota de voz del titular nmw7160d0tit: «más cerca de la línea, alineadas sobre ella, y más lejos de
+// arriba»); si ahí pisa otra cosa (`evitar`, como la pantalla de la estación), se corre solo lo justo para salir del menú; si
+// tampoco cabe, sube al espacio libre que queda sobre el menú, y si arriba no cabe, baja al que queda debajo, y si tampoco,
+// sube lo que puede y se corre a la izquierda del menú. Nunca sale de la pantalla. Pura: recibe la caja ({ x, y, w, h }, en
+// píxeles), la del menú, el tamaño de la pantalla, cuánto correrla para quedar sobre la línea (`sobreLinea`, o null) y las
+// cajas que no debe pisar, y devuelve cuánto correrla ({ dx, dy })
 const AIRE_MENU = 16;
-function apartarDelMenu(caja, menu, ancho, alto) {
+function apartarDelMenu(caja, menu, ancho, alto, sobreLinea = null, evitar = []) {
   if (!caja || !menu || !menu.w || !menu.h || !ancho || !alto) return { dx: 0, dy: 0 };
   const cruza = (dx, dy) => caja.x + dx < menu.x + menu.w + AIRE_MENU && menu.x - AIRE_MENU < caja.x + caja.w + dx
     && caja.y + dy < menu.y + menu.h + AIRE_MENU && menu.y - AIRE_MENU < caja.y + caja.h + dy;
   if (!cruza(0, 0)) return { dx: 0, dy: 0 };
+  const pisa = (dx) => evitar.some((o) => o && caja.x + dx < o.x + o.w + AIRE_MENU && o.x - AIRE_MENU < caja.x + caja.w + dx
+    && caja.y < o.y + o.h + AIRE_MENU && o.y - AIRE_MENU < caja.y + caja.h);
+  const sirve = (dx) => dx < 0 && caja.x + dx >= AIRE_MENU && !cruza(dx, 0) && !pisa(dx);
+  // A su altura, sobre la línea; si no, a su altura, lo justo para salir del menú
+  if (Number.isFinite(sobreLinea) && sirve(sobreLinea)) return { dx: sobreLinea, dy: 0 };
+  const aLaIzquierda = menu.x - AIRE_MENU - (caja.x + caja.w);
+  if (sirve(aLaIzquierda)) return { dx: aLaIzquierda, dy: 0 };
   const subir = menu.y - AIRE_MENU - (caja.y + caja.h), bajar = menu.y + menu.h + AIRE_MENU - caja.y;
   // Arriba primero, como lo marcó el titular; si arriba no cabe, debajo del menú
   if (caja.y + subir >= AIRE_MENU) return { dx: 0, dy: subir };
@@ -2125,7 +2136,7 @@ function iniciar() {
   // El anillo de íconos de la estación 2: su centro, su costado y su dirección; lo llena la estación
   const anillo = { centro: null, lado: null, tan: null, escala: 1 };
   // La pantalla 3D de «Cómo empezar» y su brillo (los pone la estación 3), y si el reproductor se está encogiendo hacia ella
-  const como3d = { pantalla: null, brillo: null, volviendo: false };
+  const como3d = { pantalla: null, brillo: null, volviendo: false, linea: null, figura: null };
   // Las tres referencias de la estación 3 con sus rótulos, en un grupo que se aparta del menú (apartarColumna, nmw6z8b3btit)
   const columnaComo = new THREE.Group();
   escena.add(columnaComo);
@@ -2382,6 +2393,8 @@ function iniciar() {
     const TAM_REFERENCIA = 1.35;
     flecha.scale.setScalar(TAM_REFERENCIA);
     enColumna(enEscena(flecha, COLUMNA, 4.2));
+    // Para correrla sobre la línea si toca el menú (apartarColumna): el punto de la línea en la estación y la figura de arriba
+    Object.assign(como3d, { linea: p.clone(), figura: flecha });
     const carpeta = new THREE.Group();
     const solapa = cajita3(0.3, 0.1, 0.12, brillo(ORO, 0.5), 0.03);
     solapa.position.set(-0.17, 0.27, 0);
@@ -2420,19 +2433,23 @@ function iniciar() {
     animar.push(deEstacion(2, moverEscenaComo));
   }
 
-  // ── Un arco en cada parada (pd_estaciones_decoradas; «Over the line, as you recommend», nmw6z9v94tit): un arco dorado y
-  // delgado sobre la línea, unos metros antes de cada estación, que la cámara cruza al llegar, como una puerta que dice
-  // «estás llegando». Ancho y alto de sobra: la cámara pasa a 1,4 del centro de la línea y a 2,8 de altura (unos 3,1 del
-  // centro del arco), y el arco mide 4,2 de radio, así que nada cruza la vista. Quieto, sin animación
+  // ── Un anillo en cada parada desde la 2 (pd_estaciones_decoradas; nmw6z9v94tit, y nmw727omntit: «make them full rings,
+  // remove the first one, add them some glow»): un anillo dorado y delgado alrededor de la línea, unos metros antes de cada
+  // estación, que la cámara cruza al llegar, como una puerta que dice «estás llegando». La estación 1 no lo lleva: el
+  // recorrido empieza ahí y no pasa por él. Ancho y alto de sobra: la cámara pasa a 1,4 del centro de la línea y a 2,8 de
+  // altura (unos 3,1 del centro del anillo), y el anillo mide 4,2 de radio, así que nada cruza la vista. Quieto, sin animación
   const ARCO_RADIO = 4.2, ARCO_ANTES = 0.035;
-  // Un medio círculo hecho tubo (no un anillo: la portada no lleva anillos ni fragmentos), en el plano de su costado y arriba
-  const medioCirculo = Array.from({ length: 37 }, (_, k) => new THREE.Vector3(Math.cos((k / 36) * Math.PI) * ARCO_RADIO, Math.sin((k / 36) * Math.PI) * ARCO_RADIO, 0));
-  const formaArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(medioCirculo), 72, 0.05, 8, false);
-  const materialArco = brillo(ORO, 0.6);
-  for (const u of PARADA) {
+  // Un círculo entero hecho tubo, en el plano de su costado y arriba, con su halo: un tubo más grueso, tenue y aditivo
+  const circulo = Array.from({ length: 72 }, (_, k) => new THREE.Vector3(Math.cos((k / 72) * Math.PI * 2) * ARCO_RADIO, Math.sin((k / 72) * Math.PI * 2) * ARCO_RADIO, 0));
+  const formaArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(circulo, true), 144, 0.05, 8, true);
+  const formaHaloArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(circulo, true), 144, 0.24, 8, true);
+  const materialArco = brillo(ORO, 0.9);
+  const materialHaloArco = new THREE.MeshBasicMaterial({ color: ORO, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false });
+  for (const u of PARADA.slice(1)) {
     const { p, lado } = marco(Math.max(0, u - ARCO_ANTES));
     const hacia = new THREE.Vector3().crossVectors(lado, ARRIBA).normalize();
-    const arco = new THREE.Mesh(formaArco, materialArco);
+    const arco = new THREE.Group();
+    arco.add(new THREE.Mesh(formaArco, materialArco), new THREE.Mesh(formaHaloArco, materialHaloArco));
     arco.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(lado, ARRIBA, hacia));
     arco.position.copy(p);
     escena.add(arco);
@@ -2601,6 +2618,28 @@ function iniciar() {
     }
     return { x: x0, y: y0, w: x1 - x0, h: y1 - y0, hondo };
   }
+  // Cuánto correr la columna, en píxeles, para que su figura de arriba quede justo sobre la línea amarilla (nmw7160d0tit)
+  const figuraEnMundo = new THREE.Vector3();
+  function haciaLaLinea(ancho, alto) {
+    if (!como3d.linea || !como3d.figura) return null;
+    columnaComo.updateMatrixWorld(true);
+    const figura = aPantalla(como3d.figura.getWorldPosition(figuraEnMundo), ancho, alto);
+    return aPantalla(como3d.linea, ancho, alto).x - figura.x;
+  }
+  // La caja en la pantalla de otra pieza de la estación (la pantalla flotante), para no pisarla al correr la columna
+  const cajaOtra = new THREE.Box3();
+  function cajaEnPantalla(obj, ancho, alto) {
+    if (!obj?.visible) return null;
+    cajaOtra.setFromObject(obj);
+    if (!(-cajaOtra.getCenter(figuraEnMundo).applyMatrix4(camara.matrixWorldInverse).z > 1)) return null;   // detrás de la cámara
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let k = 0; k < 8; k++) {
+      esquina.set(k & 1 ? cajaOtra.max.x : cajaOtra.min.x, k & 2 ? cajaOtra.max.y : cajaOtra.min.y, k & 4 ? cajaOtra.max.z : cajaOtra.min.z);
+      const q = aPantalla(esquina, ancho, alto);
+      x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.x); y1 = Math.max(y1, q.y);
+    }
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
   function apartarColumna() {
     const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
     const antes = columnaComo.position.clone();
@@ -2609,13 +2648,15 @@ function iniciar() {
     if (r && r.width && r.height && ancho && alto && columnaComo.children.length) {
       camara.updateMatrixWorld();
       const menu = { x: r.left, y: r.top, w: r.width, h: r.height };
+      // Lo que no pisa al correrse: la pantalla de la estación (nmw7160d0tit)
+      const evitar = [cajaEnPantalla(como3d.pantalla, ancho, alto)];
       columnaComo.position.set(0, 0, 0);
       const enSuLugar = columnaEnPantalla(ancho, alto);
-      const pide = enSuLugar ? apartarDelMenu(enSuLugar, menu, ancho, alto) : { dx: 0, dy: 0 };
+      const pide = enSuLugar ? apartarDelMenu(enSuLugar, menu, ancho, alto, haciaLaLinea(ancho, alto), evitar) : { dx: 0, dy: 0 };
       if (pide.dx || pide.dy) {
         columnaComo.position.copy(antes);
         const ahora = columnaEnPantalla(ancho, alto);
-        const { dx, dy } = ahora ? apartarDelMenu(ahora, menu, ancho, alto) : { dx: 0, dy: 0 };
+        const { dx, dy } = ahora ? apartarDelMenu(ahora, menu, ancho, alto, haciaLaLinea(ancho, alto), evitar) : { dx: 0, dy: 0 };
         const porPixel = (2 * (ahora ?? enSuLugar).hondo * Math.tan(THREE.MathUtils.degToRad(camara.fov) / 2)) / alto;
         derechaCam.setFromMatrixColumn(camara.matrixWorld, 0);
         arribaCam.setFromMatrixColumn(camara.matrixWorld, 1);
