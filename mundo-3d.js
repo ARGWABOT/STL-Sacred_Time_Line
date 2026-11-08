@@ -2112,7 +2112,7 @@ function iniciar() {
     new THREE.SphereGeometry(NEBULOSA_RADIO, 48, 32),
     new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
-      defines: { OCTAVAS: movil ? 3 : 5 },
+      defines: { OCTAVAS: 5 },
       vertexShader: `
         varying vec3 vDir;
         void main() {
@@ -2159,6 +2159,23 @@ function iniciar() {
   );
   nebulosa.renderOrder = -20;   // lo primero que se dibuja, detrás de todo
   nebulosa.frustumCulled = false;
+  // En un teléfono, un cielo más liviano (nmw86moqgtit; con la mitad de las estrellas, arriba): la nebulosa no se anima y
+  // solo depende de la dirección, así que se pinta una sola vez, al cargar, en las seis caras de un cubo de 512, y cada
+  // cuadro solo la lee de ahí, en vez de calcular sus nubes en cada punto de la pantalla. Es el mismo fondo del computador
+  if (movil) {
+    const cuboCielo = new THREE.WebGLCubeRenderTarget(512);
+    const soloCielo = new THREE.Scene();
+    soloCielo.add(nebulosa);
+    new THREE.CubeCamera(1, 1000, cuboCielo).update(renderer, soloCielo);
+    soloCielo.remove(nebulosa);
+    nebulosa.material.dispose();
+    nebulosa.material = new THREE.ShaderMaterial({
+      side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+      uniforms: { uCubo: { value: cuboCielo.texture } },
+      vertexShader: 'varying vec3 vDir; void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'uniform samplerCube uCubo; varying vec3 vDir; void main() { gl_FragColor = textureCube(uCubo, normalize(vDir)); }',
+    });
+  }
   escena.add(nebulosa);
   // Sin suelo: bajo la línea queda un resplandor suave y muy tenue que la sostiene, sin bordes duros
   const brilloBajoLaLinea = (() => {
