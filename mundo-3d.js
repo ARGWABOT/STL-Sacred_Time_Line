@@ -560,9 +560,9 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // con Kokoro y su estimación de arriba
 const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9731,"g4-e":7646,"g5-e":9878,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":1421,"s9-p2":4019,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":2872,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
 // La voz en inglés de «Getting started» (nmw6xp1d1tit) y de la estación 2 (nmw74uq8qtit): la gemela de Kai, en voz/en/, con
-// su pista (tools/vozRecorrido.ts --en). De la estación 2, solo las animaciones con su voz entera: las demás callan enteras
-// hasta que la cuota del día de Google alcance para todas sus frases
-const PISTA_VOZ_EN = {"g1-e":13162,"g2-e":7034,"g3-e":9314,"g4-e":10178,"g5-e":10989,"g6-e":3338,"s1-p1":2399,"s1-p2":2858,"s1-p3":2126,"s1-1":3604,"s1-2":4267,"s1-3":3330,"s1-c":4830,"s2-p1":2591,"s2-p2":1483,"s2-p3":3113,"s2-1":3906,"s2-2":2406,"s2-3":2292,"s2-4":3421,"s2-c":4759,"s3-p1":3535,"s3-p2":2913,"s3-1":3819,"s3-2":2999,"s3-3":4836,"s3-4":2570,"s3-5":3606,"s3-6":3607,"s3-c":3684,"s4-p1":4336,"s4-p2":1933,"s4-p3":2974,"s4-p4":2273,"s4-1":3242,"s4-2":3467,"s4-3":3954,"s4-4":2383,"s4-5":3558,"s4-6":3410,"s4-c":4293,"s5-p1":3905,"s5-1":4038,"s5-2":2601,"s5-3":2610,"s5-c":1881,"s6-p1":3806,"s6-1":3925,"s6-2":3821,"s6-3":3415,"s6-c":2849,"s7-p1":3578,"s7-1":3002,"s7-2":2293,"s7-3":4010,"s7-4":3080,"s7-5":1610,"s7-c":2960,"s8-p1":3571,"s8-p2":2546,"s8-1":4746,"s8-2":1946,"s8-3":2444,"s8-c":2539,"s9-p1":1565,"s9-p2":3816,"s9-1":4731,"s9-2":3316,"s9-3":2138,"s9-4":2522,"s9-5":3616,"s9-c":2121,"s11-p1":4334,"s11-p2":1664,"s11-1":3508,"s11-2":1147,"s11-3":3128,"s11-4":1708,"s11-5":4142,"s11-c":2290,"s12-p1":2247,"s12-p2":2078,"s12-1":4934,"s12-2":3914,"s12-3":2547,"s12-c":3349,"s13-p1":1808,"s13-p2":5261,"s13-1":4440,"s13-2":2997,"s13-3":5225,"s13-4":3608,"s13-5":4748,"s13-6":3348,"s13-c":2992,"s14-p1":3081,"s14-p2":3631,"s14-1":3221,"s14-2":4277,"s14-3":2763,"s14-4":2298,"s14-5":4349,"s14-6":3894,"s14-c":2392,"como-1":3243,"como-2":5061,"como-3":2188,"como-4":6867,"como-5":1983,"como-6":2947,"como-7":3326,"como-c":2074};
+// su pista (tools/vozRecorrido.ts --en). Desde s15-c (8 de noviembre de 2026), las siete de la estación 2 hablan enteras;
+// una animación a la que le falte una frase calla entera, nunca a medias
+const PISTA_VOZ_EN = {"g1-e":13162,"g2-e":7034,"g3-e":9314,"g4-e":10178,"g5-e":10989,"g6-e":3338,"g7-e":6228,"s1-p1":2399,"s1-p2":2858,"s1-p3":2126,"s1-1":3604,"s1-2":4267,"s1-3":3330,"s1-c":4830,"s2-p1":2591,"s2-p2":1483,"s2-p3":3113,"s2-1":3906,"s2-2":2406,"s2-3":2292,"s2-4":3421,"s2-c":4759,"s3-p1":3535,"s3-p2":2913,"s3-1":3819,"s3-2":2999,"s3-3":4836,"s3-4":2570,"s3-5":3606,"s3-6":3607,"s3-c":3684,"s4-p1":4336,"s4-p2":1933,"s4-p3":2974,"s4-p4":2273,"s4-1":3242,"s4-2":3467,"s4-3":3954,"s4-4":2383,"s4-5":3558,"s4-6":3410,"s4-c":4293,"s5-p1":3905,"s5-1":4038,"s5-2":2601,"s5-3":2610,"s5-c":1881,"s6-p1":3806,"s6-1":3925,"s6-2":3821,"s6-3":3415,"s6-c":2849,"s7-p1":3578,"s7-1":3002,"s7-2":2293,"s7-3":4010,"s7-4":3080,"s7-5":1610,"s7-c":2960,"s8-p1":3571,"s8-p2":2546,"s8-1":4746,"s8-2":1946,"s8-3":2444,"s8-c":2539,"s9-p1":1565,"s9-p2":3816,"s9-1":4731,"s9-2":3316,"s9-3":2138,"s9-4":2522,"s9-5":3616,"s9-c":2121,"s11-p1":4334,"s11-p2":1664,"s11-1":3508,"s11-2":1147,"s11-3":3128,"s11-4":1708,"s11-5":4142,"s11-c":2290,"s12-p1":2247,"s12-p2":2078,"s12-1":4934,"s12-2":3914,"s12-3":2547,"s12-c":3349,"s13-p1":1808,"s13-p2":5261,"s13-1":4440,"s13-2":2997,"s13-3":5225,"s13-4":3608,"s13-5":4748,"s13-6":3348,"s13-c":2992,"s14-p1":3081,"s14-p2":3631,"s14-1":3221,"s14-2":4277,"s14-3":2763,"s14-4":2298,"s14-5":4349,"s14-6":3894,"s14-c":2392,"s15-p1":2479,"s15-p2":2285,"s15-p3":2706,"s15-1":4558,"s15-2":3035,"s15-3":4772,"s15-4":4593,"s15-5":4204,"s15-6":2563,"s15-7":3654,"s15-8":3147,"s15-9":2831,"s15-c":3773,"como-1":3243,"como-2":5061,"como-3":2188,"como-4":6867,"como-5":1983,"como-6":2947,"como-7":3326,"como-c":2074};
 // La pista de cada clave en el idioma de la página: en inglés, «Cómo empezar» y la estación 2 con la suya (lo que aún no la
 // tiene calla, nunca con la voz en español); lo demás, con la de Kai
 const vozEnIngles = (clave) => EN_DIBUJO && /^(como-|s\d+-|g\d+-e$)/.test(clave);
@@ -1761,6 +1761,106 @@ function pintarBucleInstalar(c, s) {
   return k;
 }
 
+// ── Las animaciones de pie, en un cuadro fijo de 9:16 (pd_telefono_vertical; nmw7y9vw9tit, nmw8aincatit): en un teléfono o
+// una tableta de pie, el reproductor dibuja en 180 × 320 (escalado a 720 × 1280) lo mismo que en 320 × 200, con cada cosa
+// reubicada a lo alto y sin acercamientos, salvo para un detalle (nmw84zsedtit). Las píldoras, el subtítulo y la barra
+// siguen fuera del dibujo, en HTML (la fila de arriba, como está: nmw8b1td5tit). Primero, solo «Atención dispersa» (sus
+// segmentos 2 y 3, de 1): los otros cuatro van juntos cuando se apruebe este (nmw8cp1h3tit). Un problema se dibuja de pie
+// solo si todos sus segmentos lo tienen (esVertical)
+const VERTICAL = { ancho: 180, alto: 320 };
+const VERTICALES = {
+  1: { // 2. Las varias sesiones a la vez: las cuatro ventanas, dos arriba y dos abajo, y tú en medio, mirando de una a otra
+    problema: (c, q) => {
+      const foco = Math.floor(q * 9) % 4;
+      [[12, 30], [94, 30], [12, 196], [94, 196]].forEach(([x, y], k) => {
+        ventana(c, x, y, 74, 70, `${L('sesión', 'session')} ${k + 1}`, k === foco ? ROJO : '#8f8a7d');
+        renglones(c, x + 8, y + 20, 56, 5, k === foco ? '#ffd0da' : 'rgba(255, 255, 255, .25)', 1, 8);
+        if (k === foco) trazo(c, 90, 148, x + 37, y + 35, ROJO, 0.7, true);
+      });
+      actorDev(c, 90, 148, 1.4);
+      if (q > 0.55) letrero(c, '¿en qué iba?', 90, 300, ROJO, 11);
+    },
+    solucion: (c, q) => {
+      const k = tramo(q, 0, 0.3);
+      if (k < 1) [[12, 30], [94, 30], [12, 196], [94, 196]].forEach(([x, y]) => {
+        c.save(); c.globalAlpha *= 1 - k; ventana(c, lerp(x, 40, k), lerp(y, 52, k), lerp(74, 100, k), 70, 'sesión', '#8f8a7d'); c.restore();
+      });
+      if (q > 0.25) {
+        c.save(); c.globalAlpha *= tramo(q, 0.25, 0.4);
+        actorStudio(c, 40, 52, 100, 70); letrero(c, 'el Studio: un solo canal', 90, 44, MORADO, 9);
+        c.restore();
+      }
+      actorDev(c, 90, 190, 1.4);
+      if (q > 0.4) trazo(c, 90, 176, 90, 126, ORO, tramo(q, 0.4, 0.5));
+      if (q > 0.5) placaMision(c, 20, 222, 140, 'Tu misión de ahora', q > 0.85, tramo(q, 0.5, 0.6));
+      if (q > 0.65) letrero(c, 'un proyecto · una misión', 90, 290, VERDE, 9.5);
+    },
+  },
+  2: { // 3. La idea que se cuela a mitad de algo: lo que ibas a hacer, arriba; la idea, abajo, y tú bajas tras ella
+    problema: (c, q) => {
+      letrero(c, 'lo que ibas a hacer', 16, 40, LUZ, 9, 'left');
+      barra(c, 16, 48, 148, Math.min(0.4, q * 1.4), q > 0.45 ? ROJO : ORO);
+      if (q > 0.3) iconoNota(c, 'idea', 132, 214, 1.6, tramo(q, 0.3, 0.38));
+      const v = tramo(q, 0.42, 0.7);
+      actorDev(c, lerp(52, 100, v), lerp(100, 204, v), 1.4);
+      if (q > 0.72) { const t = 'y lo otro se quedó a medias'; letrero(c, t, 90, 300, ROJO, tamanoQueCabe(c, D(t), 10, 168)); }
+    },
+    solucion: (c, q) => {
+      letrero(c, 'lo que ibas a hacer', 16, 40, LUZ, 9, 'left');
+      barra(c, 16, 48, 134, lerp(0.4, 1, tramo(q, 0.05, 0.9)), ORO);
+      if (q > 0.9) palomita(c, 162, 53, 5);
+      actorDev(c, 30, 92, 1.1);
+      // El Buzón, con su rótulo arriba; la idea llega adentro y después baja a su fase, en la ruta de abajo
+      actorStudio(c, 96, 100, 70, 36, false); letrero(c, 'el Buzón', 131, 92, MORADO, 9);
+      c.strokeStyle = LINEA; c.lineWidth = 2.5; c.beginPath(); c.moveTo(14, 250); c.lineTo(166, 250); c.stroke();
+      ['fase 1', 'fase 2', 'fase 3'].forEach((f, k) => { bola(c, 34 + k * 56, 250, 4, ORO); letrero(c, f, 34 + k * 56, 268, LUZ, 8); });
+      const k1 = tramo(q, 0, 0.25), k2 = tramo(q, 0.35, 0.65);
+      if (q > 0.3) { c.save(); c.globalAlpha *= tramo(q, 0.3, 0.38); actorDirector(c, 112, 210, 7); c.restore(); }
+      iconoNota(c, 'idea', q < 0.35 ? lerp(54, 131, k1) : lerp(131, 146, k2), q < 0.35 ? lerp(104, 118, k1) - Math.sin(k1 * Math.PI) * 24 : lerp(118, 236, k2), 1.4);
+    },
+  },
+};
+const esVertical = (i) => { const g = GRANDES[i]; return !!g && g.every((j) => VERTICALES[j]); };
+// El enunciado de pie: tú, pensándolo, arriba, y el enunciado en renglones más angostos, debajo
+function pintarEnunciadoVertical(c, texto, q) {
+  actorDev(c, 90, 96 - Math.abs(Math.sin(q * 9)) * 2, 2);
+  ['?', '?'].forEach((s, k) => letrero(c, s, 116 + k * 10, 80 - k * 7, ORO, 13 + k * 2, 'left'));
+  let tam = 15, renglones = [];
+  for (; tam >= 10; tam--) {
+    c.font = `italic 600 ${tam}px system-ui, sans-serif`;
+    renglones = renglonesDe(c, texto, 156);
+    if (renglones.length * tam * 1.35 <= 150) break;
+  }
+  const alto = tam * 1.35, y0 = 206 - ((renglones.length - 1) * alto) / 2;
+  renglones.forEach((r, m) => {
+    c.save(); c.globalAlpha = tramo(q, m * 0.06, m * 0.06 + 0.2);
+    c.font = `italic 600 ${tam}px system-ui, sans-serif`; c.textAlign = 'center'; c.fillStyle = '#fffaf0'; c.fillText(r, 90, y0 + m * alto);
+    c.restore();
+  });
+}
+// El cierre de pie: «✓ Resuelto» arriba, la tarjeta verde con su ✓ y lo resuelto, tu cubito que brinca debajo, y la frase
+// de cierre en renglones al pie («1 de 3» va en la píldora de arriba, fuera del dibujo)
+function pintarCierreVertical(c, resuelto, frase, q, etiqueta = 'Resuelto') {
+  const entra = tramo(q, 0, 0.18), s = 0.86 + 0.14 * entra + Math.sin(tope(q / 0.18) * Math.PI) * 0.05;
+  c.save(); c.globalAlpha = entra; c.translate(90, 124); c.scale(s, s); c.translate(-90, -124);
+  caja(c, 20, 56, 140, 136, VERDE, 0.16, 14);
+  bola(c, 90, 90, 21, VERDE, 0.18);
+  c.save(); c.lineWidth = 1.4; c.strokeStyle = VERDE; c.beginPath(); c.arc(90, 90, 21, 0, 7); c.stroke(); c.restore();
+  c.save(); c.translate(90, 90); c.scale(4.2, 4.2); palomita(c, 0, 0, 2.6, tramo(q, 0.08, 0.3)); c.restore();
+  letrero(c, etiqueta, 90, 128, '#bff0d2', 9);
+  c.font = '700 13px system-ui, sans-serif';
+  renglonesDe(c, resuelto, 124).slice(0, 3).forEach((r, m) => letrero(c, r, 90, 148 + m * 15, '#fffaf0', 13));
+  c.restore();
+  const brinco = Math.sin(tramo(q, 0.12, 0.42) * Math.PI) * 9, mece = Math.sin(q * 14) * 1.2;
+  actorDev(c, 90, 236 - brinco - mece, 1.9 * (0.8 + 0.2 * entra), true);
+  caja(c, 58, 12, 64, 14, VERDE, 0.25, 7);
+  letrero(c, `✓ ${etiqueta}`, 90, 22.5, '#dff5e8', 8.5);
+  if (frase) {
+    c.font = '600 11px system-ui, sans-serif';
+    renglonesDe(c, D(frase), 164).slice(0, 3).forEach((r, m) => letrero(c, r, 90, 282 + m * 14, '#fffaf0', 11));
+  }
+}
+
 // El video corto (video-corto.js) deja cada problema con una sola situación, y entonces el «1 de 1» no va
 let sinCuenta = false;
 // En un teléfono, el reproductor ocupa toda la pantalla y lo que no es dibujo va en HTML, fuera del lienzo (nmw8652hjtit,
@@ -1771,17 +1871,27 @@ function pintarClip(ctx, i, t) {
   // Una vez, sin repetirse sola: al terminar queda en su último cuadro
   const { n, p, enEnunciado, enProblema, enCierre, k, q, j, texto: paso } = pasoDeClip(i, t);
   const segmento = SEGMENTOS[j];
+  // De pie, en 180 × 320, solo en el reproductor del teléfono o la tableta, con su lienzo de 720 × 1280 (ajustarLienzo)
+  const vertical = !!aparte && i !== GUIA && ctx.canvas?.height > ctx.canvas?.width && esVertical(i);
+  const W = vertical ? VERTICAL.ancho : 320, H = vertical ? VERTICAL.alto : 200;
   ctx.setTransform(4, 0, 0, 4, 0, 0);
-  ctx.clearRect(0, 0, 320, 200);
-  const fondo = ctx.createRadialGradient(160, 80, 10, 160, 100, 200);
+  ctx.clearRect(0, 0, W, H);
+  const fondo = ctx.createRadialGradient(W / 2, H * 0.4, 10, W / 2, H / 2, Math.max(W, H));
   fondo.addColorStop(0, '#141a2e'); fondo.addColorStop(1, '#07090f');
-  ctx.fillStyle = fondo; ctx.fillRect(0, 0, 320, 200);
+  ctx.fillStyle = fondo; ctx.fillRect(0, 0, W, H);
   if (aparte) {
     const cuenta = n > 1 || !sinCuenta ? `${k + 1} ${L('de', 'of')} ${n}` : '';
     aparte.pildoras(i === GUIA || enEnunciado || enCierre ? null : enProblema ? 'sin' : 'con', i === GUIA || enEnunciado ? '' : cuenta);
     aparte.sub(i === GUIA || enEnunciado || enCierre ? '' : paso ?? '', enProblema);
   }
   if (i === GUIA) return void pintarComo(ctx, k, q, p);
+  if (vertical) {
+    if (enEnunciado) pintarEnunciadoVertical(ctx, paso, q);
+    else if (enCierre) pintarCierreVertical(ctx, CIERRES[j]?.[0] ?? '', paso, q);
+    else if (enProblema) VERTICALES[j].problema(ctx, q);
+    else VERTICALES[j].solucion(ctx, q, TINTAS[(i + k) % TINTAS.length]);
+    return;
+  }
   if (enEnunciado) {
     pintarEnunciado(ctx, paso, q);
     pintarBarra(ctx, p);
@@ -3386,20 +3496,20 @@ function iniciar() {
     };
   }
   const minutosClip = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-  // El siguiente problema de la lista (en su orden); después del último, «Cómo empezar» (GUIA; nmw8b4l91tit); -1 con
-  // «Cómo empezar» abierto
-  const siguienteDe = (i) => (i < 0 || i === GUIA ? -1 : i + 1 < problemas.length && orbes[i + 1] ? i + 1 : GUIA);
-  // Al final de cada problema, en el teléfono y también en el computador (nmw8b5l2atit): «Siguiente problema ›», y tras el
-  // último, «Cómo empezar ›», que cierra el reproductor y lleva el recorrido a la estación 3
-  let siguienteAntes = null;
+  // El siguiente problema de la lista, en rueda: tras el último vuelve al primero, y ninguno lleva a «Cómo empezar», porque
+  // no se sabe en qué orden los abre cada quien y un atajo le haría saltarse los demás (nmw8cmckvtit, que reemplaza
+  // nmw8b4l91tit); -1 con «Cómo empezar» abierto
+  const siguienteDe = (i) => {
+    if (i < 0 || i === GUIA) return -1;
+    for (let d = 1; d < problemas.length; d++) { const s = (i + d) % problemas.length; if (orbes[s]) return s; }
+    return -1;
+  };
+  // Al final de cada problema, en el teléfono y también en el computador (nmw8b5l2atit): «Siguiente problema ›», que espera
+  // el clic y no arranca solo (nmw8csukxtit)
   function pintarSiguiente() {
     if (!siguienteClip || !popup) return;
     const s = seleccionado < 0 ? -1 : siguienteDe(seleccionado), alFinal = terminado() && s >= 0;
     if (siguienteClip.hidden === alFinal) siguienteClip.hidden = !alFinal;
-    if (alFinal && s !== siguienteAntes) {
-      siguienteAntes = s;
-      siguienteClip.textContent = s === GUIA ? L('Cómo empezar ›', 'Getting started ›') : L('Siguiente problema ›', 'Next problem ›');
-    }
     popup.classList.toggle('al-final', alFinal);
   }
   function pintarAparte() {
@@ -3411,13 +3521,7 @@ function iniciar() {
   }
   siguienteClip?.addEventListener('click', () => {
     const s = siguienteDe(seleccionado);
-    if (s === GUIA) {
-      cerrarPopup();
-      empezarEstacion(2);
-      medir();
-      scrollTo({ top: anclas[3], behavior: quieto ? 'auto' : 'smooth' });
-      history.replaceState(null, '', '#e-como-empezar');
-    } else if (s >= 0) abrirProblema(s);
+    if (s >= 0) abrirProblema(s);
   });
   popup?.querySelector('[data-cerrar-clip]')?.addEventListener('click', () => cerrarPopup());
   // El carril: un toque lleva la animación a ese punto, y arrastrar la adelanta o la devuelve (nmw87ytm7tit)
@@ -3550,7 +3654,18 @@ function iniciar() {
   });
   // Un cuadro del clip: con la voz de Google sonando, el reloj es el de la voz (tramoDeVoz; nmw2qhhsjtit); si no, avanza
   // (en pausa, no), salvo si el rótulo cambiaría mientras la voz aún habla. Y dice el rótulo nuevo
+  // El lienzo de pie (720 × 1280, un cuadro fijo de 9:16) para un problema que ya tiene su dibujo de pie, en el reproductor
+  // de un teléfono o una tableta mientras la pantalla está de pie; si no, el de siempre (1280 × 800). El dibujo queda
+  // centrado en lo que deja el reproductor (object-fit: contain): en una tableta de pie, el mismo 9:16 al centro
+  // (nmw8cpyomtit). Cambia solo si hace falta, porque cambiar su tamaño lo borra
+  function ajustarLienzo() {
+    if (!clip || !aparte) return;
+    const v = seleccionado >= 0 && seleccionado !== GUIA && innerHeight > innerWidth && esVertical(seleccionado);
+    const w = v ? VERTICAL.ancho * 4 : 1280, h = v ? VERTICAL.alto * 4 : 800;
+    if (clip.width !== w || clip.height !== h) { clip.width = w; clip.height = h; popup?.classList.toggle('de-pie', v); }
+  }
   function avanzarClip() {
+    ajustarLienzo();
     const ahora = performance.now(), dt = Math.min(0.1, Math.max(0, (ahora - clipAntes) / 1000));
     clipAntes = ahora;
     // Mientras la voz que toca no ha cargado lo suficiente para sonar, la animación espera quieta con su «Cargando la
@@ -3634,6 +3749,7 @@ function iniciar() {
     pantalla2.abierta = true;
     ponerReproductor();
     cargarVocesDe(i);   // sus voces, todas desde ya, con un solo «Cargando la voz…»
+    ajustarLienzo();
     empezarClip();
     if (quieto && ctxClip) { pintarClip(ctxClip, i, duraClip(i)); }
   }
@@ -3685,6 +3801,7 @@ function iniciar() {
     if (seleccionado === GUIA) return void empezarClip(true);
     if (seleccionado >= 0) cerrarPopup();
     seleccionado = GUIA;
+    ajustarLienzo();   // «Cómo empezar» va siempre en su lienzo de 16:10
     autocierre.abrir(); autocierre.repetir();   // no se cierra solo
     popup.classList.add('guia');
     popup.setAttribute('aria-label', L('Cómo empezar a usar STL Studio', 'How to start using STL Studio'));

@@ -109,12 +109,11 @@
   /* Las tres estaciones, con su texto al centro, también «Qué es STL» (nmw6lwwbxtit) */
   .js-3d .estacion { justify-content: center; }
 
-  /* La entrada: desde que el recorrido nace lejos, frente a la línea y sin la animación a la vista, sus dos líneas van al
-     centro, dentro del primer anillo, y es lo único que se ve en el centro (nmw85pz2mtit, nmw86na4vtit; antes, arriba, para
-     no montarse sobre la portada, nmw6lwwbxtit); al primer acercamiento se va hacia arriba, despacio, y se desvanece
-     (mundo-3d.js › irseLaEntrada) */
+  /* La entrada: sus dos líneas arriba, entre el borde de arriba y la línea, sin montarse sobre los anillos ni la portada,
+     como en el teléfono (nota de voz del titular nmw8bic81tit; antes, al centro, dentro del primer anillo, nmw86na4vtit); al
+     primer acercamiento se va hacia arriba, despacio, y se desvanece (mundo-3d.js › irseLaEntrada) */
   .entrada { padding: 14vh clamp(16px, 5vw, 64px) 8vh; text-align: center; }
-  .js-3d .entrada { height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding-top: 0; padding-bottom: 0; }
+  .js-3d .entrada { height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 13vh; padding-bottom: 0; }
   .js-3d .entrada > * { will-change: transform, opacity; }
   .entrada h1 { margin: 0 0 8px; font-size: clamp(36px, 5vw, 64px); line-height: 1.1; color: #fffaf0; }
   .js-3d .entrada h1 { margin: 0 0 2px; font-size: clamp(26px, 2.4vw, 46px); }
@@ -314,8 +313,8 @@
   /* La respuesta de STL la dice la animación (su cierre); aquí queda solo para los lectores de pantalla */
   /* Lo del reproductor que solo va en un teléfono */
   .arriba-clip, .sub-clip, .carril-clip, .crono-clip, .siguiente-clip { display: none; }
-  /* En el computador también, al final de cada problema, «Siguiente problema ›» y, tras el último, «Cómo empezar ›»
-     (nmw8b5l2atit, nmw8b4l91tit), en la barra de los mandos */
+  /* En el computador también, al final de cada problema, «Siguiente problema ›», en rueda: tras el último, el primero
+     (nmw8b5l2atit, nmw8cmckvtit), en la barra de los mandos */
   @media (min-width: 901px) {
     .js-3d .popup .siguiente-clip:not([hidden]) { display: inline-flex; flex: none; align-items: center; padding: 6px 14px; border: 0; border-radius: 999px; cursor: pointer;
       background: var(--oro); color: #1a1f33; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; }
