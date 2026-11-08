@@ -314,6 +314,14 @@
   /* La respuesta de STL la dice la animación (su cierre); aquí queda solo para los lectores de pantalla */
   /* Lo del reproductor que solo va en un teléfono */
   .arriba-clip, .sub-clip, .carril-clip, .crono-clip, .siguiente-clip { display: none; }
+  /* En el computador también, al final de cada problema, «Siguiente problema ›» y, tras el último, «Cómo empezar ›»
+     (nmw8b5l2atit, nmw8b4l91tit), en la barra de los mandos */
+  @media (min-width: 901px) {
+    .js-3d .popup .siguiente-clip:not([hidden]) { display: inline-flex; flex: none; align-items: center; padding: 6px 14px; border: 0; border-radius: 999px; cursor: pointer;
+      background: var(--oro); color: #1a1f33; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; }
+    .js-3d .popup .siguiente-clip:hover { background: var(--luz); }
+    .js-3d .popup .siguiente-clip:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  }
   /* ══ En un teléfono, el reproductor de los problemas y de «Cómo empezar» es el mismo de «Qué es STL» de pie, a pantalla
      completa (nmw8652hjtit, nmw88hxyftit): arriba «✕», «Sin STL» y «1 de 3», pegados al borde (nmw87ytm7tit); el dibujo en
      todo lo que queda, a su escala; el subtítulo en una franja delgada de un renglón justo sobre la barra (nmw887qwvtit); la

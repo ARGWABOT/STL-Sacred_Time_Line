@@ -86,6 +86,10 @@
   #todo.mando-fuera .pista { font-size: 11px; }
   #todo.mando-fuera #voz { font-size: 12px; padding: 3px 10px; }
   #todo.mando-fuera #velocidad { gap: 3px; }
+  /* Las cuatro velocidades, siempre en un renglón, debajo de la voz: en el portátil de 1360 la última bajaba sola (nota de
+     voz del titular nmw8alvfatit): un poco más juntas y, si aún no caben, salen al aire que hay a los lados de la columna */
+  #todo.mando-fuera #velocidad { flex-wrap: nowrap; gap: 2px; }
+  #todo.mando-fuera #velocidad button { padding: 2px 5px; }
   #todo.mando-fuera #velocidad button { font-size: 11px; padding: 2px 6px; }
   #mando #modos { flex-direction: column; margin-bottom: 6px; border-radius: 14px; }
   #mando #modos button { font-size: 12px; padding: 4px 12px; }

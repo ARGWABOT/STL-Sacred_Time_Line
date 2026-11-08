@@ -2109,8 +2109,9 @@ function iniciar() {
 
   // Un rótulo flotante: texto sobre una píldora, siempre de frente a la cámara
   // En un teléfono, los rótulos de la estación 1 crecen «telefono» veces, para leerse con la cámara alejada (t_decide_estacion1_rotulos,
-  // nota de voz del titular nmw88lkhftit); los demás pasan 1
-  function rotulo(texto, color = LUZ, alto = 0.6, telefono = 2.2) {
+  // nota de voz del titular nmw88lkhftit); los demás pasan 1. De 2,2 bajaron a 1,5, también las etiquetas que flotan
+  // alrededor del director (nota de voz del titular nmw8b0vlctit: «2.2 veces más grande es demasiado»)
+  function rotulo(texto, color = LUZ, alto = 0.6, telefono = 1.5) {
     if (movil) alto *= telefono;
     const c = document.createElement('canvas');
     const ctx = c.getContext('2d');
@@ -2870,16 +2871,21 @@ function iniciar() {
       mitad.rotation.z = costado * 0.22;
       libro.add(mitad);
     }
-    // El lomo en la dirección de la línea, y su borde de atrás justo donde ella termina
-    libro.rotation.y = Math.atan2(t.x, t.z);
-    libro.position.copy(p).addScaledVector(t, LARGO_LIBRO / 2 - 0.1).addScaledVector(ARRIBA, 0.02);
+    // El lomo en la dirección de la línea, y su borde de abajo justo donde ella termina. Más de frente y más grande (nota de
+    // voz del titular nmw8aqna1tit: echado, costaba ver que era un libro): se levanta INCLINA_LIBRO desde la mesa hacia la
+    // cámara que llega, como en un atril, ESCALA_LIBRO veces más grande, y la línea entra por su borde de abajo
+    const INCLINA_LIBRO = 0.95, ESCALA_LIBRO = 1.35;
+    libro.rotation.set(-INCLINA_LIBRO, Math.atan2(t.x, t.z), 0, 'YXZ');
+    libro.scale.setScalar(ESCALA_LIBRO);
+    const medioLibro = (LARGO_LIBRO / 2) * ESCALA_LIBRO;
+    libro.position.copy(p).addScaledVector(t, medioLibro * Math.cos(INCLINA_LIBRO) - 0.1).addScaledVector(ARRIBA, medioLibro * Math.sin(INCLINA_LIBRO) + 0.1);
     escena.add(libro);
-    const haloLibro = resplandor('255, 214, 140', ORO, 9).halo;
+    const haloLibro = resplandor('255, 214, 140', ORO, 9 * ESCALA_LIBRO).halo;
     haloLibro.material.opacity = 0.55;
-    haloLibro.position.copy(libro.position).addScaledVector(ARRIBA, 0.4);
+    haloLibro.position.copy(libro.position).addScaledVector(t, 0.4);
     haloLibro.renderOrder = -5;
     escena.add(haloLibro);
-    focos.push(libro.position.clone().addScaledVector(ARRIBA, 0.9));
+    focos.push(libro.position.clone());
     // Solo el halo respira, despacio; el libro no se mueve
     animar.push(deEstacion(3, (s) => { haloLibro.material.opacity = 0.45 + 0.12 * Math.sin(s * 1.1) ** 2; }));
   }
@@ -2938,12 +2944,23 @@ function iniciar() {
   };
 
   // ── El scroll: 0 es la vista de costado; 1, la primera estación; 2, la segunda
-  let anclas = [];
+  let anclas = [], anchoMedido = 0;
   function medir() {
     const y = scrollY, alto = innerHeight;
+    // Dónde iba el recorrido antes de medir: si la página cambió de alto (otro tamaño, el teléfono que gira, lo que termina
+    // de cargar), el mismo scroll caía en otro punto, la cámara se corría un poco y, fuera de su estación, se escondían su
+    // tarjeta y los nombres del anillo (nota de voz del titular nmw8ahxg4tit). Se vuelve a ese punto. Solo si cambió el ancho:
+    // la barra del navegador de un teléfono, que se esconde al deslizar, cambia el alto, y volver ahí cortaría el dedo
+    const iba = anclas.length && fijo === null && anchoMedido !== innerWidth ? objetivo() : null;
+    anchoMedido = innerWidth;
     const inicio = document.getElementById('viaje').getBoundingClientRect().top + y;
     // Cada estación se alcanza cuando su centro pasa por el centro de la pantalla
     anclas = [inicio, ...estaciones.map((el) => { const r = el.getBoundingClientRect(); return r.top + y + r.height / 2 - alto / 2; })];
+    if (iba !== null && iba > 0) {
+      const k = Math.min(Math.floor(iba), anclas.length - 1), f = iba - k;
+      const destino = k + 1 < anclas.length ? anclas[k] + (anclas[k + 1] - anclas[k]) * f : anclas[k];
+      if (Math.abs(destino - y) > 1) scrollTo({ top: destino, behavior: 'instant' });
+    }
     const w = lienzo.clientWidth, h = lienzo.clientHeight;
     renderer.setSize(w, h, false);
     camara.aspect = w / Math.max(h, 1);
@@ -2982,7 +2999,7 @@ function iniciar() {
   })();
   let giroEntrada = 1;
   function colocar(w) {
-    let posicion, mira;
+    let posicion, mira, uLinea = 0;
     if (w < 1) {
       // De 0 a 1: avanza por la línea desde donde nace hasta pasar el último anillo de la entrada, y en la segunda mitad se
       // abre a la vista de costado de la estación 1 (el espejo de la salida de la estación 1, k === 1)
@@ -2998,8 +3015,8 @@ function iniciar() {
     } else {
       // w = 1 es la primera estación y w = 2 la segunda; entre una y otra, la cámara avanza por la línea
       const k = Math.floor(w), f = w - k;
-      const u = k >= ultima ? PARADA[ultima - 1] : PARADA[k - 1] + (PARADA[k] - PARADA[k - 1]) * masSuave(f);
-      ({ posicion, mira } = pose(u));
+      uLinea = k >= ultima ? PARADA[ultima - 1] : PARADA[k - 1] + (PARADA[k] - PARADA[k - 1]) * masSuave(f);
+      ({ posicion, mira } = pose(uLinea));
       // Saliendo de la estación 1, de la vista de costado a la de la línea
       if (k === 1) {
         const e = masSuave(Math.min(1, f * 2));
@@ -3014,7 +3031,12 @@ function iniciar() {
       // Llegando a la estación 1, se aleja solo mientras se abre a la vista de costado: antes, alejarse la devolvía detrás del
       // tercer anillo que acababa de cruzar (nmw87ytm7tit)
       const cerca = suave(tope(1 - Math.abs(w - k) / 0.5)) * (w < 1 ? giroEntrada : 1);
-      posicion = mira.clone().lerp(posicion, 1 + (ancho - 1) * cerca);
+      // Desde la estación 2, se aleja hacia atrás por la misma línea, a su altura y a su costado de siempre: alejarse hacia
+      // lo que mira la subía por encima del radio de los anillos y llegaba por fuera del tercero (nota de voz del titular
+      // nmw8aqna1tit: solo la primera estación lo cumplía). Así pasa por dentro de cada anillo y se detiene pasado el de
+      // llegada, que antesDeLlegar pone con 3 de aire antes de donde queda
+      if (k >= 2) posicion = pose(uLinea - ((ancho - 1) * cerca * (7.5 + 0.022 * LARGO_LINEA)) / LARGO_LINEA).posicion;
+      else posicion = mira.clone().lerp(posicion, 1 + (ancho - 1) * cerca);
     }
     camara.position.copy(posicion);
     const ojo = sinMirarAbajo(posicion, mira);
@@ -3364,18 +3386,39 @@ function iniciar() {
     };
   }
   const minutosClip = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-  // El siguiente problema de la lista (en su orden), o -1 si es el último o es «Cómo empezar»
-  const siguienteDe = (i) => (i >= 0 && i !== GUIA && i + 1 < problemas.length && orbes[i + 1] ? i + 1 : -1);
+  // El siguiente problema de la lista (en su orden); después del último, «Cómo empezar» (GUIA; nmw8b4l91tit); -1 con
+  // «Cómo empezar» abierto
+  const siguienteDe = (i) => (i < 0 || i === GUIA ? -1 : i + 1 < problemas.length && orbes[i + 1] ? i + 1 : GUIA);
+  // Al final de cada problema, en el teléfono y también en el computador (nmw8b5l2atit): «Siguiente problema ›», y tras el
+  // último, «Cómo empezar ›», que cierra el reproductor y lleva el recorrido a la estación 3
+  let siguienteAntes = null;
+  function pintarSiguiente() {
+    if (!siguienteClip || !popup) return;
+    const s = seleccionado < 0 ? -1 : siguienteDe(seleccionado), alFinal = terminado() && s >= 0;
+    if (siguienteClip.hidden === alFinal) siguienteClip.hidden = !alFinal;
+    if (alFinal && s !== siguienteAntes) {
+      siguienteAntes = s;
+      siguienteClip.textContent = s === GUIA ? L('Cómo empezar ›', 'Getting started ›') : L('Siguiente problema ›', 'Next problem ›');
+    }
+    popup.classList.toggle('al-final', alFinal);
+  }
   function pintarAparte() {
+    pintarSiguiente();
     if (!aparte || seleccionado < 0) return;
     const dura = duraClip(seleccionado);
     carrilClip?.style.setProperty('--pos', String(dura ? Math.min(1, clipT / dura) : 0));
     if (cronoClip) cronoClip.textContent = `${minutosClip(clipT)} / ${minutosClip(dura)}`;
-    const alFinal = terminado() && siguienteDe(seleccionado) >= 0;
-    if (siguienteClip && siguienteClip.hidden === alFinal) siguienteClip.hidden = !alFinal;
-    popup.classList.toggle('al-final', alFinal);
   }
-  siguienteClip?.addEventListener('click', () => { const s = siguienteDe(seleccionado); if (s >= 0) abrirProblema(s); });
+  siguienteClip?.addEventListener('click', () => {
+    const s = siguienteDe(seleccionado);
+    if (s === GUIA) {
+      cerrarPopup();
+      empezarEstacion(2);
+      medir();
+      scrollTo({ top: anclas[3], behavior: quieto ? 'auto' : 'smooth' });
+      history.replaceState(null, '', '#e-como-empezar');
+    } else if (s >= 0) abrirProblema(s);
+  });
   popup?.querySelector('[data-cerrar-clip]')?.addEventListener('click', () => cerrarPopup());
   // El carril: un toque lleva la animación a ese punto, y arrastrar la adelanta o la devuelve (nmw87ytm7tit)
   let arrastreCarril = null;
@@ -3580,8 +3623,8 @@ function iniciar() {
     marcarVisto(i);
     seleccionado = i;
     autocierre.abrir();
-    // En un teléfono no se cierra sola: al final espera con «Siguiente problema ›» (nmw88fyfctit)
-    if (movil) autocierre.repetir();
+    // No se cierra sola: al final espera con «Siguiente problema ›» (nmw88fyfctit), también en el computador (nmw8b5l2atit)
+    autocierre.repetir();
     problemas.forEach((otro, j) => otro.classList.toggle('activo', j === i));
     document.getElementById('popup-respuesta').textContent = d.querySelector('p').textContent;   // para quien lee con un lector de pantalla
     if (disposicion) { camara.updateMatrixWorld(); origenPopup = aPantalla(orbes[i].orbe.position, disposicion.ancho, disposicion.alto); }
@@ -3766,12 +3809,12 @@ function iniciar() {
     nombresAnillo.hidden = !ver;
     if (!ver) return;
     if (letraNombres !== innerWidth) ajustarLetraNombres();
-    camara.updateMatrixWorld();
-    const abajo = aPantalla(anillo.centro.clone().addScaledVector(ARRIBA, -anillo.radioY * anillo.escala), disposicion.ancho, disposicion.alto);
     // Nunca debajo del panel de la estación, abajo
     const panel = lineaDos?.getBoundingClientRect(), fondo = panel?.height ? panel.top : disposicion.alto;
-    const limite = Math.max(0, fondo - nombresAnillo.offsetHeight - 8);
-    nombresAnillo.style.top = `${Math.round(Math.min(limite, Math.max(60, abajo.y + 18)))}px`;
+    // Justo encima del panel, lejos de los íconos del anillo y de la línea (nota de voz del titular nmw8ahxg4tit: «más
+    // abajo, para que no queden tan encima de los íconos»)
+    const limite = Math.max(0, fondo - nombresAnillo.offsetHeight - 14);
+    nombresAnillo.style.top = `${Math.round(Math.max(60, limite))}px`;
   }
 
   // ── El bucle: solo dibuja mientras el recorrido está a la vista
