@@ -1263,8 +1263,11 @@
       // Brotan muy seguido, más rápido de lo que el Studio alcanza a recoger: así se ven muchas a la vez, como sin STL
       // (y nunca antes de que se cuente «se te ocurren ideas nuevas»)
       const empieza = Math.max(((BROTA - desde) / (objetivo - desde)) * durTrabajo, momentos(lineas, durFase)[1]);
-      const cada = (durTrabajo - empieza - 1200) / 12;
-      agenda = Array.from({ length: 12 }, (_, i) => ({ en: empieza + i * cada, o: ocurrencia(clases) }));
+      // De pie (PIE.activo), antes del cambio urgente abren menos ramas (6 en vez de 12): así el encuadre no tiene que
+      // alejarse tanto para mostrar la urgencia. En computadora, las mismas 12
+      const cuantas = PIE.activo ? 6 : 12;
+      const cada = (durTrabajo - empieza - 1200) / cuantas;
+      agenda = Array.from({ length: cuantas }, (_, i) => ({ en: empieza + i * cada, o: ocurrencia(clases) }));
     } else {
       durTrabajo = durPaso; andar = PASO;
       // La urgencia brota cuando ya hay un par de ramas sueltas y justo para que su marca quede trecho y medio después
@@ -1285,7 +1288,8 @@
     const cerca = [{ x: st.x, y: st.y }];
     for (const r of ramas) { cerca.push({ x: r.tx, y: r.ty }); for (const g of r.hijos) cerca.push({ x: r.tx + g.dx, y: r.ty + g.dy }); }
     let mejor = null;
-    for (let x = Math.max(X0 + 60, cabeza - 120); x <= Math.min(META - 140, cabeza + 380); x += 20) {
+    // (de pie, el claro se busca más cerca de ti: cabeza + 200 y no + 380)
+    for (let x = Math.max(X0 + 60, cabeza - 120); x <= Math.min(META - 140, cabeza + (PIE.activo ? 200 : 380)); x += 20) {
       for (let y = Y - 210; y <= Y - 95; y += 15) {
         const d = cerca.reduce((m, p) => Math.min(m, Math.hypot((p.x - x) * 0.8, p.y - y)), Infinity);
         if (!mejor || d > mejor.d) mejor = { x, y, d };
@@ -1298,8 +1302,10 @@
     // Se dispersan: nacen repartidas a lo ancho y a lo alto, no todas junto a ti. Después de la primera parada van hacia
     // adelante y más arriba, lejos de los rótulos de la línea (sobre todo del de la misión 4)
     const despues = parada > 0;
-    const tx = c ? c.x : Math.max(X0 + 30, Math.min(META - 70, ox + (despues ? azar(40, 190) : azar(-60, 170))));
-    const ty = c ? c.y : Y - (despues ? azar(120, 215) : azar(80, 210));
+    // De pie, las de antes de la urgencia suben más y se adelantan menos (más arriba, no más lejos en la línea)
+    const arriba = PIE.activo && !despues;
+    const tx = c ? c.x : Math.max(X0 + 30, Math.min(META - 70, ox + (despues ? azar(40, 190) : arriba ? azar(-60, 90) : azar(-60, 170))));
+    const ty = c ? c.y : Y - (despues ? azar(120, 215) : arriba ? azar(150, 235) : azar(80, 210));
     // El cambio urgente es un solo punto: no echa ramitas (así el Studio no guarda nada rojo aparte de él)
     const hijos = urgente ? [] : Array.from({ length: 1 + Math.floor(rnd() * 2) }, () => {
       const o = rnd() < 0.4 ? a.o : ocurrencia(['ajuste', 'corrige', 'nuevo']);
@@ -1496,7 +1502,8 @@
   function empezarUrgencia(now) {
     alarma = 0; urg = true; xd = cabeza; entregaSale = null;
     // El lugar aparte: a la derecha de las ramas, y el director a medio camino entre el Studio y el modelo
-    const ax = Math.min(720, Math.max(600, cabeza + 340)), ay = Y - 125;
+    // (de pie, más cerca: cabeza + 230 sin el mínimo de 600, para que el encuadre no se aleje tanto)
+    const ax = PIE.activo ? Math.min(720, cabeza + 230) : Math.min(720, Math.max(600, cabeza + 340)), ay = Y - 125;
     const mx = lerp(ax, MX, 0.5), my = lerp(ay, MY + 12, 0.5);
     u = { etapa: 'aparta', t0: now, ax, ay, caja: { x0: Math.min(ax, mx) - 85, x1: Math.max(ax, mx) + 85, y0: my - 95, y1: ay + 60 } };
     revisiones.push({ x: xd, urgente: true });
@@ -1957,10 +1964,12 @@
     ctx.fillStyle = `rgba(${Math.round(lerp(12, 70, caliente))}, ${Math.round(lerp(15, 20, caliente))}, 26, .82)`;
     ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill();
     trazar(() => ctx.roundRect(x, y, w, h, 12), borde, 1, 0.45 + (caliente > 0.5 ? 0.4 + 0.15 * Math.sin(now / 120) : 0));
-    texto('tokens gastados', x + 14, y + 20, '#b9b4a6', 11, 0.95, '600', 'left');
+    // De pie (PIE.activo), los textos chicos de dentro crecen 2,5 px (el título de arriba y la cifra, igual)
+    const mas = PIE.activo ? 2.5 : 0;
+    texto('tokens gastados', x + 14, y + 20, '#b9b4a6', 11 + mas, 0.95, '600', 'left');
     texto(Math.round(tokens).toLocaleString(LOCAL_NUMEROS), x + w - 14, y + 22, caliente > 0.5 ? '#ffd0da' : '#fff1c4', 19, 1, '700', 'right');
     const ps = Math.round(ritmo * 1000);
-    texto(ps ? `+${ps.toLocaleString(LOCAL_NUMEROS)} por segundo` : 'en reposo', x + w - 14, y + 47, caliente > 0.5 ? '#ffb3c2' : '#8f8a7d', 10.5, 0.95, 'italic', 'right');
+    texto(ps ? `+${ps.toLocaleString(LOCAL_NUMEROS)} por segundo` : 'en reposo', x + w - 14, y + 47, caliente > 0.5 ? '#ffb3c2' : '#8f8a7d', 10.5 + mas, 0.95, 'italic', 'right');
   }
   // Un color entre dos (de 0, el primero, a 1, el segundo)
   function mezclar(c1, c2, k) {
@@ -2016,13 +2025,22 @@
     trazar(() => ctx.roundRect(x, y, w, h, 12), a > 0.75 ? ROJO : '#8f8a7d', 1, 0.45);
     carita(x + 32, y + h / 2, 2, a, now);
     const bx = x + 66, by = y + 29, bw = w - 80, bh = 8;
-    texto('atención requerida', bx, y + 20, '#b9b4a6', 11, 0.95, '600', 'left');
+    const mas = PIE.activo ? 2.5 : 0;
+    texto('atención requerida', bx, y + 20, '#b9b4a6', 11 + mas, 0.95, '600', 'left');
     ctx.fillStyle = 'rgba(255, 255, 255, .08)'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
     const color = a < 0.5 ? mezclar(VERDE, ORO, a / 0.5) : mezclar(ORO, ROJO, (a - 0.5) / 0.5);
     if (a > 0.01) { ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(bx, by, Math.max(bh, bw * a), bh, 4); ctx.fill(); }
     const como = a >= 0.97 ? 'agotado' : a > 0.75 ? 'muy cansado' : a > 0.5 ? 'cansado' : a > 0.22 ? 'atento'
       : modo === 'con' ? 'fresco: una cosa a la vez' : 'fresco';
-    texto(como, bx, by + 22, a > 0.75 ? '#ffb3c2' : '#8f8a7d', 10.5, 0.95, 'italic', 'left');
+    // De pie crece hasta 13 px, pero sin salirse de su recuadro (del texto a 4 px antes del borde, 158 px) ni pasar de un
+    // renglón: se mide con el texto ya traducido (ES o EN) y, si no cabe, se achica
+    let tam = 10.5;
+    if (PIE.activo) {
+      ctx.font = `italic 13px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+      const ancho = ctx.measureText(mayus(como)).width;
+      tam = Math.min(13, Math.max(10.5, (13 * (x + w - 4 - bx)) / Math.max(1, ancho)));
+    }
+    texto(como, bx, by + 22, a > 0.75 ? '#ffb3c2' : '#8f8a7d', tam, 0.95, 'italic', 'left');
   }
   // Con STL, el único hilo que llega al modelo: el del director, con el mensaje ya ordenado que sube y la respuesta que baja
   function hiloDirector(now) {

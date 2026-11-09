@@ -4471,10 +4471,18 @@ function iniciar() {
     if (enReposo && enVista && !cubierto) { enReposo = false; requestAnimationFrame(cuadro); }
   }
   if (movil) for (const ev of ['scroll', 'touchstart', 'pointerdown', 'keydown']) addEventListener(ev, despertar, { passive: true });
+  // En ?ver=N, la quietud es solo para capturar sin pantalla: en cuanto una persona toca la página (el visor de teléfonos
+  // abre así cada estación, con ?ver=3&abrir=como), vuelve a dibujar y sigue; sin esto, «▶ Empezar con voz» no arrancaba la
+  // animación ni su voz (nota del titular nmw8kg745tit, 9 de noviembre de 2026)
+  let tocadaEnFijo = false, quietaEnFijo = false;
+  if (fijo !== null && !enVideo) for (const ev of ['pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(ev, () => {
+    tocadaEnFijo = true;
+    if (quietaEnFijo) { quietaEnFijo = false; ultimoCuadro = performance.now(); requestAnimationFrame(cuadro); }
+  }, { passive: true, capture: true });
   function cuadro() {
     if (!enVista || cubierto) return;
-    // En ?ver=N, unos segundos de cuadros y se queda quieta: así se puede capturar sin pantalla
-    if (fijo !== null && !enVideo && ++dibujados > 150) return;
+    // En ?ver=N, unos segundos de cuadros y se queda quieta: así se puede capturar sin pantalla (hasta que alguien la toca)
+    if (fijo !== null && !enVideo && !tocadaEnFijo && ++dibujados > 150) { quietaEnFijo = true; return; }
     const w = objetivo();
     cur = quieto ? Math.round(w) : primera ? w : cur + (w - cur) * (arranque ? SUAVIZADO_ARRANQUE : suavizadoPara(w - cur));
     if (arranque && Math.abs(cur - 1) <= LLEGADA / 4) arranque = false;   // llegó a la estación 1
