@@ -322,8 +322,9 @@ const MOMENTO_COMPARTIR = 11.2;
 // con la cámara fija en la estación 1, que sigue animándose mientras se ve
 const enVideo = new URLSearchParams(location.search).has('video');
 const ganchoVideo = {};
-// Con decimales (?ver=3.4), la cámara queda fija entre dos estaciones: para revisar un tramo cuadro a cuadro (nmw84v293tit)
-const fijo = compartir ? 0 : enVideo ? 1 : verTexto === null ? null
+// Con decimales (?ver=3.4), la cámara queda fija entre dos estaciones: para revisar un tramo cuadro a cuadro (nmw84v293tit).
+// Con ?ver=N se suelta al primer toque de una persona (soltarFijo, nmw9f5k8ptit): por eso no es const
+let fijo = compartir ? 0 : enVideo ? 1 : verTexto === null ? null
   : Math.max(0, Math.min(estaciones.length, verTexto.includes('.') ? Number(verTexto) || 0 : Math.round(Number(verTexto)) || 0));
 
 // ── «¿Te ha pasado…?»: cada problema abierto se marca con su ✓ (t_decide_cierre_problemas); la cuenta «Abriste N de 6»
@@ -3837,13 +3838,15 @@ function iniciar() {
 
   // ── El menú lleva a la estación justo donde la cámara se detiene, no al borde de arriba de su bloque, desde cualquier
   // estación: antes, con un problema abierto, el recuadro seguía abierto y la cámara se quedaba en la estación 2 (nota de
-  // voz nmw19elcqtit). Con ?ver=N, abre esa otra estación, también fija
+  // voz nmw19elcqtit). Con ?ver=N, el toque que llega antes del clic ya soltó la estación fija y el menú viaja por la línea
+  // como en el recorrido de siempre (nmw9f5k8ptit); antes recargaba otra ?ver= y saltaba directo a ella
   enlaces.forEach((a) => a.addEventListener('click', (e) => {
     const i = estaciones.findIndex((el) => `#${el.id}` === a.getAttribute('href'));
     if (i < 0) return;
     e.preventDefault();
     cerrarPopup();
-    if (fijo !== null) return void (location.search = `?ver=${i + 1}`);
+    soltarFijo();
+    if (fijo !== null) return;
     empezarEstacion(i);   // su animación vuelve a empezar (nmw1khrketit)
     medir();
     scrollTo({ top: anclas[i + 1], behavior: quieto ? 'auto' : 'smooth' });
@@ -4475,8 +4478,27 @@ function iniciar() {
   // abre así cada estación, con ?ver=3&abrir=como), vuelve a dibujar y sigue; sin esto, «▶ Empezar con voz» no arrancaba la
   // animación ni su voz (nota del titular nmw8kg745tit, 9 de noviembre de 2026)
   let tocadaEnFijo = false, quietaEnFijo = false;
+  // Y ese primer toque la vuelve el recorrido de siempre (nota de voz del titular nmw9f5k8ptit, 9 de noviembre de 2026: desde
+  // el visor, el menú saltaba directo a cada estación y la rueda y el arrastre no movían la cámara): la página deja de ser
+  // una sola estación, el scroll va al punto de la línea donde ya está la cámara y fijo queda en null, así objetivo(), el
+  // menú y lo de cada estación siguen el scroll. Sin un toque (las capturas sin pantalla), ?video y ?compartir siguen fijos
+  function soltarFijo() {
+    if (fijo === null || verTexto === null || enVideo || compartir) return;
+    const w = fijo;
+    document.documentElement.classList.remove('ver-parada');
+    medir();
+    const k = Math.min(Math.floor(w), anclas.length - 1), f = w - k;
+    scrollTo({ top: k + 1 < anclas.length ? anclas[k] + (anclas[k + 1] - anclas[k]) * f : anclas[k], behavior: 'instant' });
+    fijo = null;
+    // Sin ?ver ni lo que lo acompaña en la dirección: al recargar, sigue siendo el recorrido de siempre
+    const q = new URLSearchParams(location.search);
+    for (const p of ['ver', 'abrir', 'seg']) q.delete(p);
+    const resto = q.toString(), estacion = estaciones[Math.round(w) - 1];
+    history.replaceState(null, '', `${location.pathname}${resto ? `?${resto}` : ''}${estacion ? `#${estacion.id}` : ''}`);
+  }
   if (fijo !== null && !enVideo) for (const ev of ['pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(ev, () => {
     tocadaEnFijo = true;
+    soltarFijo();
     if (quietaEnFijo) { quietaEnFijo = false; ultimoCuadro = performance.now(); requestAnimationFrame(cuadro); }
   }, { passive: true, capture: true });
   function cuadro() {
