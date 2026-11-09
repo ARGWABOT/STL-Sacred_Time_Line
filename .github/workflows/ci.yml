@@ -1,0 +1,25 @@
+# Integración continua de STL Studio: en cada push y cada pull request, las pruebas y los tipos deben pasar.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    name: Pruebas y tipos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: git config --global user.name "CI" && git config --global user.email "ci@example.com"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test

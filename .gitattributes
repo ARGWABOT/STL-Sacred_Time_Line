@@ -1,0 +1,3 @@
+# Los scripts que corren en WSL o Linux necesitan finales de línea LF
+*.sh text eol=lf
+*.py text eol=lf

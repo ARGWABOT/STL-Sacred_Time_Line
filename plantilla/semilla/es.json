@@ -1,0 +1,87 @@
+{
+  "proyecto": {
+    "nombre": "STL Studio",
+    "tipo": "existente",
+    "semilla": true,
+    "contexto": "STL Studio es una pequeña aplicación web local que se pone entre tú y un modelo de IA y convierte al modelo en el director asistente de tu proyecto. Trabajando solo, o en un equipo pequeño, los proyectos rara vez mueren por falta de ideas: mueren por la atención dispersa. Diez chats abiertos, planes a medias, un «¿sigo?» perdido hace tres sesiones, y cada chat nuevo empezando de cero, pidiéndote con cortesía que le expliques todo otra vez.\n\nEl método STL lo arregla con un solo canal. Todo lo que le dices al director (un comentario, una nota de voz, una pregunta, una decisión) va al Studio. En cada revisión, que solo tú pides, el director lo lee todo, mantiene la ruta hacia tu meta y le da a cada persona una misión a la vez, con su porqué y un botón al lugar exacto. Tú decides; el director propone, ordena el trabajo y ejecuta solo lo que aprobaste, con pruebas y commits locales.\n\nLa memoria vive en el repositorio de tu propio proyecto, en una rama aparte, stl, así que nada depende del contexto de un chat: el modelo puede olvidar, el proyecto no. Menos pestañas, más cosas terminadas.\n\nEste proyecto es tu Studio: para ajustarlo a tu forma de trabajar, selecciónalo y pídeselo al director en el Buzón.",
+    "metaInicial": "",
+    "terminado": "",
+    "repositorio": { "url": "", "rama": "" },
+    "objetivo": {
+      "texto": "El Studio, ajustado a tu forma de trabajar",
+      "exito": "Usas el Studio como viene o con los ajustes que le pediste al director; no hay nada que terminar aquí.",
+      "firmado": { "fecha": "2026-11-01", "quien": "STL Studio" }
+    },
+    "equipo": [],
+    "sincronizar": false
+  },
+  "plan": {
+    "actualizado": "2026-11-01",
+    "nota": "STL Studio como su propio proyecto, nacido de la semilla (plantilla/semilla). Cuenta como un proyecto en mantenimiento: una sola fase, sin cierre, y su misión permanente. Cuando el director apruebe esa misión, vuelve a dejar una igual, con otro id, para que siempre esté.",
+    "mision": "El Studio, ajustado a tu forma de trabajar: nada que hacer si no quieres cambiar nada.",
+    "revisado": "",
+    "mensaje": {
+      "fecha": "2026-11-01",
+      "texto": "Este proyecto es tu Studio. Viene configurado y su diagnóstico ya está hecho, sin gastar una revisión."
+    },
+    "frentes": [
+      { "id": "tu_studio", "nombre": "Tu Studio", "que": "Los ajustes que le pidas al director sobre tu propia copia del Studio.", "rutas": [] }
+    ],
+    "fases": [
+      {
+        "id": "tu_studio",
+        "nombre": "Tu Studio, a tu manera",
+        "etapa": "Mantenimiento",
+        "sinCierre": true,
+        "meta": "Que el Studio te sirva como viene o con los ajustes que le pidas al director.",
+        "porQue": "El Studio viene configurado para que tu trabajo sea lo más fácil y ordenado posible; esta fase existe para que puedas cambiarlo cuando quieras, no para que tengas que hacerlo.",
+        "duracion": "Sin fin: es una fase permanente",
+        "puerta": { "nombre": "Sin puerta", "prueba": "Esta fase no se cierra: sigue abierta mientras uses tu Studio." },
+        "frentes": { "tu_studio": { "nivel": "foco", "que": "Lo que quieras ajustar de tu Studio; nada, si así te sirve." } },
+        "criterios": [],
+        "misiones": ["Pedirle al director, cuando quieras, un ajuste a tu Studio."]
+      }
+    ],
+    "misiones": [
+      {
+        "id": "t_tu_studio",
+        "para": "titular",
+        "fase": "tu_studio",
+        "frente": "tu_studio",
+        "xp": 10,
+        "titulo": "Este proyecto es tu Studio",
+        "porQue": "Es una misión permanente: te dice dónde pedir un ajuste y no te pide nada si no quieres cambiar nada.",
+        "pasos": [
+          {
+            "texto": "Este proyecto es tu Studio, y no tienes que cambiar nada para empezar: puedes pasar directo a tu propio proyecto. Lo recomendado es usarlo un tiempo como viene, para que lo conozcas y descubras lo que está pensado para facilitar tu trabajo: viene configurado para que tu trabajo sea lo más fácil y ordenado posible y te lleve a la meta de tu proyecto de la forma más óptima. Si después encuentras algo que quieras ajustarle, selecciona este proyecto y pídele el ajuste al director desde aquí.",
+            "ir": { "vista": "buzon", "ancla": "escribir", "etiqueta": "Pedirle un ajuste al director" },
+            "detalle": ["Para entregar tu propio proyecto, abre el selector de proyecto, arriba de la barra de la izquierda, y oprime «Entregar proyectos»."],
+            "hecho": { "que": "nota" }
+          }
+        ],
+        "entrega": "El ajuste que le pides al director, cuando quieras pedirlo."
+      }
+    ],
+    "revisiones": {},
+    "respuestas": {},
+    "evaluacion": {},
+    "boletin": [],
+    "documentos": [
+      { "ruta": "docs/metodo/metodologia.md", "titulo": "El método STL", "porQue": "Cómo trabaja el director y por qué, y cómo se hizo STL con STL." }
+    ],
+    "diagnostico": {
+      "fecha": "2026-11-01",
+      "resumen": [
+        "STL Studio se hizo con STL Studio: 6 fases, 320 revisiones y 682 misiones aprobadas.",
+        "Viene configurado como su autor lo considera mejor, y cada persona lo puede cambiar."
+      ],
+      "frentes": {},
+      "boton": { "doc": "docs/metodo/metodologia.md", "etiqueta": "Leer la metodología" }
+    },
+    "objetivos": [],
+    "propuestas": [],
+    "ritmo": [],
+    "lecciones": [],
+    "adelantado": []
+  }
+}

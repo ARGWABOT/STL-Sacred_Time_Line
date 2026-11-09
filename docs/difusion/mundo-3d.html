@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+  // El idioma de la página (pd_bilingue), antes de pintar nada: el que lleva su enlace (?lang=en, nmw5it25ntit); si no, el
+  // que se eligió con «ES · EN» (nmw2lz2bvtit); si no, el del navegador, y en cualquier otro idioma, inglés (nmw5gv8ymtit)
+  (function () {
+    var pedido = new URLSearchParams(location.search).get('lang'), guardado = null;
+    try { guardado = localStorage.getItem('stl-idioma'); } catch (e) { /* sin almacenamiento */ }
+    var navegador = (navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en';
+    var valido = function (x) { return x === 'es' || x === 'en'; };
+    document.documentElement.lang = valido(pedido) ? pedido : valido(guardado) ? guardado : navegador;
+    // Mientras carga el recorrido, la página sin 3D no se asoma (nmw6lwwbxtit); si el guion del mundo no llegara, a los 8 s
+    // se ve igual, para leerla sin 3D
+    document.documentElement.classList.add('cargando-3d');
+    setTimeout(function () { document.documentElement.classList.remove('cargando-3d'); }, 8000);
+  })();
+</script>
+<title>¿Qué es STL? · El recorrido</title>
+<meta name="description" content="¿Qué es STL? Un recorrido en 3D por la línea del tiempo de un proyecto: STL Studio, la interfaz entre tú y el modelo, y los problemas de trabajar con IA por chat que resuelve.">
+<!-- El recorrido en 3D de «Qué es STL» (pd_recorrido_3d, pd_pagina_unica), su primer tramo, como eligió el titular el 3 de
+     noviembre de 2026: un tramo corto primero (la estación 1, la línea del tiempo como camino y la estación 2), con el
+     menú flotante de los seis nombres a la vista. Con lo que pidió el titular al verlo, en dos vueltas: la portada con los
+     cuatro actores (tú, el Studio al centro, el director y el modelo) y el ciclo de lo que le entregas, sin fragmentos
+     ni postes, y detrás un cielo de estrellas lejanas en tres capas en lugar del suelo, con semilla fija y una de cada diez
+     que titila despacio (decisiones nmw5erxrytit, nmw5es4cgtit, nmw5es6twtit, nmw5gvj21tit, nmw5iur8itit y nmw5mkt58tit); la estación 1 solo con su título y el botón «▶ Ver la animación» (que la agranda sin tapar el
+     menú), sin miniatura; la estación 2 sin la lista de problemas ni tarjeta: una sola línea que flota abajo («6 problemas
+     de desarrollar por chat que STL resuelve muy bien», nmw46tffetit) y seis íconos 3D que giran despacio alrededor de la línea,
+     como un anillo, cada uno con su globo de dos palabras (los quince de antes, unificados: nmw1bwnvztit; el anillo, el globo y
+     el reproductor: nmw40cp3jtit y nmw40fizktit); al elegir uno, su reproductor crece a la izquierda del anillo, hasta donde
+     deja la pantalla, con sus mandos fijos adentro (la voz, «↻ Repetir», la velocidad y la perilla), y se cierra solo 4 s
+     después de terminar; y en un teléfono, una cubierta que recomienda una pantalla ancha. «Cómo funciona» y «Lo que ya trae»
+     salieron (repetían la estación 1 y las soluciones de la 2), y «¿Reemplaza a otros métodos?» también (nmw47ga2wtit: en su
+     lugar va «Cómo empezar», la estación 3, en el mismo reproductor, pd_como_empezar); desde el 6 de noviembre, los problemas
+     son siete, con el dictado (pd_dictado); «La documentación» llega después. El texto de cada
+     estación es HTML: se lee sin JavaScript, sin WebGL y con
+     movimiento reducido, y es lo que leen los buscadores y los modelos (sin 3D, la lista de problemas vuelve a verse y se abre
+     ahí mismo; con 3D queda oculta pero en la página: de ahí salen los enunciados de la voz, tools/vozRecorrido.ts). El mundo,
+     en mundo-3d.js. -->
+<style>
+  :root {
+    color-scheme: dark;
+    --oro: #f5d27a; --luz: #fff6d8; --morado: #b9a3ff; --verde: #6fe3a1; --cian: #5ad1ff; --rojo: #ff6b8a; --tenue: #9aa3b8;
+    /* Lo que ocupa el menú de las estaciones, a la derecha: lo que se agranda no lo tapa */
+    --menu-ancho: 262px;
+  }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: #07090f; color: #e9e6dc; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  a { color: var(--oro); }
+  .saltar { position: absolute; left: 12px; top: -60px; z-index: 20; padding: 8px 14px; border-radius: 999px; background: var(--oro); color: #1a1f33; font-weight: 600; }
+  .saltar:focus { top: 12px; }
+
+  /* El menú flotante: los seis nombres siempre a la vista, el de la estación actual resaltado (t_decide_menu_estaciones) */
+  .menu { position: sticky; top: 0; z-index: 15; display: flex; justify-content: center; padding: 12px 12px 0; pointer-events: none; }
+  /* Con el recorrido, a la derecha y de arriba abajo, como dice la meta de la fase */
+  @media (min-width: 901px) {
+    .js-3d .menu { position: fixed; top: 50%; right: 16px; transform: translateY(-50%); padding: 0; }
+    .js-3d .menu ol { flex-direction: column; flex-wrap: nowrap; border-radius: 18px; padding: 6px; }
+    /* La píldora de cada estación, al centro exacto de la ventana (nmw6qlm1ttit): sin el margen del menú a la derecha, que la
+       corría a la izquierda, y con el ancho de la barra de desplazamiento sumado a la izquierda (100vw − 100 %), así su
+       centro es el de la ventana y no el del contenido */
+    .js-3d .estacion { padding-left: calc(clamp(16px, 5vw, 64px) + 100vw - 100%); padding-right: clamp(16px, 5vw, 64px); }
+  }
+  /* En un teléfono, el menú es un solo botón redondo arriba a la derecha: plegado, toda la pantalla es del recorrido; un toque
+     despliega las cuatro estaciones y «ES · EN», y elegir una estación, tocar fuera o el botón otra vez lo pliega (nota de voz
+     nmw7yg7m2tit). Respeta los bordes seguros (la muesca, la barra de abajo). En el computador, nada cambia */
+  .menu-boton { display: none; }
+  @media (max-width: 900px) {
+    .js-3d .menu { position: fixed; top: 0; right: 0; left: auto; align-items: flex-end; padding: calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 0 0; }
+    .js-3d .menu-boton { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border-radius: 50%; pointer-events: auto; cursor: pointer;
+      background: rgba(8, 11, 20, .78); border: 1px solid rgba(245, 210, 122, .35); color: var(--luz); font: 22px/1 system-ui, sans-serif;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .4); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+    .js-3d .menu-boton:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+    .js-3d .menu:not(.abierto) .idioma, .js-3d .menu:not(.abierto) ol { display: none; }
+    .js-3d .menu.abierto .menu-boton { background: var(--oro); color: #1a1f33; }
+    .js-3d .menu.abierto ol { flex-direction: column; flex-wrap: nowrap; border-radius: 18px; padding: 6px; }
+    .js-3d .menu.abierto ol a, .js-3d .menu.abierto ol span { padding: 12px 18px; font-size: 16px; }
+    .js-3d .menu.abierto .idioma button { min-width: 48px; min-height: 40px; }
+    /* La altura que siempre se ve (sin la barra de direcciones) y la barra de abajo del teléfono */
+    /* «Qué es STL» y su línea, centrados entre el borde de arriba y el dibujo de la línea, sin pisar los primeros anillos
+       (nota de voz del titular nmw87ytm7tit) */
+    html.js-3d .entrada { height: 100svh; justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 18svh); }
+    .js-3d .tarjeta.corta { bottom: calc(1.5vh + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); box-sizing: border-box; white-space: normal; }
+    .js-3d .tarjeta.corta h2 { white-space: normal; text-wrap: balance; }
+    /* Nada se sale por los lados: la página nunca es más ancha que el teléfono */
+    html, body { overflow-x: clip; }
+  }
+  .menu ol { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin: 0; padding: 5px; list-style: none; pointer-events: auto;
+    border-radius: 999px; background: rgba(8, 11, 20, .78); border: 1px solid rgba(245, 210, 122, .22); box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  .menu a, .menu span { display: block; padding: 6px 14px; border-radius: 999px; font-size: 14px; white-space: nowrap; text-decoration: none; }
+  .menu a { color: var(--luz); }
+  .menu a:hover { background: rgba(245, 210, 122, .12); }
+  .menu a:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  .menu a.actual { background: var(--oro); color: #1a1f33; font-weight: 600; }
+  .menu span { color: rgba(154, 163, 184, .6); cursor: default; }
+  /* «ES · EN», arriba del menú (pd_bilingue, nmw5wf86xtit): el idioma de ahora, resaltado; el otro cambia la página */
+  .menu { flex-direction: column; align-items: center; gap: 8px; }
+  .idioma { display: flex; align-items: center; gap: 2px; padding: 3px; pointer-events: auto; border-radius: 999px;
+    background: rgba(8, 11, 20, .78); border: 1px solid rgba(245, 210, 122, .22); font-size: 13px; }
+  .idioma b { padding: 0 2px; font-weight: 400; color: var(--tenue); }
+  .idioma button { padding: 4px 10px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer; background: none; color: var(--luz); }
+  .idioma button:hover { background: rgba(245, 210, 122, .12); }
+  .idioma button[aria-pressed="true"] { background: var(--oro); color: #1a1f33; }
+  .idioma button:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  /* Los textos de cada estación, en una sola línea abajo, al centro, para dejarles la pantalla a las animaciones en un
+     portátil (nmw5w9ldotit); su letra crece con el ancho de la pantalla, legible: el doble de antes en 1360 y casi el triple
+     en 1920 (nota de voz del titular nmw6lwwbxtit, 7 de noviembre de 2026) */
+  .js-3d .tarjeta.corta { max-width: none; display: flex; align-items: center; gap: clamp(10px, .9vw, 18px); padding: clamp(6px, .5vw, 10px) clamp(14px, 1.2vw, 24px); border-radius: 999px;
+    bottom: 1.5vh; margin-bottom: 1.5vh; white-space: nowrap; overflow: hidden; }
+  .js-3d .tarjeta.corta h2 { margin: 0; font-size: clamp(16px, 1.35vw, 28px); line-height: 1.3; white-space: nowrap; text-wrap: nowrap; }
+  .js-3d .tarjeta.corta .boton-ver { padding: clamp(5px, .45vw, 9px) clamp(12px, 1vw, 20px); font-size: clamp(13px, 1vw, 19px); gap: 6px; }
+  /* Las tres estaciones, con su texto al centro, también «Qué es STL» (nmw6lwwbxtit) */
+  .js-3d .estacion { justify-content: center; }
+
+  /* La entrada: sus dos líneas arriba, entre el borde de arriba y la línea, sin montarse sobre los anillos ni la portada,
+     como en el teléfono (nota de voz del titular nmw8bic81tit; antes, al centro, dentro del primer anillo, nmw86na4vtit); al
+     primer acercamiento se va hacia arriba, despacio, y se desvanece (mundo-3d.js › irseLaEntrada) */
+  .entrada { padding: 14vh clamp(16px, 5vw, 64px) 8vh; text-align: center; }
+  .js-3d .entrada { height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 13vh; padding-bottom: 0; }
+  .js-3d .entrada > * { will-change: transform, opacity; }
+  .entrada h1 { margin: 0 0 8px; font-size: clamp(36px, 5vw, 64px); line-height: 1.1; color: #fffaf0; }
+  .js-3d .entrada h1 { margin: 0 0 2px; font-size: clamp(26px, 2.4vw, 46px); }
+  .js-3d .entrada .bajar { margin-top: 4px; font-size: clamp(14px, 1vw, 19px); }
+  /* Mientras carga el recorrido, no se ve el contenido de la página sin 3D (las tarjetas de los siete problemas se asomaban,
+     nmw6lwwbxtit): la clase la pone el guion del principio y la quita mundo-3d.js, con 3D o sin él */
+  .cargando-3d:not(.js-3d) #viaje, .cargando-3d:not(.js-3d) .fin { visibility: hidden; }
+  /* La carga, a página completa y encima de todo (nmw6p3dj8tit): el cielo de estrellas y, al centro, un farol que va y
+     viene por una línea; al estar lista la página se desvanece despacio. Sin JavaScript no sale (la clase la pone el guion) */
+  .cargador { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; opacity: 0; visibility: hidden; pointer-events: none;
+    background: radial-gradient(ellipse at 28% 22%, rgba(185, 163, 255, .16), transparent 55%), radial-gradient(ellipse at 74% 72%, rgba(90, 209, 255, .1), transparent 50%), #07090f;
+    transition: opacity 1.8s ease, visibility 0s 1.8s; }
+  .cargador::before, .cargador::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
+  .cargador::before { background-size: 233px 211px; opacity: .85;
+    background-image: radial-gradient(1.3px 1.3px at 18px 27px, #fff, transparent), radial-gradient(1px 1px at 96px 141px, #dfe6ff, transparent),
+      radial-gradient(1.1px 1.1px at 171px 63px, #fff6d8, transparent), radial-gradient(.9px .9px at 57px 188px, #fff, transparent),
+      radial-gradient(1px 1px at 203px 172px, #cfd8ff, transparent), radial-gradient(.8px .8px at 132px 14px, #fff, transparent); }
+  .cargador::after { background-size: 389px 347px; opacity: .6;
+    background-image: radial-gradient(1.6px 1.6px at 41px 302px, #fff, transparent), radial-gradient(1.2px 1.2px at 255px 96px, #fff6d8, transparent),
+      radial-gradient(1px 1px at 330px 233px, #dfe6ff, transparent), radial-gradient(.9px .9px at 147px 51px, #fff, transparent); }
+  .cargando-3d .cargador { opacity: 1; visibility: visible; pointer-events: auto; transition: none; }
+  .sin-cargador .cargador { display: none !important; }
+  .cargador-centro { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+  .cargador-linea { position: relative; width: 200px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, rgba(255, 207, 90, .55), transparent); }
+  .cargador-linea::after { content: ''; position: absolute; top: 50%; left: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+    background: #ffcf5a; box-shadow: 0 0 16px 5px rgba(255, 207, 90, .55); animation: viajaCarga 1.8s ease-in-out infinite alternate; }
+  @keyframes viajaCarga { to { left: 100%; } }
+  .cargador-texto { margin: 22px 0 0; font-size: 14px; letter-spacing: .1em; color: var(--tenue); }
+  .cargador-texto [lang] { display: none; }
+  html:lang(es) .cargador-texto [lang="es"], html:lang(en) .cargador-texto [lang="en"] { display: inline; }
+  @media (prefers-reduced-motion: reduce) {
+    .cargador-linea::after { animation: none; left: 50%; }
+    .cargador { transition: opacity .4s ease, visibility 0s .4s; }
+  }
+  .bajar { display: inline-block; margin-top: 18px; color: var(--oro); text-decoration: none; }
+  .bajar span { display: inline-block; animation: latido 2.4s ease-in-out infinite; }
+  @keyframes latido { 50% { transform: translateY(4px); } }
+  @media (prefers-reduced-motion: reduce) { .bajar span { animation: none; } }
+
+  /* El recorrido: el mundo queda fijo atrás mientras las estaciones pasan por delante */
+  .viaje { position: relative; }
+  .escenario { display: none; }
+  .js-3d .escenario { display: block; position: sticky; top: 0; height: 100vh; height: 100lvh; overflow: hidden; }
+  .escenario canvas { width: 100%; height: 100%; display: block; }
+  /* Lo que no es tarjeta deja pasar el ratón hasta el mundo: ahí se eligen los problemas flotantes */
+  .js-3d .estaciones { position: relative; z-index: 1; margin-top: -100vh; margin-top: -100lvh; pointer-events: none; }
+  .js-3d .estaciones a, .js-3d .estaciones button, .js-3d .tarjeta { pointer-events: auto; }
+
+  .estacion { padding: 6vh clamp(16px, 5vw, 64px); display: flex; gap: 24px; }
+  .js-3d .estacion { min-height: 190vh; align-items: flex-end; padding-top: 0; padding-bottom: 0; }
+  .tarjeta {
+    max-width: 560px; box-sizing: border-box; padding: 22px 26px; border-radius: 18px;
+    background: rgba(8, 11, 20, .82); border: 1px solid rgba(245, 210, 122, .22);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .js-3d .tarjeta { position: sticky; bottom: 5vh; margin-bottom: 5vh; max-height: calc(100vh - 110px); overflow-y: auto; overscroll-behavior: contain;
+    opacity: 0; visibility: hidden; transform: translateY(4vh); transition: opacity .45s, transform .55s cubic-bezier(.2, .7, .2, 1), visibility 0s .55s; }
+  /* El texto de cada estación no se asoma antes de tiempo (nota de voz del titular nmw6p0g7htit): aparece solo cuando la
+     cámara llega a la estación, deslizándose de abajo hacia arriba, y se va al avanzar o retroceder (mundo-3d.js › marcar) */
+  .js-3d .estacion.actual .tarjeta { opacity: 1; visibility: visible; transform: none; transition: opacity .25s, transform .3s cubic-bezier(.2, .7, .2, 1), visibility 0s; }
+  @media (prefers-reduced-motion: reduce) {
+    .js-3d .tarjeta { transition: opacity .2s, visibility 0s .2s; transform: none; }
+    .js-3d .estacion.actual .tarjeta { transition: opacity .2s, visibility 0s; }
+  }
+  /* Con 3D, las tarjetas 1 y 3 son solo su botón (nmw6p0g7htit); el título de la 3 queda para quien lee sin 3D */
+  .js-3d .tarjeta .sin-3d { display: none; }
+  .eyebrow { margin: 0 0 4px; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--oro); }
+  .tarjeta h2 { margin: 0 0 10px; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.2; color: #fffaf0; text-wrap: balance; }
+  .tarjeta h3 { margin: 14px 0 4px; font-size: 14px; letter-spacing: .02em; color: var(--oro); }
+  .tarjeta p { margin: 0 0 10px; color: #d9d5ca; }
+
+  /* La tarjeta de la estación 1 es el modelo de todas (nmw5o26vdtit): su título, una sola vez, y su botón, sin la miniatura de la
+     animación (nota de voz nmw17k73utit). Las estaciones 2 y 3 usan esta misma tarjeta */
+  .tarjeta.corta { max-width: 440px; }
+  .js-3d .estacion.dos, .js-3d .estacion.tres { justify-content: center; }
+  .acciones { margin: 0; }
+  .boton-ver { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; background: var(--oro); color: #1a1f33; }
+  .boton-ver:hover { background: var(--luz); }
+  .boton-ver:focus-visible, .volver:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+
+  /* La animación en grande: casi toda la pantalla, sin tapar el menú de la derecha (--menu-ancho queda libre) */
+  .visor { position: fixed; z-index: 12; top: 5vh; bottom: 5vh; left: 1.5vw; right: var(--menu-ancho); display: flex; flex-direction: column; gap: 8px;
+    box-sizing: border-box; padding: 10px; border-radius: 16px; background: #0b0f1c; border: 1px solid rgba(245, 210, 122, .4);
+    box-shadow: 0 0 0 100vmax rgba(4, 6, 12, .72), 0 24px 70px rgba(0, 0, 0, .6); }
+  .visor[hidden] { display: none; }
+  .visor-barra { display: flex; align-items: center; gap: 14px; flex: none; }
+  .visor-barra span { font-size: 13px; color: var(--tenue); }
+  .visor-barra .visor-titulo { margin: 0 6px 0 auto; font-size: clamp(14px, 1.3vw, 19px); line-height: 1.25; font-weight: 600; color: var(--oro); letter-spacing: .02em; text-align: right; }
+  .visor-barra .visor-titulo span { font-size: inherit; font-weight: 500; color: #fff1c4; }
+  .volver { padding: 8px 18px; border: 0; border-radius: 999px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; background: var(--oro); color: #1a1f33; }
+  .volver:hover { background: var(--luz); }
+  .visor iframe { flex: 1; min-height: 0; width: 100%; border: 0; border-radius: 10px; background: #07090f; }
+  @media (max-width: 900px) { .visor { top: 84px; bottom: 2vh; left: 2vw; right: 2vw; } }
+  /* En un teléfono o una pantalla táctil, el visor se cierra con «✕», sin texto, y sin la nota de Esc, que no hay (nmw86aqe2tit) */
+  .volver-x { display: none; }
+  @media (max-width: 900px), (pointer: coarse) {
+    .visor .volver { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; font-size: 20px; line-height: 1; }
+    .visor .volver-largo, .visor-barra .visor-esc { display: none; }
+    .visor .volver-x { display: inline; }
+  }
+
+  /* La estación 2: su frase va en la misma tarjeta que las demás (una sola tarjeta para todas las estaciones, nmw5o26vdtit);
+     los siete problemas son íconos que giran en el mundo. La lista sigue en la página, oculta con el 3D (sin 3D se ve y se
+     abre ahí mismo; de sus resúmenes salen los enunciados de la voz) */
+  .js-3d .lista-problemas { display: none; }
+  .problema { border-bottom: 1px solid rgba(245, 210, 122, .12); font-size: 13.5px; line-height: 1.4; }
+  .problema summary { cursor: pointer; padding: 6px 4px 6px 24px; position: relative; list-style: none; color: #ece8dd; }
+  .problema summary::-webkit-details-marker { display: none; }
+  .problema summary::before { content: '+'; position: absolute; left: 4px; top: 5px; width: 16px; text-align: center; color: var(--oro); font-weight: 700; }
+  .problema[open] summary::before { content: '−'; }
+  .problema summary:hover { color: #fffaf0; }
+  .problema summary:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; border-radius: 6px; }
+  .problema p { margin: 0 0 8px 24px; padding: 6px 10px; border-radius: 8px; background: rgba(111, 227, 161, .08); color: #dff5e8; }
+  /* Con el 3D: la respuesta va en el recuadro, y cada problema lleva su ○, que pasa a ✓ al abrirlo */
+  .js-3d .problema p { display: none; }
+  .js-3d .problema summary::before, .js-3d .problema[open] summary::before { content: '○'; color: rgba(154, 163, 184, .8); font-weight: 400; }
+  .js-3d .problema.visto summary { color: #fffaf0; }
+  .js-3d .problema.visto summary::before, .js-3d .problema.visto[open] summary::before { content: '✓'; color: var(--verde); font-weight: 700; }
+  .js-3d .problema.activo summary { background: rgba(245, 210, 122, .12); border-radius: 6px; }
+
+  /* El reproductor de un problema: su animación de 16 × 10 a la vista y, adentro, debajo, sus mandos fijos (nota de voz
+     nmw40cp3jtit). Dónde va y qué tan grande lo pone mundo-3d.js › ponerReproductor: a la izquierda del anillo de íconos, hasta
+     donde deja la pantalla, sin tapar el anillo, el menú ni la línea de abajo. Al abrirse, crece desde el ícono que lo soltó */
+  .popup { position: fixed; z-index: 14; left: 2vw; top: 4vh; width: 60vw; height: 70vh; display: flex; flex-direction: column; gap: 8px;
+    box-sizing: border-box; padding: 10px 10px 8px; border-radius: 16px; background: #0b0f1c; border: 1px solid rgba(245, 210, 122, .45);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
+  .popup[hidden] { display: none; }
+  .popup.sale { animation: crece .5s cubic-bezier(.2, .7, .2, 1); }
+  @keyframes crece { from { opacity: 0; transform: scale(.06); } }
+  /* «Cómo empezar» se encoge de vuelta hacia su pantalla 3D al cerrarse (nmw6lwwbxtit) */
+  .popup.vuelve { animation: encoge .45s cubic-bezier(.5, 0, .75, .3) forwards; pointer-events: none; }
+  @keyframes encoge { to { opacity: 0; transform: scale(.06); } }
+  @media (prefers-reduced-motion: reduce) { .popup.sale, .popup.vuelve { animation: none; } }
+  .popup canvas { display: block; flex: 1 1 auto; min-height: 0; width: 100%; object-fit: contain; border-radius: 10px; background: #07090f; }
+  .popup-barra { flex: none; height: 54px; display: flex; justify-content: center; align-items: center; gap: 14px; margin: 0; }
+  /* La perilla chica del clip, como la de la animación del principio (linea-del-proyecto.html › #perilla): se gira, o se
+     mueve con la rueda; en el centro, pausa o sigue (nota de voz nmw1kwbsftit) */
+  .mini-perilla { position: relative; width: 52px; aspect-ratio: 1; flex: none; border-radius: 50%; touch-action: none; cursor: grab; outline: none; -webkit-tap-highlight-color: transparent; }
+  .mini-perilla.gira { cursor: grabbing; }
+  .mini-perilla:focus-visible { box-shadow: 0 0 0 2px var(--luz); }
+  .mini-perilla svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .55)); }
+  .mini-perilla .mp-aro { transition: opacity .25s; opacity: 0; }
+  .mini-perilla.gira .mp-aro, .mini-perilla:hover .mp-aro { opacity: 1; }
+  .mini-pausa { position: absolute; left: 50%; top: 50%; width: 40%; height: 40%; margin: 0; padding: 0; transform: translate(-50%, -50%); border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+    background: radial-gradient(circle at 40% 32%, #fff0c2, #e8b955 62%, #a07728); box-shadow: 0 2px 8px rgba(0, 0, 0, .55), inset 0 1px 1px rgba(255, 255, 255, .65), inset 0 -2px 3px rgba(90, 60, 10, .35); transition: transform .12s, box-shadow .2s; }
+  .mini-pausa:hover { box-shadow: 0 0 12px rgba(245, 210, 122, .45), inset 0 1px 1px rgba(255, 255, 255, .65), inset 0 -2px 3px rgba(90, 60, 10, .35); }
+  .mini-pausa:active { transform: translate(-50%, -50%) scale(.93); }
+  .mini-pausa:focus-visible { outline: 2px solid var(--luz); outline-offset: 3px; }
+  .mini-pausa svg { width: 46%; height: 46%; fill: #1a1f33; }
+  .voz { padding: 7px 16px; border: 1px solid rgba(245, 210, 122, .5); border-radius: 999px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: transparent; color: var(--luz); }
+  .voz:hover { background: var(--oro); color: #1a1f33; }
+  .voz[aria-pressed="false"] { opacity: .75; }
+  .voz:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  /* La velocidad de la voz, y la animación con ella (nota de voz nmw2n33o6tit) */
+  .velocidad { display: flex; gap: 3px; }
+  .velocidad button { padding: 5px 9px; border: 1px solid rgba(245, 210, 122, .35); border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: #b9b4a6; }
+  .velocidad button[aria-pressed="true"] { background: var(--oro); border-color: var(--oro); color: #1a1f33; }
+  .velocidad button:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  /* «Cómo empezar» (pd_como_empezar) en el mismo reproductor: la fila con un ejemplo de lo que se le puede pedir al modelo,
+     como texto y sin «Copiar» (nmw56hkz8tit), o del enlace al README, sobre los mandos; y, si el navegador no deja sonar la
+     voz al llegar, «▶ Empezar con voz» encima */
+  .popup-extra { display: none; }
+  .popup.guia .popup-extra { flex: none; height: 32px; display: flex; justify-content: center; align-items: center; gap: 12px; }
+  .popup-extra .ejemplo-como { color: #d9d4c4; font-size: 15px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85%; }
+  .ejemplo-como { font-style: italic; }
+  .popup-extra a { font-size: 15px; font-weight: 600; }
+  .popup-extra [hidden] { display: none; }
+  .empezar-voz { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 1; padding: 16px 30px; border: 0; border-radius: 999px; font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; background: var(--oro); color: #1a1f33; box-shadow: 0 10px 40px rgba(0, 0, 0, .6); }
+  .empezar-voz:hover { background: var(--luz); }
+  .empezar-voz[hidden] { display: none; }
+  .ver-como { display: none; }
+  .js-3d .ver-como { display: inline-flex; }
+  .js-3d .ver-como[hidden] { display: none; }
+  .js-3d .lista-como { display: none; }
+  /* «La documentación»: sin 3D, se lee en su lugar; con 3D, una tarjeta de texto a la izquierda de la línea, que abre su
+     «▶» y se va al dejar la estación; la rueda la recorre por dentro */
+  .documentacion { max-width: 640px; margin: 16px auto 0; padding: 18px 22px; border: 1px solid rgba(245, 210, 122, .28); border-radius: 18px;
+    background: rgba(10, 13, 24, .9); color: #d9d5ca; text-align: left; }
+  .js-3d .documentacion { display: none; position: fixed; left: clamp(16px, 2.4vw, 48px); top: 12vh; width: min(560px, 38vw); max-height: 72vh;
+    overflow-y: auto; overscroll-behavior: contain; margin: 0; pointer-events: auto; z-index: 5; }
+  .js-3d .estacion.actual .documentacion.abierta { display: block; }
+  .doc-titulo { margin: 0 0 12px; font-size: clamp(20px, 1.6vw, 28px); color: #fffaf0; }
+  .js-3d .doc-titulo { display: none; }
+  .doc-arriba { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .cerrar-doc { display: none; }
+  .doc-pestanas { display: flex; gap: 8px; flex: 1 1 auto; min-width: 0; }
+  .doc-pestanas button { padding: 6px 14px; border: 1px solid rgba(245, 210, 122, .4); border-radius: 999px; background: transparent; color: #d9d5ca;
+    font: inherit; font-weight: 600; cursor: pointer; }
+  .doc-pestanas button[aria-selected="true"] { background: var(--oro); color: #1a1f33; border-color: var(--oro); }
+  .doc-pestanas button:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  .doc-panel a { color: var(--oro); }
+  .doc-pasos, .doc-metodo { margin: 0 0 12px; padding-left: 22px; }
+  .doc-pasos li, .doc-metodo li { margin-bottom: 8px; }
+  .doc-enlaces { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; }
+  .doc-glosario { margin: 0; }
+  .doc-glosario dt { margin-top: 10px; font-weight: 700; }
+  .doc-glosario dd { margin: 2px 0 0; }
+  .lista-como q { color: #fffaf0; }
+  /* La respuesta de STL la dice la animación (su cierre); aquí queda solo para los lectores de pantalla */
+  /* Lo del reproductor que solo va en un teléfono */
+  .arriba-clip, .sub-clip, .carril-clip, .crono-clip, .siguiente-clip { display: none; }
+  /* En el computador también, al final de cada problema, «Siguiente problema ›», en rueda: tras el último, el primero
+     (nmw8b5l2atit, nmw8cmckvtit), en la barra de los mandos */
+  @media (min-width: 901px) {
+    .js-3d .popup .siguiente-clip:not([hidden]) { display: inline-flex; flex: none; align-items: center; padding: 6px 14px; border: 0; border-radius: 999px; cursor: pointer;
+      background: var(--oro); color: #1a1f33; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; }
+    .js-3d .popup .siguiente-clip:hover { background: var(--luz); }
+    .js-3d .popup .siguiente-clip:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  }
+  /* ══ En un teléfono, el reproductor de los problemas y de «Cómo empezar» es el mismo de «Qué es STL» de pie, a pantalla
+     completa (nmw8652hjtit, nmw88hxyftit): arriba «✕», «Sin STL» y «1 de 3», pegados al borde (nmw87ytm7tit); el dibujo en
+     todo lo que queda, a su escala; el subtítulo en una franja delgada de un renglón justo sobre la barra (nmw887qwvtit); la
+     barra baja, con el carril para adelantar o devolver y, en su renglón, el tiempo, la voz, las velocidades y una pausa
+     chica a la derecha, sin perilla ni «↻ Repetir» (nmw87ytm7tit); al terminar, «Siguiente problema ›» (nmw88fyfctit) */
+  @media (max-width: 900px) {
+    .js-3d .popup { left: 0 !important; top: 0 !important; width: 100vw !important; height: 100svh !important; border-radius: 0; border: 0;
+      padding: calc(6px + env(safe-area-inset-top)) 0 0; gap: 0; z-index: 25; box-shadow: none; touch-action: none; overscroll-behavior: contain; }
+    .js-3d .popup.sale { animation: aparece-clip .3s ease-out; }
+    @keyframes aparece-clip { from { opacity: 0; } }
+    .js-3d .popup .arriba-clip { display: flex; flex: none; align-items: center; gap: 6px; padding: 0 10px 4px; }
+    .cerrar-clip { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+      background: var(--oro); color: #1a1f33; font: 700 17px/1 system-ui, sans-serif; }
+    .cerrar-clip:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+    .pildora-clip { padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .pildora-clip[hidden] { display: none; }
+    .pildora-clip.sin { background: rgba(255, 107, 138, .22); border: 1px solid rgba(255, 107, 138, .6); color: #ffc2cf; }
+    .pildora-clip.con { background: rgba(111, 227, 161, .2); border: 1px solid rgba(111, 227, 161, .6); color: #dff5e8; }
+    .pildora-clip[data-pildora-cuenta] { margin-left: auto; }
+    .js-3d .popup canvas { border-radius: 0; background: transparent; order: 1; }
+    .js-3d .popup .arriba-clip { order: -1; } .js-3d .popup .sub-clip { order: 2; } .js-3d .popup .carril-clip { order: 3; } .js-3d .popup .popup-barra { order: 4; }
+    .js-3d .popup .sub-clip { display: block; flex: none; margin: 0; padding: 3px 10px; min-height: 1.3em; line-height: 1.3; text-align: center;
+      font-size: 16px; font-weight: 500; color: #fffaf0; background: rgba(4, 6, 12, .8); white-space: nowrap; }
+    .js-3d .popup .sub-clip.rojo { color: #ffc2cf; }
+    .js-3d .popup .carril-clip { display: block; flex: none; position: relative; height: 28px; margin: 0 10px; cursor: pointer; touch-action: none; --pos: 0; }
+    .carril-clip::before { content: ''; position: absolute; left: 8px; right: 8px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px;
+      background: linear-gradient(90deg, var(--oro) calc(var(--pos) * 100%), rgba(245, 210, 122, .22) calc(var(--pos) * 100%)); }
+    .carril-clip span { position: absolute; top: 50%; left: calc(8px + (100% - 16px) * var(--pos)); width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 32%, #fff0c2, #e8b955 62%, #a07728); box-shadow: 0 2px 6px rgba(0, 0, 0, .55); }
+    .js-3d .popup .popup-barra { height: auto; justify-content: flex-start; gap: 6px; padding: 0 10px calc(6px + env(safe-area-inset-bottom)); }
+    .js-3d .popup .crono-clip { display: inline; flex: none; font-size: 12px; color: var(--oro); font-variant-numeric: tabular-nums; }
+    .js-3d .popup [data-repetir-clip] { display: none; }
+    .js-3d .popup .voz { padding: 6px 8px; font-size: 12px; min-height: 36px; }
+    .js-3d .popup .velocidad { flex: 1 1 0; min-width: 0; justify-content: space-between; }
+    .js-3d .popup .velocidad button { flex: 1 1 0; min-width: 0; padding: 6px 2px; font-size: 12px; min-height: 36px; }
+    .js-3d .popup .siguiente-clip { display: inline-flex; flex: none; align-items: center; min-height: 36px; padding: 6px 12px; border: 0; border-radius: 999px; cursor: pointer;
+      background: var(--oro); color: #1a1f33; font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .js-3d .popup .siguiente-clip[hidden] { display: none; }
+    /* Al final, «Siguiente problema ›» ocupa el lugar de las velocidades */
+    .js-3d .popup.al-final .velocidad { display: none; }
+    .js-3d .popup.al-final .siguiente-clip:not([hidden]) { margin-left: auto; }
+    .js-3d .popup .mini-perilla { width: 36px; cursor: pointer; }
+    .js-3d .popup .mini-perilla > svg { display: none; }
+    .js-3d .popup .mini-pausa { width: 100%; height: 100%; }
+    .js-3d .popup .mini-pausa svg { width: 46%; height: 46%; }
+    /* «Cómo empezar»: su ejemplo, en una fila sobre el dibujo (nmw865tnttit) */
+    .js-3d .popup.guia .popup-extra { order: 0; height: auto; min-height: 28px; padding: 0 10px; }
+    .js-3d .popup .popup-extra .ejemplo-como, .js-3d .popup .popup-extra a { font-size: 13px; }
+  }
+  .popup-respuesta { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* El globo de cada ícono: su nombre en dos palabras, al pasar el ratón o al hacer clic; lo pone mundo-3d.js › ponerGlobo,
+     donde no pisa nada */
+  .globo-problema { position: fixed; z-index: 13; left: 0; top: 0; padding: 7px 14px; border-radius: 12px; pointer-events: none; white-space: nowrap;
+    background: rgba(8, 11, 20, .92); border: 1px solid rgba(255, 107, 138, .7); color: #fffaf0; font-size: 15px; font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
+  .globo-problema.visto { border-color: rgba(111, 227, 161, .8); }
+  .globo-problema[hidden] { display: none; }
+
+  /* Un teléfono abre el recorrido directo, sin aviso (nmw7y7d0ktit). Solo el que no puede con él (sin WebGL, o con muy pocos
+     cuadros por segundo al empezar) queda cubierto por este aviso, que invita a verlo en un computador o en un teléfono más
+     rápido, sin versión simple ni botón para pasar (nmw7yb1bttit). La pone mundo-3d.js › cubrirLento */
+  .cubierta-movil { display: none; }
+  .cubierta-movil.lenta { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; box-sizing: border-box; background: rgba(7, 9, 15, .97); text-align: center; }
+  .cubierta-movil > div { max-width: min(420px, 100%); }
+  .cubierta-movil h2 { margin: 6px 0 12px; font-size: 24px; line-height: 1.25; color: #fffaf0; }
+  .cubierta-movil p { color: #d9d5ca; }
+  .cubierta-icono { font-size: 44px; line-height: 1; margin: 0 0 8px; }
+
+  /* El camino entre dos estaciones: el tramo que se recorre, ya sin texto (nota de voz nmw1g3dfftit) */
+  .camino-texto { display: none; }
+  .js-3d .camino-texto { display: flex; min-height: 150vh; align-items: center; justify-content: center; }
+
+  .fin { padding: 10vh clamp(16px, 5vw, 64px) 8vh; text-align: center; border-top: 1px solid rgba(245, 210, 122, .15); background: #07090f; position: relative; z-index: 2; }
+  .fin p { color: var(--tenue); font-size: 14px; }
+  .boton { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; font-weight: 600; text-decoration: none; background: var(--verde); color: #08281a; }
+
+  /* ?ver=N: una sola estación, fija y sin desplazarse (para revisarla o capturarla) */
+  .ver-parada .entrada, .ver-parada .camino-texto, .ver-parada .fin, .ver-parada .saltar { display: none !important; }
+  .ver-parada .escenario { position: fixed; inset: 0; height: 100vh; }
+  /* La imagen al compartir el enlace: solo el dibujo, sin texto encima (pd_imagen_compartir, nmw2p52extit) */
+  .compartir .menu, .compartir .estaciones, .compartir .popup, .compartir .globo-problema { display: none !important; }
+  .ver-parada .estaciones { position: fixed; inset: 0; margin: 0; pointer-events: none; }
+  .ver-parada .estacion { display: none; }
+  .ver-parada .estacion.actual { display: flex; min-height: 100vh; box-sizing: border-box; padding-bottom: 5vh; }
+  .ver-parada .estacion.actual .tarjeta { position: static; margin: 0; opacity: 1; transform: none; pointer-events: auto; }
+
+  @media (max-width: 900px) {
+    .js-3d .estacion { justify-content: center; align-items: flex-end; }
+    .js-3d .tarjeta { opacity: 0; }
+    .menu a, .menu span { padding: 5px 9px; font-size: 13px; }
+    /* La tarjeta de cada estación, una píldora abajo y al centro, como en el computador (nota de voz del titular nmw86ofbytit,
+       8 de noviembre de 2026, que reemplaza el panel de lado a lado de nmw7yh2tntit): nunca al centro de la pantalla ni de
+       lado a lado, solo un poco más ancha que su botón, para no tapar la animación; el botón, grande para el dedo, sobre la
+       barra de abajo del teléfono */
+    .js-3d .estacion { position: relative; padding-left: 12px; padding-right: 12px; }
+    .js-3d .tarjeta.corta { width: auto; max-width: calc(100vw - 24px); bottom: calc(1.5vh + env(safe-area-inset-bottom)); margin-bottom: calc(1.5vh + env(safe-area-inset-bottom));
+      border-radius: 28px; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 10px; text-align: center; padding: 6px; }
+    .js-3d .tarjeta.corta, .js-3d .tarjeta.corta h2 { white-space: normal; text-wrap: balance; }
+    .js-3d .tarjeta.corta h2 { font-size: 16px; padding: 4px 8px 0; }
+    .ver-parada .estacion.actual { justify-content: center; align-items: flex-end; padding-bottom: 0; }
+    .js-3d .tarjeta.corta .boton-ver { justify-content: center; min-height: 44px; font-size: 16px; }
+    /* «La documentación» en un teléfono: un lector que cubre toda la pantalla, encima del menú y de la píldora, con «✕» a la
+       izquierda de sus pestañas para cerrarlo, y que abre siempre en «Instalar» (nmw86lki4tit, nmw8cshdztit); sus pestañas,
+       en un renglón que cabe y se lee (nmw88lkhftit, t_decide_lector_pestanas) */
+    .js-3d .documentacion { inset: 0; width: auto; max-width: none; max-height: none; border: 0; border-radius: 0; z-index: 26; box-sizing: border-box;
+      padding: calc(8px + env(safe-area-inset-top)) max(14px, calc((100% - 640px) / 2)) calc(20px + env(safe-area-inset-bottom)); background: #07090f; }
+    .js-3d .doc-arriba { position: sticky; top: calc(-8px - env(safe-area-inset-top)); z-index: 1; margin: calc(-8px - env(safe-area-inset-top)) 0 14px;
+      padding: calc(8px + env(safe-area-inset-top)) 0 8px; background: #07090f; gap: 6px; }
+    .js-3d .cerrar-doc { display: grid; flex: none; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+      background: var(--oro); color: #1a1f33; font: 700 18px/1 system-ui, sans-serif; }
+    .js-3d .cerrar-doc:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+    /* Mientras el lector está abierto, el botón del menú no lo pisa: se cierra con «✕» y el menú vuelve */
+    .js-3d:has(.estacion.actual .documentacion.abierta) .menu { display: none; }
+    .js-3d .doc-pestanas { gap: 6px; flex-wrap: nowrap; }
+    .js-3d .doc-pestanas button { flex: 1 1 0; min-width: 0; padding: 8px 6px; min-height: 40px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Los siete nombres del anillo de la estación 2, debajo de él, para tocarlos (pieza 5; nmw7yjlhntit; mundo-3d.js › ponerNombres) */
+    /* En dos renglones, 4 y 3, por el largo de su texto (nmw87ytm7tit) */
+    .nombres-anillo { position: fixed; left: 6px; right: 6px; z-index: 12; display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+    .nombres-anillo .fila { display: flex; flex-wrap: nowrap; justify-content: center; gap: 4px; min-width: 0; }
+    .nombres-anillo[hidden] { display: none; }
+    .nombres-anillo button { flex: none; white-space: nowrap; min-height: 32px; padding: 4px 8px; border-radius: 999px; font: 600 var(--letra-nombres, 13px)/1.2 system-ui, sans-serif; cursor: pointer;
+      background: rgba(8, 11, 20, .82); color: var(--luz); border: 1px solid rgba(245, 210, 122, .35); }
+    .nombres-anillo button.visto::after { content: ' ✓'; color: var(--verde); }
+  }
+  /* La parada suave de cada estación en un teléfono (nmw84zgrttit): el desplazamiento que termina cerca del centro de una
+     estación se asienta en él, y uno rápido no se lo salta; entre estaciones, libre (mundo-3d.js pone el punto) */
+  @media (max-width: 900px), (pointer: coarse) {
+    html.js-3d { scroll-snap-type: y proximity; }
+    .js-3d .estacion { position: relative; }
+    .parada-suave { position: absolute; left: 0; top: 50%; width: 1px; height: 1px; pointer-events: none; scroll-snap-align: center; scroll-snap-stop: always; }
+  }
+  /* Sin la barra de desplazamiento, en todas las pantallas (nmw84v293tit): la rueda, el dedo y el teclado siguen moviendo el
+     recorrido */
+  html { scrollbar-width: none; }
+  html::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+<!-- La carga, a página completa (nota de voz del titular nmw6p3dj8tit): solo el cielo de estrellas y una animación al
+     centro, encima de todo (el menú y «ES · EN» también), hasta que la página está lista; entonces se desvanece despacio
+     y queda la vista de entrada. La quita mundo-3d.js › mostrarPagina -->
+<div class="cargador" aria-hidden="true">
+  <div class="cargador-centro">
+    <div class="cargador-linea"></div>
+    <p class="cargador-texto"><span lang="es">Cargando el recorrido…</span><span lang="en">Loading the tour…</span></p>
+  </div>
+</div>
+<div class="cubierta-movil" id="cubierta-movil" role="dialog" aria-modal="true" aria-labelledby="cubierta-titulo">
+  <div>
+    <p class="cubierta-icono" aria-hidden="true">🖥️</p>
+    <p class="eyebrow">¿Qué es STL?</p>
+    <h2 id="cubierta-titulo">Tu teléfono es demasiado lento para este recorrido</h2>
+    <p>Te invitamos a verlo en un computador o en un teléfono más rápido.</p>
+  </div>
+</div>
+<a class="saltar" href="#fin">Saltar el recorrido</a>
+
+<nav class="menu" aria-label="Las estaciones de «Qué es STL»">
+  <button type="button" class="menu-boton" data-menu-boton aria-expanded="false" aria-controls="menu-estaciones" aria-label="Las estaciones y el idioma">☰</button>
+  <div class="idioma" role="group" aria-label="Idioma · Language"><button type="button" data-idioma="es" lang="es">ES</button><b aria-hidden="true">·</b><button type="button" data-idioma="en" lang="en">EN</button></div>
+  <ol id="menu-estaciones">
+    <li><a href="#e-que-es">Qué es STL</a></li>
+    <li><a href="#e-te-ha-pasado">¿Te ha pasado…?</a></li>
+    <li><a href="#e-como-empezar">Cómo empezar</a></li>
+    <li><a href="#e-documentacion">La documentación</a></li>
+  </ol>
+</nav>
+
+<main id="viaje" class="viaje">
+  <div class="escenario" aria-hidden="true"><canvas id="mundo"></canvas></div>
+  <div class="estaciones">
+    <header class="entrada">
+      <h1>¿Qué es STL?</h1>
+      <a class="bajar" href="#e-que-es">Empieza el recorrido <span aria-hidden="true">↓</span></a>
+    </header>
+
+    <article class="estacion" id="e-que-es">
+      <div class="tarjeta corta">
+        <div class="acciones"><a class="boton-ver" href="linea-del-proyecto.html" data-ver-animacion data-texto-ver>Qué es STL</a></div>
+      </div>
+    </article>
+
+    <div class="camino-texto" aria-hidden="true"></div>
+
+    <article class="estacion dos" id="e-te-ha-pasado">
+      <div class="tarjeta corta">
+        <h2 class="linea-dos" data-titulo-dos>Problemas de desarrollar por chat que STL resuelve muy bien</h2>
+
+        <div class="lista-problemas">
+        <details class="problema" data-resuelve="0" data-corto="Atención dispersa"><summary>¿Abres hasta 4 o más sesiones a la vez, te cuesta saber en qué va cada una y, cuando una idea aparece a mitad de algo, la metes en cualquiera y al final no sabes qué sigue?</summary><p>Con STL todo entra por un solo canal: ideas y ajustes van al Buzón y a su fase en la ruta, no sobrecargas tu atención y siempre sabes qué sigue.</p></details>
+        <details class="problema" data-resuelve="1" data-corto="Mensajes incompletos"><summary>¿Envías un mensaje al modelo y te das cuenta, a los 3 segundos, de que te faltó algo o te equivocaste?</summary><p>Tu nota espera en el Buzón y la puedes editar; lo que decidiste queda en firme, y cada cambio de decisión queda documentado correctamente.</p></details>
+        <details class="problema" data-resuelve="2" data-corto="Hilo perdido"><summary>¿Vuelves de una pausa y no sabes en qué ibas ni qué sigue, y en cada sesión nueva le explicas otra vez todo al modelo?</summary><p>Con STL te espera «¿Dónde quedamos?» con una sola misión a la vista, y el director ya lo sabe todo: retomas sin repetirle nada.</p></details>
+        <details class="problema" data-resuelve="3" data-corto="Respuestas largas"><summary>¿Las respuestas largas te cansan, no recuerdas lo que ya leíste y el modelo te pide releer documentación ya revisada?</summary><p>Lees una idea a la vez, con «Entendido»; lo que ya leíste queda marcado y sellado, y lo nuevo llega en un documento corto.</p></details>
+        <details class="problema" data-resuelve="4" data-corto="Modelo olvidadizo"><summary>¿Se te van los tokens en sesiones que releen lo mismo, tu contexto se contamina cada vez que cambias de decisión y no sabes qué recuerda el modelo?</summary><p>Con STL el director lee solo lo que cambió, lo que reemplazaste sale del contexto y ves cada paso entre el director y el modelo.</p></details>
+        <details class="problema" data-resuelve="5" data-corto="Sin internet"><summary>¿Te quedaste sin internet y tu trabajo con la IA se detuvo?</summary><p>Con STL Studio sigues trabajando sin conexión: el Buzón recoge tus notas, ajustes y entregas, y sigues leyendo tus documentos y respuestas y auditando el trabajo del modelo. Nada se pierde, y al volver la conexión el director lo recibe todo junto.</p></details>
+        <details class="problema" data-resuelve="6" data-corto="Cansancio de escribir"><summary>¿Te cansa escribir todo lo que piensas, y tus mensajes al modelo salen a medias?</summary><p>Con STL dictas tus notas: hablas como hablarías con un amigo, de forma natural, e incluso puedes divagar, que el director te entenderá; se transcriben en tu computador y, como van al Buzón y no directo al modelo, las lees y las corriges antes de que lleguen.</p></details>
+        </div>
+      </div>
+    </article>
+
+    <div class="camino-texto" aria-hidden="true"></div>
+
+    <!-- La estación 3, «Cómo empezar» (pd_como_empezar): con 3D, su animación sale en el reproductor de los problemas, sola al
+         llegar (nmw4ircrjtit), y aquí queda solo su línea, con «▶ Ver cómo empezar» para volver a abrirla; sin 3D, sus siete
+         pasos se leen aquí, con lo que se le pide al modelo y el enlace al README -->
+    <article class="estacion tres" id="e-como-empezar">
+      <div class="tarjeta corta">
+        <h2 class="sin-3d" data-titulo-tres>Cómo empezar</h2>
+        <div class="acciones"><button type="button" class="boton-ver ver-como" data-ver-como>Cómo empezar</button></div>
+        <ol class="lista-como">
+          <li>¿Quieres probar el Studio ahora? Así se empieza.</li>
+          <li>Primero, tráelo a tu computador: clona el repositorio, o descárgalo desde GitHub.</li>
+          <li>Ponlo en la carpeta donde quieras trabajar.</li>
+          <li>Para tu tranquilidad, pídele primero a tu modelo un escaneo de seguridad: que confirme que no trae nada malicioso. Por ejemplo, en Claude Code: <q class="ejemplo-como">Revisa este repositorio y dime si trae algo malicioso antes de instalarlo</q></li>
+          <li>Después, pídele que lo instale. Por ejemplo, en Claude Code: <q class="ejemplo-como">Inicializa STL Studio</q></li>
+          <li>Desde ahí, el Studio te guía paso a paso.</li>
+          <li>Si te queda alguna duda, consulta <a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme">la documentación</a>.</li>
+        </ol>
+        <p class="lista-como">Listo: ya estás en marcha.</p>
+      </div>
+    </article>
+
+    <div class="camino-texto" aria-hidden="true"></div>
+
+    <!-- La última estación, «La documentación» (pd_pagina_unica), donde termina la línea, en su libro abierto (nmw76f854tit): con 3D, abajo solo su botón, y al oprimirlo se abre a la izquierda
+         de la línea su tarjeta de texto, en la pestaña de instalar (nmw76dn24tit); sin 3D, se lee aquí. Tres pestañas cortas
+         (nmw76dxyhtit): los tres pasos del README y el enlace a la guía (nmw73ypystit), el glosario con los textos del «?» en
+         el orden del ciclo, cada palabra con su enlace a su parte del método (nmw72c311tit, nmw76eqautit), y solo los títulos
+         de las seis partes del método, cada uno con su enlace a GitHub en el idioma de la página (nmw76ej5vtit, nmw728gogtit).
+         Sin voz (nmw3s6d7ktit). En inglés, mundo-3d.js › DOC_EN la escribe entera -->
+    <article class="estacion cuatro" id="e-documentacion">
+      <div class="tarjeta corta">
+        <h2 class="sin-3d" data-titulo-doc>La documentación</h2>
+        <div class="acciones"><button type="button" class="boton-ver ver-doc" data-ver-doc aria-controls="documentacion" aria-expanded="false">▶ La documentación</button></div>
+      </div>
+      <section class="documentacion" id="documentacion" data-documentacion aria-labelledby="doc-titulo">
+        <h2 id="doc-titulo" class="doc-titulo">La documentación</h2>
+        <div class="doc-arriba">
+        <button type="button" class="cerrar-doc" data-cerrar-doc aria-label="Cerrar la documentación">✕</button>
+        <div class="doc-pestanas" role="tablist" aria-label="Las partes de la documentación">
+          <button type="button" role="tab" id="pestana-instalar" aria-controls="doc-instalar" aria-selected="true">Instalar</button>
+          <button type="button" role="tab" id="pestana-glosario" aria-controls="doc-glosario" aria-selected="false" tabindex="-1">Glosario</button>
+          <button type="button" role="tab" id="pestana-metodo" aria-controls="doc-metodo" aria-selected="false" tabindex="-1">Método</button>
+        </div>
+        </div>
+        <div class="doc-panel" role="tabpanel" id="doc-instalar" aria-labelledby="pestana-instalar">
+          <ol class="doc-pasos">
+            <li><strong>Baja STL Studio</strong> (<a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/releases/latest" target="_blank" rel="noopener">la última versión</a>), descomprímelo y abre Claude Code en su carpeta.</li>
+            <li><strong>Pídele «inicializa STL Studio»</strong>: instala todo y abre el Studio en tu navegador.</li>
+            <li><strong>Entrega tu proyecto</strong> con «Entregar proyectos»: el director lo diagnostica y te da tu primera misión.</li>
+          </ol>
+          <p class="doc-enlaces"><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/INSTALAR.md" target="_blank" rel="noopener">La guía de instalación completa (INSTALAR.md) ↗</a> <a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/README.es.md" target="_blank" rel="noopener">El README en GitHub ↗</a></p>
+        </div>
+        <div class="doc-panel" role="tabpanel" id="doc-glosario" aria-labelledby="pestana-glosario" hidden>
+          <dl class="doc-glosario">
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">Misión</a></dt><dd>lo único que tienes que hacer ahora, con sus pasos y un botón a cada lugar; las demás esperan su turno.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">Revisión</a></dt><dd>cuando la pides, el director recibe todo junto, responde cada nota y te deja tu siguiente misión.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">Buzón</a></dt><dd>donde esperan tus notas, ideas y ajustes, y puedes editarlas, hasta que pidas la revisión.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#4-lo-que-el-director-puede-y-no-puede-hacer" target="_blank" rel="noopener">Director</a></dt><dd>el modelo que trabaja para ti dentro del Studio: ordena lo que dices, propone y te da una misión a la vez; tú decides.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#5-la-memoria-en-tu-repositorio" target="_blank" rel="noopener">Memoria</a></dt><dd>los archivos del proyecto donde queda todo lo que decidiste, para que nadie tenga que preguntártelo otra vez.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#1-qué-es-y-qué-problema-resuelve" target="_blank" rel="noopener">Dispersión</a></dt><dd>lo que pasa cuando abres muchas sesiones a la vez y pierdes el hilo; STL existe para evitarla.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">Ruta</a></dt><dd>el camino del proyecto hasta su meta, dividido en fases.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">Fase</a></dt><dd>un tramo de la ruta con un solo propósito, por ejemplo «Se entiende de un vistazo».</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">Puerta</a></dt><dd>lo que tiene que pasar para cambiar de fase; la cruzas tú, cuando se cumplen sus criterios.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">Propuesta</a></dt><dd>una idea del director con su porqué y sus riesgos, que tú aceptas o descartas.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">Pedido</a></dt><dd>lo que pediste en una nota, guardado en su fase hasta que se hace.</dd>
+            <dt><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#5-la-memoria-en-tu-repositorio" target="_blank" rel="noopener">Línea del tiempo</a></dt><dd>la historia del proyecto como una línea: lo que ya pasó, dónde estás y lo que viene.</dd>
+          </dl>
+        </div>
+        <div class="doc-panel" role="tabpanel" id="doc-metodo" aria-labelledby="pestana-metodo" hidden>
+          <ol class="doc-metodo">
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#1-qué-es-y-qué-problema-resuelve" target="_blank" rel="noopener">Qué es y qué problema resuelve</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#2-el-ciclo-de-una-revisión" target="_blank" rel="noopener">El ciclo de una revisión</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#3-la-ruta" target="_blank" rel="noopener">La ruta</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#4-lo-que-el-director-puede-y-no-puede-hacer" target="_blank" rel="noopener">Lo que el director puede y no puede hacer</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#5-la-memoria-en-tu-repositorio" target="_blank" rel="noopener">La memoria en tu repositorio</a></li>
+            <li><a href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/blob/main/docs/metodo/metodologia.es.md#6-cuándo-no-usarlo" target="_blank" rel="noopener">Cuándo no usarlo</a></li>
+          </ol>
+        </div>
+      </section>
+    </article>
+
+  </div>
+</main>
+
+<footer class="fin" id="fin">
+  <p><a class="boton" href="https://github.com/ARGWABOT/STL-Sacred_Time_Line">▶ Bájalo en GitHub</a></p>
+  <p>STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).</p>
+</footer>
+
+<!-- La animación en grande: se abre desde «▶ Ver la animación» o «Ver». Esc, el botón o el desplazamiento la cierran -->
+<div class="visor" id="visor" role="dialog" aria-label="La animación de la línea del proyecto, en grande" hidden>
+  <div class="visor-barra">
+    <!-- En un teléfono, solo «✕», y sin «Esc también vuelve», que no tiene tecla Esc (nmw86aqe2tit) -->
+    <button type="button" class="volver" data-cerrar-visor aria-label="Volver al recorrido"><span class="volver-largo">← Volver al recorrido</span><span class="volver-x" aria-hidden="true">✕</span></button>
+    <span class="visor-esc">Esc también vuelve</span>
+    <!-- El título de la animación, arriba a la derecha del visor y no dentro del dibujo (nota de voz nmw479zmetit) -->
+    <h2 class="visor-titulo" data-titulo-visor>¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span></h2>
+  </div>
+  <iframe data-src="linea-del-proyecto.html" allow="autoplay" title="La animación de la línea del proyecto, en grande"></iframe>
+</div>
+
+<!-- El reproductor de un problema de la estación 2 (solo con 3D): su animación y, adentro, debajo, sus mandos fijos: la voz,
+     «↻ Repetir», la velocidad y la perilla (nota de voz nmw40cp3jtit). Sin botón para cerrarlo: lo cierran Esc, la rueda fuera de
+     él, el menú, o solo, 4 s después de terminar. Y el globo con el nombre de cada ícono, en dos palabras -->
+<div class="globo-problema" id="globo-problema" role="tooltip" hidden></div>
+<aside class="popup" id="popup" role="dialog" aria-label="Cómo lo resuelve STL" hidden>
+  <!-- Solo en un teléfono (nmw8652hjtit, nmw87ytm7tit): «✕» y, arriba, «Sin STL» y «1 de 3»; bajo el dibujo, el subtítulo en
+       un renglón y la barra para adelantar o devolver; al final, «Siguiente problema ›» (nmw88fyfctit) -->
+  <div class="arriba-clip"><button type="button" class="cerrar-clip" data-cerrar-clip aria-label="Cerrar">✕</button><span class="pildora-clip" data-pildora-modo hidden></span><span class="pildora-clip" data-pildora-cuenta hidden></span></div>
+  <canvas id="popup-clip" width="1280" height="800" role="img" aria-label="Una animación de este gran problema: cada situación como pasa al trabajar con IA por chat, seguida de cómo la resuelve STL, paso a paso"></canvas>
+  <!-- Solo con «Cómo empezar»: si el navegador no deja sonar la voz al llegar, espera con este botón (nmw4isbmktit); y la
+       fila con un ejemplo de lo que se le puede pedir al modelo, como texto y sin «Copiar» (nmw56hkz8tit), o el enlace al
+       README (nmw4f6lictit) -->
+  <button type="button" class="empezar-voz" data-empezar-voz hidden>▶ Empezar con voz</button>
+  <div class="popup-extra" data-extra-como><span class="ejemplo-como" data-pedido-como hidden></span><a data-enlace-como href="https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme" target="_blank" rel="noopener" hidden>Abrir la documentación (el README en GitHub) ↗</a></div>
+  <p class="sub-clip" data-sub-clip aria-hidden="true"></p>
+  <div class="carril-clip" data-carril-clip aria-hidden="true"><span></span></div>
+  <div class="popup-barra"><span class="crono-clip" data-crono-clip></span><button type="button" class="siguiente-clip" data-siguiente-clip hidden>Siguiente problema ›</button><button type="button" class="voz" data-voz-clip aria-pressed="true" aria-label="La voz que lee cada rótulo: oprímelo para callarla o para volver a oírla">🔊 Voz</button><button type="button" class="voz" data-repetir-clip aria-label="Repetir la animación; el reproductor se queda abierto">↻ Repetir</button>
+    <div class="velocidad" data-velocidad-clip role="group" aria-label="Velocidad de la voz y de la animación"><button type="button" data-v="1" aria-pressed="false">1x</button><button type="button" data-v="1.25" aria-pressed="true">1.25x</button><button type="button" data-v="1.5" aria-pressed="false">1.5x</button><button type="button" data-v="2" aria-pressed="false">2x</button></div>
+    <div class="mini-perilla" data-perilla-clip role="slider" tabindex="0" aria-valuemin="0" aria-valuenow="0" aria-valuetext="segundo 0"
+      aria-label="Perilla de la animación: con la rueda del ratón, o girándola, la adelantas o la devuelves; con las flechas, de a un segundo">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <radialGradient id="mp-cuerpo" cx="42%" cy="34%" r="72%">
+            <stop offset="0" stop-color="#3b4263"/><stop offset=".55" stop-color="#1d2238"/><stop offset="1" stop-color="#0c0f1d"/>
+          </radialGradient>
+          <linearGradient id="mp-bisel" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f5d27a" stop-opacity=".9"/><stop offset="1" stop-color="#7a5c22" stop-opacity=".45"/>
+          </linearGradient>
+        </defs>
+        <circle class="mp-aro" cx="60" cy="60" r="57" fill="none" stroke="#f5d27a" stroke-opacity=".28" stroke-width="5"/>
+        <g data-marcas-clip></g>
+        <circle cx="60" cy="60" r="46" fill="url(#mp-cuerpo)" stroke="url(#mp-bisel)" stroke-width="1.6"/>
+        <g data-giro-clip>
+          <g data-estrias-clip></g>
+          <circle cx="60" cy="21" r="3.4" fill="#f5d27a"/>
+          <circle cx="60" cy="21" r="6" fill="#f5d27a" fill-opacity=".22"/>
+        </g>
+      </svg>
+      <button type="button" class="mini-pausa" data-pausa-clip aria-label="Pausar la animación"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></svg></button>
+    </div>
+  </div>
+  <p class="popup-respuesta" id="popup-respuesta"></p>
+</aside>
+
+<script type="module" src="./mundo-3d.js"></script>
+</body>
+</html>

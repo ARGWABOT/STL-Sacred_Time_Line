@@ -1,0 +1,290 @@
+{
+  "sinIntro-1": {
+    "texto": "Hoy usamos agentes de programación por chat, como Claude Code o Codex,",
+    "ms": 5256
+  },
+  "sinIntro-2": {
+    "texto": "le hablas directamente al modelo,",
+    "ms": 2621
+  },
+  "sinIntro-3": {
+    "texto": "pides, te responde, lo «revisas»… y repites.",
+    "ms": 5213
+  },
+  "sinRamas-1": {
+    "texto": "Luego se te ocurre una idea brillante: ¿pedir varias cosas a la vez?",
+    "ms": 5170
+  },
+  "sinRamas-2": {
+    "texto": "Abres otra sesión para ir adelantando algo más.",
+    "ms": 3794
+  },
+  "sinRamas-3": {
+    "texto": "Después otra, y otra, y otra.",
+    "ms": 3558
+  },
+  "sinRamas-4": {
+    "texto": "Parece más eficiente, pero… olvidas algo.",
+    "ms": 3587
+  },
+  "sinRamas-5": {
+    "texto": "El modelo puede hacer mil cosas a la vez. Tú no.",
+    "ms": 4193
+  },
+  "sinRamas-6": {
+    "texto": "Cada sesión nueva divide tu atención",
+    "ms": 2939
+  },
+  "sinRamas-7": {
+    "texto": "y desperdicia tokens reenviando el mismo contexto una y otra vez.",
+    "ms": 5301
+  },
+  "sinRamas-8": {
+    "texto": "Dejas de revisar lo que te entrega, aún más,",
+    "ms": 3359
+  },
+  "sinRamas-9": {
+    "texto": "y empiezas a aprobar en automático…",
+    "ms": 2826
+  },
+  "sinRamas-10": {
+    "texto": "Al final te agotas más y gastas más, pero avanzas menos.",
+    "ms": 4510
+  },
+  "sinFin-1": {
+    "texto": "¿Qué propone STL?",
+    "ms": 2152
+  },
+  "inicio-1": {
+    "texto": "Le entregas al Studio tu proyecto y la meta que quieres.",
+    "ms": 3779
+  },
+  "inicio-2": {
+    "texto": "El Studio usa su director integrado, que habla con el modelo por ti.",
+    "ms": 4652
+  },
+  "inicio-3": {
+    "texto": "Diagnostica y traza la ruta más óptima hacia esa meta.",
+    "ms": 4178
+  },
+  "inicio-4": {
+    "texto": "Y te da misiones estratégicas: una a la vez.",
+    "ms": 3859
+  },
+  "inicio-5": {
+    "texto": "Como en un juego: con nivel, logros y confeti cuando completas una.",
+    "ms": 5321
+  },
+  "trabajo1-1": {
+    "texto": "A medida que cumples tus misiones,",
+    "ms": 2723
+  },
+  "trabajo1-2": {
+    "texto": "igual se te ocurren ideas nuevas, comentarios o ajustes.",
+    "ms": 4504
+  },
+  "trabajo1-3": {
+    "texto": "Pero en vez de abrir sesiones nuevas, se las entregas al Studio.",
+    "ms": 4228
+  },
+  "trabajo1-4": {
+    "texto": "El Studio recoge todos tus comentarios y los retiene de forma organizada,",
+    "ms": 5291
+  },
+  "trabajo1-5": {
+    "texto": "sin enviarlos aún al modelo,",
+    "ms": 1840
+  },
+  "trabajo1-6": {
+    "texto": "liberando tu atención para que sigas enfocado en una sola cosa:",
+    "ms": 5745
+  },
+  "trabajo1-7": {
+    "texto": "tu misión actual.",
+    "ms": 1083
+  },
+  "llega1-1": {
+    "texto": "Cuando consideras que ya acumulaste suficientes ideas, ajustes o comentarios,",
+    "ms": 5887
+  },
+  "llega1-2": {
+    "texto": "pides una revisión al director.",
+    "ms": 2053
+  },
+  "invoca-1": {
+    "texto": "El Studio entrega lo que está en cola al director.",
+    "ms": 3389
+  },
+  "procesa-1": {
+    "texto": "Este evalúa el estado actual, descarta lo redundante, revisa qué conviene y qué no,",
+    "ms": 7310
+  },
+  "procesa-2": {
+    "texto": "lo organiza y define un miniplan de ejecución.",
+    "ms": 3947
+  },
+  "procesa-3": {
+    "texto": "Entonces usa el modelo para ejecutarlo de la forma más eficiente.",
+    "ms": 4521
+  },
+  "reparte-1": {
+    "texto": "Al terminar te reporta de forma muy clara y fácil de entender lo que hizo",
+    "ms": 5776
+  },
+  "reparte-2": {
+    "texto": "y organiza tus aportes con respecto al plan: lo clave se vuelve misión.",
+    "ms": 5587
+  },
+  "reparte-3": {
+    "texto": "Lo que no es de esta fase espera la suya.",
+    "ms": 3299
+  },
+  "reparte-4": {
+    "texto": "Lo que no sirve se descarta o se replantea, y te explica por qué.",
+    "ms": 5258
+  },
+  "entrega-1": {
+    "texto": "Así, después de cada revisión obtienes lo más importante:",
+    "ms": 5068
+  },
+  "entrega-2": {
+    "texto": "las siguientes misiones más estratégicas, una a la vez.",
+    "ms": 4744
+  },
+  "entrega-3": {
+    "texto": "Mantienes tu enfoque y no te quemas analizando diez frentes nuevos a la vez.",
+    "ms": 5308
+  },
+  "brota-1": {
+    "texto": "¿Y si aparece un cambio urgente?",
+    "ms": 2506
+  },
+  "dispara-1": {
+    "texto": "El Studio le da prioridad, lo demás queda en espera",
+    "ms": 4546
+  },
+  "saleUrg-1": {
+    "texto": "y procesa esa petición de inmediato con el director",
+    "ms": 3981
+  },
+  "procesaUrg-1": {
+    "texto": "y el modelo.",
+    "ms": 842
+  },
+  "devuelveUrg-1": {
+    "texto": "Listo: el resultado de solo esa petición vuelve al Studio,",
+    "ms": 5079
+  },
+  "avisaUrg-1": {
+    "texto": "quien te asigna como siguiente misión prioritaria confirmar este resultado,",
+    "ms": 5639
+  },
+  "avisaUrg-2": {
+    "texto": "antes de seguir con el flujo principal, sin perder el enfoque,",
+    "ms": 4046
+  },
+  "sigue-1": {
+    "texto": "poniéndote de nuevo en la ruta más óptima.",
+    "ms": 2810
+  },
+  "llega2-1": {
+    "texto": "Y así se repite el ciclo:",
+    "ms": 2407
+  },
+  "invoca2-1": {
+    "texto": "acumulas tus peticiones,",
+    "ms": 2235
+  },
+  "procesa2-1": {
+    "texto": "el director las organiza en un miniplan y lo ejecuta con el modelo",
+    "ms": 4862
+  },
+  "procesa2-2": {
+    "texto": "y tú sostienes tu enfoque,",
+    "ms": 2332
+  },
+  "reparte2-1": {
+    "texto": "hasta llegar a la meta planteada",
+    "ms": 2505
+  },
+  "reparte2-2": {
+    "texto": "por la ruta más óptima.",
+    "ms": 2248
+  },
+  "meta-1": {
+    "texto": "¡Meta cumplida!",
+    "ms": 1310
+  },
+  "meta-2": {
+    "texto": "Muchas ideas, mejoras y ajustes procesados por el Studio y su director",
+    "ms": 6283
+  },
+  "meta-3": {
+    "texto": "como una sola línea, consistente y estratégica.",
+    "ms": 3922
+  },
+  "meta-4": {
+    "texto": "Menos agotamiento, menos costo. Eso es STL.",
+    "ms": 4977
+  },
+  "globito-1": {
+    "texto": "Hey, ¿todavía estás aquí?",
+    "ms": 1802
+  },
+  "globito-2": {
+    "texto": "La presentación ya terminó.",
+    "ms": 2444
+  },
+  "globito-3": {
+    "texto": "¿Seguro que quieres seguir? No sabes lo que vas a encontrar.",
+    "ms": 4420
+  },
+  "globito-4": {
+    "texto": "Aquí no hay más misiones. De verdad.",
+    "ms": 3048
+  },
+  "globito-5": {
+    "texto": "La meta quedó atrás. Bastante atrás.",
+    "ms": 3386
+  },
+  "globito-6": {
+    "texto": "¿Buscas un final secreto? Este es.",
+    "ms": 2855
+  },
+  "globito-7": {
+    "texto": "El director se fue a dormir.",
+    "ms": 2306
+  },
+  "globito-8": {
+    "texto": "Esto ya es dispersión, ¿eh?",
+    "ms": 2004
+  },
+  "globito-9": {
+    "texto": "Ni una rama más por aquí.",
+    "ms": 2164
+  },
+  "globito-10": {
+    "texto": "Te prometo que no pasa nada más.",
+    "ms": 2482
+  },
+  "globito-11": {
+    "texto": "¿Y si mejor instalas el Studio?",
+    "ms": 2536
+  },
+  "globito-12": {
+    "texto": "Ya puedes cerrar esto. Te doy permiso.",
+    "ms": 3205
+  },
+  "globito-13": {
+    "texto": "La línea del tiempo también necesita descansar.",
+    "ms": 3314
+  },
+  "globito-14": {
+    "texto": "Ok, ya fueron muchos segundos.",
+    "ms": 3147
+  },
+  "globito-15": {
+    "texto": "Sin prisa. Pero aquí no hay nada.",
+    "ms": 3229
+  }
+}

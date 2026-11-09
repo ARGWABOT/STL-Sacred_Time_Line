@@ -1,0 +1,142 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { estadoVacio, validarEstado, type Plan } from './director';
+import { aplicarParche } from './parche';
+
+// Escribir el plan con cambios puntuales (propuesta pr_encargo_a_medida, punto 1): el director escribe solo lo que cambia
+const plan = {
+  revisado: '2026-10-27T16:00:00.000Z',
+  mensaje: { fecha: '2026-10-27T16:00:00.000Z', texto: 'Antes.' },
+  misiones: [
+    { id: 't_a', para: 'titular', fase: 'replicable', titulo: 'A', despuesDe: ['pd_x'] },
+    { id: 't_b', para: 'titular', fase: 'replicable', titulo: 'B' },
+  ],
+  respuestas: { n_vieja: { cuando: '2026-10-26T10:00:00.000Z', texto: 'Dicho.' } },
+  reservaCorta: { titular: { cuando: '2026-10-27T16:00:00.000Z', razon: 'Corta.' } },
+  documentos: [{ ruta: 'docs/director/a.md', titulo: 'A' }],
+} as unknown as Plan;
+
+describe('el plan, con cambios puntuales', () => {
+  it('por clave se suma o se reemplaza, por id se reemplaza entero o se suma, y lo demás se reemplaza; con null sale', () => {
+    const r = aplicarParche(plan, {
+      respuestas: { n_nueva: { cuando: '2026-10-27T17:00:00.000Z', texto: 'Hecho.', tratamiento: 'integrada' } },
+      reservaCorta: { titular: null },
+      misiones: [{ id: 't_b', para: 'titular', fase: 'replicable', titulo: 'B, otra vez' }, { id: 't_c', para: 'titular', fase: 'replicable', titulo: 'C' }],
+      documentos: [{ ruta: 'docs/director/b.md', titulo: 'B' }],
+      mensaje: { fecha: '2026-10-27T17:00:00.000Z', texto: 'Después.' },
+    });
+    expect(r.errores).toEqual([]);
+    expect(Object.keys(r.plan.respuestas)).toEqual(['n_vieja', 'n_nueva']);
+    expect(r.plan.reservaCorta).toEqual({});
+    expect(r.plan.misiones.map((m) => `${m.id}:${m.titulo}`)).toEqual(['t_a:A', 't_b:B, otra vez', 't_c:C']);
+    expect(r.plan.documentos.map((d) => d.ruta)).toEqual(['docs/director/a.md', 'docs/director/b.md']);
+    expect(r.plan.mensaje.texto).toBe('Después.');
+    expect(r.hecho).toEqual(['respuestas: n_nueva', 'reservaCorta: titular', 'misiones: t_b, t_c (new)', 'documentos: docs/director/b.md (new)', 'mensaje']);
+    // el plan de antes no cambia
+    expect(plan.misiones).toHaveLength(2);
+    expect(plan.reservaCorta).toHaveProperty('titular');
+  });
+
+  it('la pieza siguiente de la cola se escribe entera, como el tramo (pd_paquete_listo)', () => {
+    const pieza = { cuando: '2026-10-29T00:20:00.000Z', id: 'pd_x', archivos: [{ ruta: 'src/a.ts', parte: 'hacerA' }], comprueba: 'npm test' };
+    const r = aplicarParche(plan, { piezaSiguiente: pieza });
+    expect(r.errores).toEqual([]);
+    expect(r.plan.piezaSiguiente).toEqual(pieza);
+  });
+
+  it('los archivos clave del proyecto se escriben enteros (pd_archivos_clave)', () => {
+    const clave = [{ ruta: 'README.md', para: 'Qué es y cómo se instala.' }];
+    const r = aplicarParche(plan, { archivosClave: clave });
+    expect(r.errores).toEqual([]);
+    expect(r.plan.archivosClave).toEqual(clave);
+  });
+
+  it('cambiar unos campos por id (con null el campo sale) y quitar por id, también de lo que el mismo parche sumó', () => {
+    const r = aplicarParche(plan, {
+      misiones: [{ id: 't_c', para: 'titular', fase: 'replicable', titulo: 'C' }],
+      cambiar: { misiones: { t_a: { vigente: '2026-10-27T17:00:00.000Z', despuesDe: null }, t_c: { titulo: 'C, mejor' } } },
+      quitar: { misiones: ['t_b'] },
+    });
+    expect(r.errores).toEqual([]);
+    expect(r.plan.misiones).toEqual([
+      { id: 't_a', para: 'titular', fase: 'replicable', titulo: 'A', vigente: '2026-10-27T17:00:00.000Z' },
+      { id: 't_c', para: 'titular', fase: 'replicable', titulo: 'C, mejor' },
+    ]);
+    expect(r.hecho).toEqual(['misiones: t_c (new)', 'change misiones: t_a, t_c', 'remove misiones: t_b']);
+  });
+
+  it('una lista de adentro, por posición: reemplazar, quitar y sumar al final, sin reenviarla entera', () => {
+    const conFase = { ...plan, fases: [{ id: 'replicable', misiones: ['cero', 'uno', 'dos'] }] } as unknown as Plan;
+    const r = aplicarParche(conFase, { cambiar: { fases: { replicable: { misiones: { 0: 'cero, al día', 1: null, '+': ['tres'] } } } } });
+    expect(r.errores).toEqual([]);
+    expect(r.plan.fases[0].misiones).toEqual(['cero, al día', 'dos', 'tres']);
+    expect(aplicarParche(conFase, { cambiar: { fases: { replicable: { misiones: { 7: 'x' } } } } }).errores.join(' ')).toMatch(/is not a position in the list/);
+  });
+
+  it('lo que no se entiende no se aplica, y dice por qué: el plan queda tal cual', () => {
+    const malos: [unknown, RegExp][] = [
+      [[], /not a JSON object/],
+      [{ revisado: 'x' }, /the closing sets it/],
+      [{ respuesta: {} }, /not a key of the plan/],
+      [{ respuestas: [] }, /as an object, by key/],
+      [{ misiones: [{ titulo: 'sin id' }] }, /each one with its id/],
+      [{ cambiar: { misiones: { t_z: { titulo: 'x' } } } }, /there is no t_z/],
+      [{ cambiar: { misiones: { t_a: { id: 't_otra' } } } }, /without changing its id/],
+      [{ cambiar: { respuestas: {} } }, /with only misiones/],
+      [{ quitar: { misiones: ['t_z'] } }, /there is no t_z/],
+    ];
+    for (const [parche, error] of malos) {
+      const r = aplicarParche(plan, parche);
+      expect(r.errores.join(' ')).toMatch(error);
+      expect(r.plan).toBe(plan);
+      expect(r.hecho).toEqual([]);
+    }
+  });
+
+  it('la bandeja lo aplica solo si no le suma errores al plan, y sin marcar la revisión en curso', () => {
+    const bandeja = readFileSync(join(__dirname, '..', '..', 'tools', 'director', 'bandeja.ts'), 'utf-8');
+    const aplicar = bandeja.slice(bandeja.indexOf("if (args.includes('--aplicar'))"), bandeja.indexOf("if (args.includes('--aclarar')"));
+    expect(aplicar).toContain('aplicarParche(');
+    // Con los ids ya usados en el archivo o por el equipo (pr_ids_unicos)
+    expect(aplicar).toContain('[...validarPlan(r.plan, equipo, idioma), ...idsYaUsados(r.plan, archivo, estado, plan)].filter((e) => !antes.has(e))');
+    expect(aplicar).not.toContain('marcarRevision');
+  });
+
+  it('el orden de una lista cambia sin sacar nada: las nombradas, en ese orden y en sus lugares; las demás no se mueven', () => {
+    const tres = { ...plan, misiones: [...plan.misiones, { id: 't_c', para: 'otra', fase: 'replicable', titulo: 'C' }, { id: 't_d', para: 'titular', fase: 'replicable', titulo: 'D' }] } as unknown as Plan;
+    const r = aplicarParche(tres, { orden: { misiones: ['t_d', 't_a', 't_b'] } });
+    expect(r.errores).toEqual([]);
+    expect(r.plan.misiones.map((m) => m.id)).toEqual(['t_d', 't_a', 't_c', 't_b']);
+    expect(r.hecho).toEqual(['order misiones: t_d, t_a, t_b']);
+    expect(aplicarParche(tres, { orden: { misiones: ['t_z'] } }).errores.join(' ')).toMatch(/there is no t_z/);
+    expect(aplicarParche(tres, { orden: { misiones: ['t_a', 't_a'] } }).errores.join(' ')).toMatch(/without repeating any/);
+  });
+
+  // La nota del titular nmvsv9ihxtit (28 de octubre de 2026): para reordenar, el director quitó cinco misiones en un parche
+  // y las volvió a sumar en otro, minuto y medio después. En medio, la persona ya había entregado una (t_ver_tabla_modelos)
+  // y el Studio rechazó su decisión siguiente con «Hay una entrega de una misión que no está», dos veces
+  it('reordenar quitando y volviendo a sumar deja una entrega sin su misión; con «orden», nunca', () => {
+    const plan2 = { ...plan, fases: [], frentes: [], propuestas: [] } as unknown as Plan;
+    const e = estadoVacio();
+    e.entregas = { t_a: { cuando: '2026-10-29T01:27:07.356Z', quien: 'leonc' } };
+    e.empezadas = { t_a: { cuando: '2026-10-29T01:26:00.000Z', quien: 'leonc' } };
+    expect(validarEstado(e, plan2)).toEqual([]);
+    const quitada = aplicarParche(plan2, { quitar: { misiones: ['t_a'] } });
+    expect(validarEstado(e, quitada.plan)).toEqual(['Hay una entrega de una misión que no está («t_a»).', 'Hay una entrega de una misión que no está («t_a»).']);
+    const ordenada = aplicarParche(plan2, { orden: { misiones: ['t_b', 't_a'] } });
+    expect(ordenada.plan.misiones.map((m) => m.id)).toEqual(['t_b', 't_a']);
+    expect(validarEstado(e, ordenada.plan)).toEqual([]);
+  });
+
+  it('la bandeja no aplica un parche que deja inválido lo que el equipo ya guardó, con todo su estado; y el Studio rechaza solo lo que rompe la decisión de la persona', () => {
+    const bandeja = readFileSync(join(__dirname, '..', '..', 'tools', 'director', 'bandeja.ts'), 'utf-8');
+    const aplicar = bandeja.slice(bandeja.indexOf("if (args.includes('--aplicar'))"), bandeja.indexOf("if (args.includes('--aclarar')"));
+    expect(aplicar).toContain('const { estado } = await leerTodo(pedido, false);');
+    expect(aplicar).toMatch(/validarEstado\(estado, unirArchivo\(r\.plan, archivo\)\)\.filter\(\(e\) => !antesEstado\.has\(e\)\)/);
+    const servidor = readFileSync(join(__dirname, '..', '..', 'estudio', 'servidor', 'api.ts'), 'utf-8');
+    const decidir = servidor.slice(servidor.indexOf('async function decidir('), servidor.indexOf('async function entregar('));
+    expect(decidir).toContain('const yaRoto = new Set(validarEstado(estado, plan));');
+    expect(decidir).toContain('validarEstado(unido, plan).filter((e) => !yaRoto.has(e))');
+  });
+});

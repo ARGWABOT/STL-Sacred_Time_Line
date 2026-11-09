@@ -1,0 +1,87 @@
+{
+  "proyecto": {
+    "nombre": "STL Studio",
+    "tipo": "existente",
+    "semilla": true,
+    "contexto": "STL Studio is a small local web app that sits between you and an AI model and turns the model into your project's assistant director. Building alone, or in a small team, projects rarely die from a lack of ideas: they die from scattered attention. Ten chats open, half-finished plans, a «shall I proceed?» lost three sessions ago, and every new chat starting from zero, politely asking you to explain everything again.\n\nThe STL method fixes that with a single channel. Everything you tell the director (a comment, a voice note, a question, a decision) goes into the Studio. On each review, which only you request, the director reads it all, keeps the route toward your goal and gives each person one mission at a time, with its why and a button to the exact place. You decide; the director proposes, orders the work and executes only what you approved, with tests and local commits.\n\nThe memory lives in your project's own repository, on a separate stl branch, so nothing depends on a chat's context: the model can forget, the project can't. Fewer tabs, more finished things.\n\nThis project is your Studio: to adjust it to the way you work, select it and ask the director in the Inbox.",
+    "metaInicial": "",
+    "terminado": "",
+    "repositorio": { "url": "", "rama": "" },
+    "objetivo": {
+      "texto": "The Studio, adjusted to the way you work",
+      "exito": "You use the Studio as it comes or with the adjustments you asked the director for; there is nothing to finish here.",
+      "firmado": { "fecha": "2026-11-01", "quien": "STL Studio" }
+    },
+    "equipo": [],
+    "sincronizar": false
+  },
+  "plan": {
+    "actualizado": "2026-11-01",
+    "nota": "STL Studio as its own project, born from the seed (plantilla/semilla). It counts as a project in maintenance: a single phase, with no closing, and its permanent mission. When the director approves that mission, it leaves an equal one, with another id, so it is always there.",
+    "mision": "The Studio, adjusted to the way you work: nothing to do if you don't want to change anything.",
+    "revisado": "",
+    "mensaje": {
+      "fecha": "2026-11-01",
+      "texto": "This project is your Studio. It comes set up and its diagnosis is already done, without spending a review."
+    },
+    "frentes": [
+      { "id": "tu_studio", "nombre": "Your Studio", "que": "The adjustments you ask the director for on your own copy of the Studio.", "rutas": [] }
+    ],
+    "fases": [
+      {
+        "id": "tu_studio",
+        "nombre": "Your Studio, your way",
+        "etapa": "Maintenance",
+        "sinCierre": true,
+        "meta": "That the Studio serves you as it comes or with the adjustments you ask the director for.",
+        "porQue": "The Studio comes set up to make your work as easy and orderly as possible; this phase exists so you can change it whenever you want, not so you have to.",
+        "duracion": "No end: it is a permanent phase",
+        "puerta": { "nombre": "No gate", "prueba": "This phase does not close: it stays open for as long as you use your Studio." },
+        "frentes": { "tu_studio": { "nivel": "foco", "que": "Whatever you want to adjust in your Studio; nothing, if it serves you as it is." } },
+        "criterios": [],
+        "misiones": ["Ask the director, whenever you want, for an adjustment to your Studio."]
+      }
+    ],
+    "misiones": [
+      {
+        "id": "t_tu_studio",
+        "para": "titular",
+        "fase": "tu_studio",
+        "frente": "tu_studio",
+        "xp": 10,
+        "titulo": "This project is your Studio",
+        "porQue": "It is a permanent mission: it tells you where to ask for an adjustment, and asks nothing of you if you don't want to change anything.",
+        "pasos": [
+          {
+            "texto": "This project is your Studio, and you don't have to change anything to get started: you can go straight to your own project. We recommend using it as it comes for a while, so you get to know it and discover what is designed to make your work easier: it comes set up to make your work as easy and orderly as possible and to take you to your project's goal in the best way. If you later find something you want to adjust, select this project and ask the director for the adjustment from here.",
+            "ir": { "vista": "buzon", "ancla": "escribir", "etiqueta": "Ask the director for an adjustment" },
+            "detalle": ["To hand over your own project, open the project selector, at the top of the left bar, and press «Hand over projects»."],
+            "hecho": { "que": "nota" }
+          }
+        ],
+        "entrega": "The adjustment you ask the director for, whenever you want to ask."
+      }
+    ],
+    "revisiones": {},
+    "respuestas": {},
+    "evaluacion": {},
+    "boletin": [],
+    "documentos": [
+      { "ruta": "docs/metodo/metodologia.md", "titulo": "The STL method", "porQue": "How the director works and why, and how STL was made with STL." }
+    ],
+    "diagnostico": {
+      "fecha": "2026-11-01",
+      "resumen": [
+        "STL Studio was made with STL Studio: 6 phases, 320 reviews and 682 approved missions.",
+        "It comes set up the way its author considers best, and each person can change it."
+      ],
+      "frentes": {},
+      "boton": { "doc": "docs/metodo/metodologia.md", "etiqueta": "Read the methodology" }
+    },
+    "objetivos": [],
+    "propuestas": [],
+    "ritmo": [],
+    "lecciones": [],
+    "adelantado": []
+  }
+}

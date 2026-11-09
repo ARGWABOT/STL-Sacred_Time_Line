@@ -1,0 +1,15 @@
+# The diagnosis queue (projects just handed over)
+
+*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `diagnosis-queue.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: when it lists the diagnosis queue, at the end of the review.*
+
+## What it is and when it is handled
+
+The owner can hand over several existing projects at once (in lines, or with «Escanear equipo», which detects them in the histories of Claude Code, Codex and Cursor and in the drives they allow). Diagnosing them is **the director's work, not the owner's**, so it does not break «one project at a time»: in each «revisa estudio», **after** the active project, the inbox lists the **diagnosis queue** and the director diagnoses the first 3 (from the most recent work to the oldest), each one with `--proyecto <id>` in every tool and with everything in `diagnosis.md`: its document, its proposed objectives, its mission to read it, and its «Dónde quedamos» summary. They do not change the active project. The owner finds them ready when they enter each one, and comments on the diagnosis before the route is drawn, as always.
+
+## The queue's permissions
+
+The director the Studio launches only has permission over the project it reviews, except in the review (not in an urgency or a clarification). When launching it, the Studio computes the queue with the same rule as the inbox and opens the first 3 to it, only in that review: read their repository, write their memory (`.stl/`; with the edit tool, never their code) and read their AI history where its location is known and falls inside where the agent keeps its sessions (today, Claude Code's; Codex's and Cursor's do not say their place yet; a foreign path brought by the `proyecto.json` is never opened), and the assignment names them; as working folder, of each one only its memory. If the Studio could not compute the queue, the review goes without it and the assignment does not name it (`revisor.ts` › `colaDeLaRevision`, `historialAbrible` and `permitido`, with their tests). A project that could not be diagnosed stays in the queue, because the only thing that takes it out is its diagnosis: the director says so in the answer and in the message. If the review is done by a director session (`/revisa`), those permissions are that session's.
+
+## In rounds, one project at a time
+
+The queue is a large assignment, and a cut must take one round with it, not everything. So each project of the queue is **a round that closes on its own**: diagnose it whole (if it needs several readers at once, wait for all of them before writing), and as soon as its diagnosis is in its memory, make its commit there («Director (<id>): diagnóstico»), before starting the next one. If the review is cut, only the project in progress is lost: the ones already committed are diagnosed and leave the queue, and the next review continues with the rest. The inbox says so in the queue's block.

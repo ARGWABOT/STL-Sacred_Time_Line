@@ -1,0 +1,290 @@
+{
+  "sinIntro-1": {
+    "texto": "Today we use chat-based coding agents, like Claude Code or Codex,",
+    "ms": 5186
+  },
+  "sinIntro-2": {
+    "texto": "you talk straight to the model,",
+    "ms": 1766
+  },
+  "sinIntro-3": {
+    "texto": "you ask, it answers, you “review” it… and repeat.",
+    "ms": 4922
+  },
+  "sinRamas-1": {
+    "texto": "Then you get a brilliant idea: why not ask for several things at once?",
+    "ms": 5371
+  },
+  "sinRamas-2": {
+    "texto": "You open another session to get ahead on something else.",
+    "ms": 3631
+  },
+  "sinRamas-3": {
+    "texto": "Then another, and another, and another.",
+    "ms": 3858
+  },
+  "sinRamas-4": {
+    "texto": "It seems more efficient, but… you forget something.",
+    "ms": 3691
+  },
+  "sinRamas-5": {
+    "texto": "The model can do a thousand things at once. You can’t.",
+    "ms": 4425
+  },
+  "sinRamas-6": {
+    "texto": "Each new session splits your attention",
+    "ms": 2577
+  },
+  "sinRamas-7": {
+    "texto": "and wastes tokens sending the same context over and over again.",
+    "ms": 4804
+  },
+  "sinRamas-8": {
+    "texto": "You stop reviewing what it hands you, even more,",
+    "ms": 2940
+  },
+  "sinRamas-9": {
+    "texto": "and you start approving on autopilot…",
+    "ms": 2642
+  },
+  "sinRamas-10": {
+    "texto": "In the end you wear yourself out more and spend more, but get less done.",
+    "ms": 5303
+  },
+  "sinFin-1": {
+    "texto": "What does STL propose?",
+    "ms": 2049
+  },
+  "inicio-1": {
+    "texto": "You hand the Studio your project and the goal you want.",
+    "ms": 3292
+  },
+  "inicio-2": {
+    "texto": "The Studio uses its built-in director, which talks to the model for you.",
+    "ms": 5025
+  },
+  "inicio-3": {
+    "texto": "It diagnoses and charts the best route to that goal.",
+    "ms": 3782
+  },
+  "inicio-4": {
+    "texto": "And it gives you strategic missions: one at a time.",
+    "ms": 4062
+  },
+  "inicio-5": {
+    "texto": "Like in a game: with levels, achievements and confetti when you complete one.",
+    "ms": 6040
+  },
+  "trabajo1-1": {
+    "texto": "As you complete your missions,",
+    "ms": 1517
+  },
+  "trabajo1-2": {
+    "texto": "new ideas, comments or tweaks may come to you.",
+    "ms": 4024
+  },
+  "trabajo1-3": {
+    "texto": "But instead of opening new sessions, you hand them to the Studio.",
+    "ms": 4544
+  },
+  "trabajo1-4": {
+    "texto": "The Studio gathers all your comments and holds them, organized,",
+    "ms": 4142
+  },
+  "trabajo1-5": {
+    "texto": "without sending them to the model yet,",
+    "ms": 1959
+  },
+  "trabajo1-6": {
+    "texto": "freeing your attention so you stay focused on just one thing:",
+    "ms": 4196
+  },
+  "trabajo1-7": {
+    "texto": "your current mission.",
+    "ms": 1299
+  },
+  "llega1-1": {
+    "texto": "When you feel you have gathered enough ideas, tweaks or comments,",
+    "ms": 4132
+  },
+  "llega1-2": {
+    "texto": "you ask the director for a review.",
+    "ms": 2171
+  },
+  "invoca-1": {
+    "texto": "The Studio hands what is queued to the director.",
+    "ms": 2838
+  },
+  "procesa-1": {
+    "texto": "It assesses the current state, drops what is redundant, checks what helps and what doesn’t,",
+    "ms": 6824
+  },
+  "procesa-2": {
+    "texto": "organizes it and defines a mini execution plan.",
+    "ms": 3723
+  },
+  "procesa-3": {
+    "texto": "Then it uses the model to carry it out in the most efficient way.",
+    "ms": 3927
+  },
+  "reparte-1": {
+    "texto": "When it is done, it reports what it did in a very clear, easy-to-understand way",
+    "ms": 5762
+  },
+  "reparte-2": {
+    "texto": "and sorts your contributions against the plan: what is key becomes a mission.",
+    "ms": 5750
+  },
+  "reparte-3": {
+    "texto": "What does not belong to this phase waits for its own.",
+    "ms": 3873
+  },
+  "reparte-4": {
+    "texto": "What does not help is dropped or rethought, and it tells you why.",
+    "ms": 4725
+  },
+  "entrega-1": {
+    "texto": "So, after each review you get what matters most:",
+    "ms": 3809
+  },
+  "entrega-2": {
+    "texto": "the next most strategic missions, one at a time.",
+    "ms": 3823
+  },
+  "entrega-3": {
+    "texto": "You keep your focus and don’t burn out analyzing ten new fronts at once.",
+    "ms": 5359
+  },
+  "brota-1": {
+    "texto": "And what if an urgent change comes up?",
+    "ms": 2571
+  },
+  "dispara-1": {
+    "texto": "The Studio gives it priority, everything else waits",
+    "ms": 4104
+  },
+  "saleUrg-1": {
+    "texto": "and processes that request right away with the director",
+    "ms": 3301
+  },
+  "procesaUrg-1": {
+    "texto": "and the model.",
+    "ms": 1660
+  },
+  "devuelveUrg-1": {
+    "texto": "Done: the result of just that request comes back to the Studio,",
+    "ms": 4034
+  },
+  "avisaUrg-1": {
+    "texto": "which gives you, as your next priority mission, checking this result,",
+    "ms": 4788
+  },
+  "avisaUrg-2": {
+    "texto": "before going on with the main flow, without losing focus,",
+    "ms": 3800
+  },
+  "sigue-1": {
+    "texto": "putting you back on the best route.",
+    "ms": 2056
+  },
+  "llega2-1": {
+    "texto": "And so the cycle repeats:",
+    "ms": 2131
+  },
+  "invoca2-1": {
+    "texto": "you gather your requests,",
+    "ms": 1647
+  },
+  "procesa2-1": {
+    "texto": "the director organizes them into a mini plan and carries it out with the model",
+    "ms": 4793
+  },
+  "procesa2-2": {
+    "texto": "and you hold your focus,",
+    "ms": 1605
+  },
+  "reparte2-1": {
+    "texto": "until you reach the goal you set",
+    "ms": 2356
+  },
+  "reparte2-2": {
+    "texto": "by the best route.",
+    "ms": 1463
+  },
+  "meta-1": {
+    "texto": "Goal reached!",
+    "ms": 933
+  },
+  "meta-2": {
+    "texto": "Many ideas, improvements and tweaks processed by the Studio and its director",
+    "ms": 5805
+  },
+  "meta-3": {
+    "texto": "as a single line, consistent and strategic.",
+    "ms": 3974
+  },
+  "meta-4": {
+    "texto": "Less burnout, less cost. That is STL.",
+    "ms": 4552
+  },
+  "globito-1": {
+    "texto": "Hey, are you still here?",
+    "ms": 1538
+  },
+  "globito-2": {
+    "texto": "The show is over.",
+    "ms": 1697
+  },
+  "globito-3": {
+    "texto": "Sure you want to keep going? Who knows what you’ll find.",
+    "ms": 3459
+  },
+  "globito-4": {
+    "texto": "No more missions here. Really.",
+    "ms": 2259
+  },
+  "globito-5": {
+    "texto": "The goal is behind you. Way behind.",
+    "ms": 3172
+  },
+  "globito-6": {
+    "texto": "Looking for a secret ending? This is it.",
+    "ms": 3050
+  },
+  "globito-7": {
+    "texto": "The director went to bed.",
+    "ms": 1490
+  },
+  "globito-8": {
+    "texto": "Now this is scattered attention, huh?",
+    "ms": 2991
+  },
+  "globito-9": {
+    "texto": "Not one more branch around here.",
+    "ms": 2234
+  },
+  "globito-10": {
+    "texto": "I promise nothing else happens.",
+    "ms": 2640
+  },
+  "globito-11": {
+    "texto": "How about installing the Studio instead?",
+    "ms": 2864
+  },
+  "globito-12": {
+    "texto": "You can close this now. You have my permission.",
+    "ms": 3085
+  },
+  "globito-13": {
+    "texto": "The timeline needs a rest too.",
+    "ms": 2287
+  },
+  "globito-14": {
+    "texto": "Okay, that’s a lot of seconds.",
+    "ms": 2579
+  },
+  "globito-15": {
+    "texto": "No rush. But there’s nothing here.",
+    "ms": 2524
+  }
+}

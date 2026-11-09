@@ -1,0 +1,507 @@
+{
+  "g1-e": {
+    "texto": "¿Abres hasta 4 o más sesiones a la vez, te cuesta saber en qué va cada una y, cuando una idea aparece a mitad de algo, la metes en cualquiera y al final no sabes qué sigue?",
+    "ms": 12501
+  },
+  "g2-e": {
+    "texto": "¿Envías un mensaje al modelo y te das cuenta, a los 3 segundos, de que te faltó algo o te equivocaste?",
+    "ms": 7264
+  },
+  "g3-e": {
+    "texto": "¿Vuelves de una pausa y no sabes en qué ibas ni qué sigue, y en cada sesión nueva le explicas otra vez todo al modelo?",
+    "ms": 9731
+  },
+  "g4-e": {
+    "texto": "¿Las respuestas largas te cansan, no recuerdas lo que ya leíste y el modelo te pide releer documentación ya revisada?",
+    "ms": 7646
+  },
+  "g5-e": {
+    "texto": "¿Se te van los tokens en sesiones que releen lo mismo, tu contexto se contamina cada vez que cambias de decisión y no sabes qué recuerda el modelo?",
+    "ms": 9878
+  },
+  "g6-e": {
+    "texto": "¿Te quedaste sin internet y tu trabajo con la IA se detuvo?",
+    "ms": 3784
+  },
+  "g7-e": {
+    "texto": "¿Te cansa escribir todo lo que piensas, y tus mensajes al modelo salen a medias?",
+    "ms": 5907
+  },
+  "s1-p1": {
+    "texto": "Si enviaste y le faltaba algo,",
+    "ms": 2373
+  },
+  "s1-p2": {
+    "texto": "envías otro y otro para corregir,",
+    "ms": 2786
+  },
+  "s1-p3": {
+    "texto": "multiplicando tu consumo de tokens",
+    "ms": 2769
+  },
+  "s1-1": {
+    "texto": "Con STL, tus notas van primero a un buzón:",
+    "ms": 4087
+  },
+  "s1-2": {
+    "texto": "ahí esperan, y puedes revisarlas y editarlas cuanto quieras",
+    "ms": 4646
+  },
+  "s1-3": {
+    "texto": "antes de que el director las envíe realmente al modelo",
+    "ms": 3948
+  },
+  "s1-c": {
+    "texto": "Adiós a corregir mensajes a medias: lo revisas antes de que salga.",
+    "ms": 5071
+  },
+  "s2-p1": {
+    "texto": "Con cuatro o más sesiones a la vez,",
+    "ms": 2426
+  },
+  "s2-p2": {
+    "texto": "tu atención se divide",
+    "ms": 1412
+  },
+  "s2-p3": {
+    "texto": "y te agotas tratando de seguirlas todas",
+    "ms": 2776
+  },
+  "s2-1": {
+    "texto": "Con STL, todo entra por un solo canal",
+    "ms": 3711
+  },
+  "s2-2": {
+    "texto": "y se organiza automáticamente",
+    "ms": 2700
+  },
+  "s2-3": {
+    "texto": "para que te enfoques solo",
+    "ms": 2042
+  },
+  "s2-4": {
+    "texto": "en el siguiente paso estratégico, uno a la vez",
+    "ms": 4359
+  },
+  "s2-c": {
+    "texto": "Libre de tantas sesiones: tu atención, en un solo paso.",
+    "ms": 5156
+  },
+  "s3-p1": {
+    "texto": "Cuando surgen ideas o ajustes a mitad de algo,",
+    "ms": 3380
+  },
+  "s3-p2": {
+    "texto": "lo otro se va quedando atrás y se pierde",
+    "ms": 3166
+  },
+  "s3-1": {
+    "texto": "Con STL, tu idea va al Buzón,",
+    "ms": 2916
+  },
+  "s3-2": {
+    "texto": "el director le da su lugar en la ruta",
+    "ms": 2798
+  },
+  "s3-3": {
+    "texto": "y, si no es estratégico hacerlo ahora, espera en su fase.",
+    "ms": 5002
+  },
+  "s3-4": {
+    "texto": "Así terminas lo que ibas a hacer primero,",
+    "ms": 2241
+  },
+  "s3-5": {
+    "texto": "sin perder esa idea o ajuste nuevo,",
+    "ms": 3045
+  },
+  "s3-6": {
+    "texto": "y este queda en la ruta donde debe ir",
+    "ms": 3400
+  },
+  "s3-c": {
+    "texto": "Ninguna idea se pierde, y terminas lo que empezaste.",
+    "ms": 4140
+  },
+  "s4-p1": {
+    "texto": "Leer tres páginas seguidas de una respuesta agota,",
+    "ms": 3782
+  },
+  "s4-p2": {
+    "texto": "y la atención se va.",
+    "ms": 1883
+  },
+  "s4-p3": {
+    "texto": "Terminas por no leer lo que el modelo responde",
+    "ms": 3141
+  },
+  "s4-p4": {
+    "texto": "y solo le dices «sí» a todo",
+    "ms": 2604
+  },
+  "s4-1": {
+    "texto": "STL te presenta una idea a la vez,",
+    "ms": 3537
+  },
+  "s4-2": {
+    "texto": "con un botón de «Entendido» antes de destapar la siguiente.",
+    "ms": 4290
+  },
+  "s4-3": {
+    "texto": "Lo que sigue espera tapado hasta que llegas.",
+    "ms": 3915
+  },
+  "s4-4": {
+    "texto": "Además, te lo puede leer en voz alta,",
+    "ms": 2479
+  },
+  "s4-5": {
+    "texto": "y puedes comentar cada idea o párrafo",
+    "ms": 2876
+  },
+  "s4-6": {
+    "texto": "sin explicarle al modelo a qué parte te refieres",
+    "ms": 3220,
+    "entonacion": "Un narrador profesional, cálido y pausado, que cuenta el tema con calma. Esta frase continúa la anterior y la cierra afirmando, con el tono que baja al final: no es una pregunta."
+  },
+  "s4-c": {
+    "texto": "Leer ya no agota: una idea a la vez.",
+    "ms": 3581
+  },
+  "s5-p1": {
+    "texto": "¿Cómo saber qué ya leíste y qué no?",
+    "ms": 2440
+  },
+  "s5-1": {
+    "texto": "Con STL, cada idea leída queda marcada",
+    "ms": 3860
+  },
+  "s5-2": {
+    "texto": "y sabes justo por dónde vas:",
+    "ms": 2285
+  },
+  "s5-3": {
+    "texto": "qué has leído y qué no",
+    "ms": 2030
+  },
+  "s5-c": {
+    "texto": "Siempre sabes por dónde vas.",
+    "ms": 2321
+  },
+  "s6-p1": {
+    "texto": "¿El modelo cambia documentos y te pide releerlos?",
+    "ms": 3846
+  },
+  "s6-1": {
+    "texto": "Con STL, lo que ya leíste queda sellado;",
+    "ms": 3795
+  },
+  "s6-2": {
+    "texto": "lo nuevo llega aparte, en un documento corto,",
+    "ms": 3514
+  },
+  "s6-3": {
+    "texto": "solo con lo que cambió, y fácil de leer",
+    "ms": 3042
+  },
+  "s6-c": {
+    "texto": "Nunca más releer lo que ya leíste.",
+    "ms": 3091
+  },
+  "s7-p1": {
+    "texto": "¿El modelo te pregunta algo que ya decidiste antes?",
+    "ms": 3805
+  },
+  "s7-1": {
+    "texto": "STL tiene su propio sistema de memoria del proyecto:",
+    "ms": 4436
+  },
+  "s7-2": {
+    "texto": "lo que decidiste queda en firme,",
+    "ms": 2258
+  },
+  "s7-3": {
+    "texto": "y, antes de preguntarte, el director busca.",
+    "ms": 3541
+  },
+  "s7-4": {
+    "texto": "Ya estaba decidido: la opción A.",
+    "ms": 3132
+  },
+  "s7-5": {
+    "texto": "No te lo vuelve a preguntar",
+    "ms": 1896
+  },
+  "s7-c": {
+    "texto": "Lo que decidiste queda decidido.",
+    "ms": 2658
+  },
+  "s8-p1": {
+    "texto": "Cada sesión nueva relee lo mismo,",
+    "ms": 2835
+  },
+  "s8-p2": {
+    "texto": "y se evaporan los tokens",
+    "ms": 1923
+  },
+  "s8-1": {
+    "texto": "Con STL, el director recibe todo junto, con el mapa,",
+    "ms": 4365
+  },
+  "s8-2": {
+    "texto": "y lee solo lo que cambió,",
+    "ms": 2077
+  },
+  "s8-3": {
+    "texto": "optimizando el consumo de tokens de entrada",
+    "ms": 2773
+  },
+  "s8-c": {
+    "texto": "Tus tokens, solo para lo nuevo.",
+    "ms": 2455
+  },
+  "s9-p1": {
+    "texto": "¿Vuelves de una pausa,",
+    "ms": 1421
+  },
+  "s9-p2": {
+    "texto": "y no sabes en qué ibas ni qué sigue en cada sesión?",
+    "ms": 4019
+  },
+  "s9-1": {
+    "texto": "Con STL, te espera lista la sección «¿Dónde quedamos?»:",
+    "ms": 4418
+  },
+  "s9-2": {
+    "texto": "un reporte siempre al día de lo que se hizo",
+    "ms": 2926
+  },
+  "s9-3": {
+    "texto": "y de dónde quedó el proyecto,",
+    "ms": 1763
+  },
+  "s9-4": {
+    "texto": "con una sola misión siguiente a la vista:",
+    "ms": 2872
+  },
+  "s9-5": {
+    "texto": "solo retomas, y ya sabes qué sigue",
+    "ms": 2704
+  },
+  "s9-c": {
+    "texto": "Retomas justo donde quedaste.",
+    "ms": 2804
+  },
+  "s11-p1": {
+    "texto": "¿Cada sesión nueva, le explicas otra vez todo",
+    "ms": 3471
+  },
+  "s11-p2": {
+    "texto": "para definir de qué irá?",
+    "ms": 1971
+  },
+  "s11-1": {
+    "texto": "STL genera su propio sistema optimizado",
+    "ms": 3209
+  },
+  "s11-2": {
+    "texto": "de memoria del proyecto:",
+    "ms": 1538
+  },
+  "s11-3": {
+    "texto": "el estado queda en archivos, en tu mapa del proyecto",
+    "ms": 3724
+  },
+  "s11-4": {
+    "texto": "y en todo lo que dijiste.",
+    "ms": 1808
+  },
+  "s11-5": {
+    "texto": "El director ya lo sabe todo: no necesitas repetirle nada",
+    "ms": 4183
+  },
+  "s11-c": {
+    "texto": "Sin repetirle nada al modelo.",
+    "ms": 2347
+  },
+  "s12-p1": {
+    "texto": "¿Tu contexto se contamina",
+    "ms": 2229
+  },
+  "s12-p2": {
+    "texto": "con los cambios frecuentes de decisión?",
+    "ms": 2258
+  },
+  "s12-1": {
+    "texto": "Con STL, la decisión que cambias queda reemplazada en el historial",
+    "ms": 5048
+  },
+  "s12-2": {
+    "texto": "y ya no forma parte del nuevo contexto que va al modelo:",
+    "ms": 3691
+  },
+  "s12-3": {
+    "texto": "solo envías decisiones aprobadas por ti",
+    "ms": 3487
+  },
+  "s12-c": {
+    "texto": "Un contexto limpio, solo con lo que aprobaste.",
+    "ms": 3506
+  },
+  "s13-p1": {
+    "texto": "El modelo es una caja negra:",
+    "ms": 2542
+  },
+  "s13-p2": {
+    "texto": "a veces no sabes qué recuerda, qué no y por qué",
+    "ms": 4317
+  },
+  "s13-1": {
+    "texto": "STL te presenta, de forma gráfica, todo el ciclo de inferencia:",
+    "ms": 5810
+  },
+  "s13-2": {
+    "texto": "cómo se comunican tu equipo y el modelo,",
+    "ms": 2757
+  },
+  "s13-3": {
+    "texto": "cuánto tarda cada uno en ejecutar sus partes y su consumo,",
+    "ms": 4478
+  },
+  "s13-4": {
+    "texto": "y qué le pide exactamente quién a quién.",
+    "ms": 4215
+  },
+  "s13-5": {
+    "texto": "Así entiendes qué pasa cada vez que le pides algo al modelo",
+    "ms": 4301
+  },
+  "s13-6": {
+    "texto": "y quedas con este historial, para auditarlo y aprender",
+    "ms": 4290
+  },
+  "s13-c": {
+    "texto": "La caja negra, ahora a la vista.",
+    "ms": 2692
+  },
+  "s14-p1": {
+    "texto": "Se cae el internet a mitad de tu trabajo,",
+    "ms": 3116
+  },
+  "s14-p2": {
+    "texto": "y el chat con el modelo se detiene: ¿y ahora qué?",
+    "ms": 4166
+  },
+  "s14-1": {
+    "texto": "Con STL Studio, sigues trabajando sin conexión:",
+    "ms": 3755
+  },
+  "s14-2": {
+    "texto": "el Buzón recoge tus notas, ajustes y entregas,",
+    "ms": 3517
+  },
+  "s14-3": {
+    "texto": "y sigues leyendo documentos y respuestas",
+    "ms": 3180
+  },
+  "s14-4": {
+    "texto": "o auditando el trabajo del modelo.",
+    "ms": 2267
+  },
+  "s14-5": {
+    "texto": "Nada se pierde: todo queda en la memoria del proyecto.",
+    "ms": 4202
+  },
+  "s14-6": {
+    "texto": "Al volver la conexión, el director lo recibe todo junto.",
+    "ms": 4333
+  },
+  "s14-c": {
+    "texto": "Sin internet, tu trabajo sigue.",
+    "ms": 2389
+  },
+  "s15-p1": {
+    "texto": "Tienes la idea clara en la cabeza,",
+    "ms": 2011
+  },
+  "s15-p2": {
+    "texto": "pero escribirla entera cansa,",
+    "ms": 2693
+  },
+  "s15-p3": {
+    "texto": "y al modelo le llega solo la mitad.",
+    "ms": 2717
+  },
+  "s15-1": {
+    "texto": "Con STL, la dictas: hablas como hablarías con un amigo,",
+    "ms": 5221
+  },
+  "s15-2": {
+    "texto": "de forma natural, explicándole lo que tienes en mente.",
+    "ms": 3885
+  },
+  "s15-3": {
+    "texto": "Incluso puedes divagar, no importa: el director te entenderá bien.",
+    "ms": 5060
+  },
+  "s15-4": {
+    "texto": "Lo importante es que expreses tu idea como de verdad la quieres,",
+    "ms": 4353
+  },
+  "s15-5": {
+    "texto": "con tu lenguaje natural: la comprensión, déjasela al director.",
+    "ms": 4632
+  },
+  "s15-6": {
+    "texto": "Tu nota se transcribe en tu computador.",
+    "ms": 2285
+  },
+  "s15-7": {
+    "texto": "Como va al Buzón y no directo al modelo,",
+    "ms": 2924
+  },
+  "s15-8": {
+    "texto": "la lees y la corriges antes de que llegue:",
+    "ms": 2955
+  },
+  "s15-9": {
+    "texto": "le quitas o le agregas lo que quieras.",
+    "ms": 3047
+  },
+  "s15-c": {
+    "texto": "Hablas, corriges y envías: sin escribir de más.",
+    "ms": 4359
+  },
+  "como-1": {
+    "texto": "¿Quieres probar el Studio ahora? Así se empieza.",
+    "ms": 3554
+  },
+  "como-2": {
+    "texto": "Primero, tráelo a tu computador: clona el repositorio, o descárgalo desde GitHub.",
+    "ms": 5728
+  },
+  "como-3": {
+    "texto": "Ponlo en la carpeta donde quieras trabajar.",
+    "ms": 2544
+  },
+  "como-4": {
+    "texto": "Para tu tranquilidad, pídele primero a tu modelo un escaneo de seguridad: que confirme que no trae nada malicioso.",
+    "ms": 7545
+  },
+  "como-5": {
+    "texto": "Después, pídele que lo instale.",
+    "ms": 2482
+  },
+  "como-6": {
+    "texto": "Desde ahí, el Studio te guía paso a paso.",
+    "ms": 3434
+  },
+  "como-7": {
+    "texto": "Si te queda alguna duda, consulta la documentación.",
+    "ms": 3693
+  },
+  "como-c": {
+    "texto": "Listo: ya estás en marcha.",
+    "ms": 2312
+  }
+}

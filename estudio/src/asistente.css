@@ -1,0 +1,109 @@
+/* El asistente de instalación: a pantalla completa, con una caja centrada de lectura (asistente.ts). */
+dialog.asistente {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 48px 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--fondo);
+  color: var(--texto);
+}
+.asistente-caja {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+  margin: 0 auto;
+  font-size: 16px;
+  line-height: 1.55;
+}
+.asistente-caja h1 {
+  margin: 0;
+  font-size: 26px;
+}
+.asistente-caja h3 {
+  margin: 6px 0 0;
+  font-size: 16px;
+}
+.asistente-opciones {
+  display: grid;
+  gap: 8px;
+}
+.asistente-opcion {
+  display: block;
+  padding: 10px 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  cursor: pointer;
+}
+.asistente-opcion small {
+  display: block;
+  margin-inline-start: 24px;
+  color: var(--suave);
+  font-size: 14px;
+}
+.asistente-ok {
+  color: var(--ok);
+  font-weight: 600;
+}
+.asistente-falta {
+  display: grid;
+  gap: 10px;
+}
+.asistente-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.asistente-lista li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.asistente-botones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+.asistente-caja section {
+  display: grid;
+  gap: 8px;
+}
+.asistente-caja progress {
+  width: 100%;
+  height: 12px;
+  accent-color: var(--ok);
+}
+.asistente-frase,
+.asistente-entendido {
+  margin: 0;
+  padding: 10px 14px;
+  border-inline-start: 3px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--panel);
+}
+.asistente-frase {
+  font-size: 18px;
+  border-inline-start-color: var(--ok);
+}
+.asistente-prueba-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.asistente-error {
+  color: #b4461f;
+  font-weight: 600;
+}

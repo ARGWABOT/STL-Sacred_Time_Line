@@ -1,0 +1,112 @@
+// Lo que comparten las herramientas del director: saber de qué proyecto se trata (el activo de este computador, o el
+// que se pida con --proyecto <id>), leer su plan, su proyecto y el estado de su equipo de donde estén más nuevos (su
+// memoria, <repositorio>/.stl, o su rama stl en GitHub, sin pull) y saber dónde está su repositorio en este computador.
+import { join, resolve } from 'node:path';
+import { colaDeDiagnosticos as colaPura, estadoMision, etapaArranque, pendientesDelDirector, POR_REVISION, TITULAR, type CandidatoDeCola, type EstadoDirector, type Persona, type Plan, type Proyecto } from '../../src/director/director.ts';
+import { Traedor } from '../../src/director/fresco.ts';
+import { leerEstadoDelEquipo, leerPlanUnido, leerProyectoDe } from '../../src/director/memoria.ts';
+import { elegirActivo, leerLocal, leerRutaRepositorio, memoriaDe, proyectosLocales, RAMA, rutasDe } from '../../src/director/proyectos.ts';
+import { comprobarRepositorio, type InfoRepositorio } from '../../src/director/repositorio.ts';
+
+// El Estudio donde está este archivo. Solo las pruebas lo cambian, con STL_RAIZ, para correr la herramienta de verdad sobre
+// un Estudio temporal (tools/director/bandeja-listo.test.ts); en el uso normal la variable no existe y nada cambia.
+export const raiz = process.env.STL_RAIZ ? resolve(process.env.STL_RAIZ) : join(import.meta.dirname, '..', '..');
+
+/** Los argumentos sin `--proyecto <id>` (que se lee aparte). */
+export function argumentos(): { args: string[]; pedido: string | null } {
+  const a = process.argv.slice(2);
+  const i = a.indexOf('--proyecto');
+  if (i < 0) return { args: a, pedido: null };
+  return { args: [...a.slice(0, i), ...a.slice(i + 2)], pedido: a[i + 1] ?? null };
+}
+
+/** Los proyectos de este Estudio: los de estudio.local.json con su memoria en su repositorio. */
+export const listarIds = () => proyectosLocales(raiz);
+
+/** La memoria de un proyecto en este computador (<repositorio>/.stl): donde el director escribe y hace sus commits. */
+export const memoria = (id: string) => memoriaDe(raiz, id)!;
+
+/** El proyecto del que se trata: el pedido o el activo. Sin proyectos, termina con su explicación. */
+export async function proyectoElegido(pedido: string | null): Promise<string> {
+  const ids = await listarIds();
+  if (!ids.length) {
+    console.error('Aún no hay proyectos en el Estudio: el titular entrega el primero en el Estudio (npm run estudio › Entregar proyectos).');
+    process.exit(1);
+  }
+  if (pedido && !ids.includes(pedido)) {
+    console.error(`No hay un proyecto «${pedido}». Los que hay: ${ids.join(', ')}.`);
+    process.exit(1);
+  }
+  return pedido ?? elegirActivo(await leerLocal(raiz), ids)!;
+}
+
+export interface Todo {
+  id: string;
+  rutas: ReturnType<typeof rutasDe>;
+  plan: Plan;
+  proyecto: Proyecto;
+  estado: EstadoDirector;
+  personas: Persona[];
+  repo: InfoRepositorio | null;
+  errorRepo: string | null;
+}
+
+/** Lee todo lo de un proyecto. */
+export async function leerProyecto(id: string): Promise<Todo> {
+  // La memoria se lee en un solo lugar (src/director/memoria.ts), el mismo que usa el servidor del Studio
+  const plan = await leerPlanUnido(raiz, id);
+  const proyecto = await leerProyectoDe(raiz, id);
+  const { estado } = await leerEstadoDelEquipo(raiz, id, proyecto, null, { vacioEsError: true });
+  const ruta = await leerRutaRepositorio(raiz, id);
+  const c = ruta ? await comprobarRepositorio(ruta) : null;
+  return {
+    id,
+    rutas: rutasDe(id),
+    plan,
+    proyecto,
+    estado,
+    personas: proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : [TITULAR],
+    repo: c?.ok ? c.info : null,
+    errorRepo: !ruta ? 'Aún no se conecta el repositorio en este computador (Estudio › Proyecto).' : c && !c.ok ? c.error : null,
+  };
+}
+
+/** Trae la memoria de GitHub (si hay remoto) y lee todo del proyecto pedido o del activo. */
+export async function leerTodo(pedido: string | null, traer = true): Promise<Todo> {
+  const id = await proyectoElegido(pedido);
+  if (traer) await new Traedor(memoria(id), 30_000, RAMA).traer(true);
+  return leerProyecto(id);
+}
+
+/** Una línea por cada otro proyecto: cómo va y cuánto espera al director (no se atiende en esta revisión). */
+export async function otrosProyectos(activo: string): Promise<string[]> {
+  const local = await leerLocal(raiz);
+  const salida: string[] = [];
+  for (const id of await listarIds()) {
+    if (id === activo) continue;
+    const t = await leerProyecto(id);
+    const pend = pendientesDelDirector(t.plan, t.estado);
+    const abiertas = t.plan.misiones.filter((m) => ['pendiente', 'en_curso', 'rehacer'].includes(estadoMision(m, t.plan, t.estado))).length;
+    salida.push(`${t.proyecto.nombre || id} (${id}): ${etapaArranque(t.plan, t.proyecto, !!local.repositorios[id])}, ${pend.entregas.length + pend.notas.length} por revisar, ${abiertas} misiones abiertas`);
+  }
+  return salida;
+}
+
+/**
+ * La cola de diagnósticos (la regla, en director.ts › colaDeDiagnosticos): los proyectos existentes recién entregados,
+ * del trabajo más reciente al más viejo. El director diagnostica los primeros POR_REVISION en cada revisión, además del
+ * proyecto activo.
+ */
+export { POR_REVISION };
+export async function colaDeDiagnosticos(activo: string): Promise<{ id: string; nombre: string; historial: string }[]> {
+  const local = await leerLocal(raiz);
+  const candidatos: CandidatoDeCola[] = [];
+  for (const id of await listarIds()) {
+    if (id === activo) continue;
+    const t = await leerProyecto(id);
+    candidatos.push({ id, nombre: t.proyecto.nombre, diagnosticado: !!t.plan.diagnostico?.fecha, tipo: t.proyecto.tipo, conectado: !!local.repositorios[id], historialIA: t.proyecto.historialIA });
+  }
+  return colaPura(candidatos, activo).map(({ id, nombre, historial }) => ({ id, nombre, historial }));
+}
+
+export const nombreDe = (proyecto: Proyecto, p: Persona) => proyecto.equipo.find((i) => i.id === p)?.nombre ?? p;
