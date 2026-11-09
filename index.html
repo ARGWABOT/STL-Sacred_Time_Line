@@ -273,17 +273,13 @@
   .velocidad button[aria-pressed="true"] { background: var(--oro); border-color: var(--oro); color: #1a1f33; }
   .velocidad button:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
   /* «Cómo empezar» (pd_como_empezar) en el mismo reproductor: la fila con un ejemplo de lo que se le puede pedir al modelo,
-     como texto y sin «Copiar» (nmw56hkz8tit), o del enlace al README, sobre los mandos; y, si el navegador no deja sonar la
-     voz al llegar, «▶ Empezar con voz» encima */
+     como texto y sin «Copiar» (nmw56hkz8tit), o del enlace al README, sobre los mandos */
   .popup-extra { display: none; }
   .popup.guia .popup-extra { flex: none; height: 32px; display: flex; justify-content: center; align-items: center; gap: 12px; }
   .popup-extra .ejemplo-como { color: #d9d4c4; font-size: 15px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85%; }
   .ejemplo-como { font-style: italic; }
   .popup-extra a { font-size: 15px; font-weight: 600; }
   .popup-extra [hidden] { display: none; }
-  .empezar-voz { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 1; padding: 16px 30px; border: 0; border-radius: 999px; font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; background: var(--oro); color: #1a1f33; box-shadow: 0 10px 40px rgba(0, 0, 0, .6); }
-  .empezar-voz:hover { background: var(--luz); }
-  .empezar-voz[hidden] { display: none; }
   .ver-como { display: none; }
   .js-3d .ver-como { display: inline-flex; }
   .js-3d .ver-como[hidden] { display: none; }
@@ -633,10 +629,8 @@
        un renglón y la barra para adelantar o devolver; al final, «Siguiente problema ›» (nmw88fyfctit) -->
   <div class="arriba-clip"><button type="button" class="cerrar-clip" data-cerrar-clip aria-label="Cerrar">✕</button><span class="pildora-clip" data-pildora-modo hidden></span><span class="pildora-clip" data-pildora-cuenta hidden></span></div>
   <canvas id="popup-clip" width="1280" height="800" role="img" aria-label="Una animación de este gran problema: cada situación como pasa al trabajar con IA por chat, seguida de cómo la resuelve STL, paso a paso"></canvas>
-  <!-- Solo con «Cómo empezar»: si el navegador no deja sonar la voz al llegar, espera con este botón (nmw4isbmktit); y la
-       fila con un ejemplo de lo que se le puede pedir al modelo, como texto y sin «Copiar» (nmw56hkz8tit), o el enlace al
-       README (nmw4f6lictit) -->
-  <button type="button" class="empezar-voz" data-empezar-voz hidden>▶ Empezar con voz</button>
+  <!-- Solo con «Cómo empezar»: la fila con un ejemplo de lo que se le puede pedir al modelo, como texto y sin «Copiar»
+       (nmw56hkz8tit), o el enlace al README (nmw4f6lictit) -->
   <div class="popup-extra" data-extra-como><span class="ejemplo-como" data-pedido-como hidden></span><a data-enlace-como href="https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme" target="_blank" rel="noopener" hidden>Abrir la documentación (el README en GitHub) ↗</a></div>
   <p class="sub-clip" data-sub-clip aria-hidden="true"></p>
   <div class="carril-clip" data-carril-clip aria-hidden="true"><span></span></div>

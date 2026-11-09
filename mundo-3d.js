@@ -156,11 +156,9 @@ function cerrarLectorDoc() {
 cerrarDoc?.addEventListener('click', cerrarLectorDoc);
 tarjetaDoc?.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarLectorDoc(); });
 if (EN) cerrarDoc?.setAttribute('aria-label', 'Close the documentation');
-// Lo fijo de «Cómo empezar» en la página, también en inglés (nmw6r9827tit): «▶ Empezar con voz», el enlace a la
-// documentación y, sin 3D, sus siete pasos
+// Lo fijo de «Cómo empezar» en la página, también en inglés (nmw6r9827tit): el enlace a la documentación y, sin 3D,
+// sus siete pasos
 if (EN) {
-  const empezar = document.querySelector('[data-empezar-voz]');
-  if (empezar) empezar.textContent = '▶ Start with voice';
   const enlace = document.querySelector('[data-enlace-como]');
   if (enlace) enlace.textContent = 'Open the documentation (the README on GitHub) ↗';
   const pasos = ['Want to try the Studio now? This is how you start.', 'First, bring it to your computer: clone the repository, or download it from GitHub.', 'Put it in the folder where you want to work.', 'For your peace of mind, first ask your model for a security scan: to confirm it brings nothing malicious. For example, in Claude Code: «Review this repository and tell me whether it brings anything malicious before installing it»', 'Then ask it to install it. For example, in Claude Code: «Initialize STL Studio»', 'From there, the Studio guides you step by step.', 'If you have any doubt, read the documentation.'];
@@ -3910,8 +3908,7 @@ function iniciar() {
     a.onended = a.onerror = listo;
     a.currentTime = desde;
     aSuRitmo(a);
-    // Si el navegador no la deja sonar (nadie ha hecho clic en la página), «Cómo empezar» espera con «▶ Empezar con voz»
-    a.play().catch((e) => { listo(); if (e?.name === 'NotAllowedError') alNoPoderSonar(); });
+    a.play().catch(listo);   // si el navegador no la deja sonar, la animación sigue con sus rótulos
   }
   // Si un clip no llega o se traba, el rótulo no espera para siempre
   const sigueHablando = () => voz.hablando && performance.now() - voz.desde < 20000;
@@ -4313,7 +4310,7 @@ function iniciar() {
   // (nmw56hkz8tit: son pedidos tan sencillos que cada quien los escribe a su modo), o el enlace (nmw4f6lictit)
   const extraComo = popup?.querySelector('[data-extra-como]');
   const pedidoComo = extraComo?.querySelector('[data-pedido-como]');
-  const enlaceComo = extraComo?.querySelector('[data-enlace-como]'), empezarVoz = popup?.querySelector('[data-empezar-voz]');
+  const enlaceComo = extraComo?.querySelector('[data-enlace-como]');
   const verComo = document.querySelector('[data-ver-como]');
   const guia = { visita: false, extra: '' };
   function abrirComo() {
@@ -4336,23 +4333,12 @@ function iniciar() {
     ponerReproductor();
     cargarVocesDe(GUIA);
     empezarClip();
-    // Sin un clic antes en la página, el navegador no deja sonar la voz: espera quieta con «▶ Empezar con voz» (nmw4isbmktit)
-    // (mientras sus clips esperan la cuota de Google, no hay voz que esperar: empieza con sus rótulos)
-    if (conVoz && !quieto && !sinVozTodavia(claveDeComo(0)) && navigator.userActivation && !navigator.userActivation.hasBeenActive) alNoPoderSonar();
     if (quieto && ctxClip) pintarClip(ctxClip, GUIA, duraClip(GUIA));
     pintarExtraComo();
   }
-  function alNoPoderSonar() {
-    if (seleccionado !== GUIA || !empezarVoz) return;
-    callar();
-    clipT = 0; pausado = true; pintarMando();
-    empezarVoz.hidden = false;
-  }
-  empezarVoz?.addEventListener('click', () => { empezarVoz.hidden = true; if (seleccionado === GUIA) empezarClip(); });
   function salirDeComo() {
     popup?.classList.remove('guia');
     popup?.setAttribute('aria-label', L('Cómo lo resuelve STL', 'How STL solves it'));
-    if (empezarVoz) empezarVoz.hidden = true;
     guia.extra = '';
   }
   // Lo de la fila de abajo, según la escena que se ve: el ejemplo de su escena, o el enlace al README desde la última
@@ -4475,8 +4461,8 @@ function iniciar() {
   }
   if (movil) for (const ev of ['scroll', 'touchstart', 'pointerdown', 'keydown']) addEventListener(ev, despertar, { passive: true });
   // En ?ver=N, la quietud es solo para capturar sin pantalla: en cuanto una persona toca la página (el visor de teléfonos
-  // abre así cada estación, con ?ver=3&abrir=como), vuelve a dibujar y sigue; sin esto, «▶ Empezar con voz» no arrancaba la
-  // animación ni su voz (nota del titular nmw8kg745tit, 9 de noviembre de 2026)
+  // abre así cada estación, con ?ver=3&abrir=como), vuelve a dibujar y sigue; sin esto, la
+  // animación no arrancaba ni su voz (nota del titular nmw8kg745tit, 9 de noviembre de 2026)
   let tocadaEnFijo = false, quietaEnFijo = false;
   // Y ese primer toque la vuelve el recorrido de siempre (nota de voz del titular nmw9f5k8ptit, 9 de noviembre de 2026: desde
   // el visor, el menú saltaba directo a cada estación y la rueda y el arrastre no movían la cámara): la página deja de ser
