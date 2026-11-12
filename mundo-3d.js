@@ -50,7 +50,7 @@ const FIJO_EN = {
     'What is STL? A 3D tour along a project’s timeline: STL Studio, the interface between you and the model, and the problems of working with AI through chat that it solves.',
   '¿Qué es STL?': 'What is STL?',
   'Tu teléfono es demasiado lento para este recorrido': 'Your phone is too slow for this tour',
-  'Te invitamos a verlo en un computador o en un teléfono más rápido.': 'We invite you to see it on a computer or on a faster phone.',
+  'Míralo en un computador o en un teléfono más rápido.': 'See it on a computer or on a faster phone.',
   'Las estaciones y el idioma': 'The stations and the language',
   '▶ Bájalo en GitHub': '▶ Get it on GitHub',
   'STL Studio, creado por ARGWABOT (A Regular Guy With A Bunch Of Tokens).': 'STL Studio, created by ARGWABOT (A Regular Guy With A Bunch Of Tokens).',
