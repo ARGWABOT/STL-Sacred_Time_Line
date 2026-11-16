@@ -820,7 +820,8 @@
   const VELOCIDADES = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25;
   let velocidad = VELOCIDAD_INICIAL;
   const audios = new Map();
-  const narra = { audio: null, hablando: false, desde: 0, dicha: null, movida: 0, trasMover: false };
+  // posicion y avanzo: dónde iba el clip la última vez que se movió y cuándo, para saber si se trabó de verdad
+  const narra = { audio: null, hablando: false, desde: 0, dicha: null, movida: 0, trasMover: false, globito: false, posicion: -1, avanzo: 0 };
   // Al soltar la perilla (o la rueda), la línea de ese punto suena solo si su tiempo no ha pasado: desde donde va, para
   // seguir a la escena, y desde su comienzo si apenas empezaba. Si ya pasó, se queda callada y no se repite (nota de voz
   // del titular nmw2ed0sqtit, 4 de noviembre de 2026). null: no suena
@@ -845,7 +846,8 @@
     const a = audioDeLinea(t);
     if (!a) return;
     const listo = () => { if (narra.audio === a) narra.hablando = false; };
-    narra.audio = a; narra.hablando = true; narra.desde = performance.now();
+    narra.audio = a; narra.hablando = true; narra.desde = performance.now(); narra.globito = false;
+    narra.posicion = -1; narra.avanzo = narra.desde;
     a.onended = a.onerror = listo;
     // desde: lo que ya pasó de la línea, a 1x; en el clip es eso por su ritmo
     a.currentTime = (desde / 1000) * ritmoDe(t);
@@ -854,8 +856,20 @@
     a.playbackRate = ritmoDe(t) * velocidad;
     a.play().catch(listo);
   }
-  // Si un clip no llega o se traba, nada lo espera para siempre: como mucho lo que dura su línea y un segundo y medio
-  const sigueHablando = () => narra.hablando && performance.now() - narra.desde < duraLinea(narra.dicha) / velocidad + 1500;
+  // La voz habla mientras su clip no haya terminado ni fallado de verdad (nota de voz del titular nmwin2anztit, 16 de
+  // noviembre de 2026: con un tope de tiempo, un clip que cargaba lento o que cambiaba de velocidad se cortaba a la mitad
+  // y la animación se adelantaba). Un clip que se queda cargando se espera; solo uno que no avanza en ATASCO_MAX, sin
+  // estar en pausa, se da por fallido y se calla: entonces la escena sigue sin él y esa línea no se repite
+  const ATASCO_MAX = 10000;
+  function sigueHablando() {
+    const a = narra.audio;
+    if (!narra.hablando || !a) return false;
+    if (a.ended || a.error) { narra.hablando = false; return false; }
+    const ahora = performance.now();
+    if (a.paused || a.currentTime !== narra.posicion) { narra.posicion = a.currentTime; narra.avanzo = ahora; return true; }
+    if (ahora - narra.avanzo > ATASCO_MAX) { callarVoz(); return false; }
+    return true;
+  }
   // La voz manda: si aún habla y ya le toca a la línea siguiente, la escena espera a que termine (pd_narrador)
   const esperaLaVoz = () => !saltando && !quieto && cola.length > 0 && reloj >= cola[0].en && sigueHablando();
   // Toda la voz se carga una sola vez, al abrir la página, detrás de un solo «Cargando la voz…» (nota de voz nmw5d6iqctit):
@@ -895,7 +909,8 @@
     // Mientras toda la voz carga, nada suena: la primera línea empieza cuando se quita el «Cargando la voz…»
     cargarTodaLaVoz();
     if (cargandoVoz()) return;
-    if (narra.audio && narra.hablando && narra.audio.paused) { narra.desde = performance.now(); narra.audio.play().catch(() => { narra.hablando = false; }); }
+    // Sigue la que se pausó; nunca vuelve a sonar un clip que ya terminó
+    if (narra.audio && narra.hablando && narra.audio.paused && !narra.audio.ended) { narra.desde = narra.avanzo = performance.now(); narra.audio.play().catch(() => { narra.hablando = false; }); }
     if (actual && actual !== narra.dicha && performance.now() - narra.movida > 350) {
       const desde = narra.trasMover ? desdeTrasMover(reloj - actualEn, duraLinea(actual)) : 0;
       narra.trasMover = false;
@@ -2372,6 +2387,8 @@
   function vozDelGlobito(g) {
     if (g.n === globitoDicho && globitoTras === narra.movida) return;
     if (!conVoz || quieto || saltando || !reproduce || performance.now() - narra.movida < 350) return;
+    // Nunca corta una línea del narrador que aún habla: el globito espera a que termine (nmwin2anztit)
+    if (!narra.globito && sigueHablando()) return;
     globitoDicho = g.n; globitoTras = narra.movida;
     const clave = `globito-${g.i + 1}`;
     if (!audios.has(clave)) { const a = new Audio(); a.preload = 'auto'; a.src = `${CARPETA_VOZ}/${clave}.mp3`; a.preservesPitch = true; audios.set(clave, a); }
@@ -2384,7 +2401,8 @@
     if (Number.isFinite(a.duration) && a.duration > 0) desdeSuPunto();
     else { a.currentTime = 0; a.addEventListener('loadedmetadata', desdeSuPunto, { once: true }); }
     a.playbackRate = velocidad;
-    narra.audio = a; narra.hablando = true; narra.desde = performance.now();
+    narra.audio = a; narra.hablando = true; narra.desde = performance.now(); narra.globito = true;
+    narra.posicion = -1; narra.avanzo = narra.desde;
     a.play().catch(listo);
   }
   // Dónde va el globito: justo encima del Studio, que flota junto a ti en la meta, y nunca arriba del todo, donde está el

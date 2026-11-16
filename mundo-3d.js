@@ -3891,7 +3891,8 @@ function iniciar() {
     if (!voces.has(clave)) { const a = new Audio(); a.preload = 'auto'; a.src = `voz/${vozEnIngles(clave) ? 'en' : 'es'}/${clave}.mp3`; a.ritmo = ritmoDeClave(clave); voces.set(clave, aSuRitmo(a)); }
     return voces.get(clave);
   };
-  const voz = { clave: '', audio: null, hablando: false, desde: 0 };
+  // posicion y avanzo: dónde iba el clip la última vez que se movió y cuándo, para saber si se trabó de verdad
+  const voz = { clave: '', audio: null, hablando: false, desde: 0, posicion: -1, avanzo: 0 };
   function callar() {
     if (voz.audio) { voz.audio.pause(); voz.audio.onended = voz.audio.onerror = null; }
     voz.audio = null; voz.clave = ''; voz.hablando = false;
@@ -3904,14 +3905,25 @@ function iniciar() {
     voz.clave = clave;
     if (!conVoz || quieto || sinVozTodavia(clave)) return;   // sin voz todavía: ni se pide su mp3 ni el reloj la espera
     const a = audioDe(clave), listo = () => { if (voz.audio === a) voz.hablando = false; };
-    voz.audio = a; voz.hablando = true; voz.desde = performance.now();
+    voz.audio = a; voz.hablando = true; voz.desde = voz.avanzo = performance.now(); voz.posicion = -1;
     a.onended = a.onerror = listo;
     a.currentTime = desde;
     aSuRitmo(a);
     a.play().catch(listo);   // si el navegador no la deja sonar, la animación sigue con sus rótulos
   }
-  // Si un clip no llega o se traba, el rótulo no espera para siempre
-  const sigueHablando = () => voz.hablando && performance.now() - voz.desde < 20000;
+  // La voz habla mientras su clip no haya terminado ni fallado de verdad (nota de voz del titular nmwin2anztit): un clip
+  // que se queda cargando se espera, y solo uno que no avanza en ATASCO_MAX, sin estar en pausa, se calla y deja seguir
+  // al rótulo. Antes era un tope de 20 s desde que empezaba, que no sabía si el clip iba por la mitad
+  const ATASCO_MAX = 10000;
+  function sigueHablando() {
+    const a = voz.audio;
+    if (!voz.hablando || !a) return false;
+    if (a.ended || a.error) { voz.hablando = false; return false; }
+    const ahora = performance.now();
+    if (a.paused || a.currentTime !== voz.posicion) { voz.posicion = a.currentTime; voz.avanzo = ahora; return true; }
+    if (ahora - voz.avanzo > ATASCO_MAX) { const clave = voz.clave; callar(); voz.clave = clave; return false; }
+    return true;
+  }
   // Las voces de una animación se cargan todas al abrirla, detrás de un solo «Cargando la voz…»: entre un rótulo y otro
   // nunca se dibuja nada encima ni se oscurece (nota de voz del titular nmw5h32xptit; antes el velo salía cada vez que un
   // clip se pedía). Si no llegan en 20 s, sigue con las que haya
@@ -4085,7 +4097,7 @@ function iniciar() {
     pausado = si;
     if (voz.audio) {
       if (si) voz.audio.pause();
-      else if (voz.hablando) { voz.desde = performance.now(); voz.audio.play().catch(() => { voz.hablando = false; }); }
+      else if (voz.hablando && !voz.audio.ended) { voz.desde = voz.avanzo = performance.now(); voz.audio.play().catch(() => { voz.hablando = false; }); }
     }
     clipAntes = performance.now();
     pintarMando();
