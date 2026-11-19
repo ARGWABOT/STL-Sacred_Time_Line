@@ -76,6 +76,8 @@
     /* «Qué es STL» y su línea, centrados entre el borde de arriba y el dibujo de la línea, sin pisar los primeros anillos
        (nota de voz del titular nmw87ytm7tit) */
     html.js-3d .entrada { height: 100svh; justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 18svh); }
+    .js-3d .entrada h1 { margin-top: 12svh; }
+    .js-3d .entrada .bajar { margin-top: 20svh; }
     .js-3d .tarjeta.corta { bottom: calc(1.5vh + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); box-sizing: border-box; white-space: normal; }
     .js-3d .tarjeta.corta h2 { white-space: normal; text-wrap: balance; }
     /* Nada se sale por los lados: la página nunca es más ancha que el teléfono */
@@ -118,6 +120,19 @@
   .entrada h1 { margin: 0 0 8px; font-size: clamp(36px, 5vw, 64px); line-height: 1.1; color: #fffaf0; }
   .js-3d .entrada h1 { margin: 0 0 2px; font-size: clamp(26px, 2.4vw, 46px); }
   .js-3d .entrada .bajar { margin-top: 4px; font-size: clamp(14px, 1vw, 19px); }
+  /* «What is» / «¿Qué es» queda justo encima de las estrellas que forman «STL» (de 29 a 41 % de la altura; mundo-3d.js › NOTAS):
+     juntos se leen «What is STL», y el botón baja bajo las letras, sin pisarlas */
+  @media (min-width: 901px) { .js-3d .entrada h1 { margin-top: 9vh; } .js-3d .entrada .bajar { margin-top: 17vh; } }
+  /* nmwmwj197tit: en pantallas anchas (desde 1350 px), «Empieza el recorrido» / «Start the tour» baja a la esquina de abajo a
+     la derecha de la portada, lejos de la línea dorada y de los gráficos 3D (antes caía encima de la línea y no se leía). La
+     portada mide 100vh, así que su esquina inferior es la de la ventana; el menú, al centro del borde derecho, no llega ahí */
+  @media (min-width: 1350px) {
+    .js-3d .entrada { position: relative; }
+    .js-3d .entrada .bajar { position: absolute; right: clamp(20px, 3vw, 64px); bottom: clamp(16px, 4vh, 48px); margin: 0;
+      padding: 8px 16px; border-radius: 999px; background: rgba(8, 11, 20, .72); border: 1px solid rgba(245, 210, 122, .35);
+      font-size: clamp(15px, 1.05vw, 22px); text-shadow: 0 1px 6px rgba(0, 0, 0, .8); white-space: nowrap; }
+  }
+  .js-3d .resto-titulo { display: none; }   /* con 3D, «STL» lo forman las estrellas; sin 3D, se escribe */
   /* Mientras carga el recorrido, no se ve el contenido de la página sin 3D (las tarjetas de los siete problemas se asomaban,
      nmw6lwwbxtit): la clase la pone el guion del principio y la quita mundo-3d.js, con 3D o sin él */
   .cargando-3d:not(.js-3d) #viaje, .cargando-3d:not(.js-3d) .fin { visibility: hidden; }
@@ -479,6 +494,7 @@
   <button type="button" class="menu-boton" data-menu-boton aria-expanded="false" aria-controls="menu-estaciones" aria-label="Las estaciones y el idioma">☰</button>
   <div class="idioma" role="group" aria-label="Idioma · Language"><button type="button" data-idioma="es" lang="es">ES</button><b aria-hidden="true">·</b><button type="button" data-idioma="en" lang="en">EN</button></div>
   <ol id="menu-estaciones">
+    <li><a href="#inicio" data-inicio>Inicio</a></li>
     <li><a href="#e-que-es">Qué es STL</a></li>
     <li><a href="#e-te-ha-pasado">¿Te ha pasado…?</a></li>
     <li><a href="#e-como-empezar">Cómo empezar</a></li>
@@ -489,8 +505,8 @@
 <main id="viaje" class="viaje">
   <div class="escenario" aria-hidden="true"><canvas id="mundo"></canvas></div>
   <div class="estaciones">
-    <header class="entrada">
-      <h1>¿Qué es STL?</h1>
+    <header class="entrada" id="inicio">
+      <h1 aria-label="¿Qué es STL?">¿Qué es<span class="resto-titulo" aria-hidden="true"> STL?</span></h1>
       <a class="bajar" href="#e-que-es">Empieza el recorrido <span aria-hidden="true">↓</span></a>
     </header>
 
@@ -688,7 +704,7 @@
   @media (prefers-reduced-motion: reduce) { #info-caja { transition: none; } }
 </style>
 <div id="info">
-  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-16</span></div></div>
+  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-18</span></div></div>
   <button type="button" id="info-boton" aria-label="Más información: la versión" aria-expanded="false" aria-describedby="info-caja">i</button>
 </div>
 <script>

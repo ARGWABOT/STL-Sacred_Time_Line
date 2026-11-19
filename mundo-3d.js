@@ -16,6 +16,8 @@
 // estación en estación y nada se anima.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 
 const ORO = '#f5d27a', LUZ = '#fff6d8', LINEA = '#ffcf5a', MORADO = '#b9a3ff', CIAN = '#5ad1ff', ROJO = '#ff6b8a';
 const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb36b', AMARILLO_TU = '#ffd98a';
@@ -209,13 +211,18 @@ if (EN) {
 // t_decide_nombre_como_empezar_en). El otro idioma recarga la página con su ?lang, y la elección se guarda (nmw2lz2bvtit)
 const IDIOMA_GUARDADO = 'stl-idioma';
 const PAGINA = {
-  es: { menu: ['Qué es STL', '¿Te ha pasado…?', 'Cómo empezar', 'La documentación'], h1: '¿Qué es STL?', bajar: 'Empieza el recorrido', saltar: 'Saltar el recorrido', nav: 'Las estaciones de «Qué es STL»' },
-  en: { menu: ['What is STL', 'Has this happened to you?', 'Getting started', 'Documentation'], h1: 'What is STL?', bajar: 'Start the tour', saltar: 'Skip the tour', nav: 'The stations of «What is STL»' },
+  es: { menu: ['Inicio', 'Qué es STL', '¿Te ha pasado…?', 'Cómo empezar', 'La documentación'], h1: '¿Qué es', h1Completo: '¿Qué es STL?', bajar: 'Empieza el recorrido', saltar: 'Saltar el recorrido', nav: 'Las estaciones de «Qué es STL»' },
+  en: { menu: ['Start', 'What is STL', 'Has this happened to you?', 'Getting started', 'Documentation'], h1: 'What is', h1Completo: 'What is STL?', bajar: 'Start the tour', saltar: 'Skip the tour', nav: 'The stations of «What is STL»' },
 }[EN ? 'en' : 'es'];
 document.querySelectorAll('.menu ol > li > :is(a, span)').forEach((el, i) => { if (PAGINA.menu[i]) el.textContent = PAGINA.menu[i]; });
 document.querySelector('.menu')?.setAttribute('aria-label', PAGINA.nav);
 const h1Entrada = document.querySelector('.entrada h1');
-if (h1Entrada) h1Entrada.textContent = PAGINA.h1;
+// El titular solo dice «What is» / «¿Qué es»: «STL» lo forman las estrellas (sin 3D, el span «resto-titulo» lo escribe), y el
+// nombre accesible sigue siendo el completo, «What is STL?» / «¿Qué es STL?»
+if (h1Entrada) {
+  if (h1Entrada.firstChild?.nodeType === 3) h1Entrada.firstChild.textContent = PAGINA.h1;
+  h1Entrada.setAttribute('aria-label', PAGINA.h1Completo);
+}
 const bajarTexto = document.querySelector('.bajar')?.firstChild;
 if (bajarTexto?.nodeType === 3) bajarTexto.textContent = `${PAGINA.bajar} `;
 const saltar = document.querySelector('.saltar');
@@ -309,6 +316,33 @@ const estaciones = [...document.querySelectorAll('.estacion')];
 const enlaces = [...document.querySelectorAll('.menu a')];
 const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const movil = matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+// ── El resplandor real (bloom; la primera ronda de efectos, aprobada por el titular el 17 de noviembre de 2026, con ideas
+// del catálogo de 21st.dev escritas aquí: .stl/docs/investigacion/21st-galeria/). Lo que brilla derrama luz alrededor,
+// como en las fotos de luces de noche. La escena se dibuja igual que siempre, con su antialias; aparte, a media
+// resolución, se dibuja SOLO lo que brilla (la capa CAPA_BRILLO: la línea y los anillos, con su «calor»; las luciérnagas se fueron en la segunda ronda),
+// se difumina y se suma encima. Así los rótulos, las caras y las pantallas quedan nítidos y nada de lo aprobado cambia de
+// color. En el teléfono no va (el recorrido de antes, sin cambios), ni con ?sinbrillo, para comparar
+const conResplandor = !movil && !new URLSearchParams(location.search).has('sinbrillo');
+const CAPA_BRILLO = 1, FUERZA_BRILLO = 0.55, RADIO_BRILLO = 0.3;
+// El computador que en sus primeros segundos no alcanza FPS_BRILLO cuadros por segundo con el resplandor lo apaga y sigue
+// con el recorrido de antes, colores incluidos
+const FPS_BRILLO = 40;
+// ── La segunda ronda de efectos (pd_efectos_recorrido, aprobada por el titular tras ver la primera; ideas de 21st.dev
+// escritas aquí: las tarjetas 1, 3, 5, 7 y 8 de .stl/docs/investigacion/21st-galeria/). Las luciérnagas se fueron (hacían
+// más difícil leer los objetos); el resplandor de la línea se queda. Lo nuevo: el cielo con el doble de estrellas, cada
+// una apagándose y volviendo despacio (2 a 5 s) en su propio momento; un velo de nebulosa muy tenue (efecto 1) y, a modo de
+// prueba, una nebulosa de ruido fractal más densa (efecto 2), SOLO en el computador y solo mientras alcance FPS_BRILLO
+// cuadros por segundo (conVelos); constelaciones que se dibujan solas al pasar la cámara (efecto 5); y el flujo neón que
+// corre por la línea dorada y reemplaza al pulso de la primera ronda (efecto 7). (Los efectos 3 y 8 de la galería se
+// quitaron por decisión del titular.) El teléfono conserva las estrellas y las constelaciones. ?sinbrillo muestra el recorrido
+// como era antes de cualquier efecto, para comparar
+const sinEfectos = new URLSearchParams(location.search).has('sinbrillo');
+const conEfectos2 = !sinEfectos;
+const conVelos = conEfectos2 && !movil;
+const ESTRELLAS_X = 3.2;   // tres veces y pico las estrellas de antes (quinta ronda: más estrellas; el teléfono, la mitad)
+// Cada estrella se apaga y vuelve una vez por ciclo (de 60 a 180 s), en un momento propio y al azar, durante 2 a 5 s: así a
+// la vez solo unas pocas están apagadas. Titilan en su sitio: el cielo no se mueve
+const TITILEO_DURA = [2, 5], TITILEO_CICLO = [60, 180], TITILEO_BAJA = 0.85;
 // Para revisar una estación sin desplazarse (?ver=2): la muestra fija, con su tarjeta. Sirve para capturarla sin pantalla
 // (desplazar la página deja la captura en blanco) y para mostrar una sola estación.
 const verTexto = new URLSearchParams(location.search).get('ver');
@@ -2493,6 +2527,66 @@ function iniciar() {
   escena.background = new THREE.Color('#0a0d18');
   escena.fog = new THREE.FogExp2('#0a0d18', 0.016);
   const camara = new THREE.PerspectiveCamera(55, 1, 0.1, 600);
+  // El resplandor (conResplandor, arriba). «calor» vale 1 solo mientras se dibuja la capa que brilla: ahí la línea, los
+  // arcos de los anillos pasan de 1, para que su luz se derrame más; en la escena de siempre
+  // vale 0 y cada cosa tiene su color de antes. El reloj de los efectos de esta ronda se queda en 0 con movimiento reducido
+  const calor = { value: 0 };
+  const tiempoEfectos = { value: 0 };
+  let brilloReal = null;
+  // Su imagen guarda luz por encima de 1 (media precisión): el navegador que no puede dibujar en ella se queda sin resplandor
+  const guardaLuz = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+  if (conResplandor && guardaLuz) {
+    // Media resolución, con su propio antialias (barato a ese tamaño): sin él, la línea fina parpadeaba al moverse
+    const fuente = new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, samples: 4 });
+    const paso = new UnrealBloomPass(new THREE.Vector2(2, 2), FUERZA_BRILLO, RADIO_BRILLO, 0);
+    // Lo difuminado se suma sobre la escena ya dibujada, tal cual: sus colas tenues se apagan rápido y no velan la escena
+    const sumar = new FullScreenQuad(new THREE.ShaderMaterial({
+      uniforms: { tBrillo: { value: null } },
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: 'uniform sampler2D tBrillo; varying vec2 vUv; void main() { gl_FragColor = vec4(max(texture2D(tBrillo, vUv).rgb, 0.0), 1.0); }',
+      blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true,
+    }));
+    brilloReal = { fuente, paso, sumar };
+  }
+  const colorDeLimpiar = new THREE.Color();
+  function dibujar() {
+    renderer.render(escena, camara);
+    if (!brilloReal) return;
+    const { fuente, paso, sumar } = brilloReal;
+    // Solo la capa que brilla, sin el fondo, con su calor
+    const fondo = escena.background, alfaDeLimpiar = renderer.getClearAlpha();
+    renderer.getClearColor(colorDeLimpiar);
+    escena.background = null;
+    camara.layers.set(CAPA_BRILLO);
+    calor.value = 1;
+    renderer.setRenderTarget(fuente);
+    renderer.setClearColor(0x000000, 1);
+    renderer.render(escena, camara);
+    calor.value = 0;
+    camara.layers.set(0);
+    escena.background = fondo;
+    renderer.setClearColor(colorDeLimpiar, alfaDeLimpiar);
+    // Se difumina en varias escalas; el resultado, solo el resplandor, queda en su primera imagen
+    paso.render(renderer, null, fuente, 0, false);
+    sumar.material.uniforms.tBrillo.value = paso.renderTargetsHorizontal[0].texture;
+    renderer.setRenderTarget(null);
+    const auto = renderer.autoClear;
+    renderer.autoClear = false;
+    sumar.render(renderer);
+    renderer.autoClear = auto;
+  }
+  function medirResplandor(w, h) {
+    if (!brilloReal) return;
+    brilloReal.fuente.setSize(Math.max(2, Math.round(w / 2)), Math.max(2, Math.round(h / 2)));
+    brilloReal.paso.setSize(Math.max(4, Math.round(w)), Math.max(4, Math.round(h)));   // su primera escala, la mitad: la de la fuente
+  }
+  function apagarResplandor() {
+    if (!brilloReal) return;
+    brilloReal.fuente.dispose();
+    brilloReal.paso.dispose();
+    brilloReal.sumar.dispose();
+    brilloReal = null;
+  }
 
   escena.add(new THREE.HemisphereLight(MORADO, NOCHE, 0.7));
   const sol = new THREE.DirectionalLight('#ffe7b8', 1.1);
@@ -2528,12 +2622,17 @@ function iniciar() {
   // El paralaje, un 25 % más rápido (nota de voz del titular nmw753vdutit): lo que cada capa se queda atrás de la cámara,
   // (1 − sigue), por 1,25. La cantidad de estrellas no cambia
   const PARALAJE_CIELO = 1.25;
-  const cieloUniformes = { uTiempo: { value: 0 }, uMueve: { value: quieto ? 0 : 1 }, uPix: { value: renderer.getPixelRatio() } };
+  // uMagia (quinta ronda): el titilar «mágico». Cada estrella respira suave (de 3 a 8 s) con picos más claros que su brillo de
+  // siempre, un resplandor suave alrededor (el punto se dibuja más ancho y el centro queda del tamaño de antes) y una de cada
+  // siete brilla con un destello lento y fuerte (de 7 a 13 s). Tranquilo: nada de parpadeo rápido. Con ?sinbrillo, igual que antes
+  const cieloUniformes = { uTiempo: { value: 0 }, uMueve: { value: quieto ? 0 : 1 }, uPix: { value: renderer.getPixelRatio() }, uMagia: { value: conEfectos2 ? 1 : 0 } };
   const capasCielo = CAPAS_CIELO.map((capa) => {
-    // En un teléfono, la mitad (el sorteo es el mismo: las que quedan son las primeras de siempre)
-    const cantidad = Math.round(capa.n * (movil ? 0.5 : 1));
+    // El doble de estrellas (pd_efectos_recorrido; con ?sinbrillo, las de antes); en un teléfono, la mitad (el sorteo es el
+    // mismo: las que quedan son las primeras de siempre)
+    const cantidad = Math.round(capa.n * (conEfectos2 ? ESTRELLAS_X : 1) * (movil ? 0.5 : 1));
     const pos = new Float32Array(cantidad * 3), col = new Float32Array(cantidad * 3);
     const tam = new Float32Array(cantidad), brillo = new Float32Array(cantidad), ciclo = new Float32Array(cantidad), fase = new Float32Array(cantidad);
+    const dip = new Float32Array(cantidad);   // cuánto dura su apagón (0: la estrella de antes, que titila o no)
     for (let i = 0; i < cantidad; i++) {
       // Un punto de la esfera; la banda es un círculo máximo inclinado, con algo de grosor
       let y = cieloAzar() * 2 - 1;
@@ -2552,6 +2651,12 @@ function iniciar() {
       const dura = CICLO_MIN + cieloAzar() * (CICLO_MAX - CICLO_MIN);
       ciclo[i] = titila ? dura : 0;
       fase[i] = cieloAzar() * Math.PI * 2;
+      if (conEfectos2) {
+        // Todas se apagan y vuelven, cada una en su momento (fase) dentro de su ciclo largo, 2 a 5 s por vez
+        const azarCiclo = cieloAzar();
+        ciclo[i] = TITILEO_CICLO[0] + azarCiclo * (TITILEO_CICLO[1] - TITILEO_CICLO[0]);
+        dip[i] = TITILEO_DURA[0] + ((dura - CICLO_MIN) / (CICLO_MAX - CICLO_MIN)) * (TITILEO_DURA[1] - TITILEO_DURA[0]);
+      }
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -2560,25 +2665,49 @@ function iniciar() {
     geo.setAttribute('aBrillo', new THREE.BufferAttribute(brillo, 1));
     geo.setAttribute('aCiclo', new THREE.BufferAttribute(ciclo, 1));
     geo.setAttribute('aFase', new THREE.BufferAttribute(fase, 1));
+    geo.setAttribute('aDip', new THREE.BufferAttribute(dip, 1));
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), capa.radio * 1.01);   // no se dibuja lo que no se ve
     const mat = new THREE.ShaderMaterial({
       uniforms: cieloUniformes, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       vertexShader: `
-        attribute vec3 aColor; attribute float aTam; attribute float aBrillo; attribute float aCiclo; attribute float aFase;
-        uniform float uTiempo; uniform float uMueve; uniform float uPix;
-        varying vec3 vColor; varying float vAlfa;
+        attribute vec3 aColor; attribute float aTam; attribute float aBrillo; attribute float aCiclo; attribute float aFase; attribute float aDip;
+        uniform float uTiempo; uniform float uMueve; uniform float uPix; uniform float uMagia;
+        varying vec3 vColor; varying float vAlfa; varying float vAncho;
         void main() {
           float f = 1.0;
-          if (aCiclo > 0.0 && uMueve > 0.5) f = ${BRILLO_MIN.toFixed(2)} + ${(1 - BRILLO_MIN).toFixed(2)} * (0.5 + 0.5 * sin(uTiempo * 6.2831853 / aCiclo + aFase));
-          vColor = aColor; vAlfa = aBrillo * f;
-          gl_PointSize = aTam * uPix;
+          float ampliar = 1.0;
+          if (uMagia > 0.5) {
+            float azar = fract(aFase * 7.31);
+            float o = 0.5 + 0.5 * sin(uTiempo * 6.2831853 / (3.0 + 5.0 * fract(aFase * 3.7)) * uMueve + aFase * 5.0);
+            f = 0.62 + 0.55 * o;
+            if (azar < 0.14) {
+              float o2 = 0.5 + 0.5 * sin(uTiempo * 6.2831853 / (7.0 + 6.0 * fract(aFase * 1.9)) * uMueve + aFase * 3.0);
+              float pico = pow(o2, 3.0);
+              f = 0.5 + 1.1 * pico;
+              ampliar = 1.0 + 0.8 * pico;
+            }
+          }
+          if (aDip > 0.0 && uMueve > 0.5) {
+            // Se apaga y vuelve despacio, una vez por ciclo, en su propio momento: sin(...)² sube y baja suave en aDip segundos
+            float x = mod(uTiempo + aFase / 6.2831853 * aCiclo, aCiclo);
+            if (x < aDip) f *= 1.0 - ${TITILEO_BAJA.toFixed(2)} * pow(sin(3.14159265 * x / aDip), 2.0);
+          }
+          else if (aCiclo > 0.0 && uMueve > 0.5) f = ${BRILLO_MIN.toFixed(2)} + ${(1 - BRILLO_MIN).toFixed(2)} * (0.5 + 0.5 * sin(uTiempo * 6.2831853 / aCiclo + aFase));
+          vColor = aColor; vAlfa = min(1.0, aBrillo * f * (uMagia > 0.5 ? 1.25 : 1.0));
+          vAncho = uMagia > 0.5 ? 2.4 : 1.0;   // el centro de un destello crece un poco con el punto (ampliar)
+          gl_PointSize = aTam * uPix * (uMagia > 0.5 ? 2.4 * ampliar : 1.0);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
       fragmentShader: `
-        varying vec3 vColor; varying float vAlfa;
+        varying vec3 vColor; varying float vAlfa; varying float vAncho;
         void main() {
           float d = length(gl_PointCoord - 0.5);
-          gl_FragColor = vec4(vColor, vAlfa * smoothstep(0.5, 0.05, d));
+          if (vAncho > 1.5) {
+            // El centro, del tamaño de antes (el punto es 2,4 veces más ancho), y un resplandor suave que se apaga hacia el borde
+            float nucleo = smoothstep(0.5, 0.05, d * 2.4);
+            float halo = pow(max(0.0, 1.0 - 2.0 * d), 2.2) * 0.4;
+            gl_FragColor = vec4(mix(vColor, vec3(1.0), 0.35 * nucleo), vAlfa * min(1.0, nucleo + halo));
+          } else gl_FragColor = vec4(vColor, vAlfa * smoothstep(0.5, 0.05, d));
         }`,
     });
     const puntos = new THREE.Points(geo, mat);
@@ -2664,6 +2793,108 @@ function iniciar() {
     });
   }
   escena.add(nebulosa);
+  // ── Un cielo más hondo y quieto (pd_efectos_recorrido, efecto 1): detrás de las estrellas, un velo tenue de azul noche con
+  // vetas de aguamarina y un poco de violeta. Solo se suma al fondo de siempre y es muy débil, para que la línea y las
+  // estaciones sigan siendo lo más brillante de la pantalla. No se anima, y con la niebla apagada y la profundidad activa
+  // nunca queda sobre un objeto. Solo en el computador (conVelos); si no alcanza FPS_BRILLO cuadros por segundo, se apaga
+  // (apagarVelos). Sigue a la cámara, como el fondo
+  const VELO_RADIO = 490, VELO_FUERZA = 0.08;
+  const velos = [];   // lo que se apaga junto si el computador es lento: el velo y la nebulosa fractal
+  let velosVivos = conVelos;
+  function apagarVelos() {
+    velosVivos = false;
+    for (const v of velos) { v.visible = false; v.geometry.dispose(); v.material.dispose(); }
+  }
+  const veloCielo = conVelos ? new THREE.Mesh(
+    new THREE.SphereGeometry(VELO_RADIO, 40, 28),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending,
+      defines: { OCTAVAS_VELO: 4 },
+      vertexShader: 'varying vec3 vDir; void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `
+        varying vec3 vDir;
+        float azar(vec3 p) { p = fract(p * 0.3183099 + vec3(0.37, 0.211, 0.619)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+        float ruido(vec3 x) {
+          vec3 i = floor(x), f = fract(x);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(azar(i), azar(i + vec3(1.0, 0.0, 0.0)), f.x), mix(azar(i + vec3(0.0, 1.0, 0.0)), azar(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+                     mix(mix(azar(i + vec3(0.0, 0.0, 1.0)), azar(i + vec3(1.0, 0.0, 1.0)), f.x), mix(azar(i + vec3(0.0, 1.0, 1.0)), azar(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+        }
+        float velo(vec3 p) {
+          float suma = 0.0, amp = 0.5;
+          for (int k = 0; k < OCTAVAS_VELO; k++) { suma += amp * ruido(p); p = p * 2.07 + vec3(4.1, 2.3, 7.7); amp *= 0.5; }
+          return suma;
+        }
+        void main() {
+          vec3 d = normalize(vDir);
+          vec3 p = d * 1.9 + vec3(3.7);
+          float a = velo(p);
+          float vetas = smoothstep(0.42, 0.78, velo(p * 1.6 + vec3(a * 1.4)));
+          // Azul noche de fondo, aguamarina en las vetas y un poco de violeta en otras manchas: todo muy oscuro
+          vec3 noche = vec3(0.02, 0.05, 0.13), aguamarina = vec3(0.05, 0.40, 0.36), violeta = vec3(0.26, 0.14, 0.46);
+          float manchaViol = smoothstep(0.5, 0.8, velo(p * 0.7 + vec3(17.0)));
+          vec3 color = noche * (0.5 + a) + aguamarina * vetas * 0.55 + violeta * manchaViol * 0.4;
+          gl_FragColor = vec4(color * ${VELO_FUERZA.toFixed(3)} * 3.0, 1.0);
+        }`,
+    }),
+  ) : null;
+  if (veloCielo) {
+    veloCielo.renderOrder = -15;   // tras el fondo de siempre y antes de las estrellas (-10)
+    veloCielo.frustumCulled = false;
+    escena.add(veloCielo);
+    velos.push(veloCielo);
+  }
+  // ── Una nebulosa de ruido fractal más densa (efecto 2 de la galería, a modo de prueba): una esfera por dentro, tras las
+  // estrellas, con ruido fractal (fbm) torcido sobre sí mismo, que se mueve muy despacio. Azul noche con un toque de
+  // aguamarina y de violeta y dorado del Studio, más densa que el velo, pero siempre oscura: se suma al fondo y nunca queda sobre
+  // un objeto ni un texto (con profundidad activa, sin niebla, a 480 de la cámara). Solo en el computador (conVelos): con
+  // ?sinbrillo y en el teléfono no existe, y si no se alcanzan FPS_BRILLO cuadros por segundo se apaga con el velo
+  // (apagarVelos). Con movimiento reducido, quieta (tiempoEfectos vale 0). Sigue a la cámara, como el fondo
+  const FRACTAL_RADIO = 480, FRACTAL_FUERZA = 0.2;
+  const nebulosaFractal = conVelos ? new THREE.Mesh(
+    new THREE.SphereGeometry(FRACTAL_RADIO, 40, 28),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending,
+      defines: { OCTAVAS_FRACTAL: 5 },
+      uniforms: { uTiempo: tiempoEfectos },
+      vertexShader: 'varying vec3 vDir; void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `
+        uniform float uTiempo;
+        varying vec3 vDir;
+        float azar(vec3 p) { p = fract(p * 0.3183099 + vec3(0.53, 0.317, 0.137)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+        float ruido(vec3 x) {
+          vec3 i = floor(x), f = fract(x);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(azar(i), azar(i + vec3(1.0, 0.0, 0.0)), f.x), mix(azar(i + vec3(0.0, 1.0, 0.0)), azar(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+                     mix(mix(azar(i + vec3(0.0, 0.0, 1.0)), azar(i + vec3(1.0, 0.0, 1.0)), f.x), mix(azar(i + vec3(0.0, 1.0, 1.0)), azar(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+        }
+        float fractal(vec3 p) {
+          float suma = 0.0, amp = 0.5;
+          for (int k = 0; k < OCTAVAS_FRACTAL; k++) { suma += amp * ruido(p); p = p * 2.11 + vec3(3.3, 8.1, 5.9); amp *= 0.5; }
+          return suma;
+        }
+        void main() {
+          vec3 d = normalize(vDir);
+          float t = uTiempo * 0.012;   // muy lento: una vuelta apenas perceptible
+          vec3 p = d * 2.1 + vec3(9.4);
+          // Dos torceduras seguidas: el ruido se pliega sobre sí mismo y deja vetas y volutas como las de una nebulosa de verdad
+          vec3 q = vec3(fractal(p + vec3(t, 0.0, 0.0)), fractal(p + vec3(1.7, 9.2, t)), fractal(p + vec3(8.3, t, 2.8)));
+          float a = fractal(p + 2.4 * q);
+          float b = fractal(p * 1.5 + 2.0 * q + vec3(a * 1.8, t * 1.3, 0.0));
+          float denso = smoothstep(0.35, 0.80, b);
+          float vetas = smoothstep(0.45, 0.85, a * b * 2.2);
+          vec3 noche = vec3(0.03, 0.06, 0.17), aguamarina = vec3(0.05, 0.42, 0.38), violeta = vec3(0.30, 0.16, 0.50), dorado = vec3(0.50, 0.34, 0.10);
+          vec3 color = noche * (0.4 + 1.6 * denso) + aguamarina * vetas * 0.5 + violeta * smoothstep(0.5, 0.85, q.x) * denso * 0.5 + dorado * smoothstep(0.62, 0.9, q.z) * vetas * 0.18;
+          gl_FragColor = vec4(color * ${FRACTAL_FUERZA.toFixed(3)} * 2.5, 1.0);
+        }`,
+    }),
+  ) : null;
+  if (nebulosaFractal) {
+    nebulosaFractal.renderOrder = -14;   // tras las estrellas (-10) y delante del velo (-15)
+    nebulosaFractal.frustumCulled = false;
+    escena.add(nebulosaFractal);
+    velos.push(nebulosaFractal);
+  }
   // Sin suelo: bajo la línea queda un resplandor suave y muy tenue que la sostiene, sin bordes duros
   const brilloBajoLaLinea = (() => {
     const c = document.createElement('canvas');
@@ -2705,9 +2936,37 @@ function iniciar() {
   const U_SALE = 0.09;
   const INICIO_LINEA = U_NACE - 0.02;
   const trazo = new THREE.CatmullRomCurve3(Array.from({ length: 201 }, (_, k) => puntoEn(INICIO_LINEA + (k / 200) * (FIN_LINEA - INICIO_LINEA))), false, 'centripetal');
-  escena.add(new THREE.Mesh(new THREE.TubeGeometry(trazo, 1400, 0.11, 10, false), new THREE.MeshBasicMaterial({ color: LINEA })));
-  const halo = new THREE.MeshBasicMaterial({ color: LINEA, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false });
-  escena.add(new THREE.Mesh(new THREE.TubeGeometry(trazo, 700, 0.34, 10, false), halo));
+  // ── El flujo neón de la línea (pd_efectos_recorrido, efecto 7 de la galería; REEMPLAZA al pulso de la primera ronda): luz
+  // que corre por la línea dorada en olas, hacia adelante, del pasado al futuro. Son dos olas de largos distintos que se
+  // cruzan (OLA_LARGA y OLA_CORTA metros de cresta a cresta, a unos 3 m/s: calmas), y el color de base es el dorado de la
+  // línea, que solo se aviva (nunca se vuelve blanco). Brilla más mientras la cámara viaja de una estación a otra (uViaje).
+  // En la capa que brilla, la línea pasa de 1 y cada cresta más. Con movimiento reducido (uActivo 0) la línea queda lisa, y
+  // con ?sinbrillo, sin flujo: la línea de antes
+  const OLA_LARGA = 14, OLA_CORTA = 5.7, VELOCIDAD_OLA = 3.4;
+  const flujoUniformes = { uTiempo: tiempoEfectos, uCalor: calor, uViaje: { value: 0 }, uLargo: { value: trazo.getLength() }, uActivo: { value: quieto ? 0 : 1 } };
+  const conFlujo = (material, esHalo) => {
+    if (!conEfectos2) return material;
+    material.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, flujoUniformes);
+      sh.vertexShader = `varying float vLargo;\n${sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vLargo = uv.x;')}`;
+      sh.fragmentShader = `uniform float uTiempo, uCalor, uViaje, uLargo, uActivo;\nvarying float vLargo;\n${sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', `vec4 diffuseColor = vec4( diffuse, opacity );
+  float metros = vLargo * uLargo;
+  float olaLarga = 0.5 + 0.5 * sin(metros * ${(Math.PI * 2 / OLA_LARGA).toFixed(4)} - uTiempo * ${(VELOCIDAD_OLA * Math.PI * 2 / OLA_LARGA).toFixed(4)});
+  float olaCorta = 0.5 + 0.5 * sin(metros * ${(Math.PI * 2 / OLA_CORTA).toFixed(4)} - uTiempo * ${(VELOCIDAD_OLA * 0.8 * Math.PI * 2 / OLA_CORTA).toFixed(4)} + 1.7);
+  float flujo = uActivo * pow(olaLarga, 2.5) * (0.6 + 0.4 * olaCorta) * (0.35 + 0.65 * uViaje);
+  ${esHalo
+    ? 'diffuseColor.a *= 1.0 + 1.6 * flujo;'
+    : 'diffuseColor.rgb *= 1.0 + 0.3 * flujo + uCalor * (0.25 + 2.2 * flujo);'}`)}`;
+    };
+    material.customProgramCacheKey = () => (esHalo ? 'flujo-halo' : 'flujo-linea');   // las dos funciones se escriben igual
+    return material;
+  };
+  const lineaMalla = new THREE.Mesh(new THREE.TubeGeometry(trazo, 1400, 0.11, 10, false), conFlujo(new THREE.MeshBasicMaterial({ color: LINEA }), false));
+  const halo = conFlujo(new THREE.MeshBasicMaterial({ color: LINEA, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }), true);
+  const haloMalla = new THREE.Mesh(new THREE.TubeGeometry(trazo, 700, 0.34, 10, false), halo);
+  // Solo la línea fina va a la capa que brilla: su halo ancho, ahí, velaba media pantalla
+  lineaMalla.layers.enable(CAPA_BRILLO);
+  escena.add(lineaMalla, haloMalla);
 
   const ARRIBA = new THREE.Vector3(0, 1, 0);
   const marco = (u) => {   // dónde está la línea en u, hacia dónde va y cuál es su costado
@@ -3305,6 +3564,33 @@ function iniciar() {
     const lugarEnAnillo = (a, s, fuera = new THREE.Vector3()) => fuera.copy(anillo.centro)
       .addScaledVector(lado, Math.cos(a) * RADIO_X * s).addScaledVector(ARRIBA, Math.sin(a) * RADIO_Y * s).addScaledVector(t, Math.sin(a) * INCLINA * s);
     Object.assign(anillo, { radioX: RADIO_X, radioY: RADIO_Y, abierto: ANILLO_ABIERTO });
+    // ── Efecto 12 de la galería (cuarta ronda): órbitas finas alrededor de cada ícono, como las de un átomo: dos aros muy
+    // delgados e inclinados distinto (uno solo en el teléfono) y una perla de luz que da vueltas por cada uno. Son hijos del
+    // ícono, así que lo siguen y crecen con él; sus radios (1,2 y 1,38 del ícono) caben entre dos vecinos aun con el reproductor
+    // abierto, cuando el anillo se achica. Toman el color del ícono (gris hasta que se abre) y se ven un poco más al abrirlo.
+    // Con ?sinbrillo no hay; con movimiento reducido quedan quietas
+    const CirculoUnidad = class extends THREE.Curve { getPoint(k, v = new THREE.Vector3()) { const a = k * Math.PI * 2; return v.set(Math.cos(a), Math.sin(a), 0); } };
+    const geoAro = conEfectos2 ? new THREE.TubeGeometry(new CirculoUnidad(), movil ? 40 : 72, 0.022, 4, true) : null;
+    const geoPerla = conEfectos2 ? new THREE.SphereGeometry(0.075, 8, 6) : null;
+    const ORBITAS = [{ r: 1.2, inclina: [1.05, 0.3], v: 0.55 }, { r: 1.38, inclina: [-0.75, 1.25], v: -0.4 }].slice(0, 1);   // una sola órbita por ícono (nota del titular, quinta ronda)
+    const hacerOrbitas = (orbe, i) => {
+      if (!conEfectos2) return [];
+      const matAro = new THREE.MeshBasicMaterial({ color: GRIS_PROBLEMA, transparent: true, opacity: 0.3, depthWrite: false });
+      const matPerla = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+      return ORBITAS.map((o, k) => {
+        const pivote = new THREE.Group();
+        pivote.rotation.set(o.inclina[0], o.inclina[1], 0);
+        const aro = new THREE.Mesh(geoAro, matAro);
+        aro.scale.setScalar(o.r);
+        const giro = new THREE.Group(), perla = new THREE.Mesh(geoPerla, matPerla);
+        perla.position.x = o.r;
+        giro.add(perla);
+        giro.rotation.z = i * 0.9 + k * 2.1;
+        pivote.add(aro, giro);
+        orbe.add(pivote);
+        return { giro, v: o.v, base: i * 0.9 + k * 2.1, matAro };
+      });
+    };
     ESFERAS.forEach((pos, i) => {
       const casa = lugarEnAnillo(pos.a, 1);
       // Empieza en gris; su color, al pasar el ratón, al abrirlo y después de abierto (moverAnillo)
@@ -3318,7 +3604,7 @@ function iniciar() {
       const titulo = EN ? TITULOS_CORTOS_EN[i] : (problemas[i]?.dataset.corto ?? `Problema ${i + 1}`);
       hit.userData.i = i;
       escena.add(orbe);
-      orbes.push({ orbe, hit, titulo, mat, casa, a: pos.a, fase: Math.random() * 6, grande: 1, color: new THREE.Color(COLOR_PROBLEMA[i]) });
+      orbes.push({ orbe, hit, titulo, mat, casa, a: pos.a, orbitas: hacerOrbitas(orbe, i), fase: Math.random() * 6, grande: 1, color: new THREE.Color(COLOR_PROBLEMA[i]) });
     });
     const gris = new THREE.Color(GRIS_PROBLEMA), tono = new THREE.Color();
     // Desde lejos, el anillo va en sus siete colores, y al llegar a la estación se vuelve gris hasta que abres cada uno
@@ -3341,6 +3627,12 @@ function iniciar() {
         o.orbe.position.copy(o.casa).addScaledVector(ARRIBA, Math.sin(s * 1.4 + o.fase) * 0.1);
         o.orbe.rotation.y = frente + Math.sin(s * 0.9 + o.fase) * 0.4;
         o.mat.emissiveIntensity = visto ? 0.55 : lerp(0.15 + 0.15 * Math.sin(s * 2 + o.fase) ** 2, 0.55, deLejos);
+        // Sus órbitas: la perla da vueltas (s es el reloj de la estación) y el aro toma el color del ícono
+        for (const orb of o.orbitas) {
+          orb.giro.rotation.z = orb.base + s * orb.v;
+          orb.matAro.color.copy(o.mat.color);
+          orb.matAro.opacity = visto ? 0.5 : 0.3;
+        }
       });
     }
     anillo.mover = moverAnillo;
@@ -3528,6 +3820,25 @@ function iniciar() {
   const formaHaloArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(circulo, true), 144, 0.24, 8, true);
   const materialArco = brillo(ORO, 0.9);
   const materialHaloArco = new THREE.MeshBasicMaterial({ color: ORO, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false });
+  // ── Los anillos, un portal de luz (el efecto 11 de la galería, «Portal Field»): arcos de luz más intensa recorren cada
+  // anillo despacio, tres en un sentido y dos en el otro (una vuelta en unos 30 s), y cada anillo los lleva en otro punto
+  // (vueltaAnillo). Entre los arcos el anillo queda más tenue; en la capa que brilla, los arcos pasan de 1. Con movimiento
+  // reducido, quietos
+  const ARCOS_GLSL = `
+  float anguloArco = vVuelta * 6.2831853;
+  float arcos = pow(0.5 + 0.5 * sin(3.0 * anguloArco - uTiempo * 0.6), 6.0) + 0.7 * pow(0.5 + 0.5 * sin(2.0 * anguloArco + uTiempo * 0.37 + 1.3), 8.0);`;
+  const conArcos = (material, clave, donde, cambio) => {
+    material.onBeforeCompile = (sh) => {
+      sh.uniforms.uTiempo = tiempoEfectos;
+      sh.uniforms.uCalor = calor;
+      sh.vertexShader = `varying float vVuelta;\n${sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vVuelta = uv.x;')}`;
+      sh.fragmentShader = `uniform float uTiempo, uCalor;\nvarying float vVuelta;\n${sh.fragmentShader.replace(donde, `${donde}${ARCOS_GLSL}\n  ${cambio}`)}`;
+    };
+    material.customProgramCacheKey = () => clave;
+  };
+  conArcos(materialArco, 'arcos-anillo', 'vec3 totalEmissiveRadiance = emissive;', 'totalEmissiveRadiance *= 0.6 + (0.8 + 1.6 * uCalor) * arcos;');
+  conArcos(materialHaloArco, 'arcos-halo', 'vec4 diffuseColor = vec4( diffuse, opacity );', 'diffuseColor.a *= 0.55 + 1.8 * arcos;');
+  let vueltaAnillo = 0;
   // Y tres antes de la estación 1, en el trecho donde nace la línea (nota de voz del titular nmw84xwcrtit, 8 de noviembre de
   // 2026): el recorrido empieza parado al frente de la línea, con el primero a la vista, y la cámara los cruza hacia «Qué es
   // STL» antes de abrirse a la vista de costado de la estación
@@ -3546,7 +3857,9 @@ function iniciar() {
     const hacia = new THREE.Vector3().crossVectors(lado, ARRIBA).normalize();
     const arco = new THREE.Group();
     arco.add(new THREE.Mesh(formaArco, materialArco), new THREE.Mesh(formaHaloArco, materialHaloArco));
+    arco.children[0].layers.enable(CAPA_BRILLO);   // el anillo fino; su halo ancho, no (velaba)
     arco.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(lado, ARRIBA, hacia));
+    arco.rotateZ(vueltaAnillo++ * 2.4);   // sus arcos en otro punto que los del anillo anterior: el círculo es el mismo
     arco.position.copy(p);
     escena.add(arco);
   }
@@ -3569,6 +3882,354 @@ function iniciar() {
     return { posicion, mira };
   };
 
+  // ── Las luciérnagas de la primera ronda se fueron (pd_efectos_recorrido: hacían más difícil leer los objetos de cada
+  // estación). En su lugar, lo de esta ronda, todo lejos y detrás de lo que muestra cada estación: nada nace cerca de la
+  // cámara ni sobre un objeto, porque todo se dibuja con profundidad y por detrás.
+
+  // ── Constelaciones (efecto 5 de la galería, pd_efectos_recorrido): trazos finos y muy tenues que unen estrellas en formas
+  // que hacen eco del recorrido. Entre la estación 1 y la 2, una carita como la del director (la cabeza cuadrada de
+  // esquinas cortadas, sus dos ojos y su sonrisa); entre la 2 y la 3, una línea de proyecto con sus puntos. Cada una se va
+  // dibujando despacio cuando la cámara pasa (de `desde` a `hasta`, en w) y se desvanece antes de llegar a la siguiente
+  // estación (`apaga`): nunca hay una en pantalla mientras la cámara está detenida en una estación. Van en el cielo, a
+  // R_CONSTELACION de la cámara (siguen su posición, no su giro), por detrás de todo y con profundidad: nada las ve sobre un
+  // objeto. Valen en el computador y en el teléfono. Con movimiento reducido (w siempre entero) nunca aparecen
+  const R_CONSTELACION = 380;
+  const FORMAS = [
+    {
+      u: (PARADA[0] + PARADA[1]) / 2, alza: 0.3, desvio: 0, ancho: 0.17, alto: 0.17, desde: 1.3, hasta: 1.78, apaga: [1.8, 1.95],
+      trazos: [
+        [[-0.55, 0.9], [0.55, 0.9], [0.9, 0.55], [0.9, -0.55], [0.55, -0.9], [-0.55, -0.9], [-0.9, -0.55], [-0.9, 0.55], [-0.55, 0.9]],
+        [[-0.45, -0.3], [-0.25, -0.5], [0.25, -0.5], [0.45, -0.3]],
+      ],
+      ojos: [[-0.35, 0.2], [0.35, 0.2]],
+    },
+    {
+      u: (PARADA[1] + PARADA[2]) / 2, alza: 0.26, desvio: -0.2, ancho: 0.3, alto: 0.12, desde: 2.1, hasta: 2.7, apaga: [2.74, 2.95],
+      trazos: [[[-1, -0.5], [-0.5, 0.2], [0, -0.25], [0.5, 0.5], [1, 0.1]]],
+      ojos: [],
+    },
+    // Quinta ronda: una constelación para cada estación. La carita y la línea de proyecto de arriba son de viaje (se apagan antes
+    // de llegar); estas cuatro se terminan de dibujar al llegar a su estación y se quedan mientras la cámara está parada, lejos,
+    // arriba y a un lado: no tapan texto, íconos ni línea (se vio en las capturas de cada estación).
+    // Estación 1, «¿Qué es STL?»: un signo de pregunta (la pregunta del título), con su punto
+    {
+      u: PARADA[0], deLaPortada: true, alza: 0.34, desvio: -0.38, ancho: 0.09, alto: 0.1, desde: 0.35, hasta: 0.9, apaga: [1.2, 1.5],
+      trazos: [[[-0.55, 0.45], [-0.45, 0.8], [-0.15, 1], [0.25, 0.98], [0.55, 0.75], [0.58, 0.4], [0.35, 0.1], [0.05, -0.1], [0, -0.4]]],
+      ojos: [[0, -0.85]],
+    },
+    // Estación 2, «¿Te ha pasado…?»: un triángulo de aviso con su signo de exclamación (los problemas)
+    {
+      u: PARADA[1], alza: 0.36, desvio: -0.34, ancho: 0.1, alto: 0.1, desde: 1.6, hasta: 1.98, apaga: [2.2, 2.5],
+      trazos: [[[-1, -0.8], [1, -0.8], [0, 0.9], [-1, -0.8]], [[0, 0.4], [0, -0.2]]],
+      ojos: [[0, -0.5]],
+    },
+    // Estación 3, «Cómo empezar»: un cohete que despega (el arranque), con su ventanilla y su llama
+    {
+      u: PARADA[2], alza: 0.29, desvio: 0.3, ancho: 0.09, alto: 0.1, desde: 2.6, hasta: 2.98, apaga: [3.2, 3.5],
+      trazos: [
+        [[0, 1], [0.35, 0.5], [0.35, -0.4], [-0.35, -0.4], [-0.35, 0.5], [0, 1]],
+        [[0.35, -0.1], [0.7, -0.6], [0.35, -0.4]], [[-0.35, -0.1], [-0.7, -0.6], [-0.35, -0.4]],
+        [[-0.15, -0.4], [0, -0.9], [0.15, -0.4]],
+      ],
+      ojos: [[0, 0.3]],
+    },
+    // Estación 4, «La documentación»: un libro abierto, con unos renglones en cada hoja
+    {
+      u: PARADA[3], alza: 0.36, desvio: -0.34, ancho: 0.15, alto: 0.1, desde: 3.15, hasta: 3.85, apaga: [9, 10],
+      trazos: [
+        [[0, -0.6], [-0.5, -0.45], [-1, -0.55], [-1, 0.55], [-0.5, 0.65], [0, 0.5], [0, -0.6]],
+        [[0, -0.6], [0.5, -0.45], [1, -0.55], [1, 0.55], [0.5, 0.65], [0, 0.5]],
+        [[-0.8, 0.25], [-0.2, 0.3]], [[-0.8, 0], [-0.2, 0.05]], [[0.2, 0.3], [0.8, 0.25]], [[0.2, 0.05], [0.8, 0]],
+      ],
+      ojos: [],
+    },
+  ];
+  const constelaciones = new THREE.Group();
+  const formasVivas = FORMAS.map((forma) => {
+    let { t, lado } = marco(forma.u);
+    // La de la estación 1: la cámara mira de costado (la portada), no por la línea; la forma se pone en el cielo que ve
+    if (forma.deLaPortada && portada) {
+      t = new THREE.Vector3(portada.mira.x - portada.posicion.x, 0, portada.mira.z - portada.posicion.z).normalize();
+      lado = new THREE.Vector3().crossVectors(t, ARRIBA).normalize();
+    }
+    const dir = t.clone().multiplyScalar(Math.cos(forma.alza)).addScaledVector(ARRIBA, Math.sin(forma.alza)).addScaledVector(lado, forma.desvio).normalize();
+    const der = new THREE.Vector3().crossVectors(dir, ARRIBA).normalize();
+    const arriba = new THREE.Vector3().crossVectors(der, dir).normalize();
+    const alCielo = (x, y) => dir.clone().multiplyScalar(R_CONSTELACION).addScaledVector(der, x * forma.ancho * R_CONSTELACION).addScaledVector(arriba, y * forma.alto * R_CONSTELACION).normalize().multiplyScalar(R_CONSTELACION);
+    // Cada trazo se dibuja uno tras otro: aT es lo que lleva dibujado de la forma (de 0 a TRAZADO) al llegar a ese punto
+    const TRAZADO = 0.88;
+    const largos = forma.trazos.map((tr) => tr.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - tr[i][0], p[1] - tr[i][1]), 0));
+    const total = largos.reduce((a, b) => a + b, 0);
+    const posLineas = [], tLineas = [], posPuntos = [], tPuntos = [];
+    let hecho = 0;
+    forma.trazos.forEach((tr, k) => {
+      let recorrido = hecho;
+      tr.forEach((p, i) => {
+        if (i > 0) {
+          const antes = tr[i - 1], d = Math.hypot(p[0] - antes[0], p[1] - antes[1]);
+          posLineas.push(...alCielo(antes[0], antes[1]).toArray(), ...alCielo(p[0], p[1]).toArray());
+          tLineas.push((recorrido / total) * TRAZADO, ((recorrido + d) / total) * TRAZADO);
+          recorrido += d;
+        }
+        posPuntos.push(...alCielo(p[0], p[1]).toArray());
+        tPuntos.push((recorrido / total) * TRAZADO);
+      });
+      hecho += largos[k];
+    });
+    forma.ojos.forEach((p, i) => { posPuntos.push(...alCielo(p[0], p[1]).toArray()); tPuntos.push(0.92 + i * 0.05); });
+    const uniformes = { uProg: { value: 0 }, uAlfa: { value: 0 }, uPix: { value: renderer.getPixelRatio() } };
+    const geoLineas = new THREE.BufferGeometry();
+    geoLineas.setAttribute('position', new THREE.Float32BufferAttribute(posLineas, 3));
+    geoLineas.setAttribute('aT', new THREE.Float32BufferAttribute(tLineas, 1));
+    const geoPuntos = new THREE.BufferGeometry();
+    geoPuntos.setAttribute('position', new THREE.Float32BufferAttribute(posPuntos, 3));
+    geoPuntos.setAttribute('aT', new THREE.Float32BufferAttribute(tPuntos, 1));
+    const base = { uniforms: uniformes, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false };
+    const lineas = new THREE.LineSegments(geoLineas, new THREE.ShaderMaterial({
+      ...base,
+      vertexShader: 'attribute float aT; varying float vT; void main() { vT = aT; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `
+        uniform float uProg; uniform float uAlfa; varying float vT;
+        void main() {
+          if (vT > uProg) discard;
+          // El extremo que se está dibujando brilla un poco más: así se ve avanzar el trazo
+          gl_FragColor = vec4(0.74, 0.82, 1.0, 0.3 * uAlfa * (1.0 + 1.2 * smoothstep(uProg - 0.08, uProg, vT)));
+        }`,
+    }));
+    const puntos = new THREE.Points(geoPuntos, new THREE.ShaderMaterial({
+      ...base,
+      vertexShader: 'attribute float aT; uniform float uPix; varying float vT; void main() { vT = aT; gl_PointSize = 4.0 * uPix; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `
+        uniform float uProg; uniform float uAlfa; varying float vT;
+        void main() {
+          if (vT > uProg) discard;
+          gl_FragColor = vec4(0.85, 0.91, 1.0, 0.7 * uAlfa * smoothstep(0.5, 0.05, length(gl_PointCoord - 0.5)));
+        }`,
+    }));
+    const grupo = new THREE.Group();
+    grupo.add(lineas, puntos);
+    grupo.visible = false;
+    for (const o of [lineas, puntos]) { o.frustumCulled = false; o.renderOrder = -9; }   // tras todo lo demás, junto al cielo
+    constelaciones.add(grupo);
+    return { forma, grupo, uniformes };
+  });
+  escena.add(constelaciones);
+  // Cuánto de cada forma está dibujada y cuánto se ve, según w (la posición de la cámara entre estaciones). Pura en lo que
+  // recibe; se llama cada cuadro
+  function pintarConstelaciones(w) {
+    for (const { forma, grupo, uniformes } of formasVivas) {
+      const avance = suave(tope((w - forma.desde) / (forma.hasta - forma.desde)));
+      const visible = 1 - tope((w - forma.apaga[0]) / (forma.apaga[1] - forma.apaga[0]));
+      uniformes.uProg.value = avance;
+      uniformes.uAlfa.value = visible;
+      grupo.visible = avance > 0 && visible > 0.002;
+    }
+  }
+
+  // ── Efecto 4 de la galería (cuarta ronda de efectos): una estrella fugaz de vez en cuando. Rara (una cada 26 a 52 s, la
+  // primera a los 7 s de quedarse quieta la cámara) y lenta (3,8 s para cruzar unos 12 grados de cielo: nada de prisa). Solo
+  // nace y solo sigue mientras la cámara está parada en una estación: si la cámara echa a andar, se apaga enseguida, así nunca
+  // hay rayas en el cielo durante el viaje entre estaciones (las de la velocidad luz se quitaron en la tercera ronda y no vuelven). Es un
+  // solo rectángulo con una cola que se desvanece, a 360 de la cámara, por detrás de todo y con profundidad: no tapa nada.
+  // Sin ?sinbrillo, con movimiento reducido ni en el video. En el teléfono va igual (un solo dibujo)
+  // Quinta ronda (el titular no vio ni una en todo el recorrido): ahora una cada 3 a 6,5 s con la cámara parada (la primera a
+  // 1,5 s), nace en el cielo que la cámara tiene delante (entre 8 y 22 grados sobre el horizonte, 8 a 30 hacia un lado: en
+  // el cuadro, a toda altura y ancho de pantalla; antes nacía entre 24 y 48 grados, casi siempre fuera de la imagen) y es
+  // más larga y gruesa (unos 12 grados de cola, 0,45 de ancho: antes una raya de 0,13), y dura 1,7 s. Sigue suave y sin prisa
+  const FUGAZ = { cada: [3, 6.5], primera: 1.5, dura: 1.7, largo: 64, ancho: 2.4, radio: 300, recorrido: 60 };
+  const estrellaFugaz = conEfectos2 && !quieto && !compartir && !enVideo ? (() => {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 32;
+    const x = c.getContext('2d');
+    const cola = x.createLinearGradient(0, 0, 256, 0);   // la cabeza, a la derecha
+    cola.addColorStop(0, 'rgba(150, 185, 255, 0)'); cola.addColorStop(0.7, 'rgba(190, 215, 255, 0.5)'); cola.addColorStop(1, 'rgba(255, 255, 255, 1)');
+    x.fillStyle = cola; x.fillRect(0, 0, 256, 32);
+    x.globalCompositeOperation = 'destination-in';   // delgada: más opaca en el centro que en los bordes
+    const fino = x.createLinearGradient(0, 0, 0, 32);
+    fino.addColorStop(0, 'rgba(0, 0, 0, 0)'); fino.addColorStop(0.5, 'rgba(0, 0, 0, 1)'); fino.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    x.fillStyle = fino; x.fillRect(0, 0, 256, 32);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+    const malla = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
+    malla.visible = false; malla.frustumCulled = false; malla.renderOrder = -8;   // tras todo, junto al cielo
+    escena.add(malla);
+    const dir = new THREE.Vector3(), tang = new THREE.Vector3(), p = new THREE.Vector3(), ex = new THREE.Vector3(), ey = new THREE.Vector3(), ez = new THREE.Vector3(), base = new THREE.Matrix4();
+    let espera = FUGAZ.primera, edad = -1, calma = 0;
+    return {
+      // dt en segundos; quieta: la cámara está parada en una estación
+      mover(dt, quieta) {
+        calma += ((quieta ? 1 : 0) - calma) * Math.min(1, dt * 3);
+        if (edad < 0) {
+          if (calma > 0.98) espera -= dt;
+          if (espera > 0) return;
+          // Nace en el cielo de adelante, a un lado, entre 24 y 48 grados de altura, y cruza hacia abajo y al otro lado
+          camara.getWorldDirection(dir);
+          dir.y = 0;
+          if (dir.lengthSq() < 1e-4) dir.set(0, 0, -1);
+          dir.normalize();
+          const lado = Math.random() < 0.5 ? -1 : 1, elev = THREE.MathUtils.degToRad(8 + Math.random() * 14);
+          dir.applyAxisAngle(ARRIBA, lado * THREE.MathUtils.degToRad(8 + Math.random() * 22));
+          tang.crossVectors(ARRIBA, dir).normalize().multiplyScalar(-lado * 0.85);
+          dir.multiplyScalar(Math.cos(elev)).addScaledVector(ARRIBA, Math.sin(elev));
+          tang.addScaledVector(ARRIBA, -0.45);
+          tang.addScaledVector(dir, -tang.dot(dir)).normalize();
+          edad = 0;
+        }
+        edad += dt;
+        const s = edad / FUGAZ.dura;
+        if (s >= 1 || (calma < 0.05 && s > 0.02)) {   // terminó, o la cámara echó a andar
+          edad = -1;
+          espera = FUGAZ.cada[0] + Math.random() * (FUGAZ.cada[1] - FUGAZ.cada[0]);
+          malla.visible = false;
+          return;
+        }
+        p.copy(dir).multiplyScalar(FUGAZ.radio).addScaledVector(tang, (s - 0.5) * FUGAZ.recorrido).normalize().multiplyScalar(FUGAZ.radio);
+        ez.copy(p).normalize().negate();                       // de cara a la cámara
+        ex.copy(tang).addScaledVector(ez, -tang.dot(ez)).normalize();   // la cabeza, hacia donde va
+        ey.crossVectors(ez, ex);
+        malla.quaternion.setFromRotationMatrix(base.makeBasis(ex, ey, ez));
+        malla.scale.set(FUGAZ.largo, FUGAZ.ancho, 1);
+        malla.position.copy(camara.position).add(p).addScaledVector(ex, -FUGAZ.largo / 2);   // la cabeza, en p
+        material.opacity = Math.pow(Math.sin(Math.PI * s), 0.8) * calma;
+        malla.visible = true;
+      },
+    };
+  })() : null;
+
+  // ── Efecto 14 de la galería (cuarta ronda): «STL» se arma con las notas sueltas de la entrada, la idea del método (la
+  // dispersión que se ordena). En los primeros segundos, unas notas de colores (los de los tipos de nota) flotan sueltas, al
+  // azar, y poco a poco, cada una a su hora, se juntan hasta formar las letras S, T y L, y ahí se quedan quietas. Al empezar el
+  // recorrido (w de 0,04 a 0,3) se desvanecen y se van. Son rectángulos (un solo InstancedMesh, un solo dibujo) puestos en el
+  // plano de la vista de entrada, a 70 de la cámara, colocados por FRACCIÓN DE PANTALLA: las letras, en la franja bajo el
+  // título y el botón (de 29 a 41 % de la altura en el computador; de 41 a 53 % en el teléfono, donde el título ocupa más), y
+  // las notas sueltas siempre bajo el título. Así no pisan ningún texto y no se salen de la pantalla ni con cualquier ancho.
+  // Sin niebla (se ven de lejos), detrás de los anillos de la entrada, que son más cercanos. En el teléfono, la mitad de notas
+  // (150 y más grandes). Con movimiento reducido, ?sinbrillo, ?compartir o el video: o quietas ya formadas, o ninguna
+  const NOTAS = { alto: 0.12, centro: movil ? 0.47 : 0.35, distancia: 70, cuantas: movil ? 380 : 760, contorno: movil ? 300 : 600, tam: movil ? 0.011 : 0.0075 };   // antes: 150 / 320 puntos al azar (nmwmwj197tit)
+  let inicioNotas = document.readyState === 'complete' ? performance.now() / 1000 + 0.6 : Infinity;   // tras cargar, cuando se va el telón de carga
+  addEventListener('load', () => { inicioNotas = performance.now() / 1000 + 0.9; }, { once: true });
+  const notasSTL = conEfectos2 && !compartir && !enVideo ? (() => {
+    // Los puntos de las letras: se dibujan en un lienzo aparte y se toman los píxeles tintados (cada letra en su celda de 140)
+    const lienzoL = document.createElement('canvas');
+    lienzoL.width = 420; lienzoL.height = 170;
+    const x = lienzoL.getContext('2d', { willReadFrequently: true });
+    x.fillStyle = '#000';
+    x.font = "900 150px system-ui, -apple-system, 'Segoe UI', Arial, sans-serif";
+    x.textAlign = 'center';
+    ['S', 'T', 'L'].forEach((letra, k) => x.fillText(letra, 70 + k * 140, 150));
+    const datos = x.getImageData(0, 0, 420, 170).data;
+    // nmwmwj197tit: los puntos se reparten sobre todo por el CONTORNO de cada letra (el borde del trazo), parejos entre sí
+    // (separación mínima), y solo unos pocos por dentro: antes eran al azar sobre todo el relleno, de 320 en 2 px, y la L y la
+    // S no se distinguían. Ahora, hasta 760 (600 de contorno, a unos 3 px entre sí, y el resto de relleno ralo)
+    const opaco = (px, py) => px >= 0 && py >= 0 && px < 420 && py < 170 && datos[(py * 420 + px) * 4 + 3] >= 128;
+    const borde = [], dentro = [];
+    let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+    for (let py = 0; py < 170; py++) for (let px = 0; px < 420; px++) {
+      if (!opaco(px, py)) continue;
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+      const esBorde = !opaco(px - 2, py) || !opaco(px + 2, py) || !opaco(px, py - 2) || !opaco(px, py + 2);
+      if (esBorde) borde.push([px, py]); else if (px % 4 === 0 && py % 4 === 0) dentro.push([px, py]);
+    }
+    if (borde.length + dentro.length < 40) return null;   // sin letras que formar (la fuente no se dibujó): sin efecto
+    const azarN = mulberry32(0x57a11e);   // la misma figura en cada visita
+    const barajar = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(azarN() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const SEP = 3;   // separación mínima entre dos puntos del contorno, en píxeles del lienzo de las letras (150 de alto)
+    const elegidos = [];
+    for (const p of barajar(borde)) {
+      if (elegidos.length >= NOTAS.contorno) break;
+      if (elegidos.every((q) => (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2 >= SEP * SEP)) elegidos.push(p);
+    }
+    const relleno = barajar(dentro).slice(0, Math.max(0, NOTAS.cuantas - elegidos.length));
+    const cand = [...elegidos, ...relleno];
+    const nContorno = elegidos.length;
+    const n = cand.length;
+    const hu = new Float32Array(n), hv = new Float32Array(n), sx = new Float32Array(n), sy = new Float32Array(n);
+    const demora = new Float32Array(n), dura = new Float32Array(n), fase = new Float32Array(n), giro = new Float32Array(n), ladeo = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      hu[i] = (cand[i][0] - (x0 + x1) / 2) / (y1 - y0);   // en alturas de letra, de 0 en el centro
+      hv[i] = -(cand[i][1] - (y0 + y1) / 2) / (y1 - y0);
+      sx[i] = (azarN() * 2 - 1) * 0.85;                   // sueltas: en fracción de la mitad del ancho
+      sy[i] = (movil ? -0.07 : -0.08) + azarN() * (movil ? 0.19 : 0.25);   // y en fracción de la altura, desde el centro de las letras
+      demora[i] = azarN() * 2.6; dura[i] = 2.2 + azarN() * 1.8; fase[i] = azarN() * Math.PI * 2; giro[i] = (azarN() * 2 - 1) * 1.2; ladeo[i] = (azarN() * 2 - 1) * 0.3;
+    }
+    // Quinta ronda: ya no son confeti (rectángulos de colores): son puntos de luz como estrellas, redondos y suaves, con un
+    // centro claro y un resplandor, en mezcla aditiva y con un titilar lento (cada una a su ritmo). Un solo THREE.Points
+    const colores = ['#ffffff', '#e4eeff', '#c4d6ff', '#fff3d2'].map((c) => new THREE.Color(c));
+    const posiciones = new Float32Array(n * 3), colorA = new Float32Array(n * 3), faseA = new Float32Array(n), tamA = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const c = colores[i % colores.length];
+      colorA.set([c.r, c.g, c.b], i * 3);
+      faseA[i] = azarN() * Math.PI * 2;
+      tamA[i] = i < nContorno ? 0.85 + azarN() * 0.4 : 0.6 + azarN() * 0.4;   // el contorno, un poco más grande y claro (nmwmwj197tit)
+    }
+    const geoStl = new THREE.BufferGeometry();
+    geoStl.setAttribute('position', new THREE.BufferAttribute(posiciones, 3));
+    geoStl.setAttribute('aColor', new THREE.BufferAttribute(colorA, 3));
+    geoStl.setAttribute('aFase', new THREE.BufferAttribute(faseA, 1));
+    geoStl.setAttribute('aTam', new THREE.BufferAttribute(tamA, 1));
+    const uStl = { uAlfaStl: { value: 0 }, uTiempo: { value: 0 }, uPx: { value: 20 }, uCrece: { value: 1 } };
+    const material = new THREE.ShaderMaterial({
+      uniforms: uStl, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+      vertexShader: `
+        attribute vec3 aColor; attribute float aFase; attribute float aTam;
+        uniform float uTiempo, uPx, uCrece; varying vec3 vColor; varying float vBrillo;
+        void main() {
+          // Titila despacio (de 2,5 a 5 s por vez), entre el 60 % y el 130 % de su brillo
+          float o = 0.5 + 0.5 * sin(uTiempo * 6.2831853 / (2.5 + 2.5 * fract(aFase * 3.1)) + aFase * 4.0);
+          vBrillo = 0.6 + 0.7 * o; vColor = aColor;
+          gl_PointSize = uPx * aTam * uCrece * (0.9 + 0.2 * o);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform float uAlfaStl; varying vec3 vColor; varying float vBrillo;
+        void main() {
+          float d = length(gl_PointCoord - 0.5);
+          float nucleo = smoothstep(0.2, 0.0, d);
+          float halo = pow(max(0.0, 1.0 - 2.0 * d), 2.4) * 0.55;
+          float a = min(1.0, (nucleo + halo) * vBrillo) * uAlfaStl;
+          gl_FragColor = vec4(mix(vColor, vec3(1.0), nucleo * 0.6), a);
+        }`,
+    });
+    const malla = new THREE.Points(geoStl, material);
+    malla.frustumCulled = false;
+    malla.visible = false;
+    escena.add(malla);
+    // La vista de entrada: el plano, sus ejes y su centro. Se recalcula si cambia el campo de visión o la proporción
+    const anc = { clave: '', c: new THREE.Vector3(), r: new THREE.Vector3(), u: new THREE.Vector3(), q: new THREE.Quaternion() };
+    const f = new THREE.Vector3(), pos = new THREE.Vector3(), q = new THREE.Quaternion(), qGiro = new THREE.Quaternion(), M = new THREE.Matrix4(), esc = new THREE.Vector3(), EJE_Z = new THREE.Vector3(0, 0, 1);
+    return {
+      pintar(w, t) {
+        const luz = (1 - tramo(w, 0.04, 0.3)) * tope(t / 0.8);
+        malla.visible = luz > 0.01;
+        if (!malla.visible) return;
+        const clave = `${camara.fov}|${camara.aspect}`;
+        if (clave !== anc.clave) {
+          anc.clave = clave;
+          const { posicion, mira } = pose(U_NACE);
+          const ojo = sinMirarAbajo(posicion, mira);
+          f.set(ojo.x - posicion.x, ojo.y - posicion.y, ojo.z - posicion.z).normalize();
+          anc.r.crossVectors(f, ARRIBA).normalize();
+          anc.u.crossVectors(anc.r, f).normalize();
+          anc.c.copy(posicion).addScaledVector(f, NOTAS.distancia);
+          anc.q.setFromRotationMatrix(M.makeBasis(anc.r, anc.u, f.clone().negate()));
+        }
+        const mitadAlto = NOTAS.distancia * Math.tan(THREE.MathUtils.degToRad(camara.fov) / 2), mitadAncho = mitadAlto * camara.aspect;
+        uStl.uPx.value = renderer.domElement.height * NOTAS.tam * 2.4;   // el tamaño del punto, en píxeles, según el alto de la imagen
+        uStl.uTiempo.value = quieto ? 0 : performance.now() / 1000;
+        uStl.uAlfaStl.value = 0.95 * luz;
+        for (let i = 0; i < n; i++) {
+          const k = tramo(t - demora[i], 0, dura[i]);
+          const xf = lerp(sx[i] + Math.sin(t * 0.45 + fase[i]) * 0.05, (hu[i] * NOTAS.alto * 2) / camara.aspect, k);
+          const yf = lerp(NOTAS.centro + sy[i] + Math.cos(t * 0.37 + fase[i]) * 0.03, NOTAS.centro - hv[i] * NOTAS.alto, k);
+          pos.copy(anc.c).addScaledVector(anc.r, xf * mitadAncho).addScaledVector(anc.u, (0.5 - yf) * 2 * mitadAlto);
+          posiciones[i * 3] = pos.x; posiciones[i * 3 + 1] = pos.y; posiciones[i * 3 + 2] = pos.z;
+        }
+        geoStl.attributes.position.needsUpdate = true;
+      },
+    };
+  })() : null;
+
   // ── El scroll: 0 es la vista de costado; 1, la primera estación; 2, la segunda
   let anclas = [], anchoMedido = 0;
   function medir() {
@@ -3589,6 +4250,7 @@ function iniciar() {
     }
     const w = lienzo.clientWidth, h = lienzo.clientHeight;
     renderer.setSize(w, h, false);
+    medirResplandor(w, h);
     camara.aspect = w / Math.max(h, 1);
     camara.fov = w < h ? 68 : 55;
     camara.updateProjectionMatrix();
@@ -3827,7 +4489,9 @@ function iniciar() {
   const LLEGADA = 0.12;
   let actual = -2;
   function marcar(w) {
-    const k = Math.abs(w - Math.round(w)) <= LLEGADA ? Math.round(w) - 1 : -1;
+    const llegada = Math.abs(w - Math.round(w)) <= LLEGADA ? Math.round(w) - 1 : -1;
+    // Las palabras de la estación aparecen solo cuando la cámara ya se detuvo: se esconden en cuanto sale y vuelven al llegar
+    const k = llegada;
     if (k === actual) return;
     actual = k;
     estaciones.forEach((el, i) => el.classList.toggle('actual', i === k));
@@ -4453,7 +5117,7 @@ function iniciar() {
   }
 
   // ── El bucle: solo dibuja mientras el recorrido está a la vista
-  let enVista = false, cur = 0, primera = true, ultimoCuadro = performance.now(), ultimaRueda = 0, arranque = false;
+  let enVista = false, cur = 0, primera = true, ultimoCuadro = performance.now(), ultimaRueda = 0, arranque = false, repetirNotas = false;
   addEventListener('wheel', () => { ultimaRueda = performance.now(); arranque = false; }, { passive: true });
   new IntersectionObserver(([e]) => { enVista = e.isIntersecting; if (enVista) requestAnimationFrame(cuadro); }, { rootMargin: '200px' })
     .observe(document.getElementById('viaje'));
@@ -4466,7 +5130,13 @@ function iniciar() {
   // ?sinmedir: sin esa medida, para capturar el recorrido con un navegador sin pantalla, que dibuja el 3D con el procesador
   const medirFps = movil && fijo === null && !enVideo && !compartir && !new URLSearchParams(location.search).has('sinmedir');
   if (medirFps) addEventListener('load', () => setTimeout(() => { if (!document.hidden) medidaFps = { desde: performance.now(), n: 0 }; }, 1000), { once: true });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) medidaFps = null; });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) medidaFps = medidaBrillo = null; });
+  // El resplandor en el computador, igual: sus primeros segundos se miden y, bajo FPS_BRILLO, se apaga (apagarResplandor);
+  // con él se apagan el velo de nebulosa y la nebulosa fractal (apagarVelos, pd_efectos_recorrido), aunque el navegador no
+  // pueda con el resplandor
+  let medidaBrillo = null;
+  const medirBrillo = (!!brilloReal || velosVivos) && fijo === null && !enVideo && !compartir && !new URLSearchParams(location.search).has('sinmedir');
+  if (medirBrillo) addEventListener('load', () => setTimeout(() => { if (!document.hidden) medidaBrillo = { desde: performance.now(), n: 0 }; }, 1000), { once: true });
   function despertar() {
     ultimoToque = performance.now();
     if (enReposo && enVista && !cubierto) { enReposo = false; requestAnimationFrame(cuadro); }
@@ -4544,13 +5214,38 @@ function iniciar() {
     for (const c of capasCielo) c.puntos.position.copy(camara.position).multiplyScalar(c.sigue);
     nebulosa.position.copy(camara.position);   // el fondo acompaña a la cámara: el mismo en todas las direcciones
     if (!quieto) cieloUniformes.uTiempo.value = ahoraMs / 1000;
-    renderer.render(escena, camara);
+    // Los efectos de las rondas: su reloj (quieto con movimiento reducido) y cuánto viaja la cámara, para el flujo neón
+    if (!quieto) tiempoEfectos.value = ahoraMs / 1000;
+    const viaje = quieto ? 0 : Math.min(1, Math.abs(w - cur) * 2.5);
+    flujoUniformes.uViaje.value += (viaje - flujoUniformes.uViaje.value) * Math.min(1, dt * 2.5);
+    // El velo y la nebulosa fractal siguen a la cámara (el cielo no se corre)
+    if (velosVivos) {
+      if (veloCielo) veloCielo.position.copy(camara.position);
+      if (nebulosaFractal) nebulosaFractal.position.copy(camara.position);
+    }
+    // Las constelaciones se quedan en el cielo, siguiendo la posición de la cámara, y se dibujan según w
+    if (conEfectos2) {
+      constelaciones.position.copy(camara.position);
+      pintarConstelaciones(cur);
+      // La cuarta ronda: la estrella fugaz (solo con la cámara parada) y «STL» armándose con las notas sueltas de la entrada
+      // (quieta, ya formada, con movimiento reducido o al revisar una estación con ?ver)
+      if (estrellaFugaz) estrellaFugaz.mover(dt, Math.abs(w - cur) < 0.004 && fijo === null);
+      // «Inicio» del menú: al llegar la cámara a la portada, las estrellas se sueltan y vuelven a formar «STL» desde el principio
+      if (repetirNotas && cur < 0.04) { repetirNotas = false; inicioNotas = ahoraMs / 1000 + 0.3; }
+      if (notasSTL) notasSTL.pintar(cur, quieto || fijo !== null ? 99 : ahoraMs / 1000 - inicioNotas);
+    }
+    dibujar();
     if (medidaFps && ++medidaFps.n && ahoraMs - medidaFps.desde >= MS_MEDIR_FPS) {
       const fps = (medidaFps.n * 1000) / (ahoraMs - medidaFps.desde);
       medidaFps = null;
       if (fps < FPS_MINIMO) return cubrirLento();
     }
-    if (movil && !quieto && !medidaFps && seleccionado < 0 && !pantalla2.abierta && Math.abs(w - cur) < 1e-3 && ahoraMs - ultimoToque > MS_REPOSO) {
+    if (medidaBrillo && ++medidaBrillo.n && ahoraMs - medidaBrillo.desde >= MS_MEDIR_FPS) {
+      const fps = (medidaBrillo.n * 1000) / (ahoraMs - medidaBrillo.desde);
+      medidaBrillo = null;
+      if (fps < FPS_BRILLO) { apagarResplandor(); apagarVelos(); }
+    }
+    if (movil && !quieto && !medidaFps && seleccionado < 0 && !pantalla2.abierta && Math.abs(w - cur) < 1e-3 && ahoraMs - ultimoToque > MS_REPOSO && !(notasSTL && cur < 0.3 && ahoraMs / 1000 - inicioNotas < 9)) {
       enReposo = true;
       return;
     }
@@ -4577,6 +5272,19 @@ function iniciar() {
     arranque = true;
     scrollTo({ top: anclas[1], behavior: quieto ? 'auto' : 'smooth' });
     history.replaceState(null, '', '#e-que-es');
+  });
+  // «Inicio» / «Start», la primera entrada del menú: vuelve a la portada por la línea (como cualquier otra entrada) y, al
+  // llegar, repite la animación de entrada: las estrellas forman «STL» otra vez desde el principio
+  document.querySelector('[data-inicio]')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    cerrarPopup();
+    soltarFijo();
+    if (fijo !== null) return;
+    medir();
+    arranque = false;
+    repetirNotas = true;
+    scrollTo({ top: anclas[0], behavior: quieto ? 'auto' : 'smooth' });
+    history.replaceState(null, '', location.pathname + location.search);
   });
   // «¿Qué es STL?» y «Empieza el recorrido», arriba de la portada: al primer acercamiento se van hacia arriba, despacio, y
   // se desvanecen (nota de voz del titular nmw6lwwbxtit); con movimiento reducido, solo se desvanecen
@@ -4607,7 +5315,7 @@ function iniciar() {
   animar.forEach((f) => f(0));
   colocar(0);
   segunLejania.forEach((f) => f());
-  renderer.render(escena, camara);
+  dibujar();
 }
 
 // Al final, con todo lo de arriba ya definido: las constantes de las mini animaciones (suave, TINTAS…) aún no existían
