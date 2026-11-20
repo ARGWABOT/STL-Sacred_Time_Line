@@ -416,8 +416,25 @@ function resaltar(id) {
     if (es) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
   });
 }
-const vigia = new IntersectionObserver((vistas) => vistas.forEach((v) => { if (v.isIntersecting) resaltar(v.target.id); }), { rootMargin: '-48% 0px -48% 0px' });
+// Con el recorrido en 3D, el menú sigue al scroll (resaltarPorRecorrido): la franja del centro no alcanzaba la última
+// estación al llegar al final de la página y «Cómo empezar» no se resaltaba (nmwpksm6ptit). Sin 3D (la página de texto),
+// sigue la franja y, al llegar al final del todo, la última estación
+let menuPorRecorrido = false;
+const vigia = new IntersectionObserver((vistas) => vistas.forEach((v) => { if (!menuPorRecorrido && v.isIntersecting) resaltar(v.target.id); }), { rootMargin: '-48% 0px -48% 0px' });
 estaciones.forEach((e) => vigia.observe(e));
+addEventListener('scroll', () => {
+  if (menuPorRecorrido || !estaciones.length || innerHeight + scrollY < document.documentElement.scrollHeight - 2) return;
+  resaltar(estaciones[estaciones.length - 1].id);
+}, { passive: true });
+// La estación del menú según el punto del recorrido en que está la cámara (w: 1 es la primera estación): la más cercana,
+// y la última cuando el scroll llega al final, aunque su ancla quede más allá de lo que se puede desplazar
+let menuResaltado = -2;
+function resaltarPorRecorrido(w, alFinal) {
+  const k = alFinal ? estaciones.length - 1 : Math.min(Math.round(w) - 1, estaciones.length - 1);
+  if (k === menuResaltado) return;
+  menuResaltado = k;
+  resaltar(k < 0 ? 'inicio' : estaciones[k].id);   // antes de la primera estación, «Inicio»
+}
 
 function hayWebGL() {
   try {
@@ -3119,6 +3136,8 @@ function iniciar() {
   const ARCO_RADIO = 4.2, ARCO_ANTES = 0.035;
   // Cuánto se aleja la cámara en una pantalla angosta para que una estación quepa a lo ancho (colocar › alejarPorAncho)
   const ANCHO_VISTA = 0.62, ALEJAR_MAX = 2.2;
+  // Cuánto de ese alejamiento usa la estación 2 en un teléfono, para que su anillo llene el ancho (nmwpkv7wltit)
+  const ALEJAR_ANILLO = 0.3;
   // La entrada (nmw84xwcrtit, nmw85pz2mtit): la cámara nace lejos al frente de la línea (U_NACE), cruza sus tres anillos y,
   // ya en U_SALE, pasado el último, se abre a la vista de costado de la estación 1
   const { nace: U_NACE, anillos: ANILLOS_ENTRADA } = entradaDeAnillos(PARADA, ARCO_ANTES);
@@ -4665,7 +4684,9 @@ function iniciar() {
       // lo que mira la subía por encima del radio de los anillos y llegaba por fuera del tercero (nota de voz del titular
       // nmw8aqna1tit: solo la primera estación lo cumplía). Así pasa por dentro de cada anillo y se detiene pasado el de
       // llegada, que antesDeLlegar pone con 3 de aire antes de donde queda
-      if (k >= 2) posicion = pose(uLinea - ((ancho - 1) * cerca * (7.5 + 0.022 * LARGO_LINEA)) / LARGO_LINEA).posicion;
+      // El anillo de los problemas (estación 2) ya es un círculo que cabe a lo ancho con menos aire que las otras
+      // estaciones: en un teléfono se alejaba tanto que ocupaba la mitad de la pantalla y se veía lejos (nmwpkv7wltit)
+      if (k >= 2) posicion = pose(uLinea - (((k === 2 ? 1 + (ancho - 1) * ALEJAR_ANILLO : ancho) - 1) * cerca * (7.5 + 0.022 * LARGO_LINEA)) / LARGO_LINEA).posicion;
       else posicion = mira.clone().lerp(posicion, 1 + (ancho - 1) * cerca);
     }
     camara.position.copy(posicion);
@@ -5461,8 +5482,10 @@ function iniciar() {
   if (nombresAnillo) {
     nombresAnillo.className = 'nombres-anillo';
     nombresAnillo.hidden = true;
-    // En dos renglones, 4 y 3, ordenados por el largo de su texto (nota de voz del titular nmw87ytm7tit): los cuatro más
-    // cortos arriba y los tres más largos abajo; la letra baja lo justo para que cada renglón quepa a lo ancho
+    // En tres renglones, 3, 3 y 2, ordenados por el largo de su texto (nota de voz del titular nmw87ytm7tit): los más cortos
+    // arriba y los más largos abajo; la letra baja lo justo para que cada renglón quepa a lo ancho. Con ocho problemas, dos
+    // renglones de 4 se salían del teléfono y ensanchaban la página: el lienzo quedaba más ancho que la pantalla y el anillo
+    // corrido a un lado (nmwpkv7wltit)
     const botones = orbes.map((o, i) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -5471,7 +5494,7 @@ function iniciar() {
       return b;
     });
     const enOrden = [...botones].sort((a, b) => a.textContent.length - b.textContent.length);
-    for (const fila of [enOrden.slice(0, 4), enOrden.slice(4)]) {
+    for (const fila of [enOrden.slice(0, 3), enOrden.slice(3, 6), enOrden.slice(6)]) {
       const f = document.createElement('div');
       f.className = 'fila';
       f.append(...fila);
@@ -5586,6 +5609,8 @@ function iniciar() {
     pantalla2.cam = quieto ? meta : pantalla2.cam + (meta - pantalla2.cam) * Math.min(1, dt * 4);
     if (quieto) anillo.mover?.(0);
     colocar(cur);
+    menuPorRecorrido = true;
+    resaltarPorRecorrido(w, fijo === null && innerHeight + scrollY >= document.documentElement.scrollHeight - 2);
     marcar(cur);
     segunLejania.forEach((f) => f());
     if (!quieto) {
