@@ -2467,6 +2467,62 @@ const VERTICALES = {
       if (q > 0.93) { const u = tramo(q, 0.93, 0.99); bola(c, 148, lerp(196, 256, u), 3.5, VERDE, 0.5 + 0.5 * u); if (u > 0.95) palomita(c, 148, 298, 4); }
     },
   },
+  15: { // 16. El acceso directo: la ventana del navegador, alta, arriba, con sus tres momentos uno tras otro; el texto va debajo, en HTML
+    problema: (c, q) => {
+      const u = q < 0.5 ? q / 0.5 : (q - 0.5) / 0.5;
+      ventana(c, 8, 22, 164, 252, q < 0.5 ? L('el navegador', 'the browser') : L('la página', 'the page'));
+      if (q < 0.5) {
+        // Las cuatro pestañas en una fila y la página de inicio de sesión; tú abajo, buscando entre ellas
+        const activa = Math.floor(u * 9) % 4;
+        for (let k = 0; k < 4; k++) { caja(c, 14 + k * 38, 40, 35, 14, k === activa ? ROJO : '#8f8a7d', k === activa ? 0.2 : 0.08, 5); renglones(c, 19 + k * 38, 45.5, 22, 1, k === activa ? '#ffd0da' : 'rgba(255, 255, 255, .3)'); }
+        caja(c, 24, 66, 132, 104, '#8f8a7d', 0.08, 6);
+        letrero(c, L('Iniciar sesión', 'Sign in'), 90, 84, LUZ, 9);
+        for (const y of [96, 116]) { caja(c, 34, y, 112, 13, '#8f8a7d', 0.1, 4); renglones(c, 40, y + 4.8, 56, 1, 'rgba(255, 255, 255, .3)'); }
+        caja(c, 56, 142, 68, 14, ROJO, 0.18, 4); letrero(c, L('Entrar', 'Enter'), 90, 152, '#ffd0da', 8.5);
+        actorDev(c, 90, 238, 1.3);
+        trazo(c, 90, 226, 14 + activa * 38 + 17, 54, ROJO, 0.6, true);
+        if (q > 0.25) letrero(c, L('¿dónde está?', 'where is it?'), 90, 192, ROJO, 9.5);
+      } else {
+        // Llega, pero la página lo trata como a otro: el rol que muestra no es el suyo
+        c.save(); c.globalAlpha *= tramo(u, 0, 0.14);
+        caja(c, 76, 38, 90, 16, ROJO, 0.2, 8); letrero(c, L('rol: lector', 'role: viewer'), 112, 49, '#ffd0da', 8.5); cruz(c, 156, 46, 3.5);
+        caja(c, 20, 68, 140, 90, '#8f8a7d', 0.08, 6);
+        letrero(c, L('Acceso denegado', 'Access denied'), 90, 100, ROJO, 9.5);
+        renglones(c, 32, 118, 116, 2, 'rgba(255, 255, 255, .25)', 1, 8);
+        actorDev(c, 90, 232, 1.3);
+        c.restore();
+        if (u > 0.4) letrero(c, L('el usuario equivocado', 'the wrong user'), 90, 262, ROJO, 9, 'center');
+      }
+    },
+    solucion: (c, q) => {
+      const u = q < 0.5 ? q / 0.5 : (q - 0.5) / 0.5;
+      if (q < 0.5) {
+        // El paso de la misión trae su atajo, y el atajo se enciende
+        ventana(c, 8, 22, 164, 252, L('la misión', 'the mission'), ORO);
+        const lista = tramo(u, 0.38, 0.6);
+        brilloActor(c, 90, 118, 40 * lista, '255, 214, 120');
+        placaMision(c, 14, 44, 152, L('Paso 3: revisar el registro', 'Step 3: check the signup'), false, tramo(u, 0, 0.15));
+        c.save(); c.globalAlpha *= tramo(u, 0.1, 0.25);
+        caja(c, 50, 108, 80, 20, lista > 0 ? ORO : '#8f8a7d', 0.1 + 0.4 * lista, 6);
+        letrero(c, L('atajo ↗', 'shortcut ↗'), 90, 121.5, lista > 0.5 ? '#fffaf0' : LUZ, 9);
+        c.restore();
+        actorDev(c, 90, 236, 1.3);
+        if (u > 0.6) { const t = tramo(u, 0.6, 0.95); bola(c, 90, lerp(222, 132, t), 3, ORO); }
+      } else {
+        // Un clic: la página correcta, ya con el usuario correcto
+        ventana(c, 8, 22, 164, 252, L('la página correcta', 'the right page'), VERDE);
+        c.save(); c.globalAlpha *= tramo(u, 0, 0.14);
+        caja(c, 70, 38, 96, 16, VERDE, 0.2, 8); letrero(c, L('rol: revisor', 'role: reviewer'), 106, 49, '#dff5e8', 8.5); palomita(c, 156, 46, 3.5);
+        caja(c, 20, 68, 140, 90, VERDE, 0.08, 6);
+        letrero(c, L('el registro', 'the signup'), 90, 88, LUZ, 9.5);
+        renglones(c, 32, 104, 116, 3, 'rgba(255, 255, 255, .3)', 1, 8);
+        palomita(c, 90, 146, 4);
+        actorDev(c, 90, 232, 1.3, true);
+        c.restore();
+        if (u > 0.4) letrero(c, L('ya entraste', 'already signed in'), 90, 262, VERDE, 9);
+      }
+    },
+  },
 };
 // Las escenas de «Cómo empezar» de pie, en 180 × 320 (nmw8cs8bytit: la ventana de Claude Code, más angosta y más alta, con
 // su pedido en renglones; el ejemplo de arriba de la animación, como está: nmw865tnttit). Cada cosa, reubicada de arriba
@@ -3138,6 +3194,8 @@ function iniciar() {
   const ANCHO_VISTA = 0.62, ALEJAR_MAX = 2.2;
   // Cuánto de ese alejamiento usa la estación 2 en un teléfono, para que su anillo llene el ancho (nmwpkv7wltit)
   const ALEJAR_ANILLO = 0.3;
+  // Y cuánto se acerca la imagen (zoom) en las estaciones 1, 4 y 5 de un teléfono de pie, medido en 390 × 844 y 360 × 800
+  const ACERCAR_TELEFONO = { 1: 1.05, 4: 1.75, 5: 4 };
   // La entrada (nmw84xwcrtit, nmw85pz2mtit): la cámara nace lejos al frente de la línea (U_NACE), cruza sus tres anillos y,
   // ya en U_SALE, pasado el último, se abre a la vista de costado de la estación 1
   const { nace: U_NACE, anillos: ANILLOS_ENTRADA } = entradaDeAnillos(PARADA, ARCO_ANTES);
@@ -4693,6 +4751,9 @@ function iniciar() {
     const ojo = sinMirarAbajo(posicion, mira);
     camara.lookAt(ojo.x, ojo.y, ojo.z);
     farol.position.copy(posicion).addScaledVector(ARRIBA, 1.5);
+    // En un teléfono de pie, «Qué es STL», «Cómo empezar» y «La documentación» se acercan hasta llenar tres cuartos del
+    // ancho sin tocar los bordes (pd_problema_acceso_directo): el acercamiento va con el encuadre, y se apaga entre estaciones
+    camara.zoom = movil && ancho > 1 && ACERCAR_TELEFONO[k] ? 1 + (ACERCAR_TELEFONO[k] - 1) * suave(tope(1 - Math.abs(w - k) / 0.5)) * (w < 1 ? giroEntrada : 1) : 1;
     encuadrarDos(w);
     apartarColumna();
   }
