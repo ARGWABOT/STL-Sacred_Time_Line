@@ -1433,7 +1433,7 @@ const sinVozTodavia = (clave) => {
 };
 // Cuánto dura cada clip, en segundos: su enunciado y después cada situación en rojo seguida de su solución, segmento
 // tras segmento, cada parte lo que tarda su voz; «Cómo empezar» (GUIA), sus escenas
-const duraClip = (i) => (i === GUIA ? duraComo() : i === MEJORA ? GUION_MEJORA.length * MEJORA_SEG : enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + segmentoSeg(j), 0));
+const duraClip = (i) => (i === GUIA ? duraComo() : i === MEJORA ? duraMejora() : enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + segmentoSeg(j), 0));
 // La clave de la voz del enunciado de cada gran problema: g<problema>-e (tools/vozRecorrido.ts la saca de su <summary>)
 const claveEnunciado = (i) => `g${(GRANDES[i] ? i : 0) + 1}-e`;
 // Lo que dice cada paso de cada segmento, abajo, mientras pasa: los del problema, en rojo, y los de la solución, cada uno
@@ -1593,12 +1593,24 @@ if (COMO_EN && typeof document !== 'undefined' && document.querySelectorAll) doc
 const lineaDeMejora = (k) => (COMO_EN ? GUION_MEJORA_EN : GUION_MEJORA)[k] ?? '';
 // ── La animación de «Un Studio que se mejora solo» (pd_estacion_automejora), en la pantalla de su estación: sus cuatro frases,
 // cada una con lo que se ve mientras se dice (nmwn1kvp5tit), con los mismos actores de la estación 1 y de los problemas. En
-// silencio por ahora: su voz se conecta después de que el titular vea la animación con su guion (nmwo44bpztit). Se repite
+// su pantalla 3D va muda; en el reproductor habla con su voz (nmwo44bpztit: el titular vio la animación con su guion). Se repite
 // sola, como el bucle de «Cómo empezar»; con movimiento reducido, cada escena se ve quieta, ya completa
 const MEJORA_SEG = 5;
 // MEJORA es su lugar en el reproductor de los problemas (como GUIA lo es de «Cómo empezar»): el mismo reproductor, con sus
-// mandos, que muestra las cuatro escenas una vez, sin voz (ninguna clave suya suena: decir() y tramoDeVoz() la saltan)
+// mandos, que muestra las cuatro escenas una vez, con su voz (mejora-1 … mejora-4: decir() y tramoDeVoz() las siguen)
 const MEJORA = 101;
+// En el reproductor, cada escena dura lo que su voz (mejora-1 … mejora-4, en el idioma de la página) más su respiro, y nunca
+// menos de MEJORA_SEG; sin pista, MEJORA_SEG. La pantalla 3D de la estación, muda, sigue con MEJORA_SEG
+const claveDeMejora = (k) => `mejora-${k + 1}`;
+const mejoraSeg = (k) => (pistaVoz(claveDeMejora(k)) == null ? MEJORA_SEG : Math.max(MEJORA_SEG, segDeVoz(claveDeMejora(k)) + RESPIRO_FRASE + 0.4));
+const duraMejora = () => GUION_MEJORA.reduce((s, _, k) => s + mejoraSeg(k), 0);
+// En qué escena va en el segundo t: k (de 0), el segundo en que empieza y cuánto de ella (q)
+function escenaDeMejora(t) {
+  const n = GUION_MEJORA.length, s = Math.max(0, Math.min(duraMejora(), t));
+  let desde = 0, k = 0;
+  while (k < n - 1 && s >= desde + mejoraSeg(k)) { desde += mejoraSeg(k); k++; }
+  return { k, desde, q: tope((s - desde) / mejoraSeg(k)) };
+}
 const ESCENAS_MEJORA = [
   // 1 · El Studio también es su propio proyecto: su línea se traza, con sus puntos, y el Studio aparece sobre ella
   (c, q) => {
@@ -1693,8 +1705,8 @@ function escenaDeComo(t) {
 function pasoDeClip(i, t) {
   if (i === GUIA) { const e = escenaDeComo(t); return { n: nComo() - 1, p: e.p, enEnunciado: false, enProblema: false, enCierre: e.k === nComo() - 1, k: e.k, q: e.q, j: -1, texto: e.texto, clave: e.clave }; }
   if (i === MEJORA) {
-    const n = GUION_MEJORA.length, dura = duraClip(i), s = Math.min(dura, Math.max(0, t)), k = Math.min(n - 1, Math.floor(s / MEJORA_SEG));
-    return { n, p: s / dura, enEnunciado: false, enProblema: false, enCierre: false, k, q: tope((s - k * MEJORA_SEG) / MEJORA_SEG), j: -1, texto: lineaDeMejora(k), clave: `mejora-${k + 1}` };
+    const n = GUION_MEJORA.length, dura = duraClip(i), s = Math.min(dura, Math.max(0, t)), { k, q } = escenaDeMejora(t);
+    return { n, p: s / dura, enEnunciado: false, enProblema: false, enCierre: false, k, q, j: -1, texto: lineaDeMejora(k), clave: claveDeMejora(k) };
   }
   const grupo = GRANDES[i] ?? GRANDES[0], n = grupo.length;
   const dura = duraClip(i), s = Math.min(dura, Math.max(0, t)), p = s / dura;
@@ -1714,7 +1726,7 @@ function pasoDeClip(i, t) {
   return { n, p, enEnunciado: false, enProblema, enCierre: false, k, q, j, texto: lista[m][1], clave: claveDePaso(j, enProblema, m) };
 }
 // Todos los rótulos de un clip, en su orden. El primero, el de su enunciado; cada segmento termina con su cierre
-const clavesDelGuion = (i) => i === MEJORA ? [] : i === GUIA ?Array.from({ length: nComo() }, (_, k) => claveDeComo(k)) : [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`), claveDeCierre(j)])];
+const clavesDelGuion = (i) => i === MEJORA ? GUION_MEJORA.map((_, k) => claveDeMejora(k)) : i === GUIA ?Array.from({ length: nComo() }, (_, k) => claveDeComo(k)) : [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`), claveDeCierre(j)])];
 // Todas las voces de un clip, en su orden: para pedirlas antes de que suenen. Las que aún no tienen voz no se piden
 const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(clave));
 // La voz manda (nota de voz nmw2qhhsjtit): el paso del clip i en el segundo t, si su voz es de Google, con su clave, el
@@ -1722,7 +1734,7 @@ const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(c
 // reloj del clip es el de la voz (desde + lo que lleva dicho), así la animación ni se adelanta ni la hace esperar, a
 // cualquier velocidad; al callar, corre sola su respiro hasta el paso siguiente
 function tramoDeVoz(i, t) {
-  if (i === MEJORA) return null;   // en silencio: el guion de la estación se lee, no se oye
+  if (i === MEJORA) { const e = escenaDeMejora(t), clave = claveDeMejora(e.k); return pistaVoz(clave) == null ? null : { clave, desde: e.desde, voz: segDeVoz(clave) }; }
   if (i === GUIA) { const e = escenaDeComo(t); return pistaVoz(e.clave) == null ? null : { clave: e.clave, desde: e.desde, voz: segDeVoz(e.clave) }; }
   const grupo = GRANDES[i] ?? GRANDES[0], s = Math.max(0, Math.min(duraClip(i), t));
   const e = enunciadoSeg(i), ce = claveEnunciado(i);
@@ -3802,7 +3814,7 @@ function iniciar() {
 
   // ── «Un Studio que se mejora solo» (pd_estacion_automejora), entre «¿Te ha pasado…?» y «Cómo empezar» (nmwdoef5ctit),
   // dentro del recorrido (nmwo4di2mtit): una pantalla de pie a la izquierda de la línea, con su marco verde y su halo, que
-  // cuenta sus cuatro frases con los actores de siempre (pintarMejoraEn), en bucle y en silencio por ahora. Se ve desde
+  // cuenta sus cuatro frases con los actores de siempre (pintarMejoraEn), en bucle y en silencio (la voz suena en su reproductor). Se ve desde
   // lejos y está siempre, antes de llegar y después de irse; la cámara pasa a su derecha, sin tocarla, y la mira al llegar
   {
     const u = SITIO[2];
@@ -4914,7 +4926,7 @@ function iniciar() {
     if (clave === voz.clave) return;
     callar();
     voz.clave = clave;
-    if (!conVoz || quieto || seleccionado === MEJORA || sinVozTodavia(clave)) return;   // la animación de «Se mejora solo» es muda; sin voz todavía: ni se pide su mp3 ni el reloj la espera
+    if (!conVoz || quieto || sinVozTodavia(clave)) return;   // sin voz todavía: ni se pide su mp3 ni el reloj la espera
     const a = audioDe(clave), listo = () => { if (voz.audio === a) voz.hablando = false; };
     voz.audio = a; voz.hablando = true; voz.desde = voz.avanzo = performance.now(); voz.posicion = -1;
     a.onended = a.onerror = listo;
@@ -4940,7 +4952,7 @@ function iniciar() {
   // clip se pedía). Si no llegan en 20 s, sigue con las que haya
   let cargaDe = -1, cargaLista = true;
   function cargarVocesDe(i) {
-    cargaDe = i; cargaLista = !conVoz || quieto || i === MEJORA;
+    cargaDe = i; cargaLista = !conVoz || quieto;
     if (cargaLista) return;
     const llega = (a) => new Promise((ok) => {
       if (a.readyState >= 4) return ok();
@@ -5329,7 +5341,7 @@ function iniciar() {
     }, 450);
   }
   // ── «Se mejora solo» en el mismo reproductor (estación 3 del menú, w = 3): lo abre su botón o un clic en su pantalla 3D, con
-  // las cuatro escenas aprobadas, una vez y sin voz, y con los mismos mandos; no se cierra solo
+  // las cuatro escenas aprobadas, una vez y con su voz, y con los mismos mandos; no se cierra solo
   function abrirMejora() {
     if (!popup) return;
     if (seleccionado === MEJORA) return void empezarClip(true);
@@ -5564,7 +5576,7 @@ function iniciar() {
     if (como3d.pantalla) como3d.pantalla.visible = como3d.brillo.visible = !(seleccionado === GUIA || como3d.volviendo);
     // Lo mismo con «Se mejora solo»: con su reproductor abierto, su pantalla 3D y sus adornos se apagan, y su tarjeta (solo el botón) se esconde
     if (lineaMejora) lineaMejora.style.visibility = seleccionado === MEJORA ? 'hidden' : '';
-    if (botonVoz) botonVoz.style.display = seleccionado === MEJORA || (seleccionado >= 0 && seleccionado !== GUIA && callada(claveEnunciado(seleccionado))) ? 'none' : '';   // su animación es muda: sin botón de voz
+    if (botonVoz) botonVoz.style.display = seleccionado >= 0 && seleccionado !== GUIA && seleccionado !== MEJORA && callada(claveEnunciado(seleccionado)) ? 'none' : '';   // «Se mejora solo» habla: con botón de voz
     if (mejora3d.pantalla) mejora3d.pantalla.visible = mejora3d.brillo.visible = mejora3d.adornos.visible = !(seleccionado === MEJORA || mejora3d.volviendo);
     ultimoCuadro = ahoraMs;
     // El reproductor se abre o se cierra suave: el anillo se achica y se corre hacia el menú, o vuelve
