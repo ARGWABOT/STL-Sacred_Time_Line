@@ -26,8 +26,8 @@ const VERDE = '#6fe3a1', MODELO = '#c5d2e6', NOCHE = '#07090f', NARANJA = '#ffb3
 // «ES · EN»); el idioma sale de <html lang> (nota de voz nmw1c3q68tit). Los tipos de pedido llevan el nombre de su tipo
 // en el Studio: falla, idea, ajuste, pregunta y respuesta. «pasado» es el título de la estación 2
 const TEXTOS = {
-  es: { descargalo: 'Descárgalo', tuCarpeta: 'Tu carpeta', pideAgente: 'Pídeselo a tu agente', dev: 'Desarrollador',estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: 'Problemas de desarrollar por chat que STL resuelve muy bien', uno: 'Qué es STL', tres: 'Cómo empezar', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
-  en: { descargalo: 'Download it', tuCarpeta: 'Your folder', pideAgente: 'Ask your agent', dev: 'Dev',estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Problems of developing through chat that STL solves really well', uno: 'What is STL', tres: 'Getting started', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
+  es: { descargalo: 'Descárgalo', tuCarpeta: 'Tu carpeta', pideAgente: 'Pídeselo a tu agente', dev: 'Desarrollador',estudio: 'Estudio', director: 'Director', modelo: 'Modelo', mision: 'Misión', falla: 'Error', idea: 'Idea', ajuste: 'Ajuste', pregunta: 'Petición', respuesta: 'Comentario', pasado: 'Problemas de desarrollar por chat que STL resuelve muy bien', uno: 'Qué es STL', tres: 'Cómo empezar', mejora: 'Un Studio que se mejora solo', visor: '¿Qué es STL?: <span>El guardrail donde más hacía falta, en el Dev</span>' },
+  en: { descargalo: 'Download it', tuCarpeta: 'Your folder', pideAgente: 'Ask your agent', dev: 'Dev',estudio: 'Studio', director: 'Director', modelo: 'Model', mision: 'Mission', falla: 'Bug', idea: 'Idea', ajuste: 'Tweak', pregunta: 'Request', respuesta: 'Comment', pasado: 'Problems of developing through chat that STL solves really well', uno: 'What is STL', tres: 'Getting started', mejora: 'A Studio that improves itself', visor: 'What is STL?: <span>The guardrail where it was needed most, in Dev</span>' },
 };
 const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es'];
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
@@ -39,7 +39,7 @@ const tituloDos = document.querySelector('[data-titulo-dos]');
 if (tituloDos) tituloDos.textContent = T.pasado;
 // Las tarjetas de las estaciones 1 y 3, también en inglés: solo su botón, que dice el nombre de la estación, sin un rótulo
 // encima (nota de voz del titular nmw6p0g7htit; antes, un título y «▶ Ver la animación», nmw5o26vdtit)
-for (const [marca, texto] of [['[data-titulo-tres]', T.tres], ['[data-texto-ver]', T.uno], ['[data-ver-como]', T.tres]]) {
+for (const [marca, texto] of [['[data-titulo-tres]', T.tres], ['[data-titulo-mejora]', T.mejora], ['[data-texto-ver]', T.uno], ['[data-ver-como]', T.tres]]) {
   const el = document.querySelector(marca);
   if (el) el.textContent = texto;
 }
@@ -211,8 +211,8 @@ if (EN) {
 // t_decide_nombre_como_empezar_en). El otro idioma recarga la página con su ?lang, y la elección se guarda (nmw2lz2bvtit)
 const IDIOMA_GUARDADO = 'stl-idioma';
 const PAGINA = {
-  es: { menu: ['Inicio', 'Qué es STL', '¿Te ha pasado…?', 'Cómo empezar', 'La documentación'], h1: '¿Qué es', h1Completo: '¿Qué es STL?', bajar: 'Empieza el recorrido', saltar: 'Saltar el recorrido', nav: 'Las estaciones de «Qué es STL»' },
-  en: { menu: ['Start', 'What is STL', 'Has this happened to you?', 'Getting started', 'Documentation'], h1: 'What is', h1Completo: 'What is STL?', bajar: 'Start the tour', saltar: 'Skip the tour', nav: 'The stations of «What is STL»' },
+  es: { menu: ['Inicio', 'Qué es STL', '¿Te ha pasado…?', 'Se mejora solo', 'Cómo empezar', 'La documentación'], h1: '¿Qué es', h1Completo: '¿Qué es STL?', bajar: 'Empieza el recorrido', saltar: 'Saltar el recorrido', nav: 'Las estaciones de «Qué es STL»' },
+  en: { menu: ['Start', 'What is STL', 'Has this happened to you?', 'It improves itself', 'Getting started', 'Documentation'], h1: 'What is', h1Completo: 'What is STL?', bajar: 'Start the tour', saltar: 'Skip the tour', nav: 'The stations of «What is STL»' },
 }[EN ? 'en' : 'es'];
 document.querySelectorAll('.menu ol > li > :is(a, span)').forEach((el, i) => { if (PAGINA.menu[i]) el.textContent = PAGINA.menu[i]; });
 document.querySelector('.menu')?.setAttribute('aria-label', PAGINA.nav);
@@ -603,14 +603,14 @@ const sumaVoz = (pasos) => pasos.reduce((s, [, texto]) => s + tardaVoz(texto), 0
 // en milisegundos (la pista de tiempos); suena a su ritmo natural, a la velocidad elegida, y cada rótulo dura su clip
 // más un respiro: corto si la frase sigue en el rótulo siguiente, más largo al terminarla. Lo que no tiene pista sigue
 // con Kokoro y su estimación de arriba
-const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9731,"g4-e":7646,"g5-e":9878,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":1421,"s9-p2":4019,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":2872,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312};
+const PISTA_VOZ_ES = {"g1-e":12501,"g2-e":7264,"g3-e":9731,"g4-e":7646,"g5-e":9878,"g6-e":3784,"g7-e":5907,"s1-p1":2373,"s1-p2":2786,"s1-p3":2769,"s1-1":4087,"s1-2":4646,"s1-3":3948,"s1-c":5071,"s2-p1":2426,"s2-p2":1412,"s2-p3":2776,"s2-1":3711,"s2-2":2700,"s2-3":2042,"s2-4":4359,"s2-c":5156,"s3-p1":3380,"s3-p2":3166,"s3-1":2916,"s3-2":2798,"s3-3":5002,"s3-4":2241,"s3-5":3045,"s3-6":3400,"s3-c":4140,"s4-p1":3782,"s4-p2":1883,"s4-p3":3141,"s4-p4":2604,"s4-1":3537,"s4-2":4290,"s4-3":3915,"s4-4":2479,"s4-5":2876,"s4-6":3220,"s4-c":3581,"s5-p1":2440,"s5-1":3860,"s5-2":2285,"s5-3":2030,"s5-c":2321,"s6-p1":3846,"s6-1":3795,"s6-2":3514,"s6-3":3042,"s6-c":3091,"s7-p1":3805,"s7-1":4436,"s7-2":2258,"s7-3":3541,"s7-4":3132,"s7-5":1896,"s7-c":2658,"s8-p1":2835,"s8-p2":1923,"s8-1":4365,"s8-2":2077,"s8-3":2773,"s8-c":2455,"s9-p1":1421,"s9-p2":4019,"s9-1":4418,"s9-2":2926,"s9-3":1763,"s9-4":2872,"s9-5":2704,"s9-c":2804,"s11-p1":3471,"s11-p2":1971,"s11-1":3209,"s11-2":1538,"s11-3":3724,"s11-4":1808,"s11-5":4183,"s11-c":2347,"s12-p1":2229,"s12-p2":2258,"s12-1":5048,"s12-2":3691,"s12-3":3487,"s12-c":3506,"s13-p1":2542,"s13-p2":4317,"s13-1":5810,"s13-2":2757,"s13-3":4478,"s13-4":4215,"s13-5":4301,"s13-6":4290,"s13-c":2692,"s14-p1":3116,"s14-p2":4166,"s14-1":3755,"s14-2":3517,"s14-3":3180,"s14-4":2267,"s14-5":4202,"s14-6":4333,"s14-c":2389,"s15-p1":2011,"s15-p2":2693,"s15-p3":2717,"s15-1":5221,"s15-2":3885,"s15-3":5060,"s15-4":4353,"s15-5":4632,"s15-6":2285,"s15-7":2924,"s15-8":2955,"s15-9":3047,"s15-c":4359,"s16-p1":3417,"s16-p2":3122,"s16-1":3464,"s16-2":4714,"como-1":3554,"como-2":5728,"como-3":2544,"como-4":7545,"como-5":2482,"como-6":3434,"como-7":3693,"como-c":2312,"mejora-1":2759,"mejora-2":3994,"mejora-3":4936,"mejora-4":3954};
 // La voz en inglés de «Getting started» (nmw6xp1d1tit) y de la estación 2 (nmw74uq8qtit): la gemela de Kai, en voz/en/, con
 // su pista (tools/vozRecorrido.ts --en). Desde s15-c (8 de noviembre de 2026), las siete de la estación 2 hablan enteras;
 // una animación a la que le falte una frase calla entera, nunca a medias
-const PISTA_VOZ_EN = {"g1-e":13162,"g2-e":7034,"g3-e":9314,"g4-e":10178,"g5-e":10989,"g6-e":3338,"g7-e":6228,"s1-p1":2399,"s1-p2":2858,"s1-p3":2126,"s1-1":3604,"s1-2":4267,"s1-3":3330,"s1-c":4830,"s2-p1":2591,"s2-p2":1483,"s2-p3":3113,"s2-1":3906,"s2-2":2406,"s2-3":2292,"s2-4":3421,"s2-c":4759,"s3-p1":3535,"s3-p2":2913,"s3-1":3819,"s3-2":2999,"s3-3":4836,"s3-4":2570,"s3-5":3606,"s3-6":3607,"s3-c":3684,"s4-p1":4336,"s4-p2":1933,"s4-p3":2974,"s4-p4":2273,"s4-1":3242,"s4-2":3467,"s4-3":3954,"s4-4":2383,"s4-5":3558,"s4-6":3410,"s4-c":4293,"s5-p1":3905,"s5-1":4038,"s5-2":2601,"s5-3":2610,"s5-c":1881,"s6-p1":3806,"s6-1":3925,"s6-2":3821,"s6-3":3415,"s6-c":2849,"s7-p1":3578,"s7-1":3002,"s7-2":2293,"s7-3":4010,"s7-4":3080,"s7-5":1610,"s7-c":2960,"s8-p1":3571,"s8-p2":2546,"s8-1":4746,"s8-2":1946,"s8-3":2444,"s8-c":2539,"s9-p1":1565,"s9-p2":3816,"s9-1":4731,"s9-2":3316,"s9-3":2138,"s9-4":2522,"s9-5":3616,"s9-c":2121,"s11-p1":4334,"s11-p2":1664,"s11-1":3508,"s11-2":1147,"s11-3":3128,"s11-4":1708,"s11-5":4142,"s11-c":2290,"s12-p1":2247,"s12-p2":2078,"s12-1":4934,"s12-2":3914,"s12-3":2547,"s12-c":3349,"s13-p1":1808,"s13-p2":5261,"s13-1":4440,"s13-2":3010,"s13-3":5225,"s13-4":3608,"s13-5":4748,"s13-6":3348,"s13-c":2992,"s14-p1":3081,"s14-p2":3631,"s14-1":3221,"s14-2":4277,"s14-3":2763,"s14-4":2298,"s14-5":4349,"s14-6":3894,"s14-c":2392,"s15-p1":2479,"s15-p2":2285,"s15-p3":2706,"s15-1":4558,"s15-2":3035,"s15-3":4772,"s15-4":4593,"s15-5":4204,"s15-6":2563,"s15-7":3654,"s15-8":3147,"s15-9":2831,"s15-c":3773,"como-1":3243,"como-2":5061,"como-3":2188,"como-4":6867,"como-5":1983,"como-6":2947,"como-7":3326,"como-c":2074};
+const PISTA_VOZ_EN = {"g1-e":13162,"g2-e":7034,"g3-e":9314,"g4-e":10178,"g5-e":10989,"g6-e":3338,"g7-e":6228,"s1-p1":2399,"s1-p2":2858,"s1-p3":2126,"s1-1":3604,"s1-2":4267,"s1-3":3330,"s1-c":4830,"s2-p1":2591,"s2-p2":1483,"s2-p3":3113,"s2-1":3906,"s2-2":2406,"s2-3":2292,"s2-4":3421,"s2-c":4759,"s3-p1":3535,"s3-p2":2913,"s3-1":3819,"s3-2":2999,"s3-3":4836,"s3-4":2570,"s3-5":3606,"s3-6":3607,"s3-c":3684,"s4-p1":4336,"s4-p2":1933,"s4-p3":2974,"s4-p4":2273,"s4-1":3242,"s4-2":3467,"s4-3":3954,"s4-4":2383,"s4-5":3558,"s4-6":3410,"s4-c":4293,"s5-p1":3905,"s5-1":4038,"s5-2":2601,"s5-3":2610,"s5-c":1881,"s6-p1":3806,"s6-1":3925,"s6-2":3821,"s6-3":3415,"s6-c":2849,"s7-p1":3578,"s7-1":3002,"s7-2":2293,"s7-3":4010,"s7-4":3080,"s7-5":1610,"s7-c":2960,"s8-p1":3571,"s8-p2":2546,"s8-1":4746,"s8-2":1946,"s8-3":2444,"s8-c":2539,"s9-p1":1565,"s9-p2":3816,"s9-1":4731,"s9-2":3316,"s9-3":2138,"s9-4":2522,"s9-5":3616,"s9-c":2121,"s11-p1":4334,"s11-p2":1664,"s11-1":3508,"s11-2":1147,"s11-3":3128,"s11-4":1708,"s11-5":4142,"s11-c":2290,"s12-p1":2247,"s12-p2":2078,"s12-1":4934,"s12-2":3914,"s12-3":2547,"s12-c":3349,"s13-p1":1808,"s13-p2":5261,"s13-1":4440,"s13-2":3010,"s13-3":5225,"s13-4":3608,"s13-5":4748,"s13-6":3348,"s13-c":2992,"s14-p1":3081,"s14-p2":3631,"s14-1":3221,"s14-2":4277,"s14-3":2763,"s14-4":2298,"s14-5":4349,"s14-6":3894,"s14-c":2392,"s15-p1":2479,"s15-p2":2285,"s15-p3":2706,"s15-1":4558,"s15-2":3035,"s15-3":4772,"s15-4":4593,"s15-5":4204,"s15-6":2563,"s15-7":3654,"s15-8":3147,"s15-9":2831,"s15-c":3773,"s16-p1":4008,"s16-p2":2844,"s16-1":3830,"s16-2":3510,"como-1":3243,"como-2":5061,"como-3":2188,"como-4":6867,"como-5":1983,"como-6":2947,"como-7":3326,"como-c":2074,"mejora-1":3294,"mejora-2":3401,"mejora-3":5044,"mejora-4":3594};
 // La pista de cada clave en el idioma de la página: en inglés, «Cómo empezar» y la estación 2 con la suya (lo que aún no la
 // tiene calla, nunca con la voz en español); lo demás, con la de Kai
-const vozEnIngles = (clave) => EN_DIBUJO && /^(como-|s\d+-|g\d+-e$)/.test(clave);
+const vozEnIngles = (clave) => EN_DIBUJO && /^(como-|mejora-|s\d+-|g\d+-e$)/.test(clave);
 const pistaVoz = (clave) => (vozEnIngles(clave) ? PISTA_VOZ_EN : PISTA_VOZ_ES)[clave];
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
@@ -1383,6 +1383,9 @@ const PASOS_SEG = [
   { problema: [[0, 'El modelo es una caja negra:'], [0.4, 'a veces no sabes qué recuerda, qué no y por qué']], solucion: [[0, 'STL te presenta, de forma gráfica, todo el ciclo de inferencia:'], [0.2, 'cómo se comunican tu equipo y el modelo,'], [0.34, 'cuánto tarda cada uno en ejecutar sus partes y su consumo,'], [0.52, 'y qué le pide exactamente quién a quién.'], [0.68, 'Así entiendes qué pasa cada vez que le pides algo al modelo'], [0.85, 'y quedas con este historial, para auditarlo y aprender']] },
   { problema: [[0, 'Se cae el internet a mitad de tu trabajo,'], [0.45, 'y el chat con el modelo se detiene: ¿y ahora qué?']], solucion: [[0, 'Con STL Studio, sigues trabajando sin conexión:'], [0.2, 'el Buzón recoge tus notas, ajustes y entregas,'], [0.4, 'y sigues leyendo documentos y respuestas'], [0.58, 'o auditando el trabajo del modelo.'], [0.74, 'Nada se pierde: todo queda en la memoria del proyecto.'], [0.88, 'Al volver la conexión, el director lo recibe todo junto.']] },
   { problema: [[0, 'Tienes la idea clara en la cabeza,'], [0.36, 'pero escribirla entera cansa,'], [0.66, 'y al modelo le llega solo la mitad.']], solucion: [[0, 'Con STL, la dictas: hablas como hablarías con un amigo,'], [0.1, 'de forma natural, explicándole lo que tienes en mente.'], [0.2, 'Incluso puedes divagar, no importa: el director te entenderá bien.'], [0.32, 'Lo importante es que expreses tu idea como de verdad la quieres,'], [0.42, 'con tu lenguaje natural: la comprensión, déjasela al director.'], [0.52, 'Tu nota se transcribe en tu computador.'], [0.62, 'Como va al Buzón y no directo al modelo,'], [0.74, 'la lees y la corriges antes de que llegue:'], [0.86, 'le quitas o le agregas lo que quieras.']] },
+  // 16. El acceso directo, el octavo problema (el último; sus cuatro frases aprobadas por el titular): dos en rojo y dos de la
+  // solución, sin enunciado ni cierre todavía (su dibujo y su lugar en la lista están por hacer); la voz sale de aquí
+  { problema: [[0, 'Te pide revisar algo y no sabes dónde está'], [0.5, 'O llegas, pero con el usuario equivocado']], solucion: [[0, 'En STL Studio, el paso trae su atajo'], [0.5, 'Un clic: la página correcta, con el usuario correcto']] },
 ];
 // El cierre de cada segmento (nota de voz nmw3ruscptit): al terminar su solución, y antes del problema siguiente, unos dos
 // segundos con un ✓, el problema que quedó resuelto, en corto, tu cubito sonriendo y una frase de cierre con su voz, que
@@ -1405,6 +1408,7 @@ const CIERRES = [
   ['El modelo, una caja negra', 'La caja negra, ahora a la vista.'],
   ['Sin internet, todo se detenía', 'Sin internet, tu trabajo sigue.'],
   ['El cansancio de escribir', 'Hablas, corriges y envías: sin escribir de más.'],
+  null,   // 16. (el acceso directo: sin cierre todavía)
 ];
 // La estación 2 en inglés (pd_bilingue; t_decide_estacion2_textos, nmw738o1ktit): los guiones, fieles al español frase por
 // frase, con los mismos cortes (nmw3q7lw7tit), y los cierres adaptados, como los diría alguien de habla inglesa
@@ -1425,6 +1429,8 @@ const PASOS_SEG_EN = [
   { problema: [[0, 'The model is a black box:'], [0.4, 'sometimes you don\'t know what it remembers, what it doesn\'t, and why']], solucion: [[0, 'STL shows you, graphically, the whole inference cycle:'], [0.2, 'how your computer and the model communicate,'], [0.34, 'how long each one takes to carry out its parts, and its usage,'], [0.52, 'and exactly who asks what of whom.'], [0.68, 'So you understand what happens each time you ask the model something'], [0.85, 'and you keep this history, to audit it and learn']] },
   { problema: [[0, 'Your internet goes down in the middle of your work,'], [0.45, 'and the chat with the model stops: now what?']], solucion: [[0, 'With STL Studio, you keep working offline:'], [0.2, 'the Inbox collects your notes, tweaks and deliveries,'], [0.4, 'and you keep reading documents and answers'], [0.58, 'or auditing the model\'s work.'], [0.74, 'Nothing is lost: everything stays in the project memory.'], [0.88, 'When the connection comes back, the director receives it all together.']] },
   { problema: [[0, 'You have the idea clear in your head,'], [0.36, 'but writing it all out is tiring,'], [0.66, 'and only half of it reaches the model.']], solucion: [[0, 'With STL, you dictate it: you talk as you would with a friend,'], [0.1, 'naturally, explaining what you have in mind.'], [0.2, 'You can even ramble, it doesn\'t matter: the director will understand you.'], [0.32, 'What matters is that you express your idea the way you really want it,'], [0.42, 'in your natural language: leave the understanding to the director.'], [0.52, 'Your note is transcribed on your computer.'], [0.62, 'Since it goes to the Inbox and not straight to the model,'], [0.74, 'you read it and correct it before it arrives:'], [0.86, 'you take out or add whatever you want.']] },
+  // 16. Direct access, the eighth problem (the last one; its four lines approved by the owner): two in red, two in the solution
+  { problema: [[0, 'It asks you to check something, and you do not know where it is'], [0.5, 'Or you get there, signed in as the wrong user']], solucion: [[0, 'In STL Studio, the step brings its shortcut'], [0.5, 'One click: the right page, as the right user']] },
 ];
 const CIERRES_EN = [
   ['Half-finished messages', 'Goodbye to fixing half-finished messages: you check it before it goes.'],
@@ -1442,6 +1448,7 @@ const CIERRES_EN = [
   ['The model, a black box', 'The black box, now in plain sight.'],
   ['Without internet, it all stopped', 'No internet, and your work goes on.'],
   ['The fatigue of typing', 'Talk, correct and send: no extra typing.'],
+  null,   // 16. (direct access: no closing yet)
 ];
 if (EN_DIBUJO) {
   PASOS_SEG.forEach((s, j) => Object.assign(s, PASOS_SEG_EN[j]));
@@ -1495,6 +1502,93 @@ const GUION_COMO_EN = {
   cierre: 'Done: you are up and running.',
 };
 if (COMO_EN) Object.assign(GUION_COMO, GUION_COMO_EN);
+// «Un Studio que se mejora solo» (en inglés, «A Studio that improves itself»), la estación nueva entre «¿Te ha pasado…?» y
+// «Cómo empezar»: sus cuatro frases aprobadas por el titular, con su voz de Kai (mejora-1 … mejora-4, tools/vozRecorrido.ts;
+// voz/es/ y voz/en/). Su dibujo y su lugar en el recorrido están por hacer: por ahora son solo su guion y su voz
+const GUION_MEJORA = [
+  'El Studio también es su propio proyecto',
+  'Dile lo que cambiarías, como le dices cualquier cosa',
+  'Su director lo planea, lo construye y te pide que lo mires',
+  'Tu copia crece a tu gusto, y sigue funcionando',
+];
+const GUION_MEJORA_EN = [
+  'The Studio is also its own project',
+  'Tell it what you would change, as you tell it anything',
+  'Its director plans it, builds it and asks you to look',
+  'Your copy grows to your taste, and keeps working',
+];
+// Sin 3D, sus cuatro frases se leen en la página: en inglés, las de arriba
+if (COMO_EN && typeof document !== 'undefined' && document.querySelectorAll) document.querySelectorAll('[data-lista-mejora] li').forEach((li, k) => { if (GUION_MEJORA_EN[k]) li.textContent = GUION_MEJORA_EN[k]; });
+const lineaDeMejora = (k) => (COMO_EN ? GUION_MEJORA_EN : GUION_MEJORA)[k] ?? '';
+// ── La animación de «Un Studio que se mejora solo» (pd_estacion_automejora), en la pantalla de su estación: sus cuatro frases,
+// cada una con lo que se ve mientras se dice (nmwn1kvp5tit), con los mismos actores de la estación 1 y de los problemas. En
+// silencio por ahora: su voz se conecta después de que el titular vea la animación con su guion (nmwo44bpztit). Se repite
+// sola, como el bucle de «Cómo empezar»; con movimiento reducido, cada escena se ve quieta, ya completa
+const MEJORA_SEG = 5;
+const ESCENAS_MEJORA = [
+  // 1 · El Studio también es su propio proyecto: su línea se traza, con sus puntos, y el Studio aparece sobre ella
+  (c, q) => {
+    trazo(c, 20, 140, lerp(20, 300, tramo(q, 0.05, 0.45)), 140, ORO, 0.9);
+    for (let k = 0; k < 5; k++) if (q > 0.12 + k * 0.07) bola(c, 40 + k * 60, 140, 3.2, ORO, tramo(q, 0.12 + k * 0.07, 0.2 + k * 0.07));
+    if (q > 0.35) {
+      c.save(); c.globalAlpha *= tramo(q, 0.35, 0.6);
+      actorStudio(c, 115, 34, 90, 80); letrero(c, 'STL Studio', 160, 28, MORADO, 9);
+      c.restore();
+    }
+    if (q > 0.6) letrero(c, L('su propio proyecto', 'its own project'), 160, 162, ORO, 9);
+  },
+  // 2 · Dile lo que cambiarías: tu nota vuela al director, dentro del Studio, y queda junto a él
+  (c, q) => {
+    actorDev(c, 50, 100, 1.8, q > 0.75); letrero(c, L('tú', 'you'), 50, 136, AMARILLO_TU, 9);
+    actorStudio(c, 190, 46, 104, 90); letrero(c, 'STL Studio', 242, 40, MORADO, 9);
+    const u = tramo(q, 0.15, 0.7);
+    if (u > 0 && u < 1) iconoNota(c, 'ajuste', lerp(78, 208, u), lerp(96, 64, u) - Math.sin(u * Math.PI) * 30, 1.2);
+    if (u >= 1) iconoNota(c, 'ajuste', 208, 64, 1);
+  },
+  // 3 · Su director lo planea, lo construye y te pide que lo mires: la línea avanza y aparece la misión
+  (c, q) => {
+    actorStudio(c, 16, 40, 96, 86); letrero(c, 'STL Studio', 64, 34, MORADO, 9);
+    const avanza = tramo(q, 0.05, 0.45);
+    trazo(c, 16, 150, lerp(130, 300, avanza), 150, ORO, 0.9);
+    for (let k = 0; k < 4; k++) if (lerp(130, 300, avanza) >= 150 + k * 46) bola(c, 150 + k * 46, 150, 3.2, ORO);
+    [L('Lo planea', 'It plans it'), L('Lo construye', 'It builds it'), L('Míralo tú', 'Take a look')].forEach((paso, m) => {
+      const a = 0.2 + m * 0.22;
+      if (q > a) placaMision(c, 150, 40 + m * 28, 140, paso, m < 2 && q > a + 0.2, tramo(q, a, a + 0.08));
+    });
+  },
+  // 4 · Tu copia crece a tu gusto y sigue funcionando: el Studio crece, tú sonríes y la línea sigue
+  (c, q) => {
+    trazo(c, 16, 150, 300, 150, ORO, 0.9);
+    for (let k = 0; k < 7; k++) if (k < 5 || q > 0.4 + (k - 5) * 0.2) bola(c, 34 + k * 44, 150, 3.2, ORO);
+    const crece = tramo(q, 0.1, 0.5), w = lerp(90, 120, crece), h = lerp(76, 92, crece), y = 132 - h;
+    actorStudio(c, 110, y, w, h); letrero(c, 'STL Studio', 110 + w / 2, y - 6, MORADO, 9);
+    actorDev(c, 60, 104, 1.6, q > 0.5);
+    if (q > 0.6) letrero(c, L('tu copia, a tu gusto', 'your copy, to your taste'), 170, 170, ORO, 9);
+  },
+];
+// Una escena (k, de 0) de «Un Studio que se mejora solo», q de 0 a 1 dentro de ella y p lo que va de toda: como las de
+// «Cómo empezar», con sus dos píldoras arriba, su frase abajo y su barra
+function pintarMejora(c, k, q, p) {
+  const n = GUION_MEJORA.length, ancho = L(78, 96);
+  c.save(); c.translate(CONTENIDO.x, CONTENIDO.y); c.scale(CONTENIDO.escala, CONTENIDO.escala);
+  ESCENAS_MEJORA[k](c, q);
+  c.restore();
+  caja(c, 8, 5, ancho, 14, VERDE, 0.25, 7); letrero(c, L('Se mejora solo', 'It improves itself'), 8 + ancho / 2, 15.5, '#dff5e8', 8.5);
+  caja(c, 262, 5, 50, 14, VERDE, 0.2, 7); letrero(c, L(`${k + 1} de ${n}`, `${k + 1} of ${n}`), 287, 15.5, '#dff5e8', 8.5);
+  rotuloLargo(c, lineaDeMejora(k));
+  pintarBarra(c, p);
+}
+// La animación entera en el segundo s, en bucle; quieta (movimiento reducido), cada escena completa, una tras otra
+function pintarMejoraEn(c, s, quieta = false) {
+  const n = GUION_MEJORA.length, dura = n * MEJORA_SEG, vuelta = s >= 0 ? s % dura : (s % dura) + dura;
+  const k = Math.min(n - 1, Math.floor(vuelta / MEJORA_SEG)), q = quieta ? 1 : (vuelta - k * MEJORA_SEG) / MEJORA_SEG;
+  c.clearRect(0, 0, 320, 200);
+  const fondo = c.createRadialGradient(160, 80, 10, 160, 100, 200);
+  fondo.addColorStop(0, '#141a2e'); fondo.addColorStop(1, '#07090f');
+  c.fillStyle = fondo; c.fillRect(0, 0, 320, 200);
+  pintarMejora(c, k, q, quieta ? (k + 1) / n : vuelta / dura);
+  return k;
+}
 // Lo que se le pide al modelo en las escenas del escaneo y de la instalación (de 0: la 3 y la 4), debajo de la animación como
 // un ejemplo, en texto y sin «Copiar» (nmw56hkz8tit, que reemplaza a nmw4f6alqtit), y el enlace de la última, al README del repositorio en GitHub (nmw4f6lictit); la
 // ventana a la que se le pide se llama «Claude Code» (nmw4irns1tit)
@@ -2919,13 +3013,13 @@ function iniciar() {
   for (let i = 0; i <= 13; i++) puntos.push(new THREE.Vector3(Math.sin(i * 0.7) * 7 + (i % 3 - 1) * 1.5, 0.6 + Math.sin(i * 0.45) * 1.1, -i * 28));
   const camino = new THREE.CatmullRomCurve3(puntos, false, 'centripetal');
   // La línea termina en el libro abierto de «La documentación», la última estación (nmw76f854tit): se dibuja solo hasta
-  // FIN_LINEA, el lugar de esa estación (SITIO[3]), y ahí entra en sus páginas
+  // FIN_LINEA, el lugar de esa estación (SITIO[4]), y ahí entra en sus páginas
   const FIN_LINEA = 0.922;
   // Antes de 0, la línea sigue recta hacia atrás, por donde nace (la entrada, nmw85pz2mtit): u negativo es esa recta
   const LARGO_LINEA = camino.getLength(), NACE_P = camino.getPointAt(0), NACE_T = camino.getTangentAt(0);
   const puntoEn = (u) => u >= 0 ? camino.getPointAt(Math.min(u, 1)) : NACE_P.clone().addScaledVector(NACE_T, u * LARGO_LINEA);
   const tangenteEn = (u) => camino.getTangentAt(tope(u));
-  const PARADA = [0.1, 0.42, 0.7, 0.9];   // dónde se detiene la cámara en cada estación (de 0 a 1); la última, «La documentación»
+  const PARADA = [0.1, 0.42, 0.56, 0.7, 0.9];   // dónde se detiene la cámara en cada estación (de 0 a 1); la última, «La documentación»
   // Los anillos dorados: ARCO_ANTES, cuánto antes de su parada va el de llegada
   const ARCO_RADIO = 4.2, ARCO_ANTES = 0.035;
   // Cuánto se aleja la cámara en una pantalla angosta para que una estación quepa a lo ancho (colocar › alejarPorAncho)
@@ -2983,7 +3077,7 @@ function iniciar() {
   const segunLejania = [];
   // El reloj de cada estación: ninguna se anima hasta que se oprime «Empieza el recorrido», y un clic en una estación del
   // menú vuelve a empezar la suya, para repetirla cuando se quiera (nota de voz nmw1khrketit). null: aún no empieza
-  const relojes = [null, null, null, null];
+  const relojes = [null, null, null, null, null];
   const empezarEstacion = (k) => { if (k >= 0 && k < relojes.length) relojes[k] = performance.now() / 1000; };
   // El video empieza el ciclo de la estación 1 en el segundo que pide, para que se vea al director hablar con el modelo
   ganchoVideo.estacion1 = (seg) => { relojes[0] = performance.now() / 1000 - seg; };
@@ -3641,12 +3735,64 @@ function iniciar() {
     focos.push(anillo.centro.clone());
   }
 
+  // ── «Un Studio que se mejora solo» (pd_estacion_automejora), entre «¿Te ha pasado…?» y «Cómo empezar» (nmwdoef5ctit),
+  // dentro del recorrido (nmwo4di2mtit): una pantalla de pie a la izquierda de la línea, con su marco verde y su halo, que
+  // cuenta sus cuatro frases con los actores de siempre (pintarMejoraEn), en bucle y en silencio por ahora. Se ve desde
+  // lejos y está siempre, antes de llegar y después de irse; la cámara pasa a su derecha, sin tocarla, y la mira al llegar
+  {
+    const u = SITIO[2];
+    const { p, t, lado } = marco(u);
+    const cajitaM = (w, h, d, material, r = 0.05) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), material);
+    const pantallaMejora = new THREE.Group();
+    const marcoMejora = cajitaM(4.72, 3.0, 0.06, brillo(VERDE, 0.9), 0.12);
+    const panelMejora = cajitaM(4.52, 2.82, 0.1, new THREE.MeshStandardMaterial({ color: '#0b0f1c', roughness: 0.6 }), 0.08);
+    panelMejora.position.z = 0.03;
+    // La animación, en un lienzo de 16:10 que cubre el panel por dentro del marco
+    const lienzoMejora = document.createElement('canvas');
+    lienzoMejora.width = 640; lienzoMejora.height = 400;
+    const ctxMejora = lienzoMejora.getContext('2d');
+    const texturaMejora = new THREE.CanvasTexture(lienzoMejora);
+    texturaMejora.colorSpace = THREE.SRGBColorSpace;
+    const imagenMejora = new THREE.Mesh(new THREE.PlaneGeometry(4.36, 2.725), new THREE.MeshBasicMaterial({ map: texturaMejora, toneMapped: false }));
+    imagenMejora.position.z = 0.086;
+    const dibujarMejora = (s) => {
+      if (!ctxMejora) return;
+      ctxMejora.setTransform(2, 0, 0, 2, 0, 0);
+      pintarMejoraEn(ctxMejora, s, quieto);
+      texturaMejora.needsUpdate = true;
+    };
+    dibujarMejora(0);
+    const pieMejora = cajitaM(0.16, 1.5, 0.16, new THREE.MeshStandardMaterial({ color: '#2a3350', roughness: 0.5 }), 0.05);
+    pieMejora.position.set(0, -2.2, -0.04);
+    const baseMejora = cajitaM(1.3, 0.08, 0.7, brillo(VERDE, 0.35), 0.03);
+    baseMejora.position.set(0, -2.95, -0.04);
+    pantallaMejora.add(marcoMejora, panelMejora, imagenMejora, pieMejora, baseMejora);
+    // Grande, para que se lea desde la parada, y alta y apartada de la línea: su resplandor no cruza la pantalla (se vio en la
+    // captura). Su base queda sobre el nivel de la línea
+    const ESCALA_MEJORA = 1.6;
+    pantallaMejora.scale.setScalar(ESCALA_MEJORA);
+    pantallaMejora.position.copy(p).addScaledVector(lado, -5.8).addScaledVector(ARRIBA, 2.99 * ESCALA_MEJORA).addScaledVector(t, 0.6);
+    pantallaMejora.rotation.y = Math.atan2(-t.x, -t.z);   // de frente a la cámara, que llega por detrás
+    escena.add(pantallaMejora);
+    const brilloMejora = resplandor('111, 227, 161', VERDE, 7 * ESCALA_MEJORA).halo;
+    brilloMejora.material.opacity = 0.35;
+    brilloMejora.position.copy(pantallaMejora.position).addScaledVector(t, 0.5);
+    escena.add(brilloMejora);
+    focos.push(pantallaMejora.position.clone());
+    // Un cuadro nuevo de la animación quince veces por segundo, con el reloj de la estación; quieta, una escena cada MEJORA_SEG
+    let cuadroMejora = -1;
+    animar.push(deEstacion(2, (s) => {
+      const cuadro = quieto ? Math.floor(s / MEJORA_SEG) : Math.floor(s * 15);
+      if (cuadro !== cuadroMejora) { cuadroMejora = cuadro; dibujarMejora(s); }
+    }));
+  }
+
   // ── Estación 3, «Cómo empezar» (pd_como_empezar): el camino de la 2 a la 3 es la línea sola, como el de la 1 a la 2 pero
   // sin notas que viajan (nmw4isvr9tit); al llegar, su reproductor se abre a la izquierda y la línea queda a la derecha
   // (nmw4ircrjtit), pero solo cuando el visitante oprime «▶ Ver cómo empezar» (nmw5wbs86tit). La cámara mira la línea, al
   // frente. Sus elementos están siempre, antes de llegar y después de irse, aunque el reproductor esté cerrado
   {
-    const u = SITIO[2];
+    const u = SITIO[3];
     const { p, t, lado } = marco(u);
     focos.push(p.clone().addScaledVector(ARRIBA, 0.9));
     // La escena de instalar (nota de voz del titular nmw5wbs86tit, 7 de noviembre de 2026: nada que orbite solo porque sí,
@@ -3757,7 +3903,7 @@ function iniciar() {
       cursor.visible = Math.sin(s * 5) > -0.2;
       play.material.emissiveIntensity = 0.6 + 0.3 * Math.sin(s * 2);
     }
-    animar.push(deEstacion(2, moverEscenaComo));
+    animar.push(deEstacion(3, moverEscenaComo));
   }
 
   // ── Estación 4, «La documentación» (pd_pagina_unica): su emblema es un libro abierto, dorado y blanco, con un halo suave
@@ -3765,7 +3911,7 @@ function iniciar() {
   // (nmw76f854tit). Echado sobre la línea, con el lomo en su dirección, de frente a la cámara que llega; sin voz
   // (nmw3s6d7ktit). Su tarjeta de texto se abre a la izquierda con su «▶» (mundo-3d.html, #documentacion)
   {
-    const u = SITIO[3];
+    const u = SITIO[4];
     const { p, t } = marco(u);
     const libro = new THREE.Group();
     const caja4 = (w, h, d, material, r = 0.04) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), material);
@@ -3805,7 +3951,7 @@ function iniciar() {
     escena.add(haloLibro);
     focos.push(libro.position.clone());
     // Solo el halo respira, despacio; el libro no se mueve
-    animar.push(deEstacion(3, (s) => { haloLibro.material.opacity = 0.45 + 0.12 * Math.sin(s * 1.1) ** 2; }));
+    animar.push(deEstacion(4, (s) => { haloLibro.material.opacity = 0.45 + 0.12 * Math.sin(s * 1.1) ** 2; }));
   }
 
   // ── Un anillo en cada parada desde la 2 (pd_estaciones_decoradas; nmw6z9v94tit, y nmw727omntit: «make them full rings,
@@ -3925,7 +4071,7 @@ function iniciar() {
     },
     // Estación 3, «Cómo empezar»: un cohete que despega (el arranque), con su ventanilla y su llama
     {
-      u: PARADA[2], alza: 0.29, desvio: 0.3, ancho: 0.09, alto: 0.1, desde: 2.6, hasta: 2.98, apaga: [3.2, 3.5],
+      u: PARADA[3], alza: 0.29, desvio: 0.3, ancho: 0.09, alto: 0.1, desde: 3.6, hasta: 3.98, apaga: [4.2, 4.5],
       trazos: [
         [[0, 1], [0.35, 0.5], [0.35, -0.4], [-0.35, -0.4], [-0.35, 0.5], [0, 1]],
         [[0.35, -0.1], [0.7, -0.6], [0.35, -0.4]], [[-0.35, -0.1], [-0.7, -0.6], [-0.35, -0.4]],
@@ -3935,7 +4081,7 @@ function iniciar() {
     },
     // Estación 4, «La documentación»: un libro abierto, con unos renglones en cada hoja
     {
-      u: PARADA[3], alza: 0.36, desvio: -0.34, ancho: 0.15, alto: 0.1, desde: 3.15, hasta: 3.85, apaga: [9, 10],
+      u: PARADA[4], alza: 0.36, desvio: -0.34, ancho: 0.15, alto: 0.1, desde: 4.15, hasta: 4.85, apaga: [9, 10],
       trazos: [
         [[0, -0.6], [-0.5, -0.45], [-1, -0.55], [-1, 0.55], [-0.5, 0.65], [0, 0.5], [0, -0.6]],
         [[0, -0.6], [0.5, -0.45], [1, -0.55], [1, 0.55], [0.5, 0.65], [0, 0.5]],
@@ -4370,15 +4516,15 @@ function iniciar() {
   const lineaTres = document.querySelector('[data-titulo-tres]')?.closest('.tarjeta');
   function encuadrarTres(w, ancho, alto) {
     // Hacia la 4, se apaga en 0,4, como el de la 2 hacia la 3, y medido desde la estación 3 (nmw84v293tit)
-    const cerca = suave(tope(1 - Math.abs(w - 3) / (w > 3 ? 0.4 : 0.6)));
-    if (cerca <= 0.001 || !focos[2] || !ancho || !alto) return false;
+    const cerca = suave(tope(1 - Math.abs(w - 4) / (w > 4 ? 0.4 : 0.6)));
+    if (cerca <= 0.001 || !focos[3] || !ancho || !alto) return false;
     camara.updateMatrixWorld();
-    const cam = w > 3 ? ponerCamaraEn(2) : camara;
+    const cam = w > 4 ? ponerCamaraEn(3) : camara;
     const menuIzq = movil || !menuLista ? ancho : menuLista.getBoundingClientRect().left;
     const arriba = arribaDe(lineaTres);
     const lineaArriba = arriba !== null && arriba < alto ? arriba : alto;
     const d = disponerReproductor({ ancho, alto, menuIzq, lineaArriba, anilloMedio: menuIzq * 0.12, anilloAlto: 0, mandos: MANDOS_ALTO + EXTRA_ALTO });
-    const c = aPantalla(focos[2], ancho, alto, cam), e = seleccionado === GUIA ? suave(pantalla2.cam) : 0;
+    const c = aPantalla(focos[3], ancho, alto, cam), e = seleccionado === GUIA ? suave(pantalla2.cam) : 0;
     camara.setViewOffset(ancho, alto, -(lerp(menuIzq / 2, d.anilloX, e) - c.x) * cerca, 0, ancho, alto);
     disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
     return true;
@@ -5050,7 +5196,7 @@ function iniciar() {
   // La pantalla 3D de «Cómo empezar» también se oprime: un clic en ella la agranda y empieza su animación, como «▶ Ver cómo
   // empezar» (nmw6lwwbxtit)
   function sobreLaPantalla(e) {
-    if (!como3d.pantalla?.visible || Math.abs(cur - 3) > 0.45 || visorAbierto()) return false;
+    if (!como3d.pantalla?.visible || Math.abs(cur - 4) > 0.45 || visorAbierto()) return false;
     const r = lienzo.getBoundingClientRect();
     puntero.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     rayo.setFromCamera(puntero, camara);
@@ -5179,11 +5325,11 @@ function iniciar() {
     primera = false;
     // Si la persona se va de la estación 2 (o de la 3, con «Cómo empezar») con un reproductor abierto (por la barra de
     // scroll, el teclado…), se cierra
-    if (seleccionado >= 0 && Math.abs(cur - (seleccionado === GUIA ? 3 : 2)) > 0.45) cerrarPopup();
+    if (seleccionado >= 0 && Math.abs(cur - (seleccionado === GUIA ? 4 : 2)) > 0.45) cerrarPopup();
     const ahoraMs = performance.now(), dt = Math.min(0.1, (ahoraMs - ultimoCuadro) / 1000);
     // «Cómo empezar» ya no se abre solo al llegar a la estación 3: lo abre el visitante con «▶ Ver cómo empezar» (nota de voz
     // del titular nmw5wbs86tit, 7 de noviembre de 2026: «el visitante será el que le dé clic a empezar la animación»)
-    if (Math.abs(cur - 3) > 0.45) guia.visita = false;
+    if (Math.abs(cur - 4) > 0.45) guia.visita = false;
     pintarExtraComo();
     // Con «Cómo empezar» abierto, su tarjeta (que es solo el botón) se esconde entera
     if (lineaTres) lineaTres.style.visibility = seleccionado === GUIA ? 'hidden' : '';
@@ -5307,9 +5453,9 @@ function iniciar() {
     clipT = Number(new URLSearchParams(location.search).get('seg')) || 0; pausado = true;
     pintarClip(ctxClip, Number(abrirN), clipT);
   }
-  // ?ver=3&abrir=como: «Cómo empezar» ya abierto, para capturar dónde quedan sus referencias junto al menú (nmw6z8b3btit)
+  // ?ver=4&abrir=como: «Cómo empezar» ya abierto, para capturar dónde quedan sus referencias junto al menú (nmw6z8b3btit)
   if (fijo !== null && abrirN === 'como') { guia.visita = true; abrirComo(); pantalla2.cam = 1; }
-  // ?ver=4&abrir=doc: el lector de «La documentación» ya abierto, para capturarlo (en un teléfono, a pantalla completa)
+  // ?ver=5&abrir=doc: el lector de «La documentación» ya abierto, para capturarlo (en un teléfono, a pantalla completa)
   if (fijo !== null && abrirN === 'doc') botonDoc?.click();
   // Todo en su lugar desde el primer cuadro (con movimiento reducido, nada más se mueve)
   animar.forEach((f) => f(0));
