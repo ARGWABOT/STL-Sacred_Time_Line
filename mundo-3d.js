@@ -3093,9 +3093,9 @@ function iniciar() {
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     // Más largo hacia atrás desde que la entrada nace lejos (nmw85pz2mtit): también bajo la recta donde nace la línea
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(70, 560), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(70, 860), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
     m.rotation.x = -Math.PI / 2;
-    m.position.set(0, -3, -122);
+    m.position.set(0, -3, -272);
     return m;
   })();
   escena.add(brilloBajoLaLinea);
@@ -3103,7 +3103,7 @@ function iniciar() {
   // ── La línea del tiempo: un camino de luz que serpentea hacia adelante. Sigue más allá de la estación 2, hacia las
   // estaciones del tramo siguiente, y se pierde en la niebla
   const puntos = [];
-  for (let i = 0; i <= 13; i++) puntos.push(new THREE.Vector3(Math.sin(i * 0.7) * 7 + (i % 3 - 1) * 1.5, 0.6 + Math.sin(i * 0.45) * 1.1, -i * 28));
+  for (let i = 0; i <= 13; i++) puntos.push(new THREE.Vector3(Math.sin(i * 0.7) * 7 + (i % 3 - 1) * 1.5, 0.6 + Math.sin(i * 0.45) * 1.1, -i * 47));
   const camino = new THREE.CatmullRomCurve3(puntos, false, 'centripetal');
   // La línea termina en el libro abierto de «La documentación», la última estación (nmw76f854tit): se dibuja solo hasta
   // FIN_LINEA, el lugar de esa estación (SITIO[4]), y ahí entra en sus páginas
@@ -3112,7 +3112,9 @@ function iniciar() {
   const LARGO_LINEA = camino.getLength(), NACE_P = camino.getPointAt(0), NACE_T = camino.getTangentAt(0);
   const puntoEn = (u) => u >= 0 ? camino.getPointAt(Math.min(u, 1)) : NACE_P.clone().addScaledVector(NACE_T, u * LARGO_LINEA);
   const tangenteEn = (u) => camino.getTangentAt(tope(u));
-  const PARADA = [0.1, 0.42, 0.56, 0.7, 0.9];   // dónde se detiene la cámara en cada estación (de 0 a 1); la última, «La documentación»
+  // Todas a la misma distancia de la siguiente (0,2 de la línea) y cada trecho, más largo que el más ancho de antes (0,32 de
+  // los 380 de entonces): así los tres anillos de entre dos estaciones no se amontonan sobre la que se está viendo
+  const PARADA = [0.1, 0.3, 0.5, 0.7, 0.9];   // dónde se detiene la cámara en cada estación (de 0 a 1); la última, «La documentación»
   // Los anillos dorados: ARCO_ANTES, cuánto antes de su parada va el de llegada
   const ARCO_RADIO = 4.2, ARCO_ANTES = 0.035;
   // Cuánto se aleja la cámara en una pantalla angosta para que una estación quepa a lo ancho (colocar › alejarPorAncho)
