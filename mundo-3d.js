@@ -43,6 +43,9 @@ for (const [marca, texto] of [['[data-titulo-tres]', T.tres], ['[data-titulo-mej
   const el = document.querySelector(marca);
   if (el) el.textContent = texto;
 }
+// El botón de «Un Studio que se mejora solo» (abre su animación en el reproductor), con el nombre de la estación
+const botonMejora = document.querySelector('[data-ver-mejora]');
+if (botonMejora) botonMejora.textContent = T.mejora;
 // Lo fijo de la página que no tiene su propio gancho, en inglés, por su texto en español (nmw766nyutit)
 const FIJO_EN = {
   '¿Qué es STL? · El recorrido': 'What is STL? · The tour',
@@ -1362,7 +1365,7 @@ const sinVozTodavia = (clave) => {
 };
 // Cuánto dura cada clip, en segundos: su enunciado y después cada situación en rojo seguida de su solución, segmento
 // tras segmento, cada parte lo que tarda su voz; «Cómo empezar» (GUIA), sus escenas
-const duraClip = (i) => (i === GUIA ? duraComo() : enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + segmentoSeg(j), 0));
+const duraClip = (i) => (i === GUIA ? duraComo() : i === MEJORA ? GUION_MEJORA.length * MEJORA_SEG : enunciadoSeg(i) + (GRANDES[i] ?? GRANDES[0]).reduce((s, j) => s + segmentoSeg(j), 0));
 // La clave de la voz del enunciado de cada gran problema: g<problema>-e (tools/vozRecorrido.ts la saca de su <summary>)
 const claveEnunciado = (i) => `g${(GRANDES[i] ? i : 0) + 1}-e`;
 // Lo que dice cada paso de cada segmento, abajo, mientras pasa: los del problema, en rojo, y los de la solución, cada uno
@@ -1525,6 +1528,9 @@ const lineaDeMejora = (k) => (COMO_EN ? GUION_MEJORA_EN : GUION_MEJORA)[k] ?? ''
 // silencio por ahora: su voz se conecta después de que el titular vea la animación con su guion (nmwo44bpztit). Se repite
 // sola, como el bucle de «Cómo empezar»; con movimiento reducido, cada escena se ve quieta, ya completa
 const MEJORA_SEG = 5;
+// MEJORA es su lugar en el reproductor de los problemas (como GUIA lo es de «Cómo empezar»): el mismo reproductor, con sus
+// mandos, que muestra las cuatro escenas una vez, sin voz (ninguna clave suya suena: decir() y tramoDeVoz() la saltan)
+const MEJORA = 101;
 const ESCENAS_MEJORA = [
   // 1 · El Studio también es su propio proyecto: su línea se traza, con sus puntos, y el Studio aparece sobre ella
   (c, q) => {
@@ -1618,6 +1624,10 @@ function escenaDeComo(t) {
 // docs/difusion/voz/es/, que genera tools/vozRecorrido.ts con lo mismo que dice el rótulo, nmw1ga4dftit)
 function pasoDeClip(i, t) {
   if (i === GUIA) { const e = escenaDeComo(t); return { n: nComo() - 1, p: e.p, enEnunciado: false, enProblema: false, enCierre: e.k === nComo() - 1, k: e.k, q: e.q, j: -1, texto: e.texto, clave: e.clave }; }
+  if (i === MEJORA) {
+    const n = GUION_MEJORA.length, dura = duraClip(i), s = Math.min(dura, Math.max(0, t)), k = Math.min(n - 1, Math.floor(s / MEJORA_SEG));
+    return { n, p: s / dura, enEnunciado: false, enProblema: false, enCierre: false, k, q: tope((s - k * MEJORA_SEG) / MEJORA_SEG), j: -1, texto: lineaDeMejora(k), clave: `mejora-${k + 1}` };
+  }
   const grupo = GRANDES[i] ?? GRANDES[0], n = grupo.length;
   const dura = duraClip(i), s = Math.min(dura, Math.max(0, t)), p = s / dura;
   // Primero, su enunciado (nmw1olvthtit)
@@ -1636,7 +1646,7 @@ function pasoDeClip(i, t) {
   return { n, p, enEnunciado: false, enProblema, enCierre: false, k, q, j, texto: lista[m][1], clave: claveDePaso(j, enProblema, m) };
 }
 // Todos los rótulos de un clip, en su orden. El primero, el de su enunciado; cada segmento termina con su cierre
-const clavesDelGuion = (i) => i === GUIA ? Array.from({ length: nComo() }, (_, k) => claveDeComo(k)) : [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`), claveDeCierre(j)])];
+const clavesDelGuion = (i) => i === MEJORA ? [] : i === GUIA ?Array.from({ length: nComo() }, (_, k) => claveDeComo(k)) : [claveEnunciado(i), ...(GRANDES[i] ?? GRANDES[0]).flatMap((j) => [...PASOS_SEG[j].problema.map((_, m) => `s${j + 1}-p${m + 1}`), ...PASOS_SEG[j].solucion.map((_, m) => `s${j + 1}-${m + 1}`), claveDeCierre(j)])];
 // Todas las voces de un clip, en su orden: para pedirlas antes de que suenen. Las que aún no tienen voz no se piden
 const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(clave));
 // La voz manda (nota de voz nmw2qhhsjtit): el paso del clip i en el segundo t, si su voz es de Google, con su clave, el
@@ -1644,6 +1654,7 @@ const clavesDeClip = (i) => clavesDelGuion(i).filter((clave) => !sinVozTodavia(c
 // reloj del clip es el de la voz (desde + lo que lleva dicho), así la animación ni se adelanta ni la hace esperar, a
 // cualquier velocidad; al callar, corre sola su respiro hasta el paso siguiente
 function tramoDeVoz(i, t) {
+  if (i === MEJORA) return null;   // en silencio: el guion de la estación se lee, no se oye
   if (i === GUIA) { const e = escenaDeComo(t); return pistaVoz(e.clave) == null ? null : { clave: e.clave, desde: e.desde, voz: segDeVoz(e.clave) }; }
   const grupo = GRANDES[i] ?? GRANDES[0], s = Math.max(0, Math.min(duraClip(i), t));
   const e = enunciadoSeg(i), ce = claveEnunciado(i);
@@ -2507,10 +2518,12 @@ function pintarClip(ctx, i, t) {
     const cuenta = n > 1 || !sinCuenta ? `${k + 1} ${L('de', 'of')} ${n}` : '';
     // «Cómo empezar» de pie no pinta su rótulo ni su «k de n» en el dibujo: van fuera, como en los problemas (en su cierre, nada)
     const comoDePie = i === GUIA && vertical && k < GUION_COMO.escenas.length;
-    aparte.pildoras(i === GUIA || enEnunciado || enCierre ? null : enProblema ? 'sin' : 'con',
-      comoDePie ? `${k + 1} ${L('de', 'of')} ${GUION_COMO.escenas.length}` : i === GUIA || enEnunciado ? '' : cuenta);
-    aparte.sub(comoDePie ? paso ?? '' : i === GUIA || enEnunciado || enCierre ? '' : paso ?? '', comoDePie ? false : enProblema);
+    const propio = i === GUIA || i === MEJORA;   // lo suyo va dentro del dibujo, con sus propias píldoras y su frase
+    aparte.pildoras(propio || enEnunciado || enCierre ? null : enProblema ? 'sin' : 'con',
+      comoDePie ? `${k + 1} ${L('de', 'of')} ${GUION_COMO.escenas.length}` : propio || enEnunciado ? '' : cuenta);
+    aparte.sub(comoDePie ? paso ?? '' : propio || enEnunciado || enCierre ? '' : paso ?? '', comoDePie ? false : enProblema);
   }
+  if (i === MEJORA) return void pintarMejora(ctx, k, q, p);
   if (i === GUIA) return void (vertical ? pintarComoVertical(ctx, k, q) : pintarComo(ctx, k, q, p));
   if (vertical) {
     if (enEnunciado) pintarEnunciadoVertical(ctx, paso, q);
@@ -3520,6 +3533,8 @@ function iniciar() {
   const anillo = { centro: null, lado: null, tan: null, escala: 1 };
   // La pantalla 3D de «Cómo empezar» y su brillo (los pone la estación 3), y si el reproductor se está encogiendo hacia ella
   const como3d = { pantalla: null, brillo: null, volviendo: false, linea: null, figura: null };
+  // Lo mismo de «Se mejora solo» (los pone su estación): su pantalla 3D, su brillo, sus adornos y el punto de la línea
+  const mejora3d = { pantalla: null, brillo: null, adornos: null, volviendo: false, linea: null };
   // Las tres referencias de la estación 3 con sus rótulos, en un grupo que se aparta del menú (apartarColumna, nmw6z8b3btit)
   const columnaComo = new THREE.Group();
   escena.add(columnaComo);
@@ -3779,11 +3794,128 @@ function iniciar() {
     brilloMejora.position.copy(pantallaMejora.position).addScaledVector(t, 0.5);
     escena.add(brilloMejora);
     focos.push(pantallaMejora.position.clone());
+    // ── Los adornos de la mejora, en una columna a la derecha de la línea (como las referencias de «Cómo empezar», con las
+    // mismas piezas: cajitas redondeadas, formas extruidas, rótulos y su luz propia), con aire entre ellos: el ciclo que
+    // vuelve a sí mismo, el cubo del Studio con sus chispas, los engranes con la llave, y la grúa que lo va construyendo.
+    // Nada pasa por donde va la cámara, ni se toca con otra cosa ni con la pantalla
+    const adornos = new THREE.Group();
+    escena.add(adornos);
+    const frenteM = Math.atan2(-t.x, -t.z);
+    const enAdornos = (obj, ladoX, alto) => {
+      obj.position.copy(p).addScaledVector(lado, ladoX).addScaledVector(ARRIBA, alto);
+      obj.rotation.y = frenteM;
+      adornos.add(obj);
+      return obj;
+    };
+    const COLUMNA_M = -11.4, TAM_M = 1.2;
+    // 1 · Una flecha que vuelve a sí misma: un arco verde con su punta, que gira despacio (se mejora una y otra vez)
+    const bucle = new THREE.Group();
+    const finArco = Math.PI * 1.5, RADIO_ARCO = 0.42;
+    const materialArco = brillo(VERDE, 0.8);
+    // El arco, de tramos cortos (cajitas redondeadas puestas a lo largo del círculo), y su punta, un triángulo extruido
+    for (let k = 0; k <= 10; k++) {
+      const a = (k / 10) * (finArco - 0.3);
+      const tramo = cajitaM(0.15, 0.085, 0.085, materialArco, 0.03);
+      tramo.position.set(RADIO_ARCO * Math.cos(a), RADIO_ARCO * Math.sin(a), 0);
+      tramo.rotation.z = a + Math.PI / 2;
+      bucle.add(tramo);
+    }
+    const formaPuntaM = new THREE.Shape();
+    formaPuntaM.moveTo(0, 0.2); formaPuntaM.lineTo(-0.18, -0.1); formaPuntaM.lineTo(0.18, -0.1); formaPuntaM.closePath();
+    const puntaM = new THREE.Mesh(new THREE.ExtrudeGeometry(formaPuntaM, { depth: 0.1, bevelEnabled: false }), brillo(VERDE, 0.95));
+    puntaM.position.set(RADIO_ARCO * Math.cos(finArco), RADIO_ARCO * Math.sin(finArco), -0.05);
+    puntaM.rotation.z = finArco - 0.1;
+    const centroM = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 10), brillo(ORO, 0.9));
+    bucle.add(puntaM);
+    const cicloM = new THREE.Group();
+    cicloM.add(bucle, centroM);
+    cicloM.scale.setScalar(TAM_M);
+    enAdornos(cicloM, COLUMNA_M, 5.1);
+    // 2 · El cubo del Studio, con su carita, y tres chispas de mejora que titilan a su alrededor
+    const estudioM = new THREE.Group();
+    const cuboM = cajitaM(0.78, 0.78, 0.78, brillo(MORADO, 0.5), 0.14);
+    const caraM = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({ map: carita(), transparent: true, depthWrite: false }));
+    caraM.position.z = 0.4;
+    estudioM.add(cuboM, caraM);
+    const formaChispa = new THREE.Shape();
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2, r = k % 2 ? 0.28 : 1;
+      if (k === 0) formaChispa.moveTo(Math.sin(a) * r, Math.cos(a) * r); else formaChispa.lineTo(Math.sin(a) * r, Math.cos(a) * r);
+    }
+    formaChispa.closePath();
+    const destellos = [[-0.62, 0.5, 0.2], [0.62, 0.42, 0.16], [0.55, -0.42, 0.12]].map(([x, y, tam]) => {
+      const c = new THREE.Mesh(new THREE.ExtrudeGeometry(formaChispa, { depth: 0.04, bevelEnabled: false }), brillo(ORO, 0.95));
+      c.position.set(x, y, 0.1); c.userData.tam = tam; c.scale.setScalar(tam);
+      estudioM.add(c);
+      return c;
+    });
+    estudioM.scale.setScalar(TAM_M);
+    enAdornos(estudioM, COLUMNA_M, 3.6);
+    // 3 · Un engrane y una llave: sus herramientas
+    const herramientas = new THREE.Group();
+    const engrane = new THREE.Group();
+    // El engrane: un contorno con ocho dientes y su hueco al centro, extruido
+    const formaEngrane = new THREE.Shape();
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2, paso = Math.PI / 8;
+      for (const [da, r] of [[-0.8, 0.3], [-0.45, 0.43], [0.45, 0.43], [0.8, 0.3]]) {
+        const ang = a + da * paso, x = Math.cos(ang) * r, y = Math.sin(ang) * r;
+        if (k === 0 && da === -0.8) formaEngrane.moveTo(x, y); else formaEngrane.lineTo(x, y);
+      }
+    }
+    formaEngrane.closePath();
+    const huecoEngrane = new THREE.Path();
+    huecoEngrane.absarc(0, 0, 0.12, 0, Math.PI * 2, true);
+    formaEngrane.holes.push(huecoEngrane);
+    const cuerpoEngrane = new THREE.Mesh(new THREE.ExtrudeGeometry(formaEngrane, { depth: 0.12, bevelEnabled: false }), brillo(CIAN, 0.7));
+    cuerpoEngrane.position.z = -0.06;
+    engrane.add(cuerpoEngrane);
+    engrane.position.set(-0.5, 0, 0);
+    const llave = new THREE.Group();
+    const mangoLlave = cajitaM(0.13, 0.7, 0.1, brillo(NARANJA, 0.7), 0.045);
+    // Su cabeza, una boca abierta hacia arriba: un arco extruido con su muesca
+    const formaCabeza = new THREE.Shape();
+    formaCabeza.absarc(0, 0, 0.22, Math.PI / 2 + 0.55, Math.PI / 2 - 0.55 + Math.PI * 2, false);
+    formaCabeza.lineTo(0.09, 0.02); formaCabeza.lineTo(-0.09, 0.02); formaCabeza.closePath();
+    const cabezaLlave = new THREE.Mesh(new THREE.ExtrudeGeometry(formaCabeza, { depth: 0.1, bevelEnabled: false }), brillo(NARANJA, 0.7));
+    cabezaLlave.position.set(0, 0.42, -0.05);
+    llave.add(mangoLlave, cabezaLlave);
+    llave.position.set(0.58, -0.05, 0);
+    herramientas.add(engrane, llave);
+    herramientas.scale.setScalar(TAM_M);
+    enAdornos(herramientas, COLUMNA_M, 2.1);   // engrane y llave, bien separados entre sí
+    // 4 · Una grúa chica: su mástil, su brazo y su gancho, que sube y baja un bloque (el Studio se va construyendo)
+    const grua = new THREE.Group();
+    const baseGrua = cajitaM(0.62, 0.08, 0.3, brillo(NARANJA, 0.45), 0.03); baseGrua.position.y = -0.46;
+    const mastilGrua = cajitaM(0.09, 0.95, 0.09, brillo(NARANJA, 0.6), 0.03); mastilGrua.position.set(-0.2, 0.02, 0);
+    const brazoGrua = cajitaM(0.78, 0.08, 0.08, brillo(NARANJA, 0.6), 0.03); brazoGrua.position.set(0.1, 0.5, 0);
+    const cuerdaGrua = cajitaM(0.02, 1, 0.02, plano('#d9d4c4'), 0.005);
+    const bloqueGrua = cajitaM(0.22, 0.2, 0.22, brillo(VERDE, 0.7), 0.04);
+    grua.add(baseGrua, mastilGrua, brazoGrua, cuerdaGrua, bloqueGrua);
+    grua.scale.setScalar(TAM_M);
+    enAdornos(grua, COLUMNA_M, 0.6);
+    // Un rótulo a la izquierda de cada uno (a su derecha estaría la pantalla), en el idioma de la página, a su altura, pasado el
+    // borde de su figura
+    for (const [texto, color, y] of [[L('Se repite', 'It repeats'), VERDE, 5.1], [L('El Studio', 'The Studio'), MORADO, 3.6], [L('Sus herramientas', 'Its tools'), CIAN, 2.1], [L('Se construye', 'It builds'), NARANJA, 0.6]]) {
+      const r = rotulo(texto, color, 0.48, 1);
+      enAdornos(r, COLUMNA_M - 1.4 - r.scale.x / 2, y);
+      r.rotation.y = 0;
+    }
+    Object.assign(mejora3d, { pantalla: pantallaMejora, brillo: brilloMejora, adornos, linea: p.clone().addScaledVector(ARRIBA, 0.9) });
     // Un cuadro nuevo de la animación quince veces por segundo, con el reloj de la estación; quieta, una escena cada MEJORA_SEG
     let cuadroMejora = -1;
     animar.push(deEstacion(2, (s) => {
       const cuadro = quieto ? Math.floor(s / MEJORA_SEG) : Math.floor(s * 15);
       if (cuadro !== cuadroMejora) { cuadroMejora = cuadro; dibujarMejora(s); }
+      // El ciclo gira, las chispas titilan, el engrane gira, la llave se mece y la grúa sube y baja su bloque; nada sale de su sitio
+      bucle.rotation.z = -s * 0.9;
+      destellos.forEach((c, k) => c.scale.setScalar(c.userData.tam * (0.75 + 0.35 * Math.sin(s * 3 + k * 2))));
+      engrane.rotation.z = s * 0.8;
+      llave.rotation.z = -0.35 + 0.12 * Math.sin(s * 1.6);
+      bloqueGrua.position.set(0.42, 0.04 + 0.16 * Math.sin(s * 1.1), 0);
+      const largoCuerda = 0.46 - (bloqueGrua.position.y + 0.1);
+      cuerdaGrua.scale.y = largoCuerda;
+      cuerdaGrua.position.set(0.42, 0.46 - largoCuerda / 2, 0);
     }));
   }
 
@@ -4529,6 +4661,24 @@ function iniciar() {
     disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
     return true;
   }
+  // «Se mejora solo», en la estación 3 del recorrido (w = 3): cerrado, la imagen no se corre (la pantalla queda donde siempre);
+  // con su reproductor abierto a la izquierda, la imagen se corre para que la línea quede a la derecha de él, junto al menú,
+  // como en «Cómo empezar». Pasada la estación, se mide desde ella, quieta (ponerCamaraEn(2))
+  const lineaMejora = document.querySelector('[data-ver-mejora]')?.closest('.tarjeta');
+  function encuadrarMejora(w, ancho, alto) {
+    const cerca = suave(tope(1 - Math.abs(w - 3) / (w > 3 ? 0.4 : 0.6)));
+    if (cerca <= 0.001 || !mejora3d.linea || !ancho || !alto) return false;
+    camara.updateMatrixWorld();
+    const cam = w > 3 ? ponerCamaraEn(2) : camara;
+    const menuIzq = movil || !menuLista ? ancho : menuLista.getBoundingClientRect().left;
+    const arriba = arribaDe(lineaMejora);
+    const lineaArriba = arriba !== null && arriba < alto ? arriba : alto;
+    const d = disponerReproductor({ ancho, alto, menuIzq, lineaArriba, anilloMedio: menuIzq * 0.12, anilloAlto: 0, mandos: MANDOS_ALTO });
+    const c = aPantalla(mejora3d.linea, ancho, alto, cam), e = seleccionado === MEJORA ? suave(pantalla2.cam) : 0;
+    camara.setViewOffset(ancho, alto, -(d.anilloX - c.x) * e * cerca, 0, ancho, alto);
+    disposicion = { ...d, menuIzq, lineaArriba, ancho, alto };
+    return true;
+  }
   function encuadrarDos(w) {
     const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
     // Hacia la 3, el encuadre de la 2 se apaga antes (en 0,4) de que empiece el de la 3 (en 2,4): antes se encimaban y en 2,4
@@ -4537,6 +4687,7 @@ function iniciar() {
     camara.clearViewOffset();
     disposicion = null;
     if (encuadrarTres(w, ancho, alto)) return;
+    if (encuadrarMejora(w, ancho, alto)) return;
     if (cerca <= 0.001 || !anillo.centro || !ancho || !alto) return;
     camara.updateMatrixWorld();
     // El anillo como se ve ahora, sin correrse: su centro y la mitad de su ancho y de su alto, con el aire de sus íconos;
@@ -4713,7 +4864,7 @@ function iniciar() {
     if (clave === voz.clave) return;
     callar();
     voz.clave = clave;
-    if (!conVoz || quieto || sinVozTodavia(clave)) return;   // sin voz todavía: ni se pide su mp3 ni el reloj la espera
+    if (!conVoz || quieto || seleccionado === MEJORA || sinVozTodavia(clave)) return;   // la animación de «Se mejora solo» es muda; sin voz todavía: ni se pide su mp3 ni el reloj la espera
     const a = audioDe(clave), listo = () => { if (voz.audio === a) voz.hablando = false; };
     voz.audio = a; voz.hablando = true; voz.desde = voz.avanzo = performance.now(); voz.posicion = -1;
     a.onended = a.onerror = listo;
@@ -4739,7 +4890,7 @@ function iniciar() {
   // clip se pedía). Si no llegan en 20 s, sigue con las que haya
   let cargaDe = -1, cargaLista = true;
   function cargarVocesDe(i) {
-    cargaDe = i; cargaLista = !conVoz || quieto;
+    cargaDe = i; cargaLista = !conVoz || quieto || i === MEJORA;
     if (cargaLista) return;
     const llega = (a) => new Promise((ok) => {
       if (a.readyState >= 4) return ok();
@@ -4839,7 +4990,7 @@ function iniciar() {
   // no se sabe en qué orden los abre cada quien y un atajo le haría saltarse los demás (nmw8cmckvtit, que reemplaza
   // nmw8b4l91tit); -1 con «Cómo empezar» abierto
   const siguienteDe = (i) => {
-    if (i < 0 || i === GUIA) return -1;
+    if (i < 0 || i === GUIA || i === MEJORA) return -1;
     for (let d = 1; d < problemas.length; d++) { const s = (i + d) % problemas.length; if (orbes[s]) return s; }
     return -1;
   };
@@ -5098,33 +5249,58 @@ function iniciar() {
     if (seleccionado < 0) return false;
     callar();
     const eraGuia = seleccionado === GUIA;
+    const eraMejora = seleccionado === MEJORA;
     if (eraGuia) salirDeComo();
+    if (eraMejora) popup?.setAttribute('aria-label', L('Cómo lo resuelve STL', 'How STL solves it'));
     seleccionado = -1;
     problemas.forEach((d) => d.classList.remove('activo'));
-    if (popup && eraGuia && !quieto) encogerHaciaLaPantalla();
+    if (popup && (eraGuia || eraMejora) && !quieto) encogerHaciaLaPantalla(eraGuia ? como3d : mejora3d);
     else if (popup) popup.hidden = true;
     pantalla2.abierta = false;
     return true;
   };
-  // Dónde queda en la pantalla del navegador la pantalla 3D de «Cómo empezar» (nmw6lwwbxtit)
-  function dondeEstaLaPantalla() {
-    if (!como3d.pantalla || !disposicion) return null;
+  // Dónde queda en la pantalla del navegador la pantalla 3D de «Cómo empezar» (nmw6lwwbxtit) o la de «Se mejora solo»
+  function dondeEstaLaPantalla(d3 = como3d) {
+    if (!d3.pantalla || !disposicion) return null;
     camara.updateMatrixWorld();
-    return aPantalla(como3d.pantalla.position, disposicion.ancho, disposicion.alto);
+    return aPantalla(d3.pantalla.position, disposicion.ancho, disposicion.alto);
   }
-  // Al cerrarse «Cómo empezar» (al irse de la estación, con Esc o con el menú), el reproductor se encoge de vuelta hacia la
-  // pantalla 3D, que reaparece cuando termina: es la misma pantalla, que vuelve a su tamaño (nmw6lwwbxtit)
-  function encogerHaciaLaPantalla() {
-    const o = dondeEstaLaPantalla(), r = popup.getBoundingClientRect();
+  // Al cerrarse «Cómo empezar» o «Se mejora solo» (al irse de la estación, con Esc o con el menú), el reproductor se encoge de
+  // vuelta hacia la pantalla 3D, que reaparece cuando termina: es la misma pantalla, que vuelve a su tamaño (nmw6lwwbxtit)
+  function encogerHaciaLaPantalla(d3 = como3d) {
+    const o = dondeEstaLaPantalla(d3), r = popup.getBoundingClientRect();
     if (o) popup.style.transformOrigin = `${Math.round(o.x - r.left)}px ${Math.round(o.y - r.top)}px`;
-    como3d.volviendo = true;
+    d3.volviendo = true;
     popup.classList.remove('sale'); void popup.offsetWidth; popup.classList.add('vuelve');
     setTimeout(() => {
       popup.classList.remove('vuelve');
       if (seleccionado < 0) popup.hidden = true;
-      como3d.volviendo = false;
+      d3.volviendo = false;
     }, 450);
   }
+  // ── «Se mejora solo» en el mismo reproductor (estación 3 del menú, w = 3): lo abre su botón o un clic en su pantalla 3D, con
+  // las cuatro escenas aprobadas, una vez y sin voz, y con los mismos mandos; no se cierra solo
+  function abrirMejora() {
+    if (!popup) return;
+    if (seleccionado === MEJORA) return void empezarClip(true);
+    if (seleccionado >= 0) cerrarPopup();
+    seleccionado = MEJORA;
+    ajustarLienzo();
+    autocierre.abrir(); autocierre.repetir();
+    popup.setAttribute('aria-label', L('Un Studio que se mejora solo', 'A Studio that improves itself'));
+    document.getElementById('popup-respuesta').textContent = GUION_MEJORA.map((_, k) => lineaDeMejora(k)).join('. ');
+    origenPopup = dondeEstaLaPantalla(mejora3d);
+    mejora3d.volviendo = false;
+    popup.classList.remove('vuelve');
+    popup.hidden = false;
+    popup.classList.remove('sale'); void popup.offsetWidth; popup.classList.add('sale');
+    pantalla2.abierta = true;
+    ponerReproductor();
+    cargarVocesDe(MEJORA);
+    empezarClip();
+    if (quieto && ctxClip) pintarClip(ctxClip, MEJORA, duraClip(MEJORA));
+  }
+  document.querySelector('[data-ver-mejora]')?.addEventListener('click', abrirMejora);
   // ── «Cómo empezar» en el reproductor (estación 3; nmw4ircrjtit, nmw4irz3etit): sus mandos son los de los problemas, se abre
   // solo al llegar, una vez por visita, y no se cierra solo al terminar, para que alcance a quedar a la vista el enlace al
   // README; lo cierran Esc, la rueda fuera de él o el menú, y «▶ Ver cómo empezar», en su línea de abajo, lo vuelve a abrir.
@@ -5195,21 +5371,22 @@ function iniciar() {
   }
   // La pantalla 3D de «Cómo empezar» también se oprime: un clic en ella la agranda y empieza su animación, como «▶ Ver cómo
   // empezar» (nmw6lwwbxtit)
-  function sobreLaPantalla(e) {
-    if (!como3d.pantalla?.visible || Math.abs(cur - 4) > 0.45 || visorAbierto()) return false;
+  function sobreLaPantalla(e, d3 = como3d, w = 4) {
+    if (!d3.pantalla?.visible || Math.abs(cur - w) > 0.45 || visorAbierto()) return false;
     const r = lienzo.getBoundingClientRect();
     puntero.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     rayo.setFromCamera(puntero, camara);
-    return rayo.intersectObject(como3d.pantalla, true).length > 0;
+    return rayo.intersectObject(d3.pantalla, true).length > 0;
   }
   lienzo.addEventListener('click', (e) => {
     const i = bajoElPuntero(e);
     if (i >= 0) alternarProblema(i);
     else if (sobreLaPantalla(e)) { guia.visita = true; abrirComo(); }
+    else if (sobreLaPantalla(e, mejora3d, 3)) abrirMejora();
   });
   lienzo.addEventListener('pointermove', (e) => {
     const i = bajoElPuntero(e);
-    lienzo.style.cursor = i >= 0 || sobreLaPantalla(e) ? 'pointer' : '';
+    lienzo.style.cursor = i >= 0 || sobreLaPantalla(e) || sobreLaPantalla(e, mejora3d, 3) ? 'pointer' : '';
     if (i !== sobre) mostrarNombre(i);
   });
   lienzo.addEventListener('pointerleave', () => mostrarNombre(-1));
@@ -5325,7 +5502,7 @@ function iniciar() {
     primera = false;
     // Si la persona se va de la estación 2 (o de la 3, con «Cómo empezar») con un reproductor abierto (por la barra de
     // scroll, el teclado…), se cierra
-    if (seleccionado >= 0 && Math.abs(cur - (seleccionado === GUIA ? 4 : 2)) > 0.45) cerrarPopup();
+    if (seleccionado >= 0 && Math.abs(cur - (seleccionado === GUIA ? 4 : seleccionado === MEJORA ? 3 : 2)) > 0.45) cerrarPopup();
     const ahoraMs = performance.now(), dt = Math.min(0.1, (ahoraMs - ultimoCuadro) / 1000);
     // «Cómo empezar» ya no se abre solo al llegar a la estación 3: lo abre el visitante con «▶ Ver cómo empezar» (nota de voz
     // del titular nmw5wbs86tit, 7 de noviembre de 2026: «el visitante será el que le dé clic a empezar la animación»)
@@ -5335,6 +5512,10 @@ function iniciar() {
     if (lineaTres) lineaTres.style.visibility = seleccionado === GUIA ? 'hidden' : '';
     // Mientras «Cómo empezar» está abierto (o se encoge de vuelta), su pantalla 3D se apaga: el reproductor es ella en grande
     if (como3d.pantalla) como3d.pantalla.visible = como3d.brillo.visible = !(seleccionado === GUIA || como3d.volviendo);
+    // Lo mismo con «Se mejora solo»: con su reproductor abierto, su pantalla 3D y sus adornos se apagan, y su tarjeta (solo el botón) se esconde
+    if (lineaMejora) lineaMejora.style.visibility = seleccionado === MEJORA ? 'hidden' : '';
+    if (botonVoz) botonVoz.style.display = seleccionado === MEJORA ? 'none' : '';   // su animación es muda: sin botón de voz
+    if (mejora3d.pantalla) mejora3d.pantalla.visible = mejora3d.brillo.visible = mejora3d.adornos.visible = !(seleccionado === MEJORA || mejora3d.volviendo);
     ultimoCuadro = ahoraMs;
     // El reproductor se abre o se cierra suave: el anillo se achica y se corre hacia el menú, o vuelve
     const meta = pantalla2.abierta ? 1 : 0;
@@ -5455,6 +5636,12 @@ function iniciar() {
   }
   // ?ver=4&abrir=como: «Cómo empezar» ya abierto, para capturar dónde quedan sus referencias junto al menú (nmw6z8b3btit)
   if (fijo !== null && abrirN === 'como') { guia.visita = true; abrirComo(); pantalla2.cam = 1; }
+  // ?ver=3&abrir=mejora: «Se mejora solo» ya abierto en el reproductor, para capturarlo
+  if (fijo !== null && abrirN === 'mejora') {
+    abrirMejora(); pantalla2.cam = 1;
+    clipT = Number(new URLSearchParams(location.search).get('seg')) || 0; pausado = true;
+    pintarClip(ctxClip, MEJORA, clipT);
+  }
   // ?ver=5&abrir=doc: el lector de «La documentación» ya abierto, para capturarlo (en un teléfono, a pantalla completa)
   if (fijo !== null && abrirN === 'doc') botonDoc?.click();
   // Todo en su lugar desde el primer cuadro (con movimiento reducido, nada más se mueve)

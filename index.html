@@ -305,6 +305,9 @@
   .estacion.mejora .tarjeta.corta { max-width: none; text-align: center; }
   .tarjeta.corta .linea-mejora { white-space: nowrap; margin: 0; font-size: clamp(17px, 2.2vw, 34px); }
   .js-3d .lista-mejora { display: none; }
+  /* Su botón, como el de «Cómo empezar»: con 3D, abre su animación en el reproductor; sin 3D, no hay botón y se leen las frases */
+  .ver-mejora { display: none; }
+  .js-3d .ver-mejora { display: inline-flex; }
   /* «La documentación»: sin 3D, se lee en su lugar; con 3D, una tarjeta de texto a la izquierda de la línea, que abre su
      «▶» y se va al dejar la estación; la rueda la recorre por dentro */
   .documentacion { max-width: 640px; margin: 16px auto 0; padding: 18px 22px; border: 1px solid rgba(245, 210, 122, .28); border-radius: 18px;
@@ -548,7 +551,8 @@
          la estación, en silencio por ahora, y aquí queda solo su título, en un renglón; sin 3D, se leen aquí -->
     <article class="estacion mejora" id="e-se-mejora">
       <div class="tarjeta corta">
-        <h2 class="linea-mejora" data-titulo-mejora>Un Studio que se mejora solo</h2>
+        <h2 class="linea-mejora sin-3d" data-titulo-mejora>Un Studio que se mejora solo</h2>
+        <div class="acciones"><button type="button" class="boton-ver ver-mejora" data-ver-mejora>Un Studio que se mejora solo</button></div>
         <ol class="lista-mejora" data-lista-mejora>
           <li>El Studio también es su propio proyecto</li>
           <li>Dile lo que cambiarías, como le dices cualquier cosa</li>
@@ -728,7 +732,7 @@
   @media (prefers-reduced-motion: reduce) { #info-caja { transition: none; } }
 </style>
 <div id="info">
-  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-19</span></div></div>
+  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-20</span></div></div>
   <button type="button" id="info-boton" aria-label="Más información: la versión" aria-expanded="false" aria-describedby="info-caja">i</button>
 </div>
 <script>
