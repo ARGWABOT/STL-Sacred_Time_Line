@@ -33,7 +33,7 @@ const T = TEXTOS[(document.documentElement.lang || 'es').toLowerCase().startsWit
 const EN = (document.documentElement.lang || 'es').toLowerCase().startsWith('en');
 // El título corto de cada gran problema, el que sale en el globo de su ícono: dos palabras (nota de voz nmw40cp3jtit); en
 // español, el data-corto de la página; en inglés, su equivalente natural
-const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Lost thread', 'Long answers', 'Forgetful model', 'No internet', 'Typing fatigue'];
+const TITULOS_CORTOS_EN = ['Scattered attention', 'Incomplete messages', 'Lost thread', 'Long answers', 'Forgetful model', 'No internet', 'Typing fatigue', 'I can\'t find what to check'];
 // La línea de la estación 2 sale del diccionario, también en la página en inglés
 const tituloDos = document.querySelector('[data-titulo-dos]');
 if (tituloDos) tituloDos.textContent = T.pasado;
@@ -183,6 +183,7 @@ if (EN) {
     ['Do your tokens go on sessions that reread the same things, does your context get polluted every time you change a decision, and you don’t know what the model remembers?', 'With STL the director reads only what changed, what you replaced leaves the context, and you see each step between the director and the model.'],
     ['Did your internet go down and your work with AI stopped?', 'With STL Studio you keep working offline: the Inbox collects your notes, tweaks and deliveries, and you keep reading your documents and answers and auditing the model’s work. Nothing is lost, and when the connection comes back the director receives it all together.'],
     ['Does writing down everything you think tire you, and your messages to the model come out half-done?', 'With STL you dictate your notes: you talk as you would with a friend, naturally, and you can even ramble, since the director will understand you; they are transcribed on your computer and, since they go to the Inbox and not straight to the model, you read and correct them before they arrive.'],
+    ['Are you asked to check something and lose time opening a new tab, finding the right page, signing in as the right user and hunting by hand for the exact spot?', 'In STL Studio, each mission opens the project in its QA tab, on the right page, already signed in as the right user, at the exact spot to check.'],
   ];
   document.querySelectorAll('details.problema').forEach((d, i) => {
     const [enunciado, respuesta] = PROBLEMAS_EN[i] ?? [];
@@ -439,7 +440,7 @@ const COLOR_TIPO = { respuesta: '#f5d27a', ajuste: '#7fe0d6', idea: '#f7a8d8', f
 // el micrófono del dictado, va en el verde de las entregas, en un tono más claro que el de «Con STL» para que no se
 // confundan (nmw4it925tit)
 const VERDE_DICTADO = '#b4f5cf';
-const COLOR_PROBLEMA = [COLOR_TIPO.idea, COLOR_TIPO.ajuste, COLOR_TIPO.pregunta, COLOR_TIPO.respuesta, COLOR_TIPO.eleccion, COLOR_TIPO.hazlo, VERDE_DICTADO];
+const COLOR_PROBLEMA = [COLOR_TIPO.idea, COLOR_TIPO.ajuste, COLOR_TIPO.pregunta, COLOR_TIPO.respuesta, COLOR_TIPO.eleccion, COLOR_TIPO.hazlo, VERDE_DICTADO, COLOR_TIPO.falla];   // el octavo, la llave del acceso directo, en el rosa rojizo de «Error»
 const GRIS_PROBLEMA = '#8d929e';
 /** Si el ícono del problema i va en su color: con el ratón encima, abierto o ya abierto antes; si no, en gris. Pura. */
 function enColor(i, sobre, seleccionado, resueltos) {
@@ -614,7 +615,9 @@ const PISTA_VOZ_EN = {"g1-e":13162,"g2-e":7034,"g3-e":9314,"g4-e":10178,"g5-e":1
 // La pista de cada clave en el idioma de la página: en inglés, «Cómo empezar» y la estación 2 con la suya (lo que aún no la
 // tiene calla, nunca con la voz en español); lo demás, con la de Kai
 const vozEnIngles = (clave) => EN_DIBUJO && /^(como-|mejora-|s\d+-|g\d+-e$)/.test(clave);
-const pistaVoz = (clave) => (vozEnIngles(clave) ? PISTA_VOZ_EN : PISTA_VOZ_ES)[clave];
+// Una clave callada (callada, más abajo: el octavo problema) no tiene pista aunque su clip exista: sus rótulos duran lo que
+// dice la estimación y nada la espera
+const pistaVoz = (clave) => (callada(clave) ? undefined : (vozEnIngles(clave) ? PISTA_VOZ_EN : PISTA_VOZ_ES)[clave]);
 // Los respiros, cortos (nota de voz nmw2qhhsjtit: la voz parecía esperar a la animación): los clips ya vienen sin el
 // silencio de sus bordes, así que en una coma la frase sigue casi de corrido y al terminarla respira lo que en «La línea
 // del proyecto»
@@ -1328,6 +1331,64 @@ const SEGMENTOS = [
       if (q > 0.93) { const u = tramo(q, 0.93, 0.99); bola(c, lerp(222, 274, u), 86, 3.5, VERDE, 0.5 + 0.5 * u); if (u > 0.95) palomita(c, 284, 100, 4); }
     },
   },
+  { // 16. El acceso directo (el octavo problema; su guion lo aprobó el titular): una ventana de navegador en tres momentos.
+    // Sin STL, pestañas y un acceso que no llevan a ningún lado, y una página con el usuario equivocado; con STL, el paso trae
+    // su atajo, se enciende, y abre la página correcta ya con el usuario correcto. Todo dentro de la ventana, sin pisarse
+    problema: (c, q) => {
+      const u = q < 0.5 ? q / 0.5 : (q - 0.5) / 0.5;
+      ventana(c, 30, 22, 260, 140, q < 0.5 ? L('el navegador', 'the browser') : L('la página', 'the page'));
+      if (q < 0.5) {
+        // Una persona que busca entre pestañas y entre accesos que no llevan a nada
+        const activa = Math.floor(u * 9) % 4;
+        for (let k = 0; k < 4; k++) { caja(c, 38 + k * 62, 38, 58, 14, k === activa ? ROJO : '#8f8a7d', k === activa ? 0.2 : 0.08, 5); renglones(c, 44 + k * 62, 43.5, 40, 1, k === activa ? '#ffd0da' : 'rgba(255, 255, 255, .3)'); }
+        caja(c, 100, 72, 120, 72, '#8f8a7d', 0.08, 6);
+        letrero(c, L('Iniciar sesión', 'Sign in'), 160, 86, LUZ, 8.5);
+        for (const y of [94, 112]) { caja(c, 110, y, 100, 12, '#8f8a7d', 0.1, 4); renglones(c, 116, y + 4.4, 50, 1, 'rgba(255, 255, 255, .3)'); }
+        caja(c, 130, 128, 60, 12, ROJO, 0.18, 4); letrero(c, L('Entrar', 'Enter'), 160, 137, '#ffd0da', 8);
+        actorDev(c, 56, 130, 1.2);
+        trazo(c, 56, 119, 38 + activa * 62 + 29, 52, ROJO, 0.6, true);
+        if (q > 0.25) letrero(c, L('¿dónde está?', 'where is it?'), 160, 64, ROJO, 9);
+      } else {
+        // Llega, pero la página lo trata como a otro: el rol que muestra no es el suyo
+        c.save(); c.globalAlpha *= tramo(u, 0, 0.14);
+        caja(c, 196, 38, 86, 16, ROJO, 0.2, 8); letrero(c, L('rol: lector', 'role: viewer'), 232, 49, '#ffd0da', 8.5); cruz(c, 270, 46, 3.5);
+        caja(c, 44, 66, 150, 66, '#8f8a7d', 0.08, 6);
+        letrero(c, L('Acceso denegado', 'Access denied'), 119, 94, ROJO, 9);
+        renglones(c, 56, 108, 120, 2, 'rgba(255, 255, 255, .25)', 1, 8);
+        actorDev(c, 232, 120, 1.2);
+        c.restore();
+        if (u > 0.4) letrero(c, L('el usuario equivocado', 'the wrong user'), 240, 150, ROJO, 8.5);
+      }
+    },
+    solucion: (c, q) => {
+      const u = q < 0.5 ? q / 0.5 : (q - 0.5) / 0.5;
+      if (q < 0.5) {
+        // El paso de la misión trae su atajo, y el atajo se enciende
+        ventana(c, 30, 22, 260, 140, L('la misión', 'the mission'), ORO);
+        const lista = tramo(u, 0.38, 0.6);
+        brilloActor(c, 241, 60, 40 * lista, '255, 214, 120');
+        placaMision(c, 44, 50, 150, L('Paso 3: revisar el registro', 'Step 3: check the signup'), false, tramo(u, 0, 0.15));
+        c.save(); c.globalAlpha *= tramo(u, 0.1, 0.25);
+        caja(c, 206, 50, 70, 20, lista > 0 ? ORO : '#8f8a7d', 0.1 + 0.4 * lista, 6);
+        letrero(c, L('atajo ↗', 'shortcut ↗'), 241, 63.5, lista > 0.5 ? '#fffaf0' : LUZ, 9);
+        c.restore();
+        actorDev(c, 60, 120, 1.3);
+        if (u > 0.6) { const t = tramo(u, 0.6, 0.95); bola(c, lerp(70, 241, t), lerp(112, 74, t), 3, ORO); }
+      } else {
+        // Un clic: la página correcta, ya con el usuario correcto
+        ventana(c, 30, 22, 260, 140, L('la página correcta', 'the right page'), VERDE);
+        c.save(); c.globalAlpha *= tramo(u, 0, 0.14);
+        caja(c, 196, 38, 86, 16, VERDE, 0.2, 8); letrero(c, L('rol: revisor', 'role: reviewer'), 232, 49, '#dff5e8', 8.5); palomita(c, 272, 46, 3.5);
+        caja(c, 44, 66, 150, 66, VERDE, 0.08, 6);
+        letrero(c, L('el registro', 'the signup'), 119, 82, LUZ, 9);
+        renglones(c, 56, 94, 120, 3, 'rgba(255, 255, 255, .3)', 1, 8);
+        palomita(c, 178, 122, 4);
+        actorDev(c, 232, 120, 1.2, true);
+        c.restore();
+        if (u > 0.4) letrero(c, L('ya entraste', 'already signed in'), 240, 150, VERDE, 8.5);
+      }
+    },
+  },
 ];
 // Los cinco grandes problemas, en el orden de la lista de la estación 2 (data-resuelve): de cada uno, qué segmentos junta
 // (su lugar en SEGMENTOS, de 0), con los guiones del titular del 4 de noviembre: 1: la atención (varias sesiones, la idea
@@ -1341,7 +1402,7 @@ const SEGMENTOS = [
 // perdido», en el lugar de «Contexto enredado»: volver de una pausa sin saber en qué ibas ni qué sigue (la 9, que junta la 9
 // y la 10 de antes) y explicarlo todo otra vez; el 5, «Modelo olvidadizo»: los tokens, el contexto que se contamina y la
 // caja negra, contada como un chat entre el director y el modelo (nmw5cyd6otit)
-const GRANDES = [[1, 2], [0, 6], [8, 10], [3, 4, 5], [7, 11, 12], [13], [14]];
+const GRANDES = [[1, 2], [0, 6], [8, 10], [3, 4, 5], [7, 11, 12], [13], [14], [15]];
 // Lo que todavía no tiene voz, mientras un problema nuevo espera el «Confirmo» de la suya: sus segmentos (de 0) y sus
 // enunciados. Sus rótulos duran lo que dice la estimación (tardaVoz), no se pide ni suena ningún mp3 suyo (nada de 404) y
 // el reloj del clip nunca espera a una voz. tools/vozRecorrido.ts lo repite (SIN_VOZ_TODAVIA) para que el generador no lo
@@ -1355,13 +1416,20 @@ const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set([]);
 // Los cinco de «Hilo perdido» y «Modelo olvidadizo» (pd_fusion_olvidadizo), sus dos enunciados, las dos frases en rojo de
 // volver de una pausa y «con una sola misión siguiente a la vista:», hablan con Kai desde la noche del 6 de noviembre de
 // 2026, con su «Confirmo» (nmw5ej4oytit, pd_voz_hilo)
-const CLAVES_SIN_VOZ_TODAVIA = new Set([]);
-const sinVozTodavia = (clave) => {
+// El octavo problema, el acceso directo (segmento 16 y su enunciado g8-e), calla: sus clips s16-p1, s16-p2, s16-1 y s16-2
+// ya existen, pero no se conectan hasta que el titular vea la animación y su guion; su enunciado y su cierre, propuestos,
+// no tienen clip. Ninguna de sus claves tiene pista, así que sus rótulos duran lo que dice la estimación (tardaVoz)
+const CLAVES_SIN_VOZ_TODAVIA = new Set(['g8-e', 's16-p1', 's16-p2', 's16-1', 's16-2', 's16-c']);
+const callada = (clave) => {
   const seg = /^s(\d+)-/.exec(clave);
+  return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || CLAVES_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
+};
+const sinVozTodavia = (clave) => {
+  if (callada(clave)) return true;
   // «Cómo empezar» en inglés, sin voz hasta que se revise su texto en inglés (t_decide_voz_ingles_cuando): su voz en español no
   // suena bajo un rótulo en inglés (nmw6r9827tit)
   if (vozEnIngles(clave)) return pistaVoz(clave) == null;
-  return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || CLAVES_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
+  return false;
 };
 // Cuánto dura cada clip, en segundos: su enunciado y después cada situación en rojo seguida de su solución, segmento
 // tras segmento, cada parte lo que tarda su voz; «Cómo empezar» (GUIA), sus escenas
@@ -1411,7 +1479,7 @@ const CIERRES = [
   ['El modelo, una caja negra', 'La caja negra, ahora a la vista.'],
   ['Sin internet, todo se detenía', 'Sin internet, tu trabajo sigue.'],
   ['El cansancio de escribir', 'Hablas, corriges y envías: sin escribir de más.'],
-  null,   // 16. (el acceso directo: sin cierre todavía)
+  ['No saber dónde revisar', 'El atajo te lleva directo a lo que revisar.'],   // 16. (propuesto: no está entre las cuatro frases aprobadas)
 ];
 // La estación 2 en inglés (pd_bilingue; t_decide_estacion2_textos, nmw738o1ktit): los guiones, fieles al español frase por
 // frase, con los mismos cortes (nmw3q7lw7tit), y los cierres adaptados, como los diría alguien de habla inglesa
@@ -1451,7 +1519,7 @@ const CIERRES_EN = [
   ['The model, a black box', 'The black box, now in plain sight.'],
   ['Without internet, it all stopped', 'No internet, and your work goes on.'],
   ['The fatigue of typing', 'Talk, correct and send: no extra typing.'],
-  null,   // 16. (direct access: no closing yet)
+  ['Not knowing where to check', 'The shortcut takes you straight to what to check.'],   // 16. (proposed: not among the four approved lines)
 ];
 if (EN_DIBUJO) {
   PASOS_SEG.forEach((s, j) => Object.assign(s, PASOS_SEG_EN[j]));
@@ -3549,8 +3617,8 @@ function iniciar() {
   {
     const u = SITIO[1];
     const { p, t, lado } = marco(u);
-    // Los íconos, al 65 % de lo que medían (1,45): por lo menos el 60 % que pidió el titular (nmw40cp3jtit)
-    const ESCALA_ICONO = 0.95;
+    // Los íconos, a 0,64: un tercio menos que los 0,95 de antes (pd_problema_acceso_directo), para que respiren en el anillo
+    const ESCALA_ICONO = 0.64;
     const frente = Math.atan2(-t.x, -t.z);   // para que el ícono mire hacia la cámara, que viene por detrás de la línea
     // El anillo: una elipse alrededor de la línea, de frente a la cámara (más ancha que alta, para no tocar el suelo), un poco
     // inclinada para que se vea en 3D, con los seis a la misma distancia uno del otro
@@ -3558,7 +3626,7 @@ function iniciar() {
     // mirada nivelada, y al irse de la estación la cámara pasa por el hueco del anillo, sin bajar la mirada para encuadrarlo
     // (nota de voz del titular nmw6lcanstit, 7 de noviembre de 2026)
     Object.assign(anillo, { centro: p.clone().addScaledVector(ARRIBA, ALTURA_CAMARA), lado, tan: t });
-    const ESFERAS = Array.from({ length: 7 }, (_, i) => ({ a: Math.PI / 2 + (i * 2 * Math.PI) / 7 }));
+    const ESFERAS = Array.from({ length: 8 }, (_, i) => ({ a: Math.PI / 2 + (i * 2 * Math.PI) / 8 }));
     const forma = (pts) => { const s = new THREE.Shape(); pts.forEach(([x, y], k) => (k ? s.lineTo(x, y) : s.moveTo(x, y))); s.closePath(); return s; };
     const extr = (s, prof, bisel = 0.03) => {
       const g = new THREE.ExtrudeGeometry(s, { depth: prof, bevelEnabled: true, bevelThickness: bisel, bevelSize: bisel, bevelSegments: 1, curveSegments: 10 });
@@ -3666,6 +3734,20 @@ function iniciar() {
         g.add(cabeza, u, pie, base);
         return g;
       },
+      // 8 · el acceso directo: una llave, su aro de su color con un ojo blanco, su caña y sus dos dientes (la entrada al lugar
+      // correcto, ya con el usuario correcto), puesta en diagonal
+      (mat, apoyo) => {
+        const g = new THREE.Group();
+        const vuelta = Array.from({ length: 16 }, (_, k) => { const a = (k / 16) * Math.PI * 2; return new THREE.Vector3(Math.cos(a) * 0.3, Math.sin(a) * 0.3, 0); });
+        const aro = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(vuelta, true), 32, 0.12, 8, true), mat); aro.position.set(-0.5, 0, 0);
+        const ojo = cajita(0.2, 0.2, 0.1, apoyo, 0.05); ojo.position.set(-0.5, 0, 0);
+        const cana = cajita(1.05, 0.15, 0.15, mat, 0.05); cana.position.set(0.22, 0, 0);
+        const d1 = cajita(0.15, 0.34, 0.15, apoyo, 0.04); d1.position.set(0.5, -0.24, 0);
+        const d2 = cajita(0.15, 0.24, 0.15, apoyo, 0.04); d2.position.set(0.74, -0.19, 0);
+        g.add(aro, ojo, cana, d1, d2);
+        g.rotation.z = 0.7;
+        return g;
+      },
     ];
     // Las medidas del anillo: sus radios (a lo ancho y a lo alto), cuánto se inclina, cuánto se achica con el reproductor
     // abierto y su giro (radianes por segundo: una vuelta en algo más de un minuto, despacio)
@@ -3673,33 +3755,7 @@ function iniciar() {
     const lugarEnAnillo = (a, s, fuera = new THREE.Vector3()) => fuera.copy(anillo.centro)
       .addScaledVector(lado, Math.cos(a) * RADIO_X * s).addScaledVector(ARRIBA, Math.sin(a) * RADIO_Y * s).addScaledVector(t, Math.sin(a) * INCLINA * s);
     Object.assign(anillo, { radioX: RADIO_X, radioY: RADIO_Y, abierto: ANILLO_ABIERTO });
-    // ── Efecto 12 de la galería (cuarta ronda): órbitas finas alrededor de cada ícono, como las de un átomo: dos aros muy
-    // delgados e inclinados distinto (uno solo en el teléfono) y una perla de luz que da vueltas por cada uno. Son hijos del
-    // ícono, así que lo siguen y crecen con él; sus radios (1,2 y 1,38 del ícono) caben entre dos vecinos aun con el reproductor
-    // abierto, cuando el anillo se achica. Toman el color del ícono (gris hasta que se abre) y se ven un poco más al abrirlo.
-    // Con ?sinbrillo no hay; con movimiento reducido quedan quietas
-    const CirculoUnidad = class extends THREE.Curve { getPoint(k, v = new THREE.Vector3()) { const a = k * Math.PI * 2; return v.set(Math.cos(a), Math.sin(a), 0); } };
-    const geoAro = conEfectos2 ? new THREE.TubeGeometry(new CirculoUnidad(), movil ? 40 : 72, 0.022, 4, true) : null;
-    const geoPerla = conEfectos2 ? new THREE.SphereGeometry(0.075, 8, 6) : null;
-    const ORBITAS = [{ r: 1.2, inclina: [1.05, 0.3], v: 0.55 }, { r: 1.38, inclina: [-0.75, 1.25], v: -0.4 }].slice(0, 1);   // una sola órbita por ícono (nota del titular, quinta ronda)
-    const hacerOrbitas = (orbe, i) => {
-      if (!conEfectos2) return [];
-      const matAro = new THREE.MeshBasicMaterial({ color: GRIS_PROBLEMA, transparent: true, opacity: 0.3, depthWrite: false });
-      const matPerla = new THREE.MeshBasicMaterial({ color: '#ffffff' });
-      return ORBITAS.map((o, k) => {
-        const pivote = new THREE.Group();
-        pivote.rotation.set(o.inclina[0], o.inclina[1], 0);
-        const aro = new THREE.Mesh(geoAro, matAro);
-        aro.scale.setScalar(o.r);
-        const giro = new THREE.Group(), perla = new THREE.Mesh(geoPerla, matPerla);
-        perla.position.x = o.r;
-        giro.add(perla);
-        giro.rotation.z = i * 0.9 + k * 2.1;
-        pivote.add(aro, giro);
-        orbe.add(pivote);
-        return { giro, v: o.v, base: i * 0.9 + k * 2.1, matAro };
-      });
-    };
+    // Sin órbitas alrededor de cada ícono (nota nmwp9gfl6tit): el aro con su perla recargaba la vista
     ESFERAS.forEach((pos, i) => {
       const casa = lugarEnAnillo(pos.a, 1);
       // Empieza en gris; su color, al pasar el ratón, al abrirlo y después de abierto (moverAnillo)
@@ -3713,7 +3769,7 @@ function iniciar() {
       const titulo = EN ? TITULOS_CORTOS_EN[i] : (problemas[i]?.dataset.corto ?? `Problema ${i + 1}`);
       hit.userData.i = i;
       escena.add(orbe);
-      orbes.push({ orbe, hit, titulo, mat, casa, a: pos.a, orbitas: hacerOrbitas(orbe, i), fase: Math.random() * 6, grande: 1, color: new THREE.Color(COLOR_PROBLEMA[i]) });
+      orbes.push({ orbe, hit, titulo, mat, casa, a: pos.a, fase: Math.random() * 6, grande: 1, color: new THREE.Color(COLOR_PROBLEMA[i]) });
     });
     const gris = new THREE.Color(GRIS_PROBLEMA), tono = new THREE.Color();
     // Desde lejos, el anillo va en sus siete colores, y al llegar a la estación se vuelve gris hasta que abres cada uno
@@ -3736,12 +3792,6 @@ function iniciar() {
         o.orbe.position.copy(o.casa).addScaledVector(ARRIBA, Math.sin(s * 1.4 + o.fase) * 0.1);
         o.orbe.rotation.y = frente + Math.sin(s * 0.9 + o.fase) * 0.4;
         o.mat.emissiveIntensity = visto ? 0.55 : lerp(0.15 + 0.15 * Math.sin(s * 2 + o.fase) ** 2, 0.55, deLejos);
-        // Sus órbitas: la perla da vueltas (s es el reloj de la estación) y el aro toma el color del ícono
-        for (const orb of o.orbitas) {
-          orb.giro.rotation.z = orb.base + s * orb.v;
-          orb.matAro.color.copy(o.mat.color);
-          orb.matAro.opacity = visto ? 0.5 : 0.3;
-        }
       });
     }
     anillo.mover = moverAnillo;
@@ -5514,7 +5564,7 @@ function iniciar() {
     if (como3d.pantalla) como3d.pantalla.visible = como3d.brillo.visible = !(seleccionado === GUIA || como3d.volviendo);
     // Lo mismo con «Se mejora solo»: con su reproductor abierto, su pantalla 3D y sus adornos se apagan, y su tarjeta (solo el botón) se esconde
     if (lineaMejora) lineaMejora.style.visibility = seleccionado === MEJORA ? 'hidden' : '';
-    if (botonVoz) botonVoz.style.display = seleccionado === MEJORA ? 'none' : '';   // su animación es muda: sin botón de voz
+    if (botonVoz) botonVoz.style.display = seleccionado === MEJORA || (seleccionado >= 0 && seleccionado !== GUIA && callada(claveEnunciado(seleccionado))) ? 'none' : '';   // su animación es muda: sin botón de voz
     if (mejora3d.pantalla) mejora3d.pantalla.visible = mejora3d.brillo.visible = mejora3d.adornos.visible = !(seleccionado === MEJORA || mejora3d.volviendo);
     ultimoCuadro = ahoraMs;
     // El reproductor se abre o se cierra suave: el anillo se achica y se corre hacia el menú, o vuelve
