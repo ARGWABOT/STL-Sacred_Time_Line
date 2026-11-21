@@ -687,26 +687,25 @@ const tramo = (p, a, b) => suave(tope((p - a) / (b - a)));
 // Qué tan lejos está la cámara de algo: 0 a «cerca» o menos, 1 a «lejos» o más, suave entre los dos. Con ella el emblema de
 // la estación 1 crece al acercarte y el anillo de la 2 se ve en color desde lejos (pd_estaciones_decoradas, nmw74wypntit)
 const lejania = (distancia, cerca, lejos) => tramo(distancia, cerca, lejos);
-// Dónde va cada anillo dorado de la línea (de 0 a 1 en la curva, que se recorre por su largo): tres entre cada estación y la
-// siguiente, a la misma distancia uno del otro, y el último el de la llegada, «antes» antes de la parada (nmw74wypntit: «three
-// rings between every station except before the first one», para sentir que se avanza un poco más rápido). Antes de la
-// estación 1, ninguno. Pura
-const ANILLOS_POR_TRAMO = 3;
+// Dónde va cada anillo dorado de la línea (de 0 a 1 en la curva, que se recorre por su largo): uno solo entre cada estación y
+// la siguiente, justo en la mitad del trecho (nota de voz del titular nmwpru296tit, 21 de noviembre de 2026: «solamente un
+// anillo entre estación y estación… ubicado justo en la parte central»; antes eran tres, nmw74wypntit). Nunca más tarde que
+// «antes» antes de la parada, para que en un teléfono la cámara alejada siempre lo pase (antesDeLlegar). Pura
+const ANILLOS_POR_TRAMO = 1;
 function lugaresDeAnillos(paradas, antes) {
   return paradas.slice(1).flatMap((u, k) => {
     const desde = paradas[k], hasta = Math.max(desde, u - antes);
-    return Array.from({ length: ANILLOS_POR_TRAMO }, (_, m) => desde + ((hasta - desde) * (m + 1)) / ANILLOS_POR_TRAMO);
+    return Array.from({ length: ANILLOS_POR_TRAMO }, (_, m) => Math.min(hasta, desde + ((u - desde) * (m + 1)) / (ANILLOS_POR_TRAMO + 1)));
   });
 }
-// La entrada, mucho más atrás (nota de voz del titular nmw85pz2mtit, 8 de noviembre de 2026): la cámara nace lejos, frente
-// a la línea, y antes del primer anillo hay el mismo trecho que entre dos anillos de las estaciones 1 y 2; los tres anillos,
-// a ese mismo paso, y el último, «antes» antes de la estación 1, como el de llegada de cada estación. Así, del inicio a la
-// estación 1 hay lo mismo que de la estación 1 a la 2. Lo que queda antes de 0 se dibuja sobre la recta con que nace la
-// línea (iniciar() › puntoEn). Pura
+// La entrada (notas de voz del titular nmw85pz2mtit y nmwpru296tit): la cámara nace lejos, frente a la línea, y del inicio a
+// la estación 1 hay lo mismo que de la estación 1 a la 2; su único anillo, como los demás, en la mitad de ese trecho. Lo que
+// queda antes de 0 se dibuja sobre la recta con que nace la línea (iniciar() › puntoEn). Pura
 function entradaDeAnillos(paradas, antes) {
-  const paso = (paradas[1] - antes - paradas[0]) / ANILLOS_POR_TRAMO, ultimo = paradas[0] - antes;
-  const anillos = Array.from({ length: ANILLOS_POR_TRAMO }, (_, m) => ultimo - (ANILLOS_POR_TRAMO - 1 - m) * paso);
-  return { nace: anillos[0] - paso, anillos, paso };
+  const largo = paradas[1] - paradas[0], nace = paradas[0] - largo;
+  const paso = largo / (ANILLOS_POR_TRAMO + 1);
+  const anillos = Array.from({ length: ANILLOS_POR_TRAMO }, (_, m) => Math.min(paradas[0] - antes, nace + (m + 1) * paso));
+  return { nace, anillos, paso };
 }
 // Un resplandor tibio detrás de un actor, como el de la estación 1 (resplandor()): rgb, como «255, 241, 196»
 function brilloActor(c, x, y, r, rgb) {
@@ -3317,7 +3316,7 @@ function iniciar() {
   const ALEJAR_ANILLO = 0.3;
   // Y cuánto se acerca la imagen (zoom) en las estaciones 1, 4 y 5 de un teléfono de pie, medido en 390 × 844 y 360 × 800
   const ACERCAR_TELEFONO = { 1: 1.05, 4: 1.75, 5: 4 };
-  // La entrada (nmw84xwcrtit, nmw85pz2mtit): la cámara nace lejos al frente de la línea (U_NACE), cruza sus tres anillos y,
+  // La entrada (nmw84xwcrtit, nmw85pz2mtit): la cámara nace lejos al frente de la línea (U_NACE), cruza su anillo y,
   // ya en U_SALE, pasado el último, se abre a la vista de costado de la estación 1
   const { nace: U_NACE, anillos: ANILLOS_ENTRADA } = entradaDeAnillos(PARADA, ARCO_ANTES);
   const U_SALE = 0.09;
@@ -4353,7 +4352,7 @@ function iniciar() {
   // estación, que la cámara cruza al llegar, como una puerta que dice «estás llegando». La estación 1 no lo lleva: el
   // recorrido empieza ahí y no pasa por él. Ancho y alto de sobra: la cámara pasa a 1,4 del centro de la línea y a 2,8 de
   // altura (unos 3,1 del centro del anillo), y el anillo mide 4,2 de radio, así que nada cruza la vista. Quieto, sin animación.
-  // Desde nmw74wypntit, tres por tramo, a la misma distancia (lugaresDeAnillos): dos en el camino y el de la llegada
+  // Desde nmwpru296tit, uno por tramo, en su mitad (lugaresDeAnillos); antes, tres (nmw74wypntit)
   // Un círculo entero hecho tubo, en el plano de su costado y arriba, con su halo: un tubo más grueso, tenue y aditivo
   const circulo = Array.from({ length: 72 }, (_, k) => new THREE.Vector3(Math.cos((k / 72) * Math.PI * 2) * ARCO_RADIO, Math.sin((k / 72) * Math.PI * 2) * ARCO_RADIO, 0));
   const formaArco = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(circulo, true), 144, 0.05, 8, true);
@@ -4379,7 +4378,7 @@ function iniciar() {
   conArcos(materialArco, 'arcos-anillo', 'vec3 totalEmissiveRadiance = emissive;', 'totalEmissiveRadiance *= 0.6 + (0.8 + 1.6 * uCalor) * arcos;');
   conArcos(materialHaloArco, 'arcos-halo', 'vec4 diffuseColor = vec4( diffuse, opacity );', 'diffuseColor.a *= 0.55 + 1.8 * arcos;');
   let vueltaAnillo = 0;
-  // Y tres antes de la estación 1, en el trecho donde nace la línea (nota de voz del titular nmw84xwcrtit, 8 de noviembre de
+  // Y uno antes de la estación 1 (tres hasta nmwpru296tit), en el trecho donde nace la línea (nota de voz del titular nmw84xwcrtit, 8 de noviembre de
   // 2026): el recorrido empieza parado al frente de la línea, con el primero a la vista, y la cámara los cruza hacia «Qué es
   // STL» antes de abrirse a la vista de costado de la estación
   // En un teléfono, la cámara se aleja en cada parada para que la estación quepa a lo ancho (alejarPorAncho) y se detenía
@@ -4819,15 +4818,17 @@ function iniciar() {
   // El problema abierto (−1, ninguno) y el que está bajo el ratón. Al abrir uno, la cámara no se mueve: el recuadro lo
   // tapaba y el acercamiento la dejaba pegada a la estación 2 (t_decide_acercar_problema, nota nmw19elcqtit)
   let seleccionado = -1, sobre = -1;
-  // La entrada: dónde la cámara (7,5 detrás de su punto de la línea) ya cruzó el tercer anillo, con 1,5 de aire; si eso cae
-  // más allá de U_SALE, la entrada llega hasta ahí. W_CRUCE es el w de ese punto (masSuave se invierte por bisección)
+  // La entrada: dónde la cámara (7,5 detrás de su punto de la línea) ya cruzó el anillo de la entrada, con 1,5 de aire; si
+  // eso cae más allá de U_SALE, la entrada llega hasta ahí. W_CRUCE es el w de ese punto (masSuave se invierte por
+  // bisección), y nunca antes del último cuarto: con un solo anillo, en la mitad del trecho (nmwpru296tit), la cámara sigue
+  // mirando al frente por la línea como antes y solo al final se abre a la estación 1
   const U_CRUCE = ANILLOS_ENTRADA[ANILLOS_ENTRADA.length - 1] + 9 / LARGO_LINEA;
   const U_SALE_ENTRADA = Math.max(U_SALE, U_CRUCE + 0.004);
   const W_CRUCE = (() => {
     const meta = (U_CRUCE - U_NACE) / (U_SALE_ENTRADA - U_NACE);
     let a = 0, b = 1;
     for (let n = 0; n < 40; n++) { const m = (a + b) / 2; if (masSuave(m) < meta) a = m; else b = m; }
-    return Math.min(0.9, (a + b) / 2);
+    return Math.min(0.9, Math.max(0.75, (a + b) / 2));
   })();
   let giroEntrada = 1;
   function colocar(w) {
@@ -4836,7 +4837,7 @@ function iniciar() {
       // De 0 a 1: avanza por la línea desde donde nace hasta pasar el último anillo de la entrada, y en la segunda mitad se
       // abre a la vista de costado de la estación 1 (el espejo de la salida de la estación 1, k === 1)
       // Desde que la entrada nace mucho más atrás (nmw85pz2mtit), se abre más tarde, en el último cuarto: antes cruza los anillos
-      // Y solo se abre después de cruzar el tercer anillo (nota de voz del titular nmw87ytm7tit): W_CRUCE es donde la cámara
+      // Y solo se abre después de cruzar el anillo de la entrada (nmw87ytm7tit, nmwpru296tit): W_CRUCE es donde la cámara
       // ya lo pasó; de ahí al final, la vista de costado
       const e = masSuave(tope(w));
       ({ posicion, mira } = pose(lerp(U_NACE, U_SALE_ENTRADA, e)));
