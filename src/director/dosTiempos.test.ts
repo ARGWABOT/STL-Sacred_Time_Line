@@ -163,6 +163,8 @@ describe('el primer tiempo, conectado al lanzador', () => {
 
   it('cada encargo nombra sus skills, y el segundo tiempo arranca solo con las del plan (pd_dos_tiempos, nmvm0r0rstit)', () => {
     expect(encargoDelPrimerTiempo('golf', 60)).toContain('the second time starts with only the skills the plan names');
+    // Ni pide un campo que ningún código lee (pd_auditoria_redundancias, parte 7)
+    expect(encargoDelPrimerTiempo('golf', 60)).not.toContain('herramientas');
     expect(validarEncargos([{ ...bien, skills: ['sitio-3d-scroll'] }, { ...bien, id: 'e2', skills: [] }])).toEqual([]);
     expect(validarEncargos([{ ...bien, skills: [''] }])[0]).toContain('no dice bien sus skills');
     expect(validarEncargos([{ ...bien, skills: 'dataviz' as unknown as string[] }])[0]).toContain('no dice bien sus skills');

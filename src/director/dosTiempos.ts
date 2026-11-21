@@ -2,8 +2,8 @@
 // revisión», parte 12, y del 28 de octubre, en t_medir_dos_tiempos, cómo se mide). Un primer tiempo corto, con el mismo
 // modelo del director y esfuerzo medio (propuesta aceptada pr_plan_esfuerzo_medio, 31 de octubre de 2026; antes, bajo), que
 // se reintenta una vez si no deja su lista (nota del titular nmvwig61gtit), no ejecuta nada: lee lo de hoy y escribe el
-// plan de la revisión como una lista de encargos que el código valida (sus archivos y la parte que tocan, qué hacer, qué se espera, qué procedimientos, skills y
-// herramientas necesitan, con qué modelo y cuánto contexto calcula), para que el código nunca le dé un encargo a un modelo
+// plan de la revisión como una lista de encargos que el código valida (sus archivos y la parte que tocan, qué hacer, qué se espera, qué procedimientos y skills
+// necesitan, con qué modelo y cuánto contexto calcula), para que el código nunca le dé un encargo a un modelo
 // cuya ventana no lo aguanta con margen. El segundo tiempo lo ejecuta, encargo por encargo. El primero corre en toda
 // revisión, traiga lo que traiga (decisión del titular nmvxww5detit, 1 de noviembre de 2026: «vamos a seguir haciendo siempre
 // el plan»). Y se mide con las revisiones de verdad, antes y después (cuánto duran, cuánto
@@ -33,7 +33,6 @@ export interface EncargoDeRevision {
   /** Los procedimientos del director que necesita (las claves de PROCEDIMIENTOS). */
   procedimientos: string[];
   skills?: string[];
-  herramientas?: string[];
   modelo: ModeloDelEncargo;
   /** Cuánto contexto calcula que necesita, en tokens: lo que lee más lo que escribe. */
   contexto: number;
@@ -135,7 +134,7 @@ export const encargoDelPrimerTiempo = (proyecto: string, minutos: number, bandej
   `"procedimientos": [<keys among ${Object.keys(PROCEDIMIENTOS).map((k) => `"${k}"`).join(', ')}>], "skills": [<the names ` +
   `of the skills listed to you that the task needs; the second time starts with only the skills the plan names, so leave ` +
   `it empty if it needs none>], ` +
-  `"herramientas": [], "modelo": "director" | "sonnet" | "haiku", "contexto": <tokens it reads plus writes> }. Use ` +
+  `"modelo": "director" | "sonnet" | "haiku", "contexto": <tokens it reads plus writes> }. Use ` +
   `"sonnet" or "haiku" only for routine and checkable work (a long reading, a bounded change with its test); the core of ` +
   `the Studio, permissions and what deletes or costs go with "director". The Studio validates the list: a task that a ` +
   `model's window cannot hold with margin is rejected.` +
