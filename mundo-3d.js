@@ -1497,7 +1497,7 @@ const SEGMENTOS = [
         const destello = Math.max(0, 1 - Math.abs(((u * 2) % 1) - 0.5) * 5);
         c.save(); c.globalAlpha *= 0.35 * destello; c.fillStyle = '#fff'; c.fillRect(44, 38, 150, 100); c.restore();
         actorDev(c, 240, 120, 1.2);
-        if (u > 0.4) letrero(c, L('una foto de la pantalla', 'a screenshot'), 240, 150, ROJO, 8.5);
+        if (u > 0.4) letrero(c, L('una foto de la pantalla', 'a screenshot'), 222, 150, ROJO, 8.5);
       } else if (q < 0.5) {
         // y las pegas en el chat con el modelo: la foto baja a la conversación
         const t = tramo(u, 0, 0.5);
