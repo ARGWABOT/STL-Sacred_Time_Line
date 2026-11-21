@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { bashDelSistema } from './terminal.ts';
-import { adjuntoDeSalida, CorridasOcultas, enmascarar, esCritica, LIMITE_MS, marcaEnVentana, MAS_TIEMPO_MS, ordenNunca, permisoDeSiempre, reglaParaSiempre, SILENCIO_MS, tiempoDeCorrida, ultimasLineas, vaEnVentana, yaAutorizada, type Proceso } from './terminalOculta.ts';
+import { adjuntoDeSalida, CorridasOcultas, enmascarar, llamadaDeBash, esCritica, LIMITE_MS, marcaEnVentana, MAS_TIEMPO_MS, ordenNunca, permisoDeSiempre, reglaParaSiempre, SILENCIO_MS, tiempoDeCorrida, ultimasLineas, vaEnVentana, yaAutorizada, type Proceso } from './terminalOculta.ts';
 
 /** Un proceso de mentira: se le dicta lo que dice y cuándo termina. */
 function falso() {
@@ -198,6 +198,33 @@ describe('las corridas: la salida guardada, el tiempo, «Detener» y el apagado 
     expect(corridas.estado(c.id)).toMatchObject({ fase: 'hecha', codigo: 0 });
     expect(corridas.estado(c.id)?.salida).toContain('hola-oculta');
   }, 20_000);
+
+  it('on Windows the hidden bash is a login shell in MINGW64 that stays in its folder; elsewhere, as before (nmwqmmidgtit)', () => {
+    const w = llamadaDeBash('npm test', 'win32', { PATH: 'C:\\x' });
+    expect(w.args).toEqual(['--login', '-c', 'npm test']);
+    expect(w.env).toMatchObject({ PATH: 'C:\\x', MSYSTEM: 'MINGW64', CHERE_INVOKING: '1', GIT_TERMINAL_PROMPT: '0' });
+    expect(llamadaDeBash('npm test', 'win32', { MSYSTEM: 'UCRT64' }).env.MSYSTEM).toBe('UCRT64');
+    for (const p of ['linux', 'darwin'] as const) {
+      const o = llamadaDeBash('npm test', p, { PATH: '/usr/bin' });
+      expect(o.args).toEqual(['-c', 'npm test']);
+      expect(o.env.CHERE_INVOKING).toBeUndefined();
+    }
+  });
+
+  it('really, on this computer: `npm --version` and `sleep 1` run hidden, as in Git Bash (nmwqmmidgtit, nmwqmrxsgtit)', async () => {
+    if (!(await bashDelSistema())) return;
+    // As the Studio's server gets it when started from Windows: a PATH without Git Bash's own folders
+    const antes = process.env.PATH;
+    const sep = process.platform === 'win32' ? ';' : ':';
+    if (process.platform === 'win32') process.env.PATH = (antes ?? '').split(sep).filter((d) => !/[\\/]usr[\\/]bin|[\\/]mingw64[\\/]bin|^\/(usr\/)?bin$/i.test(d)).join(sep);
+    const corridas = new CorridasOcultas();
+    const c = await corridas.iniciar({ proyecto: 'golf', mision: 't_a', paso: 0, orden: 'sleep 1 && npm --version && pwd', carpeta: process.cwd() });
+    process.env.PATH = antes;
+    for (let i = 0; i < 300 && corridas.estado(c.id)?.fase === 'corriendo'; i++) await new Promise((ok) => setTimeout(ok, 100));
+    expect(corridas.estado(c.id)).toMatchObject({ fase: 'hecha', codigo: 0 });
+    expect(corridas.estado(c.id)?.salida).toMatch(/\d+\.\d+\.\d+/);
+    expect(corridas.estado(c.id)?.salida.replace(/\\/g, '/').toLowerCase()).toContain('stl');
+  }, 40_000);
 
   it('si no se pudo lanzar, queda en «fallo» con el porqué, nunca en silencio', async () => {
     const corridas = new CorridasOcultas(async () => { throw new Error('sin_bash'); }, () => undefined, () => 5);

@@ -117,16 +117,28 @@ export interface Proceso {
 export type Lanzador = (orden: string, carpeta: string) => Promise<Proceso>;
 export type Parador = (p: Proceso) => void;
 
+/**
+ * How the hidden bash is called. On Windows, as Git Bash does: a login shell (its /etc/profile puts /usr/bin and
+ * /mingw64/bin on the PATH, so `sleep` exists and npm's own sh script finds what it calls; notes nmwqmmidgtit,
+ * nmwqmrxsgtit), in MINGW64 and staying in the folder (CHERE_INVOKING). On macOS and Linux, as before. Pure.
+ */
+export function llamadaDeBash(orden: string, plataforma: NodeJS.Platform, base: NodeJS.ProcessEnv): { args: string[]; env: NodeJS.ProcessEnv } {
+  const env: NodeJS.ProcessEnv = { ...base, GIT_TERMINAL_PROMPT: '0' };
+  if (plataforma !== 'win32') return { args: ['-c', ordenQueAbre(orden)], env };
+  return { args: ['--login', '-c', ordenQueAbre(orden)], env: { ...env, MSYSTEM: base.MSYSTEM || 'MINGW64', CHERE_INVOKING: '1' } };
+}
+
 /** Corre la orden en bash, sin ventana y sin entrada (lo que espera una respuesta recibe un fin y no se cuelga). */
 const lanzarEnBash: Lanzador =async (orden, carpeta) => {
   const bash = await bashDelSistema();
   if (!bash) throw new Error('sin_bash');
-  return spawn(bash, ['-c', ordenQueAbre(orden)], {
+  const { args, env } = llamadaDeBash(orden, process.platform, process.env);
+  return spawn(bash, args, {
     cwd: carpeta,
     windowsHide: true,
     detached: process.platform !== 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    env,
   });
 };
 
