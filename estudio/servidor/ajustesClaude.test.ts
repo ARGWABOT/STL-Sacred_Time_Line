@@ -178,6 +178,9 @@ describe('la configuración de Claude Code (lo mismo que /model y /effort)', () 
     const claude = '# STL Studio: reglas del director asistente\n\nUna regla.\n';
     expect(textoDelNucleo(claude).startsWith('# CLAUDE.md, the rules of STL Studio\n')).toBe(true);
     expect(textoDelNucleo(claude).endsWith(claude)).toBe(true);
+    // Dice qué es el texto, no cómo llega (pd_auditoria_redundancias, parte 6)
+    expect(textoDelNucleo(claude)).toContain('Wherever the assignment or a procedure says «CLAUDE.md», it means this text');
+    expect(textoDelNucleo(claude)).not.toContain('The launcher passes them here');
     // Se suma a lo que ya excluía el arranque limpio, sin quitarle nada ni repetirlo, y sin tocar lo demás
     for (const u of [true, false]) for (const p of [true, false]) {
       const ajustes = ajustesDelDirector(u, p, 'C:\\Users\\ana', false).ajustes;

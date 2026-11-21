@@ -275,10 +275,12 @@ export function nucleoExplicito(estudio: string, archivo: string): { claudeMdExc
 
 /**
  * Lo que el lanzador pasa como núcleo: CLAUDE.md tal cual, con una línea antes que dice qué es, para que «CLAUDE.md» en el
- * encargo o en un procedimiento nombre este texto y no un archivo que abrir. En inglés, porque lo lee el modelo. Pura.
+ * encargo o en un procedimiento nombre este texto y no un archivo que abrir. En inglés, porque lo lee el modelo. Cómo llega
+ * (el lanzador lo pasa en vez de que Claude Code lo cargue solo) no es una instrucción, y no va (pd_auditoria_redundancias,
+ * parte 6). Pura.
  */
 export const textoDelNucleo = (claude: string, autor?: string | null) =>
-  `# CLAUDE.md, the rules of STL Studio\n\nThe launcher passes them here instead of letting Claude Code load the file on its own. Wherever the assignment or a procedure says «CLAUDE.md», it means this text: there is no need to open the file.\n\n${claude}${autor?.trim() ? `\n\n# The author's rules (${ARCHIVO_AUTOR}, only in the development copy)\n\nThey add to the rules above for whoever develops the Studio itself, and never reach the public package.\n\n${autor.trim()}\n` : ''}`;
+  `# CLAUDE.md, the rules of STL Studio\n\nWherever the assignment or a procedure says «CLAUDE.md», it means this text: there is no need to open the file.\n\n${claude}${autor?.trim() ? `\n\n# The author's rules (${ARCHIVO_AUTOR}, only in the development copy)\n\nThey add to the rules above for whoever develops the Studio itself, and never reach the public package.\n\n${autor.trim()}\n` : ''}`;
 
 /**
  * Las reglas de autor: lo que solo es de quien desarrolla el Studio (la página pública, sus animaciones, la voz del recorrido,
