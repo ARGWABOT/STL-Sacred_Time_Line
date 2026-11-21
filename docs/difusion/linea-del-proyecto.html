@@ -919,8 +919,11 @@
   // La velocidad de reproducción (1x, 1,25x, 1,5x o 2x; nota de voz nmw2n33o6tit): acelera la voz y la escena la sigue,
   // porque su reloj corre esas veces más rápido. Cada vez que se abre empieza a 1,25x, y quien la visita la cambia cuando
   // quiere durante su visita: no se guarda de una visita a otra (nota de voz del titular nmw5gelsmtit)
-  const VELOCIDADES = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25;
+  // The new 1x is what 1.25x was (nmwqmymuotit): every speed plays BASE_VELOCIDAD times faster, the labels stay the same
+  // and the control still opens at 1.25x, on that new base
+  const VELOCIDADES = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25, BASE_VELOCIDAD = 1.25;
   let velocidad = VELOCIDAD_INICIAL;
+  const ritmoElegido = () => velocidad * BASE_VELOCIDAD;
   const audios = new Map();
   // posicion y avanzo: dónde iba el clip la última vez que se movió y cuándo, para saber si se trabó de verdad
   const narra = { audio: null, hablando: false, desde: 0, dicha: null, movida: 0, trasMover: false, globito: false, posicion: -1, avanzo: 0 };
@@ -955,7 +958,7 @@
     a.currentTime = (desde / 1000) * ritmoDe(t);
     // A su ritmo y a la velocidad elegida: la escena ya le da a cada línea lo que dura su clip a ese ritmo
     a.preservesPitch = true;
-    a.playbackRate = ritmoDe(t) * velocidad;
+    a.playbackRate = ritmoDe(t) * ritmoElegido();
     a.play().catch(listo);
   }
   // La voz habla mientras su clip no haya terminado ni fallado de verdad (nota de voz del titular nmwin2anztit, 16 de
@@ -1036,7 +1039,7 @@
   function ponerVelocidad(v) {
     if (!VELOCIDADES.includes(v)) return;
     velocidad = v;
-    if (narra.audio && narra.dicha) narra.audio.playbackRate = ritmoDe(narra.dicha) * velocidad;
+    if (narra.audio && narra.dicha) narra.audio.playbackRate = ritmoDe(narra.dicha) * ritmoElegido();
     pintarVelocidad();
   }
 
@@ -1071,7 +1074,7 @@
     }
     if (!cola.length || reloj < cola[0].en) return;
     const atraso = cola.length > 1 && reloj >= cola[1].en;
-    if (actual && (performance.now() - vistaDesde < (voz(actual) * (atraso ? 0.6 : 0.85)) / velocidad || sigueHablando())) return;
+    if (actual && (performance.now() - vistaDesde < (voz(actual) * (atraso ? 0.6 : 0.85)) / ritmoElegido() || sigueHablando())) return;
     mostrar(cola.shift().t);
   }
   // Un momento nuevo de la escena: dura por lo menos lo que tardan en leerse sus líneas, y sus líneas pasan a la cola
@@ -2502,7 +2505,7 @@
     const desdeSuPunto = () => { if (Number.isFinite(a.duration) && a.duration > 0) a.currentTime = Math.min(g.k, 0.99) * a.duration; };
     if (Number.isFinite(a.duration) && a.duration > 0) desdeSuPunto();
     else { a.currentTime = 0; a.addEventListener('loadedmetadata', desdeSuPunto, { once: true }); }
-    a.playbackRate = velocidad;
+    a.playbackRate = ritmoElegido();
     narra.audio = a; narra.hablando = true; narra.desde = performance.now(); narra.globito = true;
     narra.posicion = -1; narra.avanzo = narra.desde;
     a.play().catch(listo);
@@ -2867,7 +2870,7 @@
       narrar();
       // (a la velocidad elegida: la escena sigue a la voz)
       // Y mientras la voz que toca aún carga, la escena espera quieta con su «Cargando la voz…» (nmw5d6iqctit)
-      if (!esperaLaVoz() && !cargandoVoz()) sobra += dt0 * RAPIDEZ_ESCENA * velocidad * (modo === 'con' ? PAUSADO : 1);
+      if (!esperaLaVoz() && !cargandoVoz()) sobra += dt0 * RAPIDEZ_ESCENA * ritmoElegido() * (modo === 'con' ? PAUSADO : 1);
       for (let i = 0; sobra >= PASO_ESC && i < 16; i++) { sobra -= PASO_ESC; avanzar(); }
       if (sobra >= PASO_ESC) sobra = 0;
     }

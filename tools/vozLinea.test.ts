@@ -41,7 +41,7 @@ describe('la voz del narrador de «La línea del proyecto»', () => {
     expect(script).toContain('const RAPIDEZ_ESCENA = 1.2;');
     // Y mientras toda la voz carga, al empezar, la escena la espera con su «Cargando la voz…» (nmw5d6iqctit); entre una
     // frase y otra nunca: el velo no depende del clip que suena (nota de voz nmw5h32xptit)
-    expect(script).toContain("if (!esperaLaVoz() && !cargandoVoz()) sobra += dt0 * RAPIDEZ_ESCENA * velocidad * (modo === 'con' ? PAUSADO : 1);");
+    expect(script).toContain("if (!esperaLaVoz() && !cargandoVoz()) sobra += dt0 * RAPIDEZ_ESCENA * ritmoElegido() * (modo === 'con' ? PAUSADO : 1);");
     expect(script).toContain('const cargandoVoz = () => !saltando && !quieto && conVoz && vozPedida && !vozCargada;');
     expect(script).not.toContain('readyState < 3');
     expect(script).toContain('Promise.race([Promise.all(claves.map(llega))');
@@ -78,7 +78,7 @@ describe('la voz del narrador de «La línea del proyecto»', () => {
     // El clip suena a ese ritmo y, si se retoma a la mitad, desde su punto en el clip
     const decir = script.match(/function decirLinea\(t, desde = 0\) \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
     expect(decir).toContain('a.currentTime = (desde / 1000) * ritmoDe(t);');
-    expect(decir).toContain('a.playbackRate = ritmoDe(t) * velocidad;');
+    expect(decir).toContain('a.playbackRate = ritmoDe(t) * ritmoElegido();');
     // La pausa antes de «el director las organiza en un miniplan», corta: la entrega dura lo justo de su línea
     expect(script).toContain("cambiar('invoca', now, parada === 2 ? 0 : 3600, parada === 2 ? 'invoca2' : 'invoca');");
   });
@@ -110,13 +110,18 @@ describe('la voz del narrador de «La línea del proyecto»', () => {
     expect([...grupo.matchAll(/data-v="([\d.]+)"[^>]*>([^<]+)</g)].map((m) => [m[1], m[2]])).toEqual([['1', '1x'], ['1.25', '1.25x'], ['1.5', '1.5x'], ['2', '2x']]);
     // Al abrir, 1,25x es el oprimido, y no se guarda de una visita a otra
     expect([...grupo.matchAll(/data-v="([\d.]+)" aria-pressed="true"/g)].map((m) => m[1])).toEqual(['1.25']);
-    expect(script).toContain('const VELOCIDADES = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25;');
+    // The new 1x is what 1.25x was (nmwqmymuotit): the labels stay, the base plays 1.25 times faster
+    expect(script).toContain('const VELOCIDADES = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25, BASE_VELOCIDAD = 1.25;');
     expect(script).toContain('let velocidad = VELOCIDAD_INICIAL;');
+    expect(script).toContain('const ritmoElegido = () => velocidad * BASE_VELOCIDAD;');
+    expect(script).toContain('a.playbackRate = ritmoElegido();');
+    expect(script).toContain('/ ritmoElegido() || sigueHablando()');
+    expect(script).not.toMatch(/\* velocidad\b(?!\s*\*\s*BASE)/);
     expect(script).not.toMatch(/localStorage\.\w+Item\([^)]*VELOCIDAD/);
     expect(script).not.toContain('stl-linea-velocidad');
     // Lo que habla cambia ya de velocidad, y lo que espera a la voz no cuenta tiempo: espera a que su clip termine, a la
     // velocidad que sea (nmwin2anztit)
-    expect(script).toContain('if (narra.audio && narra.dicha) narra.audio.playbackRate = ritmoDe(narra.dicha) * velocidad;');
+    expect(script).toContain('if (narra.audio && narra.dicha) narra.audio.playbackRate = ritmoDe(narra.dicha) * ritmoElegido();');
     expect(script).not.toContain('performance.now() - narra.desde < duraLinea(narra.dicha) / velocidad + 1500;');
   });
 
@@ -233,8 +238,8 @@ describe('la voz del narrador de «La línea del proyecto»', () => {
   it('suena cuando aparece su línea y sigue a la reproducción: en pausa se detiene, al girar la perilla se calla, y el subtítulo y la animación esperan a que termine', () => {
     // Dice cada línea a su ritmo y a la velocidad elegida
     const decir = script.match(/function decirLinea\(t, desde = 0\) \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
-    expect(decir.indexOf('a.playbackRate = ritmoDe(t) * velocidad;')).toBeGreaterThan(-1);
-    expect(decir.indexOf('a.playbackRate = ritmoDe(t) * velocidad;')).toBeLessThan(decir.indexOf('a.play()'));
+    expect(decir.indexOf('a.playbackRate = ritmoDe(t) * ritmoElegido();')).toBeGreaterThan(-1);
+    expect(decir.indexOf('a.playbackRate = ritmoDe(t) * ritmoElegido();')).toBeLessThan(decir.indexOf('a.play()'));
     // Si aún habla y ya le toca a la siguiente, la escena la espera hasta que su clip termine o falle de verdad, sin tope
     // de tiempo: un clip que carga lento se espera, y solo uno sin avanzar 10 s se calla (nmwin2anztit)
     expect(script).toContain('const esperaLaVoz = () => !saltando && !quieto && cola.length > 0 && reloj >= cola[0].en && sigueHablando();');

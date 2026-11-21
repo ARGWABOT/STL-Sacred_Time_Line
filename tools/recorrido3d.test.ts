@@ -591,7 +591,7 @@ describe('el primer tramo del recorrido en 3D de «Qué es STL»', () => {
     it('la voz va al mismo ritmo que la animación, un 35 % más rápida y sin cambiar su tono (nmw1kwbsftit)', () => {
       // Kokoro, a RAPIDEZ; la de Google, a su ritmo natural (ritmoDeClave), las dos a la velocidad elegida
       expect(js).toContain('const r = a.ritmo ?? RAPIDEZ;');
-      expect(js).toContain('a.defaultPlaybackRate = r; a.playbackRate = r * velClip;');
+      expect(js).toContain('a.defaultPlaybackRate = r; a.playbackRate = r * ritmoClip();');
       expect(js).toContain('const ritmoDeClave = (clave) => (pistaVoz(clave) == null ? RAPIDEZ : RITMO_VOZ_ES[clave] ?? 1);');
       expect(js).toContain('a.ritmo = ritmoDeClave(clave);');
       expect(js).toContain('a.preservesPitch = true;');
@@ -607,15 +607,17 @@ describe('el primer tramo del recorrido en 3D de «Qué es STL»', () => {
       expect([...grupo.matchAll(/data-v="([\d.]+)"[^>]*>([^<]+)</g)].map((m) => [m[1], m[2]])).toEqual([['1', '1x'], ['1.25', '1.25x'], ['1.5', '1.5x'], ['2', '2x']]);
       // Al abrir, 1,25x es el oprimido, y la voz suena a 1,25 veces su ritmo
       expect([...grupo.matchAll(/data-v="([\d.]+)" aria-pressed="true"/g)].map((m) => m[1])).toEqual(['1.25']);
-      expect(js).toContain('const VELOCIDADES_CLIP = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25;');
+      // The new 1x is what 1.25x was (nmwqmymuotit): the labels stay, the base plays 1.25 times faster
+      expect(js).toContain('const VELOCIDADES_CLIP = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25, BASE_CLIP = 1.25;');
+      expect(js).toContain('const ritmoClip = () => velClip * BASE_CLIP;');
       expect(js).toContain('let velClip = VELOCIDAD_INICIAL;');
-      expect(js).toContain('a.defaultPlaybackRate = r; a.playbackRate = r * velClip;');
+      expect(js).toContain('a.defaultPlaybackRate = r; a.playbackRate = r * ritmoClip();');
       // No se guarda de una visita a otra: nada la lee ni la escribe en el navegador
       expect(js).not.toMatch(/localStorage\.\w+Item\([^)]*VELOCIDAD/);
       expect(js).not.toContain('stl-recorrido-velocidad');
       // La voz que habla cambia ya de velocidad, y el reloj del clip avanza a esa velocidad
       expect(js).toContain('if (voz.audio) aSuRitmo(voz.audio);');
-      expect(js).toContain('luego = pasoDeClip(seleccionado, clipT + dt * velClip);');
+      expect(js).toContain('luego = pasoDeClip(seleccionado, clipT + dt * ritmoClip());');
     });
 
     it('en vez de «↻ Repetir», una perilla chica como la de la animación del principio: la rueda la adelanta o la devuelve y el botón del centro la pausa o la sigue (nmw1kwbsftit)', () => {
@@ -795,7 +797,7 @@ describe('el primer tramo del recorrido en 3D de «Qué es STL»', () => {
       expect(js).toContain('const ahoraEn = pasoDeClip(seleccionado, clipT).clave');
       expect(js).toContain('else decir(ahoraEn, dicho * ritmoDeClave(ahoraEn));');
       // Cada rótulo se queda hasta que la voz termina: el reloj del clip no pasa al siguiente mientras habla
-      expect(js).toContain('if (luego.clave === ya.clave || !sigueHablando()) clipT = Math.min(duraClip(seleccionado), clipT + dt * velClip);');
+      expect(js).toContain('if (luego.clave === ya.clave || !sigueHablando()) clipT = Math.min(duraClip(seleccionado), clipT + dt * ritmoClip());');
       // Sin tope de tiempo: espera a que su clip termine o falle de verdad (10 s sin avanzar), y un clip terminado no
       // vuelve a sonar al seguir (nmwin2anztit)
       const sigue = js.match(/function sigueHablando\(\) \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
