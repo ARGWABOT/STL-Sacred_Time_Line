@@ -420,6 +420,11 @@ const FUERA = [
   'p.entrega',
   // El atajo de un paso y su aviso «Arranca primero…» son del Studio, no del modelo (nmwk44fvxtit)
   '.atajo-paso',
+  // Lo que dice la orden de terminal de un paso al correrla aquí (ordenOculta.ts › htmlDelPaso: «Corriendo…», «Listo», la
+  // pregunta de la primera vez, la línea crítica) es del Studio y vive en el paso solo mientras corre. Como estaba dentro de
+  // la tarjeta y no en esta lista, se leía con ella: el texto que sonaba (con la corrida) no era el preparado (sin ella), la
+  // voz no estaba guardada y salía «Preparando la voz…» en las misiones con una orden
+  '.corrida-paso',
   // Lo que corre en vivo no lleva niebla (nota de voz del titular nmvquww8htit, 27 de octubre de 2026: «en un reporte de
   // este tipo no se necesita»): la niebla es para leer con calma lo que se decide o lo que se avanzó (los documentos, los
   // reportes y las misiones). Lo del director flotante (encima.ts › SIEMPRE_ENCIMA: lo que va haciendo, sus atajos, lo que
