@@ -480,7 +480,7 @@ const COLOR_TIPO = { respuesta: '#f5d27a', ajuste: '#7fe0d6', idea: '#f7a8d8', f
 // el micrófono del dictado, va en el verde de las entregas, en un tono más claro que el de «Con STL» para que no se
 // confundan (nmw4it925tit)
 const VERDE_DICTADO = '#b4f5cf';
-const COLOR_PROBLEMA = [COLOR_TIPO.idea, COLOR_TIPO.ajuste, COLOR_TIPO.pregunta, COLOR_TIPO.respuesta, COLOR_TIPO.eleccion, COLOR_TIPO.hazlo, VERDE_DICTADO, COLOR_TIPO.falla];   // el octavo, la llave del acceso directo, en el rosa rojizo de «Error»
+const COLOR_PROBLEMA = [COLOR_TIPO.idea, COLOR_TIPO.ajuste, COLOR_TIPO.pregunta, COLOR_TIPO.respuesta, COLOR_TIPO.eleccion, COLOR_TIPO.hazlo, VERDE_DICTADO, COLOR_TIPO.falla];   // el octavo, la lupa de revisar con su «QA» (nmwpx8v9btit), en el rosa rojizo de «Error»
 const GRIS_PROBLEMA = '#8d929e';
 /** Si el ícono del problema i va en su color: con el ratón encima, abierto o ya abierto antes; si no, en gris. Pura. */
 function enColor(i, sobre, seleccionado, resueltos) {
@@ -1481,17 +1481,18 @@ const SEGMENTOS = [
       }
     },
   },
-  { // 17. El octavo problema, segunda parte, en la misma llave (nmwpsu2x1tit; guion nuevo, nmwpvcb3xtit): a menudo le tomas
-    // fotos a la pantalla, las pegas en el chat y explicas con palabras qué quieres cambiar, y el modelo aún no entiende. Con STL, la nota
+  { // 17. El octavo problema, segunda parte, en el mismo ícono (nmwpsu2x1tit; guion corregido, nmwpxdavwtit y nmwpxfk0qtit):
+    // explicarle algo con una imagen cuesta: tomas la foto, la recortas y la marcas, la pegas en el chat y la explicas aparte. Con STL, la nota
     // con foto de la pestaña de QA: congelas la app, marcas en rojo (encierras, subrayas, escribes a mano), dictas mientras
     // marcas, y la imagen y tu voz llegan juntas: el director sabe de qué hablas y dónde
     problema: (c, q) => {
       // Cuatro momentos (cortes en 0,25 · 0,5 · 0,75, los de PASOS_SEG[16].problema)
       const u = (q % 0.25) / 0.25;
-      // Guion nuevo (nmwpvcb3xtit): empieza por las fotos de la pantalla que pegas en el chat
-      ventana(c, 30, 22, 260, 140, q < 0.25 ? L('tu app', 'your app') : L('el chat con el modelo', 'the chat with the model'));
+      // Guion corregido (nmwpxdavwtit, nmwpxfk0qtit): la foto, recortarla y marcarla, volver al chat a pegarla y explicarla
+      // aparte, cada cosa por separado; el modelo sí entiende, lo que cuesta es todo ese ir y venir
+      ventana(c, 30, 22, 260, 140, q < 0.25 ? L('tu app', 'your app') : q < 0.5 ? L('tu imagen', 'your picture') : L('el chat con el modelo', 'the chat with the model'));
       if (q < 0.25) {
-        // Le tomas fotos a la pantalla: un destello, y otro
+        // Le tomas una foto a la pantalla: un destello
         caja(c, 44, 38, 150, 100, '#8f8a7d', 0.08, 6); letrero(c, L('la app', 'the app'), 119, 50, LUZ, 8);
         renglones(c, 54, 60, 130, 4, 'rgba(255, 255, 255, .3)', 1, 10);
         const destello = Math.max(0, 1 - Math.abs(((u * 2) % 1) - 0.5) * 5);
@@ -1499,33 +1500,35 @@ const SEGMENTOS = [
         actorDev(c, 240, 120, 1.2);
         if (u > 0.4) letrero(c, L('una foto de la pantalla', 'a screenshot'), 222, 150, ROJO, 8.5);
       } else if (q < 0.5) {
-        // y las pegas en el chat con el modelo: la foto baja a la conversación
-        const t = tramo(u, 0, 0.5);
-        caja(c, 44, lerp(30, 38, t), 96, 54, '#8f8a7d', 0.1, 6); renglones(c, 52, lerp(40, 48, t), 80, 2, 'rgba(255, 255, 255, .3)', 1, 9); caja(c, 60, lerp(58, 66, t), 56, 16, '#8f8a7d', 0.1, 4);
-        actorModelo(c, 262, 52, 9);
-        actorDev(c, 60, 140, 1.1);
-        if (u > 0.5) letrero(c, L('pegada en el chat', 'pasted into the chat'), 200, 120, ROJO, 8.5);
+        // La recortas (el marco se cierra sobre una parte) y la marcas en rojo
+        const t = tramo(u, 0, 0.45);
+        const x = lerp(44, 70, t), y = lerp(38, 58, t), w = lerp(150, 100, t), h = lerp(100, 58, t);
+        caja(c, 44, 38, 150, 100, '#8f8a7d', 0.04 + 0.04 * (1 - t), 6);
+        caja(c, x, y, w, h, '#8f8a7d', 0.12, 4); renglones(c, x + 8, y + 10, w - 16, 2, 'rgba(255, 255, 255, .3)', 1, 10);
+        if (u > 0.5) marcaRoja(c, x + w / 2, y + h - 14, w * 0.4, 10, tramo(u, 0.5, 0.7));
+        actorDev(c, 240, 120, 1.2);
+        letrero(c, u < 0.5 ? L('la recortas', 'you crop it') : L('y la marcas', 'and mark it'), 222, 150, ROJO, 8.5);
       } else {
-        // Lo pegas en el chat con el modelo
-        caja(c, 44, 38, 96, 54, '#8f8a7d', 0.1, 6); renglones(c, 52, 48, 80, 2, 'rgba(255, 255, 255, .3)', 1, 9); caja(c, 60, 66, 56, 16, '#8f8a7d', 0.1, 4);
+        // Vuelves al chat con el modelo y la pegas
+        const t = q < 0.75 ? tramo(u, 0, 0.5) : 1;
+        caja(c, 44, lerp(30, 38, t), 96, 54, '#8f8a7d', 0.1, 6); renglones(c, 52, lerp(40, 48, t), 80, 2, 'rgba(255, 255, 255, .3)', 1, 9); caja(c, 60, lerp(58, 66, t), 56, 16, '#8f8a7d', 0.1, 4);
+        marcaRoja(c, 88, lerp(66, 74, t), 34, 10, 1);
         actorModelo(c, 262, 52, 9);
         actorDev(c, 60, 140, 1.1);
         if (q < 0.75) {
-          // y explicas con palabras dónde está, renglón tras renglón
-          globo(c, 44, 98, L('Es el botón de arriba, a la derecha…', 'It’s the top button, on the right…'), ROJO, false, tramo(u, 0.05, 0.25));
-          if (u > 0.5) globo(c, 84, 120, L('no, el otro, el segundo…', 'no, the other one, the second…'), ROJO, false, tramo(u, 0.5, 0.65));
+          if (u > 0.5) letrero(c, L('pegada en el chat', 'pasted into the chat'), 200, 120, ROJO, 8.5);
         } else {
-          // y el modelo aún no entiende qué parte querías: otra vez
-          globo(c, 276, 70, L('¿Cuál botón? ¿Este?', 'Which button? This one?'), MODELO, true, tramo(u, 0, 0.2));
-          if (u > 0.3) cruz(c, 262, 100, 4, tramo(u, 0.3, 0.45));
-          if (u > 0.5) letrero(c, L('y otra vez, y otra vez', 'and again, and again'), 190, 150, ROJO, 8.5);
+          // y aparte le explicas con palabras qué querías mostrar, renglón tras renglón
+          globo(c, 44, 98, L('Es el botón que encerré, arriba…', 'It’s the button I circled, at the top…'), ROJO, false, tramo(u, 0.05, 0.25));
+          if (u > 0.45) globo(c, 84, 120, L('quiero que lo muevas a la derecha…', 'I want it moved to the right…'), ROJO, false, tramo(u, 0.45, 0.6));
+          if (u > 0.7) letrero(c, L('todo por separado', 'all done separately'), 220, 150, ROJO, 8.5);
         }
       }
     },
     solucion: (c, q) => {
       // Cuatro momentos: la foto (hasta 0,32), las marcas y tu voz (hasta 0,68), al Buzón juntas (hasta 0,84) y el director
       if (q < 0.32) {
-        // En la pestaña de QA, un clic en la nota con foto congela la vista de la app, ahí mismo, sin otra herramienta
+        // En la pestaña de QA, un clic en la nota con foto congela la vista de la app, ahí mismo, lista para marcar
         ventana(c, 30, 22, 260, 140, L('la pestaña de QA', 'the QA tab'), ORO);
         const foto = tramo(q, 0.14, 0.18);
         caja(c, 44, 38, 150, 96, foto > 0.5 ? CIAN : VERDE, 0.08 + 0.12 * foto, 6); letrero(c, L('la app', 'the app'), 119, 50, LUZ, 8);
@@ -1534,7 +1537,7 @@ const SEGMENTOS = [
         actorDev(c, 241, 110, 1.2);
         trazo(c, 241, 99, 241, 66, ORO, 0.6, true);
         if (foto > 0.5) letrero(c, L('la app, congelada', 'the app, frozen'), 119, 150, CIAN, 8.5);
-        if (q > 0.22) letrero(c, L('sin otra herramienta', 'no other tool'), 241, 140, VERDE, 8);
+        if (q > 0.22) letrero(c, L('lista para marcar', 'ready to mark'), 241, 140, VERDE, 8);
       } else if (q < 0.68) {
         // Sobre la imagen marcas en rojo: encierras, subrayas y escribes a mano; desde 0,5, dictas mientras marcas
         ventana(c, 30, 22, 260, 140, L('la nota con foto', 'the photo note'), VERDE_DICTADO);
@@ -1651,11 +1654,14 @@ const PASOS_SEG = [
   // parte de la interfaz que hay que revisar, y la solución subraya ver escritorio, tableta y teléfono en la misma pestaña.
   // Calla hasta su «Confirmo» (SIN_VOZ_TODAVIA)
   { problema: [[0, 'El modelo te pide revisar lo que acaba de hacer,'], [0.25, 'pero no dónde: abres otra pestaña y buscas la página,'], [0.5, 'navegas entre menús, secciones y formularios para llegar,'], [0.75, 'y aún rastreas a mano el punto exacto que debías ver.']], solucion: [[0, 'En STL Studio, quien te pide revisar es el director,'], [0.18, 'con un paso de tu misión que trae su atajo:'], [0.36, 'un solo clic abre el proyecto en su pestaña de QA,'], [0.54, 'directo en la página y en el punto exacto que hay que revisar.'], [0.7, 'Y en esa misma pestaña lo ves como escritorio, tableta o teléfono,'], [0.86, 'sin tener que revisarlo en otros dispositivos.']] },
-  // 17. El segundo, anidado en la misma llave: para pedir un cambio sales a otras herramientas, capturas, recortas, pegas en
-  // el chat y explicas con palabras dónde está; con STL, la nota con foto de la pestaña de QA: congelas la app, marcas y
-  // escribes sobre la imagen, y dictas mientras marcas; llegan juntas y el director sabe de qué hablas y dónde
-  // Guion nuevo (nmwpvcb3xtit): empieza por las fotos de la pantalla que pegas en el chat, y va más despacio (PAUSADO)
-  { problema: [[0, 'A menudo le tomas fotos a la pantalla'], [0.25, 'y las pegas en el chat con el modelo'], [0.5, 'para explicarle con palabras qué quieres cambiar,'], [0.75, 'y el modelo aún no entiende qué parte querías.']], solucion: [[0, 'En STL Studio, la pestaña de QA trae la nota con foto:'], [0.16, 'un clic congela la app ahí mismo, sin otra herramienta.'], [0.32, 'Sobre ella marcas en rojo: encierras, subrayas o escribes,'], [0.5, 'y mientras marcas, dictas tu nota de voz.'], [0.68, 'La imagen marcada y tu voz llegan juntas al Buzón,'], [0.84, 'y el director sabe de qué hablas y dónde lo señalaste.']] },
+  // 17. El segundo, anidado en el mismo ícono: explicarle algo al modelo con una imagen cuesta, porque tomas la foto, la
+  // recortas y la marcas, y luego vuelves al chat a pegarla y explicarla aparte, todo por separado; con STL, la nota con
+  // foto de la pestaña de QA lo hace todo en un solo lugar: congelas la app, marcas y escribes sobre la imagen, y dictas
+  // mientras marcas; llegan juntas y el director sabe de qué hablas y dónde
+  // Guion nuevo (nmwpvcb3xtit), corregido por el titular (nmwpxdavwtit, nmwpxfk0qtit): el modelo sí entiende una imagen
+  // con marcas y su explicación, así que no se dice que no la entiende «una y otra vez»; y el problema no es salir a otras
+  // herramientas, sino lo difícil que es explicarle algo con imágenes. Va más despacio (PAUSADO)
+  { problema: [[0, 'Explicarle algo al modelo con una imagen cuesta:'], [0.25, 'tomas la foto de la pantalla, la recortas y la marcas,'], [0.5, 'luego vuelves al chat y la pegas,'], [0.75, 'y aparte le explicas con palabras qué querías mostrar.']], solucion: [[0, 'En STL Studio, la pestaña de QA trae la nota con foto:'], [0.16, 'un clic congela la app ahí mismo, lista para marcar.'], [0.32, 'Sobre ella marcas en rojo: encierras, subrayas o escribes,'], [0.5, 'y mientras marcas, dictas tu nota de voz.'], [0.68, 'La imagen marcada y tu voz llegan juntas al Buzón,'], [0.84, 'y el director sabe de qué hablas y dónde lo señalaste.']] },
 ];
 // El cierre de cada segmento (nota de voz nmw3ruscptit): al terminar su solución, y antes del problema siguiente, unos dos
 // segundos con un ✓, el problema que quedó resuelto, en corto, tu cubito sonriendo y una frase de cierre con su voz, que
@@ -1679,7 +1685,7 @@ const CIERRES = [
   ['Sin internet, todo se detenía', 'Sin internet, tu trabajo sigue.'],
   ['El cansancio de escribir', 'Hablas, corriges y envías: sin escribir de más.'],
   ['No encontrar qué revisar', 'Un clic, y estás justo donde hay que revisar.'],   // 16. (espera el «Confirmo», nmwpsu2x1tit)
-  ['Salir a otras herramientas', 'Marcas, hablas y envías, sin salir del Studio.'],   // 17. (espera el «Confirmo», nmwpsu2x1tit)
+  ['Explicarlo con imágenes', 'Fotografías, marcas y explicas, todo en un solo lugar.'],   // 17. (espera el «Confirmo», nmwpxfk0qtit)
 ];
 // La estación 2 en inglés (pd_bilingue; t_decide_estacion2_textos, nmw738o1ktit): los guiones, fieles al español frase por
 // frase, con los mismos cortes (nmw3q7lw7tit), y los cierres adaptados, como los diría alguien de habla inglesa
@@ -1703,8 +1709,9 @@ const PASOS_SEG_EN = [
   // 16. The eighth problem, the key, as two separate problems (nmwpsu2x1tit). The first, its statement: you can't easily find
   // what the model asks you to check; with STL, the director's step brings its shortcut to the QA tab. Silent until confirmed
   { problema: [[0, 'The model asks you to check what it just did,'], [0.25, 'but not where: you open another tab and look for the page,'], [0.5, 'you dig through menus, sections and forms to get there,'], [0.75, 'and you still hunt by hand for the exact spot to see.']], solucion: [[0, 'In STL Studio, the one who asks you to check is the director,'], [0.18, 'with a step of your mission that brings its shortcut:'], [0.36, 'a single click opens the project in its QA tab,'], [0.54, 'straight on the page and at the exact spot to check.'], [0.7, 'And in that same tab you see it as desktop, tablet or phone,'], [0.86, 'without checking it on other devices.']] },
-  // 17. The second, nested under the same key: leaving for other tools to ask for a change, and the QA tab's photo note
-  { problema: [[0, 'You often take screenshots of the screen'], [0.25, 'and paste them into the chat with the model'], [0.5, 'to explain in words what you want changed,'], [0.75, 'and the model still doesn\'t get which part you meant.']], solucion: [[0, 'In STL Studio, the QA tab brings the photo note:'], [0.16, 'one click freezes the app right there, with no other tool.'], [0.32, 'On it you mark in red: you box, underline or write,'], [0.5, 'and while you mark, you dictate your voice note.'], [0.68, 'The marked picture and your voice reach the Inbox together,'], [0.84, 'and the director knows what you mean and where you pointed.']] },
+  // 17. The second, nested under the same icon: explaining something to the model with a picture is hard work, and the QA
+  // tab's photo note does it all in one place (nmwpxdavwtit, nmwpxfk0qtit)
+  { problema: [[0, 'Explaining something to the model with a picture is hard work:'], [0.25, 'you take a screenshot, crop it and mark it,'], [0.5, 'then you go back to the chat and paste it,'], [0.75, 'and explain separately, in words, what you meant to show.']], solucion: [[0, 'In STL Studio, the QA tab brings the photo note:'], [0.16, 'one click freezes the app right there, ready to mark.'], [0.32, 'On it you mark in red: you box, underline or write,'], [0.5, 'and while you mark, you dictate your voice note.'], [0.68, 'The marked picture and your voice reach the Inbox together,'], [0.84, 'and the director knows what you mean and where you pointed.']] },
 ];
 const CIERRES_EN = [
   ['Half-finished messages', 'Goodbye to fixing half-finished messages: you check it before it goes.'],
@@ -1723,7 +1730,7 @@ const CIERRES_EN = [
   ['Without internet, it all stopped', 'No internet, and your work goes on.'],
   ['The fatigue of typing', 'Talk, correct and send: no extra typing.'],
   ['Not finding what to check', 'One click, and you are right where you need to check.'],   // 16. (awaiting its «Confirmo», nmwpsu2x1tit)
-  ['Leaving for other tools', 'Mark, talk and send, without leaving the Studio.'],   // 17. (awaiting its «Confirmo», nmwpsu2x1tit)
+  ['Explaining it with pictures', 'Snap, mark and explain, all in one place.'],   // 17. (awaiting its «Confirmo», nmwpxfk0qtit)
 ];
 if (EN_DIBUJO) {
   PASOS_SEG.forEach((s, j) => Object.assign(s, PASOS_SEG_EN[j]));
@@ -2741,8 +2748,8 @@ const VERTICALES = {
   16: { // 17. El octavo problema, segunda parte, de pie: la app arriba y lo demás debajo, uno tras otro
     problema: (c, q) => {
       const u = (q % 0.25) / 0.25;
-      // Guion nuevo (nmwpvcb3xtit): las fotos de la pantalla, y pegarlas en el chat
-      ventana(c, 8, 22, 164, 252, q < 0.25 ? L('tu app', 'your app') : L('el chat con el modelo', 'the chat with the model'));
+      // Guion corregido (nmwpxdavwtit, nmwpxfk0qtit): la foto, recortarla y marcarla, pegarla en el chat y explicarla aparte
+      ventana(c, 8, 22, 164, 252, q < 0.25 ? L('tu app', 'your app') : q < 0.5 ? L('tu imagen', 'your picture') : L('el chat con el modelo', 'the chat with the model'));
       if (q < 0.25) {
         caja(c, 20, 40, 140, 150, '#8f8a7d', 0.08, 6); letrero(c, L('la app', 'the app'), 90, 52, LUZ, 8);
         renglones(c, 30, 62, 120, 6, 'rgba(255, 255, 255, .3)', 1, 12);
@@ -2751,22 +2758,27 @@ const VERTICALES = {
         actorDev(c, 90, 236, 1.3);
         if (u > 0.4) letrero(c, L('una foto de la pantalla', 'a screenshot'), 90, 264, ROJO, 9, 'center');
       } else if (q < 0.5) {
-        const t = tramo(u, 0, 0.5);
-        caja(c, 20, lerp(30, 40, t), 100, 60, '#8f8a7d', 0.1, 6); renglones(c, 28, lerp(40, 50, t), 84, 2, 'rgba(255, 255, 255, .3)', 1, 9); caja(c, 36, lerp(60, 70, t), 60, 20, '#8f8a7d', 0.1, 4);
-        actorModelo(c, 148, 60, 9);
-        actorDev(c, 60, 236, 1.3);
-        if (u > 0.5) letrero(c, L('pegada en el chat', 'pasted into the chat'), 90, 264, ROJO, 9, 'center');
+        // La recortas y la marcas en rojo
+        const t = tramo(u, 0, 0.45);
+        const x = lerp(20, 36, t), y = lerp(40, 70, t), w = lerp(140, 108, t), h = lerp(150, 80, t);
+        caja(c, 20, 40, 140, 150, '#8f8a7d', 0.04 + 0.04 * (1 - t), 6);
+        caja(c, x, y, w, h, '#8f8a7d', 0.12, 4); renglones(c, x + 8, y + 10, w - 16, 3, 'rgba(255, 255, 255, .3)', 1, 12);
+        if (u > 0.5) marcaRoja(c, x + w / 2, y + h - 16, w * 0.45, 12, tramo(u, 0.5, 0.7));
+        actorDev(c, 90, 236, 1.3);
+        letrero(c, u < 0.5 ? L('la recortas', 'you crop it') : L('y la marcas', 'and mark it'), 90, 264, ROJO, 9, 'center');
       } else {
-        caja(c, 20, 40, 100, 60, '#8f8a7d', 0.1, 6); renglones(c, 28, 50, 84, 2, 'rgba(255, 255, 255, .3)', 1, 9); caja(c, 36, 70, 60, 20, '#8f8a7d', 0.1, 4);
+        // Vuelves al chat y la pegas; y aparte la explicas con palabras
+        const t = q < 0.75 ? tramo(u, 0, 0.5) : 1;
+        caja(c, 20, lerp(30, 40, t), 100, 60, '#8f8a7d', 0.1, 6); renglones(c, 28, lerp(40, 50, t), 84, 2, 'rgba(255, 255, 255, .3)', 1, 9); caja(c, 36, lerp(60, 70, t), 60, 20, '#8f8a7d', 0.1, 4);
+        marcaRoja(c, 66, lerp(70, 80, t), 40, 12, 1);
         actorModelo(c, 148, 60, 9);
-        actorDev(c, 90, 244, 1.3);
+        actorDev(c, q < 0.75 ? 60 : 90, q < 0.75 ? 236 : 244, 1.3);
         if (q < 0.75) {
-          globoVertical(c, 16, 112, L('Es el botón de arriba, a la derecha…', 'It’s the top button, on the right…'), ROJO, false, tramo(u, 0.05, 0.25));
-          if (u > 0.5) globoVertical(c, 16, 150, L('no, el otro, el segundo…', 'no, the other one, the second…'), ROJO, false, tramo(u, 0.5, 0.65));
+          if (u > 0.5) letrero(c, L('pegada en el chat', 'pasted into the chat'), 90, 264, ROJO, 9, 'center');
         } else {
-          globoVertical(c, 164, 112, L('¿Cuál botón? ¿Este?', 'Which button? This one?'), MODELO, true, tramo(u, 0, 0.2));
-          if (u > 0.3) cruz(c, 148, 144, 4, tramo(u, 0.3, 0.45));
-          if (u > 0.5) letrero(c, L('y otra vez, y otra vez', 'and again, and again'), 90, 200, ROJO, 9);
+          globoVertical(c, 16, 112, L('Es el botón que encerré, arriba…', 'It’s the button I circled, at the top…'), ROJO, false, tramo(u, 0.05, 0.25));
+          if (u > 0.45) globoVertical(c, 16, 150, L('quiero que lo muevas a la derecha…', 'I want it moved to the right…'), ROJO, false, tramo(u, 0.45, 0.6));
+          if (u > 0.7) letrero(c, L('todo por separado', 'all done separately'), 90, 200, ROJO, 9);
         }
       }
     },
@@ -2780,7 +2792,7 @@ const VERTICALES = {
         actorDev(c, 90, 236, 1.3);
         trazo(c, 90, 224, 90, 182, ORO, 0.6, true);
         if (foto > 0.5) letrero(c, L('la app, congelada', 'the app, frozen'), 90, 196, CIAN, 8.5);
-        if (q > 0.22) letrero(c, L('sin otra herramienta', 'no other tool'), 90, 264, VERDE, 8.5);
+        if (q > 0.22) letrero(c, L('lista para marcar', 'ready to mark'), 90, 264, VERDE, 8.5);
       } else if (q < 0.68) {
         ventana(c, 8, 22, 164, 252, L('la nota con foto', 'the photo note'), VERDE_DICTADO);
         caja(c, 20, 40, 140, 100, CIAN, 0.08, 6); renglones(c, 30, 50, 60, 2, 'rgba(255, 255, 255, .3)', 1, 10);
@@ -4021,11 +4033,12 @@ function iniciar() {
     };
     const cajita = (w, h, d, material, r = 0.04) => new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), material);
     // «?» grande y claro, sin fondo, para la cara de la caja negra
-    const textura = (texto, color) => {
+    // (con `tam`, otro tamaño de letra: las letras pequeñas «QA» de la lupa del octavo, nmwpx8v9btit)
+    const textura = (texto, color, tam = 190) => {
       const c = document.createElement('canvas');
       c.width = c.height = 256;
       const x = c.getContext('2d');
-      x.fillStyle = color; x.font = '700 190px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(texto, 128, 140);
+      x.fillStyle = color; x.font = `700 ${tam}px system-ui, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(texto, 128, 140);
       const tex = new THREE.CanvasTexture(c);
       tex.colorSpace = THREE.SRGBColorSpace;
       return tex;
@@ -4120,18 +4133,18 @@ function iniciar() {
         g.add(cabeza, u, pie, base);
         return g;
       },
-      // 8 · el acceso directo: una llave, su aro de su color con un ojo blanco, su caña y sus dos dientes (la entrada al lugar
-      // correcto, ya con el usuario correcto), puesta en diagonal
+      // 8 · revisar: una lupa, su aro de su color con unas pequeñas letras mayúsculas «QA» blancas en el centro, y su mango
+      // en diagonal hacia abajo a la derecha (nota de voz del titular nmwpx8v9btit: la llave no decía nada de revisar)
       (mat, apoyo) => {
         const g = new THREE.Group();
-        const vuelta = Array.from({ length: 16 }, (_, k) => { const a = (k / 16) * Math.PI * 2; return new THREE.Vector3(Math.cos(a) * 0.3, Math.sin(a) * 0.3, 0); });
-        const aro = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(vuelta, true), 32, 0.12, 8, true), mat); aro.position.set(-0.5, 0, 0);
-        const ojo = cajita(0.2, 0.2, 0.1, apoyo, 0.05); ojo.position.set(-0.5, 0, 0);
-        const cana = cajita(1.05, 0.15, 0.15, mat, 0.05); cana.position.set(0.22, 0, 0);
-        const d1 = cajita(0.15, 0.34, 0.15, apoyo, 0.04); d1.position.set(0.5, -0.24, 0);
-        const d2 = cajita(0.15, 0.24, 0.15, apoyo, 0.04); d2.position.set(0.74, -0.19, 0);
-        g.add(aro, ojo, cana, d1, d2);
-        g.rotation.z = 0.7;
+        const cx = -0.18, cy = 0.18, r = 0.42;
+        const vuelta = Array.from({ length: 24 }, (_, k) => { const a = (k / 24) * Math.PI * 2; return new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0); });
+        const aro = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(vuelta, true), 48, 0.1, 10, true), mat); aro.position.set(cx, cy, 0);
+        const qa = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({ map: textura('QA', '#ffffff', 108), transparent: true, depthWrite: false }));
+        qa.position.set(cx, cy, 0.02);
+        const cuello = cajita(0.2, 0.14, 0.2, apoyo, 0.04); cuello.rotation.z = Math.PI / 4; cuello.position.set(cx + 0.38, cy - 0.38, 0);
+        const mango = cajita(0.2, 0.6, 0.2, mat, 0.07); mango.rotation.z = Math.PI / 4; mango.position.set(cx + 0.65, cy - 0.65, 0);
+        g.add(aro, qa, cuello, mango);
         return g;
       },
     ];
