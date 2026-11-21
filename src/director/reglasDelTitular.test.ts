@@ -4,12 +4,17 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PROCEDIMIENTOS } from './procedimientos';
+import { enEspanol, PROCEDIMIENTOS } from './procedimientos';
 import { REGLAS_DEL_TITULAR } from './reglasDelTitular';
 
 const raiz = join(import.meta.dirname, '..', '..');
 const leer = (ruta: string) => readFileSync(join(raiz, ruta), 'utf8');
 const claude = leer('CLAUDE.md');
+/**
+ * El id de una nota: «nm», siete letras o cifras y «tit» (nmwqso4k7tit). Pedía de 8 a 10 en medio y nunca halló ninguno, así
+ * que unos veinte quedaron en los procedimientos sin que nadie lo notara (pd_auditoria_redundancias, parte 6).
+ */
+const ID_DE_NOTA = /\bnm[a-z0-9]{5,10}tit\b/g;
 
 describe('el inventario de las reglas del titular', () => {
   it('cada regla dice dónde está en CLAUDE.md, y de dónde salió', () => {
@@ -25,7 +30,7 @@ describe('el inventario de las reglas del titular', () => {
   it('CLAUDE.md sin historia: ni fechas, ni notas, ni citas de quién lo pidió (la historia vive en el inventario)', () => {
     const historia = [
       /\b20\d\d\b/g, // un año
-      /\bnm[a-z0-9]{8,10}tit\b/g, // el id de una nota
+      ID_DE_NOTA,
       /\bp[rd]_[a-z_]+/g, // el id de una propuesta o un pedido
       /\b(?:del titular|por el titular|owner's (?:voice )?note|owner's (?:rule|decision))\b/g,
     ];
@@ -33,17 +38,22 @@ describe('el inventario de las reglas del titular', () => {
     expect(halladas, 'CLAUDE.md volvió a traer historia: va en REGLAS_DEL_TITULAR › historia').toEqual([]);
   });
 
-  it('los procedimientos del director, en inglés, sin historia: ni notas, ni pedidos, ni citas de quién lo pidió', () => {
+  it('la búsqueda del id de una nota de verdad lo encuentra (sembrado en un texto)', () => {
+    const sembrado = 'Una regla (nota nmwqso4k7tit) y otra (nmwb8rwsntit), pero no nmtit ni nombre_tit.';
+    expect([...sembrado.matchAll(ID_DE_NOTA)].map((m) => m[0])).toEqual(['nmwqso4k7tit', 'nmwb8rwsntit']);
+  });
+
+  it('los procedimientos del director, en sus dos versiones, sin historia: ni notas, ni pedidos, ni citas de quién lo pidió', () => {
     // Sin buscar años: deciding.md cita libros con su año. «accepted proposal» solo con su id o su título: una propuesta
     // aceptada también es una cosa del plan, y los procedimientos la nombran. El formato de un pedido, `"pd_…"`, no trae letras.
     const historia = [
-      /\bnm[a-z0-9]{8,10}tit\b/g, // el id de una nota
+      ID_DE_NOTA,
       /\bp[rd]_[a-z_]+/g, // el id de una propuesta o un pedido
       /the owner's (?:voice note|note|decision|rule)/gi,
       /accepted proposal\s+(?:pr_|[«"])/gi,
       /request pd_/gi,
     ];
-    const halladas = Object.values(PROCEDIMIENTOS).flatMap(({ archivo }) => {
+    const halladas = Object.values(PROCEDIMIENTOS).flatMap(({ archivo }) => [archivo, enEspanol(archivo)]).flatMap((archivo) => {
       const texto = leer(archivo);
       return historia.flatMap((re) => [...texto.matchAll(re)].map((m) => `${archivo}: ${texto.slice(Math.max(0, m.index! - 40), m.index! + 40).replace(/\n/g, ' ')}`));
     });
