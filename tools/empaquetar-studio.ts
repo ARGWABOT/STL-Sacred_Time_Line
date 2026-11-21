@@ -2,7 +2,7 @@
 // commit, sin node_modules, sin datos ni memoria de ningún proyecto, con la semilla de STL Studio y sus notas cortas. Lo deja en
 // .estudio/paquete/, fuera de git, y lo comprueba entero: lista lo que lleva, lo descomprime en memoria y mira su versión. Si
 // encuentra algo de lo que nunca va, no deja el zip. No publica nada: eso es de --publicar, que la versión va a la vista de
-// todos, marcada «Pre-release», con la sesión de gh de la cuenta aprobada para este proyecto, como tools/subir-studio.ts.
+// todos, marcada «Latest» (desde la 0.1.1, la de lanzamiento), con la sesión de gh de la cuenta aprobada para este proyecto, como tools/subir-studio.ts.
 // Uso: node tools/empaquetar-studio.ts             (lo arma y dice las órdenes para publicarlo; no publica)
 //      node tools/empaquetar-studio.ts --publicar  (lo arma otra vez y publica esa versión: primero se sube el commit)
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -180,7 +180,7 @@ function principal(): number {
   if (remoto !== commit) return rechazo(`GitHub aún no tiene este commit (${commit.slice(0, 8)}): primero node tools/subir-studio.ts --subir, y vuelve a correr esto. No publiqué nada.`);
   const r = spawnSync('gh', orden, { cwd: raiz, env, stdio: 'inherit' });
   if (r.status !== 0) return rechazo('GitHub no aceptó la versión (arriba, el porqué). No se publicó nada nuevo.');
-  console.log(`Publicada: https://github.com/${REPOSITORIO}/releases/tag/v${version}, marcada «Pre-release».`);
+  console.log(`Publicada: https://github.com/${REPOSITORIO}/releases/tag/v${version}, marcada «Latest».`);
   return 0;
 }
 
