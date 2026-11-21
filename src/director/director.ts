@@ -294,6 +294,11 @@ export interface Destino {
    * muestran ya en ese tamaño (pd_qa_vista_dispositivo, nmwppzjq0tit).
    */
   dispositivo?: DispositivoQa;
+  /**
+   * With «Modelo y consumo» › «Permisos» (`{ "vista": "modelo", "ancla": "m-permisos" }`), the words that filter its list,
+   * so a step that sends the person to check one permission shows only that one (nmwqmpnfctit).
+   */
+  filtro?: string;
   /** El texto del botón. */
   etiqueta: string;
 }

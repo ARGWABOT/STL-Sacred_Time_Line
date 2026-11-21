@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ponerIdioma } from './textos';
 import { en } from './textos/en';
 import { es } from './textos/es';
-import { altoMinimoDelPanel, coincideFiltro, mantenerEnSuSitio, queDa, seccionPermisos, seccionSkills, skillsQueNoQuedaron, type DatosPermisos, type SkillEnElPanel } from './vistaPermisos';
+import { altoMinimoDelPanel, coincideFiltro, esGeneral, filtroAlIr, mantenerEnSuSitio, queDa, seccionPermisos, seccionSkills, skillsQueNoQuedaron, type DatosPermisos, type SkillEnElPanel } from './vistaPermisos';
 
 describe('las skills, solo las del proyecto activo, y su casilla como quedó guardada (nmwmeetn2tit, pd_skills_por_proyecto)', () => {
   const skill = (proyecto: string, nombre: string, estado: SkillEnElPanel['estado'] = 'nueva'): SkillEnElPanel => ({ proyecto, nombre, ruta: `.claude/commands/${nombre}.md`, huella: 'h', estado, hallazgos: [], ...(estado === 'autorizada' ? { cuando: '2026-11-18T10:00:00.000Z', quien: 'leonc' } : {}) });
@@ -81,6 +81,38 @@ const datos = (x: Partial<DatosPermisos> = {}, filtro = '', estados = new Map<st
   },
   skills: { panel: { skills: [] }, marcadas: new Set(), nombre: () => 'golf', estados, filtro },
   ...x,
+});
+
+describe('general permissions on top, specific ones folded, and a button that filters (nmwqmpnfctit)', () => {
+  it('a whole tool or a kind of command is general; a path, a file or a one-off command is specific', () => {
+    for (const r of ['WebFetch', 'Bash(git push:*)', 'Bash(npm test:*)', 'Bash(npx vitest run:*)','WebFetch(domain:github.com)']) expect(esGeneral(r), r).toBe(true);
+    for (const r of ['Read(//c/xampp/golf/**)', 'Edit(//c/xampp/golf/src/app.ts)', 'Bash(git log --oneline -3)', 'Bash(node tools/director/firmar.ts:*)', 'Bash(cat C:\\x\\y.txt:*)', 'Bash(git commit -m "x" -- a b:*)', 'raro(']) expect(esGeneral(r), r).toBe(false);
+  });
+
+  it('the specific ones go folded below, and open when the filter finds one of them', () => {
+    ponerIdioma('en');
+    const base = datos();
+    const panel = { ...base.autorizados.panel!, autorizados: [...base.autorizados.panel!.autorizados, { regla: 'Read(//c/xampp/golf/**)', alcance: 'proyecto' as const, proyecto: 'p', cuando: '2026-11-01T10:00:00Z', quien: 'ana' }] };
+    const html = seccionPermisos({ ...base, autorizados: { ...base.autorizados, panel } });
+    const plegado = html.slice(html.indexOf('<details class="permisos-especificos"'));
+    expect(plegado).toContain('<summary>Specific permissions (1)</summary>');
+    expect(plegado).toContain('<code>Read(//c/xampp/golf/**)</code>');
+    expect(plegado).not.toContain('<code>Bash(git push:*)</code>');
+    expect(html.indexOf('<code>Bash(git push:*)</code>')).toBeLessThan(html.indexOf('<details class="permisos-especificos"'));
+    expect(plegado.startsWith('<details class="permisos-especificos">')).toBe(true);
+    const filtrado = seccionPermisos({ ...base, autorizados: { ...base.autorizados, panel, filtro: 'golf/**' } });
+    expect(filtrado).toContain('<details class="permisos-especificos" open>');
+  });
+
+  it('a step button that leads to «Permissions» with `filtro` filters the list to that permission', () => {
+    expect(filtroAlIr({ vista: 'modelo', ancla: 'm-permisos', filtro: ' git push ' })).toBe('git push');
+    expect(filtroAlIr({ vista: 'modelo', ancla: 'm-permisos' })).toBeNull();
+    expect(filtroAlIr({ vista: 'modelo', ancla: 'm-consumo', filtro: 'git push' })).toBeNull();
+    const app = readFileSync(new URL('./app.ts', import.meta.url), 'utf8');
+    const ir = app.slice(app.indexOf('async function ir(dest: Destino)'), app.indexOf('irA(dest.vista ??'));
+    expect(ir).toContain('const filtroDelBoton = filtroAlIr(dest);');
+    expect(ir).toContain('filtroPermisos = filtroDelBoton;');
+  });
 });
 
 describe('el panel de permisos, como registro (nmwp8xchutit)', () => {

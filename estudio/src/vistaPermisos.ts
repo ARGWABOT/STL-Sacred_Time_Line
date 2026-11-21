@@ -124,6 +124,30 @@ export function queDa(regla: string): string {
   return t('modelo.daHerramientaCon', { herramienta: x.herramienta, contenido: x.contenido });
 }
 
+/** The filter a button brings when it leads to «Permisos» (`filtro`), or null if it brings none. Pura. */
+export function filtroAlIr(dest: { vista?: string; ancla?: string; filtro?: string }): string | null {
+  return dest.vista === 'modelo' && dest.ancla === 'm-permisos' && dest.filtro?.trim() ? dest.filtro.trim() : null;
+}
+
+/**
+ * If a permission is general (nmwqmpnfctit): a whole tool, or a kind of command (`Bash(git push:*)`, a few words without a
+ * path). Specific: a single path, file or folder (`Read`, `Edit`, `Write` with a path), or a one-off command (without
+ * `:*`, with a path, or long). The general ones are in view on top; the specific ones, folded below. Pura.
+ */
+export function esGeneral(regla: string): boolean {
+  const x = partirRegla(regla);
+  if (!x) return false;
+  if (x.contenido === undefined || x.contenido === '' || x.contenido === '*') return true;
+  if (x.herramienta === 'Bash') {
+    const tipo = /^(.*?):\*$/.exec(x.contenido)?.[1];
+    if (tipo === undefined) return false;
+    return !/[\\/]|\.\w{1,5}\b|["'|;&<>]/.test(tipo) && tipo.trim().split(/\s+/).length <= 3;
+  }
+  if (['Read', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit'].includes(x.herramienta)) return false;
+  // Another tool with something inside (a site for WebFetch, a server's tool): general unless it names a path
+  return !/[\\/]/.test(x.contenido.replace(/^domain:/, ''));
+}
+
 /**
  * Lo que autorizaste, el registro (nmwp8xchutit): una línea por permiso, lo más nuevo primero, que dice en palabras lo que
  * permite, si es para este proyecto o para todos, cuándo y de qué revisión salió (la hora de la pregunta del aviso, si se
@@ -147,14 +171,22 @@ export function seccionAutorizados({ panel, estados, filtro = '', nombre }: Dato
   const lineas = lista.map((a) => {
     const que = queDa(a.regla);
     const ve = coincideFiltro(filtro, a.regla, que, donde(a), cuando(a));
-    return { ve, html: `<li class="ajuste-d" data-filtrable${oculto(!ve)}><span class="casilla-d"><span class="permiso-d">${esc(que)}</span> <span class="consejo-ajuste">${donde(a)}</span>${marcaDeGuardado(estados, a.regla)}</span>
+    return { ve, general: esGeneral(a.regla), html: `<li class="ajuste-d" data-filtrable${oculto(!ve)}><span class="casilla-d"><span class="permiso-d">${esc(que)}</span> <span class="consejo-ajuste">${donde(a)}</span>${marcaDeGuardado(estados, a.regla)}</span>
          <p class="como">${cuando(a)} <small><code>${esc(a.regla)}</code></small> ${quitar(a)}</p></li>` };
   });
   const vistos = lineas.filter((i) => i.ve).length;
   const campo = `<p class="filtro-permisos"><label>${t('modelo.filtrar')} <input type="search" data-filtro-permisos value="${esc(filtro)}" placeholder="git push" aria-label="${t('modelo.filtrarAyuda')}"></label></p>`;
   const nada = filtro.trim() && !vistos ? `<p class="como nada-coincide">${t('modelo.nadaCoincide', { filtro: esc(filtro.trim()) })} <button type="button" class="enlace" data-limpiar-filtro-permisos>${t('modelo.limpiar')}</button></p>` : '';
+  // The general ones on top, in view; the specific ones (a path, a one-off command), folded below, and open when the
+  // filter finds one of them (nmwqmpnfctit)
+  const generales = lineas.filter((i) => i.general);
+  const especificas = lineas.filter((i) => !i.general);
+  const vistasEspecificas = especificas.filter((i) => i.ve).length;
+  const plegado = especificas.length
+    ? `<details class="permisos-especificos"${filtro.trim() && vistasEspecificas ? ' open' : ''}${oculto(!vistasEspecificas)}><summary>${t('modelo.especificos', { n: filtro.trim() ? vistasEspecificas : especificas.length })}</summary><p class="como">${t('modelo.especificosExplica')}</p><ul class="ajustes-d registro-d">${especificas.map((i) => i.html).join('')}</ul></details>`
+    : '';
   return `<div class="negados-panel">${cabeza}
-      ${campo}${nada}<ul class="ajustes-d registro-d"${oculto(!vistos)}>${lineas.map((i) => i.html).join('')}</ul></div>`;
+      ${campo}${nada}<ul class="ajustes-d registro-d"${oculto(!generales.some((i) => i.ve))}>${generales.map((i) => i.html).join('')}</ul>${plegado}</div>`;
 }
 
 /**

@@ -148,7 +148,7 @@ import { ANCLA_MEDICION, avisoMidiendo, cuantoGasta, type EstadoMedicion } from 
 import { ANCLA_SALUD, avisoDeSalud, reparando, type EstadoSalud } from './vistaSalud';
 import { type AjustesPropios } from './vistaAjustesPropios';
 import { filasBitacora, type Bitacora, type DatosBitacora } from './bitacoraDelComputador';
-import { altoMinimoDelPanel, claveSkill, contenedorConScroll, mantenerEnSuSitio, seccionPermisos, skillsQueNoQuedaron, type EstadoCasilla, type PanelPermisos, type PanelSkills } from './vistaPermisos';
+import { altoMinimoDelPanel, claveSkill, contenedorConScroll, filtroAlIr, mantenerEnSuSitio, seccionPermisos, skillsQueNoQuedaron, type EstadoCasilla, type PanelPermisos, type PanelSkills } from './vistaPermisos';
 import { vistaModelo, type DatosModelo } from './modelView';
 import { queDelFrente, vistaBitacora, vistaFrentes as vistaFrentesHtml, vistaMetodo } from './vistasDeApoyo';
 import { escribirTengo, mismoPorEncima, unirConsulta, type MemoriaDePartes } from '../../src/director/partesDeConsulta';
@@ -2210,6 +2210,9 @@ async function ir(dest: Destino) {
   if (dest.vista === 'proyecto' && dest.ancla === 'p-director') dest = { ...dest, vista: 'modelo', ancla: 'm-director' };
   if (dest.vista === 'diagnostico') dest = { ...dest, vista: 'proyecto', ancla: dest.ancla === 'd-objetivos' ? 'p-objetivo' : 'p-diagnostico' };
   if (dest.fase) faseVista = dest.fase;
+  // A button to check one permission filters the list to it (nmwqmpnfctit)
+  const filtroDelBoton = filtroAlIr(dest);
+  if (filtroDelBoton !== null) filtroPermisos = filtroDelBoton;
   anclaPendiente = dest.ancla ?? null;
   anclaEsperandoDesde = 0;
   irA(dest.vista ?? 'misiones');

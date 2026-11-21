@@ -903,6 +903,8 @@ export const en: Record<keyof typeof es, Texto> = {
   'modelo.filtrar': 'Filter',
   'modelo.filtrarAyuda': 'Filter the permissions by their name or description',
   'modelo.nadaCoincide': 'Nothing matches “{filtro}”.',
+  'modelo.especificos': { uno: 'Specific permissions ({n})', otros: 'Specific permissions ({n})' },
+  'modelo.especificosExplica': 'Each one for a single path, file or one-off command, often used only once. The general ones are above.',
   'modelo.limpiar': 'Clear',
   'modelo.detallados': { uno: 'Detailed permissions · {n}', otros: 'Detailed permissions · {n}' },
   'modelo.detalladosExplica': 'Each rule with a command, a path or a file, kept as it was granted. The ones marked «covered» already hold through a broader rule.',

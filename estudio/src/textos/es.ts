@@ -902,6 +902,8 @@ export const es = {
   'modelo.filtrar': 'Filtrar',
   'modelo.filtrarAyuda': 'Filtra los permisos por su nombre o su descripción',
   'modelo.nadaCoincide': 'Nada coincide con «{filtro}».',
+  'modelo.especificos': { uno: 'Permisos específicos ({n})', otros: 'Permisos específicos ({n})' },
+  'modelo.especificosExplica': 'Cada uno para una sola ruta, un archivo o una orden puntual, muchas veces usada una sola vez. Los generales están arriba.',
   'modelo.limpiar': 'Limpiar',
   'modelo.detallados': { uno: 'Permisos detallados · {n}', otros: 'Permisos detallados · {n}' },
   'modelo.detalladosExplica': 'Cada regla con una orden, una ruta o un archivo, guardada como se dio. Las marcadas «cubierto» ya valen por una regla más amplia.',
