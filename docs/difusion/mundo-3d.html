@@ -127,7 +127,9 @@
   .js-3d .entrada h1 { margin: 0 0 2px; font-size: clamp(26px, 2.4vw, 46px); }
   /* «What is» / «¿Qué es» queda justo encima de las estrellas que forman «STL» (de 28 a 40 % de la altura; de 25 a 37 % en el teléfono; mundo-3d.js › NOTAS):
      juntos se leen «What is STL» */
-  @media (min-width: 901px) { .js-3d .entrada h1 { margin-top: 9vh; } }
+  /* Unos 60 px de aire entre «What is» y las estrellas de «STL» en un portátil pequeño (nota de voz nmwqxcclotit): antes,
+     con 9vh, quedaban a unos 10 px en 1366 × 768 */
+  @media (min-width: 901px) { .js-3d .entrada h1 { margin-top: max(0px, calc(9vh - 50px)); } }
   /* nmwmwj197tit, y nmwposiqptit para todos los anchos: «Empieza el recorrido» / «Start the tour» va siempre en la esquina de
      abajo a la derecha de la portada (teléfono de pie, pantalla angosta y ancha), lejos del título (antes quedaba pegado bajo
      «What is» y se leía «What is Start the tour»), de la línea dorada, de las letras «STL», del botón del menú (arriba a la
@@ -295,11 +297,27 @@
   /* «Cómo empezar» (pd_como_empezar) en el mismo reproductor: la fila con un ejemplo de lo que se le puede pedir al modelo,
      como texto y sin «Copiar» (nmw56hkz8tit), o del enlace al README, sobre los mandos */
   .popup-extra { display: none; }
-  .popup.guia .popup-extra { flex: none; height: 32px; display: flex; justify-content: center; align-items: center; gap: 12px; }
+  .popup.guia .popup-extra { flex: none; height: 64px; display: flex; justify-content: center; align-items: center; gap: 12px; }
   .popup-extra .ejemplo-como { color: #d9d4c4; font-size: 15px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85%; }
   .ejemplo-como { font-style: italic; }
   .popup-extra a { font-size: 15px; font-weight: 600; }
   .popup-extra [hidden] { display: none; }
+  /* Al final de «Cómo empezar», sus dos botones grandes, en fila y resaltados (nmwqxcclotit): la fila mide 64 px desde el
+     principio, para que el dibujo no salte al aparecer (mundo-3d.js › EXTRA_ALTO) */
+  .botones-como { display: flex; gap: 16px; justify-content: center; }
+  .boton-como { display: inline-flex; align-items: center; gap: 8px; padding: 12px 26px; border-radius: 999px; border: 0; cursor: pointer;
+    font: inherit; font-size: 17px; font-weight: 700; text-decoration: none; white-space: nowrap;
+    background: var(--oro); color: #1a1f33; box-shadow: 0 0 18px rgba(245, 210, 122, .45), 0 6px 16px rgba(0, 0, 0, .45); transition: transform .12s, box-shadow .2s; }
+  .popup-extra a.boton-como { font-size: 17px; font-weight: 700; color: #1a1f33; }
+  .boton-como:hover { transform: translateY(-1px); box-shadow: 0 0 26px rgba(245, 210, 122, .7), 0 8px 20px rgba(0, 0, 0, .5); }
+  .boton-como:focus-visible { outline: 2px solid var(--luz); outline-offset: 3px; }
+  .clonar-como { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 16px; background: rgba(4, 6, 12, .72); }
+  .clonar-como[hidden] { display: none; }
+  .clonar-caja { width: min(680px, 100%); box-sizing: border-box; padding: 24px 26px; border-radius: 18px; background: #0d1120; border: 1px solid rgba(245, 210, 122, .4); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); color: #fffaf0; }
+  .clonar-caja h2 { margin: 0 0 8px; font-size: 22px; }
+  .clonar-caja p { margin: 0 0 14px; color: #d9d4c4; }
+  .clonar-linea { display: block; padding: 14px 16px; border-radius: 10px; background: #07090f; border: 1px solid rgba(245, 210, 122, .25); font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; user-select: all; }
+  .clonar-acciones { display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px; }
   .ver-como { display: none; }
   .js-3d .ver-como { display: inline-flex; }
   .js-3d .ver-como[hidden] { display: none; }
@@ -396,6 +414,8 @@
     /* «Cómo empezar»: su ejemplo, en una fila sobre el dibujo (nmw865tnttit) */
     .js-3d .popup.guia .popup-extra { order: 0; height: auto; min-height: 28px; padding: 0 10px; }
     .js-3d .popup .popup-extra .ejemplo-como, .js-3d .popup .popup-extra a { font-size: 13px; }
+    .js-3d .popup .botones-como { gap: 10px; padding: 6px 0; }
+    .js-3d .popup .popup-extra .boton-como { padding: 9px 14px; font-size: 14px; }
   }
   .popup-respuesta { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* El globo de cada ícono: su nombre en dos palabras, al pasar el ratón o al hacer clic; lo pone mundo-3d.js › ponerGlobo,
@@ -680,8 +700,9 @@
   <div class="arriba-clip"><button type="button" class="cerrar-clip" data-cerrar-clip aria-label="Cerrar">✕</button><span class="pildora-clip" data-pildora-modo hidden></span><span class="pildora-clip" data-pildora-cuenta hidden></span></div>
   <canvas id="popup-clip" width="1280" height="800" role="img" aria-label="Una animación de este gran problema: cada situación como pasa al trabajar con IA por chat, seguida de cómo la resuelve STL, paso a paso"></canvas>
   <!-- Solo con «Cómo empezar»: la fila con un ejemplo de lo que se le puede pedir al modelo, como texto y sin «Copiar»
-       (nmw56hkz8tit), o el enlace al README (nmw4f6lictit) -->
-  <div class="popup-extra" data-extra-como><span class="ejemplo-como" data-pedido-como hidden></span><a data-enlace-como href="https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme" target="_blank" rel="noopener" hidden>Abrir la documentación (el README en GitHub) ↗</a></div>
+       (nmw56hkz8tit) o, al final, dos botones grandes en fila en lugar del enlace al README (nota de voz nmwqxcclotit):
+       «Descargar ZIP», directo al zip del repositorio, y «Clonar repositorio», que abre la línea exacta para el modelo -->
+  <div class="popup-extra" data-extra-como><span class="ejemplo-como" data-pedido-como hidden></span><span class="botones-como" data-enlace-como hidden><a class="boton-como" href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/archive/refs/heads/main.zip" download>⬇ Descargar ZIP</a><button type="button" class="boton-como" data-clonar-como>⧉ Clonar repositorio</button></span></div>
   <p class="sub-clip" data-sub-clip aria-hidden="true"></p>
   <div class="carril-clip" data-carril-clip aria-hidden="true"><span></span></div>
   <div class="popup-barra"><span class="crono-clip" data-crono-clip></span><button type="button" class="siguiente-clip" data-siguiente-clip hidden>Siguiente problema ›</button><button type="button" class="voz" data-voz-clip aria-pressed="true" aria-label="La voz que lee cada rótulo: oprímelo para callarla o para volver a oírla">🔊 Voz</button><button type="button" class="voz" data-repetir-clip aria-label="Repetir la animación; el reproductor se queda abierto">↻ Repetir</button>
@@ -711,6 +732,15 @@
   </div>
   <p class="popup-respuesta" id="popup-respuesta"></p>
 </aside>
+<!-- «Clonar repositorio» (nmwqxcclotit): la línea exacta que se le da al modelo para clonarlo, con «Copiar» -->
+<div class="clonar-como" id="clonar-como" role="dialog" aria-modal="true" aria-labelledby="clonar-titulo" hidden>
+  <div class="clonar-caja">
+    <h2 id="clonar-titulo">Clonar el repositorio</h2>
+    <p>Dale esta línea a tu modelo, abierto en la carpeta donde quieres trabajar:</p>
+    <code class="clonar-linea" data-linea-clonar>Clona https://github.com/ARGWABOT/STL-Sacred_Time_Line.git en esta carpeta e inicializa STL Studio</code>
+    <div class="clonar-acciones"><button type="button" class="boton-como" data-copiar-clonar>Copiar</button><button type="button" class="voz" data-cerrar-clonar>Cerrar</button></div>
+  </div>
+</div>
 
 <script type="module" src="./mundo-3d.js"></script>
 </body>

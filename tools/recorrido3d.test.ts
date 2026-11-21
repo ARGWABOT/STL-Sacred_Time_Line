@@ -2102,7 +2102,20 @@ describe('«Cómo empezar» y el dictado (pd_como_empezar, pd_dictado)', () => {
       expect(dichosEn[clave]?.texto, clave).toBe(texto);
       expect(pistaEn[clave], clave).toBe(dichosEn[clave].ms);
     });
-    expect(recuadro).toContain('data-enlace-como href="https://github.com/ARGWABOT/STL-Sacred_Time_Line#readme"');
+    // Al final, dos botones grandes en fila en lugar del enlace al README (nmwqxcclotit): el zip directo y «Clonar repositorio»,
+    // con su ventana y la línea exacta para el modelo, en los dos idiomas
+    expect(recuadro).not.toContain('Abrir la documentación (el README en GitHub)');
+    expect(js).not.toContain('Open the documentation (the README on GitHub)');
+    expect(html).toContain('<span class="botones-como" data-enlace-como hidden><a class="boton-como" href="https://github.com/ARGWABOT/STL-Sacred_Time_Line/archive/refs/heads/main.zip" download>⬇ Descargar ZIP</a><button type="button" class="boton-como" data-clonar-como>⧉ Clonar repositorio</button></span>');
+    expect(html).toContain('<code class="clonar-linea" data-linea-clonar>Clona https://github.com/ARGWABOT/STL-Sacred_Time_Line.git en esta carpeta e inicializa STL Studio</code>');
+    const fijoEn = new Function(`return ${js.match(/const FIJO_EN = (\{[\s\S]*?\n\});/)?.[1] ?? '{}'};`)() as Record<string, string>;
+    expect(fijoEn['⬇ Descargar ZIP']).toBe('⬇ Download ZIP');
+    expect(fijoEn['⧉ Clonar repositorio']).toBe('⧉ Clone repository');
+    expect(fijoEn['Clona https://github.com/ARGWABOT/STL-Sacred_Time_Line.git en esta carpeta e inicializa STL Studio']).toBe('Clone https://github.com/ARGWABOT/STL-Sacred_Time_Line.git into this folder and initialize STL Studio');
+    // El cierre sube su frase y su barra para dejar aire sobre los botones, y la fila mide lo mismo desde el principio
+    expect(js).toContain("pintarCierre(c, L('En marcha', 'Up and running'), GUION_COMO.cierre, q, '', L('Listo', 'Done'), Y_CIERRE_COMO); pintarBarra(c, p, Y_CIERRE_COMO + 6);");
+    expect(html).toContain('.popup.guia .popup-extra { flex: none; height: 64px;');
+    expect(js).toContain('const EXTRA_ALTO = 72;');
     expect(js).toContain('autocierre.abrir(); autocierre.repetir();   // no se cierra solo');
     expect(js).toContain('if (seleccionado >= 0 && Math.abs(cur - (seleccionado === GUIA ? 4 : seleccionado === MEJORA ? 3 : 2)) > 0.45) cerrarPopup();');
     // El camino de la 2 a la 3, la línea sola (nmw4isvr9tit): sin nada nuevo entre las dos estaciones
@@ -2415,6 +2428,14 @@ describe('los textos de las estaciones, en una sola línea abajo y pequeños, y 
     // (nmw8bic81tit, que reemplaza el centro de nmw86na4vtit), y la página sin 3D no se asoma mientras carga
     expect(html).toMatch(/\.js-3d \.entrada \{[^}]*justify-content: flex-start; padding-top: 13vh;/);
     expect(html).not.toMatch(/\.js-3d \.entrada \{[^}]*justify-content: center;/);
+    // nmwqxcclotit: «What is» sube, con unos 60 px de aire sobre las estrellas de «STL» (desde el 28 % de la altura) en un
+    // portátil pequeño, y nunca menos de 50 en un computador
+    expect(html).toContain('@media (min-width: 901px) { .js-3d .entrada h1 { margin-top: max(0px, calc(9vh - 50px)); } }');
+    for (const [ancho, alto] of [[1280, 720], [1366, 768], [1440, 900], [1536, 864], [1920, 1080], [2560, 1440]]) {
+      const letra = Math.min(46, Math.max(26, ancho * 0.024)), margen = Math.max(0, alto * 0.09 - 50);
+      const aire = alto * 0.28 - (alto * 0.13 + margen + letra * 1.1);
+      expect(aire, `${ancho}x${alto}`).toBeGreaterThanOrEqual(50);
+    }
     // nmwmwj197tit y nmwposiqptit: en TODOS los anchos (teléfono de pie, pantalla angosta y ancha), el botón de la portada va abajo
     // a la derecha, dentro de la ventana, lejos del título, de la línea y del menú; la regla no está dentro de ninguna @media
     const bloque = html.match(/\n {2}\.js-3d \.entrada \{ position: relative; \}\s*\n {2}\.js-3d \.entrada \.bajar \{([^}]*)\}/)?.[1] ?? '';

@@ -72,6 +72,9 @@ describe('«What is STL» upright, a vertical frame that zooms in and follows yo
     expect(html).toContain('#todo.vertical #modos { order: -1; justify-self: center; }');
     expect(html).toContain('#todo.vertical h1 { justify-self: center; text-align: center; font-size: clamp(12px, 3.6vw, 16px); }');
     expect(html).toMatch(/#todo\.vertical #estado \{\s*width: 100%; min-height: 0;/);
+    // The title in two clean lines with air below, and the drawing starts under it and never rises over it (t_ve_video_promocional, step 3)
+    expect(html).toContain('#todo.vertical h1 span { display: block; }');
+    expect(html).toContain('#todo.vertical #escena { width: 100%; flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-start; justify-content: center; overflow: hidden; }');
     expect(html).toContain('#todo.vertical #velocidad { flex: 1 1 0; min-width: 0; margin: 0; gap: 3px; flex-wrap: nowrap;');
     // The computer and the phone on its side do not change
     expect(html).toContain('PIE.activo = recto;');
