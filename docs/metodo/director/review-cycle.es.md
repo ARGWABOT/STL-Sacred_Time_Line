@@ -1,6 +1,6 @@
 # El ciclo de revisión
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `review-cycle.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) dice cuándo leerlo: en cada revisión.*
+*Su versión en inglés, con las mismas partes, es `review-cycle.md`; se lee en cada revisión.*
 
 ## Los pasos (en marcha)
 

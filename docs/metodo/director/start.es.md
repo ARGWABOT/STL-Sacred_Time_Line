@@ -1,6 +1,6 @@
 # El arranque de un proyecto
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `start.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) dice cuándo leerlo.*
+*Su versión en inglés, con las mismas partes, es `start.md`; se lee en las etapas del arranque, cuando la bandeja lo nombra.*
 
 ## Proyecto existente o nuevo
 

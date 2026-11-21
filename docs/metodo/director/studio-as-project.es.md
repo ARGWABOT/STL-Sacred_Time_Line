@@ -1,6 +1,6 @@
 # El Studio como proyecto (STL Studio se dirige a sí mismo)
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `studio-as-project.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) dice cuándo leerlo: en cada revisión del proyecto cuyo repositorio es el mismo Studio.*
+*Su versión en inglés, con las mismas partes, es `studio-as-project.md`; se lee en cada revisión del proyecto cuyo repositorio es el mismo Studio.*
 
 ## Lo que cambia por ser el mismo repositorio
 

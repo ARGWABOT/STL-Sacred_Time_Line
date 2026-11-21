@@ -1,6 +1,6 @@
 # The director's documents
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `documents.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: in every review, before writing or changing a document.*
+*Its Spanish version, with the same parts, is `documents.es.md`; it is read in every review, before writing or changing a document.*
 
 ## The format
 

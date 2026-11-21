@@ -1,6 +1,6 @@
 # Los formatos de `plan.json`
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `plan-formats.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) dice cuándo leerlo: en cada revisión, en cada urgencia y en cada aclaración, antes de escribir en el plan.*
+*Su versión en inglés, con las mismas partes, es `plan-formats.md`; se lee en cada revisión, en cada urgencia y en cada aclaración, antes de escribir en el plan.*
 
 ## El parche, la misión y sus pasos
 

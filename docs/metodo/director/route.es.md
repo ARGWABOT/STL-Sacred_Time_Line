@@ -1,6 +1,6 @@
 # La ruta
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `route.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) dice cuándo leerlo: en la etapa `ruta` y cuando la meta se replanteó.*
+*Su versión en inglés, con las mismas partes, es `route.md`; se lee en la etapa `ruta` y cuando la meta se replanteó.*
 
 ## Las fases
 

@@ -1,6 +1,6 @@
 # The approach (new project)
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `approach.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: at the `diagnostico` stage of a new project.*
+*Its Spanish version, with the same parts, is `approach.es.md`; it is read at the `diagnostico` stage of a new project.*
 
 ## The steps
 

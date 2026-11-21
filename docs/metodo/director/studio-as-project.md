@@ -1,6 +1,6 @@
 # The Studio as a project (STL Studio directs itself)
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `studio-as-project.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: in every review of the project whose repository is the Studio itself.*
+*Its Spanish version, with the same parts, is `studio-as-project.es.md`; it is read in every review of the project whose repository is the Studio itself.*
 
 ## What changes because it is the same repository
 

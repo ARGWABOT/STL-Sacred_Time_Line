@@ -1,6 +1,6 @@
 # Deciding: the director's criterion
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `deciding.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: in every review, before ordering the missions and the queue, recommending something or writing a mission.*
+*Its Spanish version, with the same parts, is `deciding.es.md`; it is read in every review, before ordering the missions and the queue, recommending something or writing a mission.*
 
 ## The owner's criterion comes first
 

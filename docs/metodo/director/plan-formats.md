@@ -1,6 +1,6 @@
 # The formats of `plan.json`
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `plan-formats.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: in every review, every urgency and every clarification, before writing in the plan.*
+*Its Spanish version, with the same parts, is `plan-formats.es.md`; it is read in every review, every urgency and every clarification, before writing in the plan.*
 
 ## The patch, the mission and its steps
 

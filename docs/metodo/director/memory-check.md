@@ -1,6 +1,6 @@
 # The memory check (an existing project's memory against its code)
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `memory-check.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) names it while the proposal `p_verificar_memoria` is accepted and not executed: the owner chose it at the end of the diagnosis (`diagnosis.md` › «The project's memory»).*
+*Its Spanish version, with the same parts, is `memory-check.es.md`; it is read while the proposal `p_verificar_memoria`, chosen at the end of the diagnosis (`diagnosis.md` › «The project's memory»), is accepted and not executed.*
 
 ## What it is for
 

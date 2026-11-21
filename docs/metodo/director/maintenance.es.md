@@ -1,6 +1,6 @@
 # Cuando el titular da la meta por lograda (mantenimiento)
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `maintenance.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. Se lee cuando una nota del titular da la meta por lograda, y la bandeja (`tools/director/bandeja.ts`) lo nombra mientras la fase en curso es de mantenimiento.*
+*Su versión en inglés, con las mismas partes, es `maintenance.md`; se lee cuando una nota da la meta por lograda y mientras la fase en curso es de mantenimiento.*
 
 ## Los pasos
 

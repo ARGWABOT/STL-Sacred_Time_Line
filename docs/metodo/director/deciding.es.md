@@ -1,6 +1,6 @@
 # Decidir: el criterio del director
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `deciding.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) dice cuándo leerlo: en cada revisión, antes de ordenar las misiones y la cola, recomendar algo o escribir una misión.*
+*Su versión en inglés, con las mismas partes, es `deciding.md`; se lee en cada revisión, antes de ordenar las misiones y la cola, recomendar algo o escribir una misión.*
 
 ## El criterio del titular va primero
 

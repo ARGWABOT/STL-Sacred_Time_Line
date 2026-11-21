@@ -1,6 +1,6 @@
 # The route
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `route.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: at the `ruta` stage and when the goal was reset.*
+*Its Spanish version, with the same parts, is `route.es.md`; it is read at the `ruta` stage and when the goal was reset.*
 
 ## The phases
 

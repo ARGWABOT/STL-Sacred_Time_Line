@@ -1,6 +1,6 @@
 # The review cycle
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `review-cycle.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: in every review.*
+*Its Spanish version, with the same parts, is `review-cycle.es.md`; it is read in every review.*
 
 ## The steps (en marcha)
 

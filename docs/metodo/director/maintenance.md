@@ -1,6 +1,6 @@
 # When the owner declares the goal achieved (maintenance)
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `maintenance.es.md`, has the same parts and is the one people read and approve. A change is written in both. It is read when a note from the owner declares the goal achieved, and the inbox (`tools/director/bandeja.ts`) names it while the current phase is a maintenance one.*
+*Its Spanish version, with the same parts, is `maintenance.es.md`; it is read when a note declares the goal achieved and while the current phase is a maintenance one.*
 
 ## The steps
 

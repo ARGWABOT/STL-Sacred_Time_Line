@@ -1,6 +1,6 @@
 # The diagnosis queue (projects just handed over)
 
-*A procedure of the STL Studio director. The model reads this English version; its Spanish version, `diagnosis-queue.es.md`, has the same parts and is the one people read and approve. A change is written in both. The inbox (`tools/director/bandeja.ts`) says when to read it: when it lists the diagnosis queue, at the end of the review.*
+*Its Spanish version, with the same parts, is `diagnosis-queue.es.md`; it is read when the inbox lists the diagnosis queue, at the end of the review.*
 
 ## What it is and when it is handled
 

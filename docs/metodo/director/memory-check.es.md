@@ -1,6 +1,6 @@
 # La verificación de la memoria (la memoria de un proyecto existente contra su código)
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `memory-check.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) lo nombra mientras la propuesta `p_verificar_memoria` está aceptada y sin ejecutar: el titular la eligió al final del diagnóstico (`diagnosis.es.md` › «La memoria del proyecto»).*
+*Su versión en inglés, con las mismas partes, es `memory-check.md`; se lee mientras la propuesta `p_verificar_memoria`, elegida al final del diagnóstico (`diagnosis.es.md` › «La memoria del proyecto»), está aceptada y sin ejecutar.*
 
 ## Para qué es
 

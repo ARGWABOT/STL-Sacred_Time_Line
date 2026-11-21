@@ -28,6 +28,13 @@ describe('los procedimientos del director, aparte de CLAUDE.md', () => {
       expect(partesDe(en).titulos).toBeGreaterThan(0);
       expect(en).toContain(basename(enEspanol(archivo)));
       expect(es).toContain(basename(archivo));
+      // Su primera línea, una sola frase que nombra la otra versión y cuándo se lee: lo demás ya lo dice CLAUDE.md
+      for (const [ruta, texto, otra] of [[archivo, en, basename(enEspanol(archivo))], [enEspanol(archivo), es, basename(archivo)]]) {
+        const apertura = texto.split('\n')[2] ?? '';
+        expect(apertura, ruta).toMatch(/^\*.+\.\*$/);
+        expect(apertura, ruta).toContain(`\`${otra}\``);
+        expect(apertura.slice(1, -2), `${ruta}: su primera línea es una sola frase`).not.toMatch(/\.\s/);
+      }
     }
   });
 

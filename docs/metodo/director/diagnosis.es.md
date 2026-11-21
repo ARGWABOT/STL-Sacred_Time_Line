@@ -1,6 +1,6 @@
 # El diagnóstico (proyecto existente)
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `diagnosis.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) dice cuándo leerlo: en la etapa `diagnostico` de un proyecto existente y en cada proyecto de la cola de diagnósticos.*
+*Su versión en inglés, con las mismas partes, es `diagnosis.md`; se lee en la etapa `diagnostico` de un proyecto existente y en cada proyecto de la cola de diagnósticos.*
 
 ## Los pasos
 

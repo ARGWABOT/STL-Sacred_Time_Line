@@ -1,6 +1,6 @@
 # La cola de diagnósticos (proyectos recién entregados)
 
-*Un procedimiento del director de STL Studio. El modelo lee la versión en inglés, `diagnosis-queue.md`; esta es su versión en español, para leerla y aprobarla, con las mismas partes. Un cambio se escribe en las dos. La bandeja (`tools/director/bandeja.ts`) dice cuándo leerlo: cuando lista la cola de diagnósticos, al final de la revisión.*
+*Su versión en inglés, con las mismas partes, es `diagnosis-queue.md`; se lee cuando la bandeja lista la cola de diagnósticos, al final de la revisión.*
 
 ## Qué es y cuándo se atiende
 
