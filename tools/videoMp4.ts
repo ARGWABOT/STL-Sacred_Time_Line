@@ -7,6 +7,8 @@
 //      node tools/videoMp4.ts --presupuesto 500   (para a los 500 s y, al repetirlo, sigue por el cuadro que faltaba)
 //      node tools/videoMp4.ts --hasta 12       (solo los primeros 12 segundos, para probar)
 //      node tools/videoMp4.ts --url http://localhost:5180/   (otro Studio encendido; nunca arranca uno)
+//      node tools/videoMp4.ts --promocional [--idioma es|en]   (the single promotional video, vertical, one per language,
+//                                                               in autor/video/: see VIDEO_PROMOCIONAL)
 // Necesita el Studio encendido, ffmpeg en el PATH y Chrome o Edge instalados; si falta algo, se detiene y lo dice.
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, existsSync, rmSync, writeFileSync, statSync } from 'node:fs';
@@ -23,7 +25,17 @@ const TASA_AUDIO = 44100;
 const SALIDA = join(raiz, 'video', 'stl-video-corto-es.mp4');
 const PAGINA = 'docs/difusion/mundo-3d.html?video&mp4';
 
-export type Voz = { clave: string; segundoReal: number; recorte: number };
+// ritmo: the rate the page played that clip at (its own rhythm × the chosen speed); without it, the video's speed
+export type Voz = { clave: string; segundoReal: number; recorte: number; ritmo?: number };
+
+/** atempo for any rate: older ffmpeg builds accept only 0.5 to 2 per filter, so a faster rate is chained. */
+export function atempos(ritmo: number): string {
+  const partes: string[] = [];
+  let resto = ritmo;
+  while (resto > 2 + 1e-9) { partes.push('atempo=2'); resto /= 2; }
+  partes.push(`atempo=${Number(resto.toFixed(6))}`);
+  return partes.join(',');
+}
 export type OpcionesMusica = { segundos: number; velocidad: number; volumen: number; acordes: number[][]; acordeSeg: number; tasa?: number };
 
 /** Cuántos cuadros lleva un video de esos segundos reales. */
@@ -82,32 +94,49 @@ export function escribirWav(muestras: Float32Array, tasa = TASA_AUDIO): Buffer {
  */
 export function filtroDeAudio(voces: Voz[], velocidad: number, tasa = TASA_AUDIO, primera = 0): string {
   const partes = voces.map((v, i) =>
-    `[${primera + i + 1}:a]atrim=start=${v.recorte.toFixed(3)},asetpts=PTS-STARTPTS,atempo=${velocidad},aresample=${tasa},aformat=channel_layouts=mono,adelay=${Math.round(v.segundoReal * 1000)}:all=1[v${i}]`);
+    `[${primera + i + 1}:a]atrim=start=${v.recorte.toFixed(3)},asetpts=PTS-STARTPTS,${atempos(v.ritmo ?? velocidad)},aresample=${tasa},aformat=channel_layouts=mono,adelay=${Math.round(v.segundoReal * 1000)}:all=1[v${i}]`);
   const entradas = [`[${primera}:a]`, ...voces.map((_, i) => `[v${i}]`)].join('');
   return [...partes, `${entradas}amix=inputs=${voces.length + 1}:normalize=0:duration=longest[mezcla]`].join(';');
 }
 
-// ── El clip de prueba de «Qué es STL» (pd_clips_redes; nmw8e3brctit, nmw8e3foctit): vertical, de 1080 × 1920 (nmw8crwf0tit),
-// grabado de la versión del teléfono de la línea (nmw7x8jdhtit) con su voz y sus rótulos en inglés, los subtítulos en
-// español del recorrido debajo del dibujo (nmw7yj0pbtit, nmw866dqttit; en dos renglones solo los largos, nmw8b2k5ttit),
-// la entrada con el nombre y lo que es (nmw7x95r0tit), la despedida de 5 segundos con la dirección de GitHub
-// (nmw5eyeostit, nmw5eyswotit) y sin música, que espera al modelo de audio local (nmw7510v8tit). Solo las 23 líneas
-// elegidas (nmw725iwwtit), por su clave de la pista de voz. Queda en autor/, fuera de git (nmw8crm0atit, nmw8crnaatit).
-// Uso: node tools/videoMp4.ts --clip-prueba
-export const CLIP_PRUEBA = {
-  claves: ['sinIntro-1', 'sinIntro-2', 'sinIntro-3', 'sinRamas-1', 'sinRamas-2', 'sinRamas-5', 'sinRamas-6', 'sinRamas-7', 'sinRamas-10',
-    'sinFin-1', 'inicio-1', 'inicio-2', 'inicio-3', 'inicio-4', 'trabajo1-1', 'trabajo1-2', 'trabajo1-3', 'llega1-1', 'llega1-2',
-    'entrega-1', 'entrega-2', 'meta-1', 'meta-4'],
+// ── The single promotional video (pd_video_unico; nmw8fz4whtit, nmwqvisiitit): the whole intro of «What is STL», every
+// line of the script with nothing cut, recorded from the phone view of the line (360 × 640 CSS at 3x: 1080 × 1920), at
+// the page's own speed (its control opens at 1.25x). One video per language, never mixed: the Spanish voice (voz/linea)
+// with the Spanish captions, and the English voice (voz/linea-en) with the English captions, burned in like the tour's
+// captions (nmwqnap8vtit). It opens with the 3-second card (nmwqnazkwtit) and ends with the 5-second farewell card with
+// the GitHub address. No background music (owner's decision nmwqvisiitit): the audio is silence plus the voices. Both
+// files go only to autor/, outside git (nmw8crm0atit).
+// Uso: node tools/videoMp4.ts --promocional               (both languages, one after the other)
+//      node tools/videoMp4.ts --promocional --idioma es   (only one)
+export type Idioma = 'es' | 'en';
+export const VIDEO_PROMOCIONAL = {
   // 360 × 640 de CSS, a 3 por punto: 1080 × 1920
   css: { ancho: 360, alto: 640, escala: 3 },
+  // The page's speed control, as it opens (linea-del-proyecto.html › VELOCIDAD_INICIAL): each voice keeps the rate the
+  // page plays it at, recorded by the fake Audio
   velocidad: 1.25,
   entrada: 3,
   despedida: 5,
+  // After the last line's voice ends, a second and a half of air before the farewell card
+  aire: 1.5,
   nombre: 'STL Studio',
-  queEs: 'The interface between you and the model',
   direccion: 'github.com/ARGWABOT/STL-Sacred_Time_Line',
-  salida: join(raiz, 'autor', 'clips', 'stl-que-es-clip-prueba.mp4'),
-  pagina: 'docs/difusion/linea-del-proyecto.html?lang=en',
+  idiomas: {
+    es: {
+      queEs: 'La interfaz entre tú y el modelo',
+      pagina: 'docs/difusion/linea-del-proyecto.html?lang=es',
+      voz: 'linea',
+      guion: 'GUION',
+      salida: join(raiz, 'autor', 'video', 'stl-que-es-es.mp4'),
+    },
+    en: {
+      queEs: 'The interface between you and the model',
+      pagina: 'docs/difusion/linea-del-proyecto.html?lang=en',
+      voz: 'linea-en',
+      guion: 'GUION_EN',
+      salida: join(raiz, 'autor', 'video', 'stl-que-es-en.mp4'),
+    },
+  } satisfies Record<Idioma, { queEs: string; pagina: string; voz: string; guion: string; salida: string }>,
 };
 
 /** Un objeto literal de la página (GUION, GUION_EN), leído de su fuente: solo cadenas, listas y comentarios. */
@@ -123,14 +152,23 @@ export function objetoDeLaPagina(html: string, nombre: string): Record<string, s
   throw new Error(`${nombre} no cierra`);
 }
 
-/** El subtítulo en español de cada clave de la voz: la línea del narrador del mismo momento, como está en el recorrido. */
-export function subtitulosEnEspanol(html: string): Record<string, string> {
-  const guion = objetoDeLaPagina(html, 'GUION');
+/**
+ * The caption of each voice key in that language: the narrator's line of the same moment, as the tour shows it
+ * (GUION for Spanish, GUION_EN for English), in the script's order, which is the order of the video.
+ */
+export function subtitulosDe(html: string, idioma: Idioma): Record<string, string> {
+  const guion = objetoDeLaPagina(html, VIDEO_PROMOCIONAL.idiomas[idioma].guion);
   return Object.fromEntries(Object.entries(guion).flatMap(([momento, lineas]) => lineas.map((l, i) => [`${momento}-${i + 1}`, l])));
 }
 
+/** The keys of the script that a recorded track left without their voice (the tool's «without its voice» warning). */
+export function clavesSinVoz(subtitulos: Record<string, string>, voces: Pick<Voz, 'clave'>[]): string[] {
+  const dichas = new Set(voces.map((v) => v.clave));
+  return Object.keys(subtitulos).filter((k) => !dichas.has(k));
+}
+
 /** La opacidad de la tapa de la entrada en el segundo s: sube suave, se queda y baja suave al dibujo. */
-export function tapaDeEntrada(s: number, dura = CLIP_PRUEBA.entrada, suave = 0.6): number {
+export function tapaDeEntrada(s: number, dura = VIDEO_PROMOCIONAL.entrada, suave = 0.6): number {
   if (s < suave) return s / suave;
   if (s > dura - suave) return Math.max(0, (dura - s) / suave);
   return 1;
@@ -317,20 +355,25 @@ async function principal() {
   }
 }
 
-/** Graba el clip de prueba: la línea en inglés, cuadro por cuadro con el reloj de mentira, solo en sus 23 líneas. */
-async function clipPrueba() {
+/**
+ * Records the promotional video in one language: the whole line, frame by frame with the fake clock, with that
+ * language's voice and captions, the opening card and the farewell card, and no music.
+ */
+async function videoPromocional(idioma: Idioma) {
   const base = (opcion('--url') ?? 'http://localhost:5180/').replace(/\/?$/, '/');
   if (spawnSync('ffmpeg', ['-version']).error) parar('Falta ffmpeg en el PATH.');
   const navegador = candidatosNavegador(process.platform, process.env).find((r) => existsSync(r));
   if (!navegador) parar('No hay Chrome ni Edge instalado.');
-  const url = base + CLIP_PRUEBA.pagina;
+  const V = VIDEO_PROMOCIONAL, L = V.idiomas[idioma];
+  const url = base + L.pagina;
   try { if (!(await fetch(url)).ok) throw new Error('no responde'); } catch { parar(`El Studio no está encendido en ${base}: enciéndelo y vuelve a correr esto (no arranco otro).`); }
   const { readFileSync } = await import('node:fs');
-  const espanol = subtitulosEnEspanol(readFileSync(join(raiz, 'docs', 'difusion', 'linea-del-proyecto.html'), 'utf8'));
-  const faltan = CLIP_PRUEBA.claves.filter((k) => !espanol[k]);
-  if (faltan.length) parar(`Sin subtítulo en español: ${faltan.join(', ')}`);
-  const { css } = CLIP_PRUEBA, FPS = CUADROS_POR_SEGUNDO, paso = 1000 / FPS;
-  const temporal = mkdtempSync(join(tmpdir(), 'stl-clip-'));
+  const subtitulos = subtitulosDe(readFileSync(join(raiz, 'docs', 'difusion', 'linea-del-proyecto.html'), 'utf8'), idioma);
+  const claves = Object.keys(subtitulos), ultimaClave = claves.at(-1)!;
+  const sinArchivo = claves.filter((k) => !existsSync(join(raiz, 'docs', 'difusion', 'voz', L.voz, `${k}.mp3`)));
+  if (sinArchivo.length) parar(`Sin su clip de voz en voz/${L.voz}: ${sinArchivo.join(', ')}`);
+  const { css } = V, FPS = CUADROS_POR_SEGUNDO, paso = 1000 / FPS;
+  const temporal = mkdtempSync(join(tmpdir(), 'stl-promo-'));
   const cuadros = join(temporal, 'cuadros');
   mkdirSync(cuadros, { recursive: true });
   const puerto = 9300 + Math.floor(Math.random() * 600);
@@ -356,63 +399,67 @@ async function clipPrueba() {
     await cdp.evaluar(`(() => {
       const st = document.createElement('style'); st.textContent = ${JSON.stringify(ESTILO_CLIP)}; document.head.append(st);
       const t = document.createElement('div'); t.id = 'clip-tapa'; document.body.append(t);
-      window.__ES = ${JSON.stringify(espanol)};
+      window.__SUB = ${JSON.stringify(subtitulos)};
       window.__tapa = (html, o) => { const t = document.getElementById('clip-tapa'); if (html != null && t.dataset.html !== html) { t.innerHTML = html; t.dataset.html = html; } t.style.opacity = String(o); };
-      // El subtítulo, en español, con la misma regla de la página: en un renglón si cabe (hasta el 72 % de su letra); si no, en dos
-      window.__sub = () => { const k = CLAVES_VOZ.get(actual); const es = k ? window.__ES[k] : ''; const s = document.getElementById('estado'); if (s.dataset.es !== es || s.textContent !== es) { unRenglon(s, es); s.dataset.es = es; } return k ?? ''; };
+      // The caption, in the video's language, with the page's own rule: on one line if it fits (down to 72 % of its
+      // size); if not, on two
+      window.__sub = () => { const k = CLAVES_VOZ.get(actual); const sub = k ? window.__SUB[k] : ''; const s = document.getElementById('estado'); if (s.dataset.sub !== sub || s.textContent !== sub) { unRenglon(s, sub); s.dataset.sub = sub; } return k ?? ''; };
       dispatchEvent(new Event('resize'));
     })()`);
     await cdp.evaluar('__avanzar(200)');
+    // The page's speed control, as it opens: the scene and each voice run at it
+    await cdp.evaluar(`ponerVelocidad(${V.velocidad})`);
     const foto = async () => Buffer.from((await cdp!.enviar('Page.captureScreenshot', { format: 'jpeg', quality: 94 })).data, 'base64');
     let n = 0;
     const guardar = (b: Buffer) => writeFileSync(join(cuadros, `${String(n++).padStart(6, '0')}.jpg`), b);
     // La entrada: el nombre y lo que es, sobre el primer cuadro de la línea, que aparece al irse la tapa
-    const tapaEntrada = `<b>${CLIP_PRUEBA.nombre}</b><span>${CLIP_PRUEBA.queEs}</span>`;
+    const tapaEntrada = `<b>${V.nombre}</b><span>${L.queEs}</span>`;
     await cdp.evaluar('__sub()');
-    for (let k = 0; k < CLIP_PRUEBA.entrada * FPS; k++) {
+    for (let k = 0; k < V.entrada * FPS; k++) {
       await cdp.evaluar(`__tapa(${JSON.stringify(tapaEntrada)}, ${tapaDeEntrada(k / FPS).toFixed(3)})`);
       guardar(await foto());
     }
     await cdp.evaluar('__tapa(null, 0); cerrarBienvenida(true); if (!reproduce) iniciar();');
-    // La línea: cada paso de 1/30 s; solo se guardan los cuadros de las 23 líneas, y cada voz que empieza en ellos
-    const elegidas = new Set(CLIP_PRUEBA.claves), voces: Voz[] = [];
-    let vistas = 0, finDeLaUltima = -1, pasos = 0;
-    console.log('Grabando las 23 líneas…');
+    // The line: every frame of 1/30 s from start to end, and each voice of the script that starts in it, with the rate
+    // the page played it at (the goal's jokes are not in the phone view, and nothing outside the script is kept)
+    const delGuion = new Set(claves), voces: Voz[] = [];
+    let finDeLaUltima = -1, pasos = 0, terminada = false;
+    console.log(`[${idioma}] Grabando la línea entera (${claves.length} líneas)…`);
     for (; pasos < 20 * 60 * FPS; pasos++) {
-      const r = await cdp.evaluar(`(() => { const v0 = __voces.length; __avanzar(${paso}); const k = __sub(); return { k, nuevas: __voces.slice(v0), hablando: !!(narra.audio && narra.hablando) }; })()`) as { k: string; nuevas: { clave: string; recorte: number }[]; hablando: boolean };
-      if (!elegidas.has(r.k)) continue;
-      for (const v of r.nuevas) if (elegidas.has(v.clave)) voces.push({ clave: v.clave, segundoReal: n / FPS, recorte: v.recorte });
+      const r = await cdp.evaluar(`(() => { const v0 = __voces.length; __avanzar(${paso}); const k = __sub(); return { k, nuevas: __voces.slice(v0), hablando: !!(narra.audio && narra.hablando) }; })()`) as { k: string; nuevas: { clave: string; recorte: number; ritmo: number }[]; hablando: boolean };
+      for (const v of r.nuevas) if (delGuion.has(v.clave)) voces.push({ clave: v.clave, segundoReal: n / FPS, recorte: v.recorte, ritmo: v.ritmo });
       guardar(await foto());
-      if (++vistas % 150 === 0) console.log(`  ${vistas} cuadros de la línea (${(vistas / FPS).toFixed(1)} s)`);
-      // Al final, la última línea, con su voz entera y un segundo y medio de aire
-      if (r.k === CLIP_PRUEBA.claves.at(-1) && !r.hablando && voces.some((v) => v.clave === r.k)) {
+      if (pasos % 300 === 0) console.log(`  [${idioma}] ${(pasos / FPS).toFixed(0)} s de la línea, ${voces.length} voces`);
+      // At the end, the last line with its whole voice and a second and a half of air
+      if (r.k === ultimaClave && !r.hablando && voces.some((v) => v.clave === r.k)) {
         if (finDeLaUltima < 0) finDeLaUltima = n;
-        else if (n - finDeLaUltima >= 1.5 * FPS) break;
+        else if (n - finDeLaUltima >= V.aire * FPS) { terminada = true; break; }
       }
     }
-    const dichas = new Set(voces.map((v) => v.clave));
-    const sinVoz = CLIP_PRUEBA.claves.filter((k) => !dichas.has(k));
-    if (sinVoz.length) console.log(`Ojo: sin su voz en el clip: ${sinVoz.join(', ')}`);
+    if (!terminada) parar(`[${idioma}] La línea no llegó a su última frase en 20 minutos.`);
+    const sinVoz = clavesSinVoz(subtitulos, voces);
+    console.log(sinVoz.length ? `Ojo: sin su voz en el video: ${sinVoz.join(', ')}` : `[${idioma}] Todas las líneas con su voz (${voces.length}).`);
     // La despedida: la dirección de GitHub, 5 segundos, sobre el último cuadro
-    const tapaFin = `<b>${CLIP_PRUEBA.nombre}</b><span>${CLIP_PRUEBA.queEs}</span><small>${CLIP_PRUEBA.direccion}</small>`;
+    const tapaFin = `<b>${V.nombre}</b><span>${L.queEs}</span><small>${V.direccion}</small>`;
     let ultima = Buffer.alloc(0);
-    for (let k = 0; k < CLIP_PRUEBA.despedida * FPS; k++) {
+    for (let k = 0; k < V.despedida * FPS; k++) {
       if (k <= 18) { await cdp.evaluar(`__tapa(${JSON.stringify(tapaFin)}, ${Math.min(1, k / 18).toFixed(3)})`); ultima = await foto(); }
       guardar(ultima);
     }
     const largo = n / FPS;
-    console.log(`El clip dura ${largo.toFixed(2)} s, ${n} cuadros, ${voces.length} voces.`);
-    // El audio: silencio del largo del clip y cada voz en su segundo, a 1,25x sin cambiar su tono (filtroDeAudio)
-    const entradas = voces.flatMap((v) => ['-i', join(raiz, 'docs', 'difusion', 'voz', 'linea-en', `${v.clave}.mp3`)]);
-    mkdirSync(join(raiz, 'autor', 'clips'), { recursive: true });
+    console.log(`[${idioma}] El video dura ${largo.toFixed(2)} s, ${n} cuadros, ${voces.length} voces.`);
+    // The audio: silence as long as the video and each voice at its second and its rate, without changing its pitch
+    // (filtroDeAudio); no music
+    const entradas = voces.flatMap((v) => ['-i', join(raiz, 'docs', 'difusion', 'voz', L.voz, `${v.clave}.mp3`)]);
+    mkdirSync(join(L.salida, '..'), { recursive: true });
     const orden = ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(cuadros, '%06d.jpg'),
       '-f', 'lavfi', '-t', largo.toFixed(3), '-i', `anullsrc=r=${TASA_AUDIO}:cl=mono`, ...entradas,
-      '-filter_complex', filtroDeAudio(voces, CLIP_PRUEBA.velocidad, TASA_AUDIO, 1),
+      '-filter_complex', filtroDeAudio(voces, V.velocidad, TASA_AUDIO, 1),
       '-map', '0:v', '-map', '[mezcla]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(FPS),
-      '-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-t', largo.toFixed(3), '-movflags', '+faststart', CLIP_PRUEBA.salida];
+      '-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-t', largo.toFixed(3), '-movflags', '+faststart', L.salida];
     const r = spawnSync('ffmpeg', orden, { stdio: 'inherit' });
     if (r.status !== 0) parar('ffmpeg no pudo armar el MP4.');
-    console.log(`Listo: ${CLIP_PRUEBA.salida} (${(statSync(CLIP_PRUEBA.salida).size / 1048576).toFixed(1)} MB)`);
+    console.log(`Listo: ${L.salida} (${(statSync(L.salida).size / 1048576).toFixed(1)} MB)`);
   } finally {
     cdp?.cerrar();
     if (process.platform === 'win32' && proceso.pid) spawnSync('taskkill', ['/PID', String(proceso.pid), '/T', '/F'], { stdio: 'ignore' });
@@ -422,4 +469,17 @@ async function clipPrueba() {
   }
 }
 
-if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) await (process.argv.includes('--clip-prueba') ? clipPrueba() : principal());
+/** The languages to record: the one of --idioma, or both, Spanish first. */
+export function idiomasPedidos(pedido: string | undefined): Idioma[] {
+  if (pedido === undefined) return ['es', 'en'];
+  if (pedido === 'es' || pedido === 'en') return [pedido];
+  throw new Error(`--idioma es o en, no «${pedido}»`);
+}
+
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  if (process.argv.includes('--promocional')) {
+    let idiomas: Idioma[] = [];
+    try { idiomas = idiomasPedidos(opcion('--idioma')); } catch (e) { parar((e as Error).message); }
+    for (const idioma of idiomas) await videoPromocional(idioma);
+  } else await principal();
+}

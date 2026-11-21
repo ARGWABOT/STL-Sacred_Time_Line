@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { CLIP_PRUEBA, cuadrosDe, escribirWav, filtroDeAudio, objetoDeLaPagina, sintetizarMusica, subtitulosEnEspanol, tapaDeEntrada } from './videoMp4.ts';
+import { atempos, clavesSinVoz, cuadrosDe, escribirWav, filtroDeAudio, idiomasPedidos, objetoDeLaPagina, sintetizarMusica, subtitulosDe, tapaDeEntrada, VIDEO_PROMOCIONAL } from './videoMp4.ts';
 
 const raiz = join(import.meta.dirname, '..');
 const ruta = join(raiz, 'docs/difusion/video-corto.js');
@@ -83,31 +83,71 @@ describe('el MP4 del video corto (tools/videoMp4.ts)', () => {
     expect(cuadrosDe(2)).toBe(60);
   });
 
-  it('el clip de prueba de «Qué es STL»: 1080 × 1920, las 23 líneas elegidas con su voz inglesa y su subtítulo en español, sin música, y queda en autor/ (pd_clips_redes; nmw8e3brctit, nmw8e3foctit, nmw725iwwtit)', () => {
-    const { css, claves, entrada, despedida, salida, velocidad } = CLIP_PRUEBA;
-    expect([css.ancho * css.escala, css.alto * css.escala]).toEqual([1080, 1920]);
-    expect(claves).toHaveLength(23);
-    expect([entrada, despedida, velocidad]).toEqual([3, 5, 1.25]);
-    expect(salida.replace(/\\/g, '/')).toMatch(/\/autor\/clips\/[^/]+\.mp4$/);
-    expect(readFileSync(join(raiz, '.gitignore'), 'utf8')).toMatch(/^\/?autor\/?$/m);
+  it('el filtro de audio usa el ritmo con que la página dijo cada voz, encadenando atempo por encima de 2', () => {
+    const f = filtroDeAudio([{ clave: 'a', segundoReal: 0, recorte: 0, ritmo: 1.5625 }, { clave: 'b', segundoReal: 1, recorte: 0 }], 1.25, 44100, 1);
+    expect(f).toContain('[2:a]atrim=start=0.000,asetpts=PTS-STARTPTS,atempo=1.5625,');
+    expect(f).toContain('[3:a]atrim=start=0.000,asetpts=PTS-STARTPTS,atempo=1.25,');
+    expect(atempos(1.953125)).toBe('atempo=1.953125');
+    expect(atempos(3)).toBe('atempo=2,atempo=1.5');
+  });
+
+  describe('the single promotional video (pd_video_unico; nmw8fz4whtit, nmwqvisiitit)', () => {
     const html = readFileSync(join(raiz, 'docs/difusion/linea-del-proyecto.html'), 'utf8');
-    const es = subtitulosEnEspanol(html), en = objetoDeLaPagina(html, 'GUION_EN');
-    for (const k of claves) {
-      expect(es[k], k).toBeTruthy();
-      const [momento, i] = [k.replace(/-\d+$/, ''), Number(k.match(/\d+$/)![0]) - 1];
-      expect(en[momento]?.[i], k).toBeTruthy();
-      expect(existsSync(join(raiz, 'docs/difusion/voz/linea-en', `${k}.mp3`)), k).toBe(true);
-    }
-    expect(es['sinFin-1']).toBe('¿Qué propone STL?');
-    // Sin música: el audio es silencio y las voces
-    const fuente = readFileSync(join(raiz, 'tools/videoMp4.ts'), 'utf8');
-    const clip = fuente.slice(fuente.indexOf('async function clipPrueba'));
-    expect(clip).toContain('anullsrc=');
-    expect(clip).not.toContain('sintetizarMusica');
-    // La tapa de la entrada sube, se queda y se va suave
-    expect(tapaDeEntrada(0)).toBe(0);
-    expect(tapaDeEntrada(1.5)).toBe(1);
-    expect(tapaDeEntrada(3)).toBe(0);
+    const guion = (nombre: string) => Object.entries(objetoDeLaPagina(html, nombre)).flatMap(([m, ls]) => ls.map((l, i) => [`${m}-${i + 1}`, l]));
+
+    it('is vertical 1080 × 1920, at the page speed, with the 3-second card and the 5-second farewell, and stays in autor/', () => {
+      const { css, entrada, despedida, velocidad, direccion, nombre, idiomas } = VIDEO_PROMOCIONAL;
+      expect([css.ancho * css.escala, css.alto * css.escala]).toEqual([1080, 1920]);
+      expect([entrada, despedida, velocidad]).toEqual([3, 5, 1.25]);
+      expect(nombre).toBe('STL Studio');
+      expect(direccion).toMatch(/^github\.com\//);
+      expect(readFileSync(join(raiz, '.gitignore'), 'utf8')).toMatch(/^\/?autor\/?$/m);
+      const salidas = Object.values(idiomas).map((l) => l.salida.replace(/\\/g, '/'));
+      for (const s of salidas) expect(s).toMatch(/\/autor\/[^]+\.mp4$/);
+      expect(new Set(salidas).size).toBe(2);
+      // The card's line, each in its language
+      expect(idiomas.en.queEs).toBe('The interface between you and the model');
+      expect(idiomas.es.queEs).toBe('La interfaz entre tú y el modelo');
+      // La tapa de la entrada sube, se queda y se va suave
+      expect(tapaDeEntrada(0)).toBe(0);
+      expect(tapaDeEntrada(1.5)).toBe(1);
+      expect(tapaDeEntrada(3)).toBe(0);
+    });
+
+    it('each language takes every line of its own script, with its own voice and its own captions, never crossed', () => {
+      const es = subtitulosDe(html, 'es'), en = subtitulosDe(html, 'en');
+      expect(Object.entries(es)).toEqual(guion('GUION'));
+      expect(Object.entries(en)).toEqual(guion('GUION_EN'));
+      // The same keys in the same order, so both videos tell the whole line
+      expect(Object.keys(en)).toEqual(Object.keys(es));
+      expect(Object.keys(es).length).toBeGreaterThan(50);
+      expect(es['sinFin-1']).toBe('¿Qué propone STL?');
+      expect(en['sinFin-1']).toBe('What does STL propose?');
+      const { idiomas } = VIDEO_PROMOCIONAL;
+      expect([idiomas.es.voz, idiomas.en.voz]).toEqual(['linea', 'linea-en']);
+      expect([idiomas.es.pagina, idiomas.en.pagina].map((p) => p.match(/lang=(\w+)/)?.[1])).toEqual(['es', 'en']);
+      for (const [idioma, subs] of [['es', es], ['en', en]] as const) {
+        for (const k of Object.keys(subs)) expect(existsSync(join(raiz, 'docs/difusion/voz', idiomas[idioma].voz, `${k}.mp3`)), `${idioma} ${k}`).toBe(true);
+      }
+    });
+
+    it('warns of each line left without its voice, and records both languages unless one is asked for', () => {
+      const subs = { 'a-1': 'x', 'a-2': 'y', 'b-1': 'z' };
+      expect(clavesSinVoz(subs, [{ clave: 'a-1' }, { clave: 'b-1' }, { clave: 'globito-1' }])).toEqual(['a-2']);
+      expect(clavesSinVoz(subs, [{ clave: 'a-1' }, { clave: 'a-2' }, { clave: 'b-1' }])).toEqual([]);
+      expect(idiomasPedidos(undefined)).toEqual(['es', 'en']);
+      expect(idiomasPedidos('en')).toEqual(['en']);
+      expect(() => idiomasPedidos('fr')).toThrow();
+    });
+
+    it('has no music: the audio is silence and the voices (nmwqvisiitit)', () => {
+      const fuente = readFileSync(join(raiz, 'tools/videoMp4.ts'), 'utf8');
+      const video = fuente.slice(fuente.indexOf('async function videoPromocional'), fuente.indexOf('export function idiomasPedidos'));
+      expect(video).toContain('anullsrc=');
+      expect(video).not.toContain('sintetizarMusica');
+      expect(video).not.toMatch(/musica/i);
+      expect(video).toContain('L.voz');
+    });
   });
 
   it('usa el Studio encendido y no arranca otro, y el MP4 no entra en git', () => {
