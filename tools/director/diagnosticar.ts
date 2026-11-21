@@ -1,5 +1,5 @@
 // La radiografía del repositorio del proyecto: los hechos que el director necesita antes de diagnosticar, sacados de
-// git y de los archivos, sin opinar. Es el primer paso del diagnóstico (CLAUDE.md › El diagnóstico); después el
+// git y de los archivos, sin opinar. Es el primer paso del diagnóstico (docs/metodo/director/diagnosis.md); después el
 // director lee lo que importa (el README, la documentación, el código clave, las pruebas) y juzga. Solo lee el
 // repositorio: fuera de su memoria (.stl), nunca escribe en él. Deja la radiografía en la memoria del proyecto
 // (.stl/director/radiografia.md) y la imprime.
@@ -267,4 +267,4 @@ mkdirSync(join(enDisco(raiz, rutas.radiografia), '..'), { recursive: true });
 writeFileSync(enDisco(raiz, rutas.radiografia), texto, 'utf-8');
 console.log(texto);
 console.error(`Radiografía de «${id}» guardada en ${rutas.radiografia}.`);
-console.error('Ahora, a leer el repositorio y diagnosticar (CLAUDE.md › El diagnóstico).');
+console.error('Ahora, a leer el repositorio y diagnosticar (docs/metodo/director/diagnosis.md).');

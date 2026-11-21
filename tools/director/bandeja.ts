@@ -907,7 +907,7 @@ if (args.includes('--listo')) {
   // en las respuestas, el mensaje, lo avanzado y cada misión abierta entera (reglas duras nmwcp5wdhtit y nmwdxm0oztit)
   const otroIdioma = textosEnOtroIdioma(plan, desde, (await leerLocal(raiz)).idioma, lectorDeDocumentos(elegido, repo));
   if (otroIdioma.length) {
-    console.error('Review not closed: these texts the person reads are not wholly in the interface\'s language (a label, a method word or a passage in another language, also a quote). Write them in the interface\'s language (CLAUDE.md › «What the director writes for each person»):');
+    console.error('Review not closed: these texts the person reads are not wholly in the interface\'s language (a label, a method word or a passage in another language, also a quote). Write them in the interface\'s language (CLAUDE.md › «What the director writes for the person»):');
     for (const f of otroIdioma) console.error(`- ${f.donde}: ${f.problema}`);
     process.exit(1);
   }

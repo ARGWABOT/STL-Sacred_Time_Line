@@ -14,8 +14,11 @@ const leer = (ruta: string) => readFileSync(join(raiz, ruta), 'utf8');
  * que sus procedimientos salen a su archivo (eran 97 KB antes de la primera pieza, 81 después y 64 después de la segunda) y
  * con la purga de las instrucciones, que las rehízo en inglés y sin historia (pedido pd_purga_reglas: unos 30 KB). Sube a 33
  * con la regla de los globos dentro de la ventana (nota de voz del titular nmw5m1kzwtit), que lo pasó de 32 por unos bytes.
+ * Sube a 34 con la frase de la tarjeta que rotula sola los pasos siguientes (decisión del titular nmwqsx2jxtit, auditoría
+ * de redundancias, parte 8), que lo pasó de 33 por unos 45 bytes; la misma auditoría quitó mucho más de lo que el director
+ * lee en cada revisión, fuera de este archivo.
  */
-const TOPE_CLAUDE_MD_KB = 33;
+const TOPE_CLAUDE_MD_KB = 34;
 
 describe('los procedimientos del director, aparte de CLAUDE.md', () => {
   it('cada uno existe en inglés y en español, con las mismas partes, y cada versión nombra a la otra', () => {
@@ -59,6 +62,13 @@ describe('los procedimientos del director, aparte de CLAUDE.md', () => {
     expect(regla).toContain('«← Volver a tu misión»');
     expect(leer('estudio/src/app.ts')).toContain('← Volver a tu misión');
     for (const ruta of ['docs/metodo/director/diagnosis.md', 'docs/metodo/director/diagnosis.es.md']) expect(leer(ruta), ruta).toContain('«← Volver a tu misión»');
+  });
+
+  it('los mensajes de la bandeja y de la radiografía citan partes de CLAUDE.md que existen (pd_auditoria_redundancias, parte 7)', () => {
+    const claude = leer('CLAUDE.md');
+    for (const fuente of ['tools/director/bandeja.ts', 'tools/director/diagnosticar.ts'])
+      for (const [, parte] of leer(fuente).matchAll(/CLAUDE\.md\s*›\s*«([^»]+)»/g)) expect(claude, `${fuente} manda a CLAUDE.md › «${parte}»`).toContain(parte);
+    expect(leer('tools/director/diagnosticar.ts')).not.toContain('CLAUDE.md › El diagnóstico');
   });
 
   it('la bandeja y el lanzador mandan al procedimiento, no a una parte de CLAUDE.md que ya no está', () => {
