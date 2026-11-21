@@ -205,7 +205,9 @@ describe('el director que lanza el Studio', () => {
     // El encargo de la revisión dice cuáles y para qué; sin cola, no dice nada
     expect(encargo('golf', false, cola)).toContain('«tesis», «sitio»');
     expect(encargo('golf', false, cola)).toContain('one that cannot be done stays in the queue');
-    expect(encargo('golf', false, cola)).toContain('«AHORA»');
+    // La marca que la bandeja escribe de verdad (bandeja.ts › «NOW»), no la de antes
+    expect(encargo('golf', false, cola)).toContain('«NOW»');
+    expect(encargo('golf', false, cola)).not.toContain('AHORA');
     expect(encargo('golf')).not.toContain('Diagnosis queue');
     // Los permisos de una cola no caben en lo que el encargo de una urgencia o una aclaración da: esas no la llevan
     expect(encargoUrgencia({ proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' })).not.toContain('Diagnosis queue');
@@ -320,18 +322,18 @@ describe('el director que lanza el Studio', () => {
     }
   });
 
-  it('el encargo dice cómo usar esos permisos: cd en vez de git -C, y borrar solo con git rm y los dos pasos del titular', () => {
+  it('el encargo dice cómo usar esos permisos: cd en vez de git -C, una orden a la vez y borrar solo con git rm', () => {
     const urgencia = encargoUrgencia({ proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' });
     for (const texto of [encargo('golf'), encargo('golf', true), urgencia]) {
       expect(texto).toContain(COMO_ORDENES);
       expect(texto).toContain('git -C is not allowed');
       expect(texto).toContain('no variables in front, no redirections (2>&1)');
-      expect(texto).toContain('Commit each code change as soon as its tests and types pass');
-      expect(texto).toContain('«Confirmo»');
-      expect(texto).toContain('Delete only files git keeps, with git rm');
-      // Lo que quedó sin uso por un cambio aprobado, sin pedir; lo demás, con los dos pasos (pd_borrar_sin_pedir)
-      expect(texto).toContain('became unused through an approved change, without asking, each deletion in its own commit');
-      expect(texto).toContain("any other, only after the owner's two steps in the Studio");
+      expect(texto).toContain('Delete only with git rm.');
+      // Lo que CLAUDE.md ya dice entero, que llega en el mismo lanzamiento, no se repite (pd_auditoria_redundancias, parte
+      // 4): cuándo se borra sin pedir y cuándo con los dos pasos, el commit de cada cambio, la lista de órdenes críticas,
+      // que solo se escribe lo aprobado y el idioma (este lo dice la línea «Team» de la bandeja)
+      for (const repetido of ['Commit each code change', 'became unused through an approved change', "the owner's two steps", 'pushing or pulling, publishing, deleting outside git', 'only what the owner approved or asked in the Studio', 'Write to the person only in the language'])
+        expect(texto).not.toContain(repetido);
       // La primera revisión con «Me pregunta en el Studio» (26 de octubre de 2026): un ayudante leía con órdenes
       // encadenadas de la terminal, y cada una le abría al titular un diálogo que tenía que responder a mano
       expect(texto).toContain('Read and search with Read, Grep and Glob, not the terminal');
@@ -465,9 +467,9 @@ describe('el director que lanza el Studio', () => {
   it('los encargos van en inglés: lo que el Studio muestra a las personas queda literal entre «», y lo demás ni una palabra en español', () => {
     const a = { proyecto: 'golf', mision: 't_x', paso: 0, nota: 'n1', quien: 'ana', pedida: '2026-10-21T00:00:00Z' };
     const pedida = { proyecto: 'golf', notas: ['n1'], quien: 'ana', pedida: '2026-10-21T00:00:00Z' };
-    // También la tabla de modelos (modelos.ts › INVENTARIO_EN_EL_ENCARGO), en inglés desde pd_nucleo_ingles; su fuente y
-    // las carpetas del historial son rutas
-    const sinTabla = (t: string) => t.replace(/«[^»]*»/g, '').replace('platform.claude.com/docs/en/about-claude/models/overview', '');
+    // También la tabla de modelos (modelos.ts › INVENTARIO_EN_EL_ENCARGO), en inglés desde pd_nucleo_ingles; las
+    // carpetas del historial son rutas
+    const sinTabla = (t: string) => t.replace(/«[^»]*»/g, '');
     expect(encargo('golf')).toContain(INVENTARIO_EN_EL_ENCARGO);
     const palabras = /\b(el|la|los|las|tu|tus|que|para|con|del|una|uno|y|en|es|se|de|si|por|te)\b/;
     const cola = [{ id: 'tesis', repositorio: '/r/tesis', historial: [] }];
@@ -480,7 +482,6 @@ describe('el director que lanza el Studio', () => {
     expect(encargoAclaracion(a)).toContain('«No lo entiendo, explícamelo mejor»');
     expect(encargoComprobacion(a)).toContain('«Ya lo hice: compruébalo tú»');
     expect(encargo('golf')).toContain('«revisa estudio»');
-    expect(encargo('golf')).toContain('«Confirmo»');
     expect(encargo('golf')).toContain('«Todo con el modelo que elegí»');
     expect(encargoUrgencia(pedida)).toContain('«Buzón»');
   });

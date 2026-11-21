@@ -2723,13 +2723,14 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     for (const i of ['en', 'es', undefined] as const) {
       expect(reglaDeIdiomaEnLaBandeja(i)).not.toMatch(/as they read|Never translate|more content in each step/);
     }
-    // La bandeja y el encargo del director lo dicen, sin «reads …»
+    // La bandeja lo dice, sin «reads …»; el encargo del director ya no lo repite, porque la bandeja va dentro de él
+    // (pd_auditoria_redundancias, parte 4)
     const bandeja = readFileSync(new URL('../../tools/director/bandeja.ts', import.meta.url), 'utf8');
     expect(bandeja).toContain('idiomaEnLaBandeja(local.idioma)');
     expect(bandeja).toContain('reglaDeIdiomaEnLaBandeja(local.idioma)');
     expect(bandeja).not.toMatch(/\.lee\b/);
     const revisor = readFileSync(new URL('../../estudio/servidor/revisor.ts', import.meta.url), 'utf8');
-    expect(revisor).toMatch(/COMO_LEE_CADA_UNO \+\n {2}POLITICA_DE_MODELOS/);
+    expect(revisor).not.toContain('COMO_LEE_CADA_UNO');
     expect(revisor).not.toContain('the languages each one reads');
     expect(revisor).not.toContain('more content in each step');
     // Ni la acción que los guardaba, ni su sección en «Modelo y consumo»

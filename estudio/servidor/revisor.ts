@@ -214,35 +214,19 @@ export const SUBIR_CON_PERMISO = 'Push, pull or publish only with the «Permisos
  * pruebas tal cual, con cada cambio guardado apenas pasan: el 22 de octubre una revisión intentó correrlas con tuberías
  * (se le negaron) y se cortó con seis arreglos hechos y sin commit. Un ayudante no las recibe: por eso se le dice al
  * director que se las dé (ayudante.ts › ORDENES_DEL_AYUDANTE las repite en su encargo). Cómo se arma ese encargo con
- * ayudante.ts y que el director lo verifica lo dice CLAUDE.md, que el lanzador pasa entero.
+ * ayudante.ts y que el director lo verifica lo dice CLAUDE.md, que el lanzador pasa entero. Lo que CLAUDE.md ya dice
+ * entero no se repite aquí (pd_auditoria_redundancias, parte 4): cuándo se borra sin pedir y cuándo con los dos pasos,
+ * el commit de cada cambio apenas pasan sus pruebas y qué órdenes son las críticas que pausan la revisión.
  */
 export const COMO_ORDENES =
   ` Commands: to use git in another folder, cd there first (git -C is not allowed). Copy a text file by reading and ` +
   `writing it. Read only the Studio, the project's repository and your earlier sessions, never a .env file. Move with ` +
-  `git mv; create local backup branches (git branch respaldo/…). Delete only files git keeps, with git rm: one that ` +
-  `became unused through an approved change, without asking, each deletion in its own commit and told in your answer; ` +
-  `any other, only after the owner's two steps in the Studio: the approval and «Confirmo», with the list of what is ` +
-  `deleted in view. ` +
+  `git mv; create local backup branches (git branch respaldo/…). Delete only with git rm. ` +
   `npm install, without package names, only when an approved change changes package.json. Run tests and types alone and ` +
   `as they are (npm test, npx vitest run <file>, npm run typecheck), one after the other and never at the same time ` +
-  `(together they take twice as long): no variables in front, no redirections (2>&1). ` +
-  `Commit each code change as soon as its tests and types pass, before starting the next. Read and search with Read, ` +
-  `Grep and Glob, not the terminal (cat, sed, grep, head, ls, wc), and never chain commands with ;, && or pipes: you ` +
-  `work on your own, and only a critical command (pushing or pulling, publishing, deleting outside git, installing a ` +
-  `named package, writing to a server on the internet) pauses the review to ask the owner; hidden in a chain, it is ` +
-  `harder for them to judge. Give your helpers ` +
-  `these rules in their assignment.`;
-
-/**
- * Escribirle a la persona en el idioma elegido en el Studio y en ningún otro (notas del titular nmwo4ffkwtit y
- * nmwo4fgrvtit, 19 de noviembre de 2026: «tus idiomas» salió entero; se trabaja en el idioma que esté seleccionado, sin
- * preguntar cuáles entiende). La bandeja dice ese idioma en su línea «Team»; el encargo recuerda la regla, que vale para
- * cualquier persona que instale el Studio.
- */
-export const COMO_LEE_CADA_UNO =
-  ` Write to the person only in the language chosen in the Studio's interface, whatever language the notes come in: ` +
-  `the inbox's «Team» line says which. Everything they read goes wholly in that language, also what you quote from a ` +
-  `note, an old answer or a text they must type: never a passage in another language (--aplicar and --listo refuse it).`;
+  `(together they take twice as long): no variables in front, no redirections (2>&1). Read and search with Read, ` +
+  `Grep and Glob, not the terminal (cat, sed, grep, head, ls, wc), and never chain commands with ;, && or pipes: a ` +
+  `critical command hidden in a chain is harder for the owner to judge. Give your helpers these rules in their assignment.`;
 
 /**
  * Cada modelo para lo suyo (propuesta aceptada pr_modelos_por_tarea, puntos 2 y 3, con lo que Anthropic publica y mide en
@@ -281,20 +265,19 @@ const conLaCola = (cola: ProyectoDeCola[]) =>
   cola.length
     ? ` Diagnosis queue of this review: the Studio opened ${cola.map((c) => `«${c.id}»`).join(', ')} to you, only in this ` +
       `review (read its repository and AI history, write its .stl memory, nothing else). Diagnose those the inbox marks ` +
-      `«AHORA», as ${PROCEDIMIENTOS.cola.archivo} and ${PROCEDIMIENTOS.diagnostico.archivo} say, each with --proyecto <id>; ` +
+      `«NOW», as ${PROCEDIMIENTOS.cola.archivo} and ${PROCEDIMIENTOS.diagnostico.archivo} say, each with --proyecto <id>; ` +
       `one that cannot be done stays in the queue.`
     : '';
 
 /**
  * Lo que varios encargos dicen con las mismas palabras, escrito una sola vez: que cada commit son tres órdenes (los
- * permisos del director no aceptan órdenes encadenadas; propuesta «El cierre no deja nada sin atender»), que solo se
- * escribe lo aprobado, que una aclaración, una comprobación o una urgencia no son la revisión, y el reintento
- * (pr_retoma_automatica, punto 5: lo pide «Retomarla» cuando la anterior no se cerró).
+ * permisos del director no aceptan órdenes encadenadas; propuesta «El cierre no deja nada sin atender»), que una
+ * aclaración, una comprobación o una urgencia no son la revisión, y el reintento (pr_retoma_automatica, punto 5: lo pide
+ * «Retomarla» cuando la anterior no se cerró). Que solo se escribe lo aprobado, y el idioma en que se le escribe a la
+ * persona, ya no van: los dicen enteros CLAUDE.md y la línea «Team» de la bandeja, que llegan en el mismo lanzamiento
+ * (pd_auditoria_redundancias, parte 4).
  */
 const COMMIT_EN_TRES = ' Commit with three separate commands: cd to the folder, git add, git commit.';
-const ESCRIBIR_LO_APROBADO =
-  ` Write in the project's repository (its memory and its code) only what the owner approved or asked in the Studio, ` +
-  `with that project's rules: tests green, local commits.`;
 const NO_ES_LA_REVISION =
   ' Do NOT do the whole review or anything else: the other notes, deliveries and documents wait for the next review.';
 const REINTENTO = ' This is a retry: the previous one did not close. Resume what it left, without redoing it (the inbox lists it).';
@@ -309,13 +292,11 @@ const REINTENTO = ' This is a retry: the previous one did not close. Resume what
 export const encargo = (proyecto: string, reintento = false, cola: ProyectoDeCola[] = [], historial: string[] = [], minutos = MAX_MIN) =>
   `Review requested from the Studio for the project «${proyecto}». Do «revisa estudio» for it as CLAUDE.md says ` +
   `("The director's session"), with --proyecto ${proyecto} in every tool.` +
-  ESCRIBIR_LO_APROBADO +
   ` ${SUBIR_CON_PERMISO}` +
   COMMIT_EN_TRES +
   ` Close with node tools/director/bandeja.ts --proyecto ${proyecto} --listo and the commit in the project's memory.` +
   (reintento ? REINTENTO : '') +
   COMO_ORDENES +
-  COMO_LEE_CADA_UNO +
   POLITICA_DE_MODELOS +
   conLaCola(cola) +
   conElHistorial(historial) +
@@ -379,7 +360,6 @@ export const encargoUrgencia = (u: UrgenciaPedida) =>
   NO_ES_LA_REVISION +
   ` Run node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente and follow it.` +
   REPLANEAR_TRAS_URGENCIA +
-  ESCRIBIR_LO_APROBADO +
   ` ${SUBIR_CON_PERMISO} ${PUBLICAR_EN_URGENCIA}` +
   COMMIT_EN_TRES +
   ` Close with node tools/director/bandeja.ts --proyecto ${u.proyecto} --urgente --listo and the commit in the project's memory.` +
