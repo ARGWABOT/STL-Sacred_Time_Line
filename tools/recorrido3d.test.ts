@@ -57,7 +57,7 @@ describe('el primer tramo del recorrido en 3D de «Qué es STL»', () => {
     // Solo ?ver=N: ni el video ni la imagen al compartir
     expect(soltar).toContain('if (fijo === null || verTexto === null || enVideo || compartir) return;');
     // La página deja de ser una sola estación, se vuelve a medir y el scroll queda donde ya está la cámara, antes de soltar
-    const pasos = ["classList.remove('ver-parada')", 'medir();', "behavior: 'instant'", 'fijo = null;', 'history.replaceState('];
+    const pasos = ["classList.remove('ver-parada')", 'medir();', "behavior: 'instant'", 'fijo = null;', 'ponerDireccion('];
     const donde = pasos.map((p) => soltar.indexOf(p));
     for (const [i, d] of donde.entries()) expect(d, pasos[i]).toBeGreaterThan(-1);
     expect([...donde].sort((a, b) => a - b)).toEqual(donde);
@@ -1118,7 +1118,7 @@ describe('el primer tramo del recorrido en 3D de «Qué es STL»', () => {
       expect(js).toContain('autocierre.abrir();');
       // Al cerrarse (solo o a mano) el anillo vuelve a su tamaño y al centro
       expect(js).toContain('pantalla2.cam = quieto ? meta : pantalla2.cam + (meta - pantalla2.cam) * Math.min(1, dt * 4);');
-      expect(js).toContain('pantalla2.abierta = false;\n    return true;');
+      expect(js).toContain('pantalla2.abierta = false;\n    capaCerrada();\n    return true;');
     });
 
     it('el cierre de cada solución (el ✓, el problema resuelto y la frase de Kai) queda a la vista al menos 4 segundos (CIERRE_SEG)', () => {
@@ -2724,6 +2724,89 @@ describe('el scroll de estación en estación y la estación contada a la pesta�
     expect(iniciar).toContain("const dir = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 }[e.key];");
     expect(iniciar).toContain('irAParada(paradaDelScroll(anclas, y, Math.sign(y - desdeY) || 1, maximo));');
     expect(iniciar).toContain('const libre = () => fijo !== null || seleccionado >= 0 || pantalla2.abierta || visorAbierto();');
+  });
+  it('en el teléfono, un arrastre es una estación: durante el viaje los demás no cuentan, y el menú sí salta varias (nmwqyd3dqtit)', () => {
+    const iniciar = js.slice(js.indexOf('function iniciar() {'));
+    const toque = iniciar.slice(iniciar.indexOf("addEventListener('touchstart'"), iniciar.indexOf("addEventListener('touchend'"));
+    // Un gesto que empieza durante un viaje (o con una capa abierta) no cuenta entero, tampoco si sigue al llegar
+    expect(toque).toContain('toqueUsado = libre() || enViaje();');
+    // El dedo no desplaza la página: el arrastre se vuelve un paso de parada, uno solo por gesto
+    expect(toque).toContain('if (e.cancelable) e.preventDefault();');
+    expect(toque).toContain('if (enViaje()) toqueUsado = true;');
+    expect(toque).toContain('if (toqueUsado || docAbierta() || Math.abs(dy) < UMBRAL_ARRASTRE) return;\n    toqueUsado = true;\n    pasoDeParada(Math.sign(dy));');
+    expect(toque.match(/pasoDeParada\(/g)?.length).toBe(1);
+    expect(toque).toContain("{ passive: false }");
+    // Un viaje dura hasta su parada, con un tope por si algo lo corta; el menú, «Empieza el recorrido» e «Inicio» también viajan
+    expect(iniciar).toContain('const enViaje = () => viajandoA >= 0 && performance.now() - viajeDesde < VIAJE_MAXIMO;');
+    for (const k of ['viajeDelMenu(i + 1);', 'viajeDelMenu(1);', 'viajeDelMenu(0);']) expect(iniciar).toContain(k);
+    // En la primera o la última, sin a dónde ir, no queda un viaje que nunca llega (y que dejaría el arrastre sin efecto)
+    expect(iniciar).toContain('if (k === desde && viajandoA < 0 && Math.abs(Math.min(anclas[k], maximoScroll()) - scrollY) <= 3) return;');
+  });
+  it('«Atrás» cierra primero lo que está abierto, de una capa a la vez, y solo con nada abierto deja la página (nmwqyd3dqtit)', () => {
+    const bloque = js.slice(js.indexOf('// ── «Atrás» cierra primero'), js.indexOf('// Su «▶» abre la tarjeta de texto'));
+    expect(bloque.length).toBeGreaterThan(200);
+    // Un historial de mentira: el «Atrás» del teléfono (atras) y el history.back() del código, que llega después (procesar)
+    let entradas: { estado: unknown; url: string }[] = [{ estado: null, url: '/' }];
+    let i = 0, salio = false;
+    const oyentes: (() => void)[] = [], cola: (() => void)[] = [];
+    const volver = () => { if (i > 0) { i--; oyentes.forEach((f) => f()); } else salio = true; };
+    const historia = {
+      scrollRestoration: 'auto',
+      get state() { return entradas[i].estado; },
+      pushState(estado: unknown, _t: string, url: string) { entradas = entradas.slice(0, i + 1).concat({ estado, url }); i++; },
+      replaceState(estado: unknown, _t: string, url: string) { entradas[i] = { estado, url }; },
+      back() { cola.push(volver); },
+    };
+    const procesar = () => { while (cola.length) cola.shift()!(); };
+    const api = new Function('history', 'addEventListener', 'location', `${bloque}; return { registrarCapa, capaAbierta, capaCerrada, ponerDireccion };`)(
+      historia, (tipo: string, f: () => void) => { if (tipo === 'popstate') oyentes.push(f); }, { get href() { return entradas[i].url; } },
+    );
+    expect(historia.scrollRestoration).toBe('manual');
+    const abiertas = new Set<string>();
+    const capa = (n: string) => {
+      const c = api.registrarCapa(() => abiertas.has(n), () => { abiertas.delete(n); api.capaCerrada(); });
+      return { abrir: () => { abiertas.add(n); api.capaAbierta(c); }, cerrar: () => { abiertas.delete(n); api.capaCerrada(); } };
+    };
+    const animacion = capa('animacion'), cuadro = capa('cuadro'), ventana = capa('ventana');
+    // 1. Una animación abierta: «Atrás» la cierra y la persona sigue en la página; el siguiente «Atrás» sí sale
+    animacion.abrir();
+    volver(); procesar();
+    expect(abiertas.size).toBe(0);
+    expect(salio).toBe(false);
+    volver();
+    expect(salio).toBe(true);
+    salio = false;
+    // 2. Cerrada por su botón: su entrada se consume sola y un solo «Atrás» sale
+    cuadro.abrir(); cuadro.cerrar(); procesar();
+    expect(i).toBe(0);
+    volver();
+    expect(salio).toBe(true);
+    salio = false;
+    // 3. Una ventana sobre un problema: el primer «Atrás» cierra solo la de encima, el segundo el problema, el tercero sale
+    cuadro.abrir(); ventana.abrir();
+    volver(); procesar();
+    expect([...abiertas]).toEqual(['cuadro']);
+    volver(); procesar();
+    expect(abiertas.size).toBe(0);
+    expect(salio).toBe(false);
+    volver();
+    expect(salio).toBe(true);
+    salio = false;
+    // 4. Cerrar una capa y viajar a otra estación en el mismo clic (el menú): la dirección nueva queda, no la de antes
+    cuadro.abrir(); cuadro.cerrar(); api.ponerDireccion('#e-se-mejora'); procesar();
+    expect(i).toBe(0);
+    expect(entradas[0].url).toBe('#e-se-mejora');
+    // 5. Cambiar de uno a otro en el reproductor (cerrar y abrir en el mismo clic) deja una sola entrada, la de la capa
+    cuadro.abrir(); cuadro.cerrar(); animacion.abrir(); procesar();
+    expect(i).toBe(1);
+    volver(); procesar();
+    expect(abiertas.size).toBe(0);
+    expect(i).toBe(0);
+    // Cada capa del recorrido está conectada: la animación en grande, el reproductor, «Clonar repositorio» y la documentación
+    for (const t of ['capaAbierta(capaVisor);', 'const capaVisor = registrarCapa(visorAbierto, cerrarVisor);', 'capaAbierta(capaPopup);', 'const capaPopup = registrarCapa(() => seleccionado >= 0, () => cerrarPopup());', 'capaAbierta(capaClonar);', 'if (abre) capaAbierta(capaDoc); else capaCerrada();']) expect(js, t).toContain(t);
+    expect(js.match(/capaAbierta\(capaPopup\);/g)?.length).toBe(3);
+    // Ninguna dirección escrita a mano borra la entrada de una capa
+    expect(js).not.toContain('history.replaceState(null');
   });
   it('al llegar a una estación se la cuenta a la pestaña de QA, que recarga ahí al cambiar de dispositivo', () => {
     expect(js).toContain("window.parent.postMessage({ tipo: 'stl-estacion', hash }, '*');");

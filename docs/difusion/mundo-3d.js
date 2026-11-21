@@ -148,14 +148,64 @@ pestanasDoc.forEach((b, i) => {
     pestanasDoc[k].focus();
   });
 });
+// ── «Atrás» cierra primero lo que está abierto (nota de voz del titular nmwqyd3dqtit): al abrirse una capa que cubre el
+// recorrido (la animación en grande, un problema o lo que se ve en su reproductor, «Clonar repositorio», la documentación)
+// el recorrido deja una entrada en el historial del navegador; el «Atrás» del teléfono la consume y cierra la capa de encima,
+// y la persona sigue en el recorrido, donde estaba. Cuando la última se cierra por su botón, Esc o el desplazamiento, la
+// entrada se consume sola (tragarAtras), para que el siguiente «Atrás» sí deje la página. Sin restaurar el scroll al volver
+// en el historial: un viaje por la línea que empezó al cerrar una capa no se devuelve
+const CAPA = 'stlCapa';
+const capas = [];
+let capasEnOrden = [], tragarAtras = 0, direccionPendiente = null;
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+// Al recargar con una capa abierta, la página vuelve sin ella: su entrada deja de ser de una capa
+if (history.state?.[CAPA]) history.replaceState({ ...history.state, [CAPA]: false }, '', location.href);
+function registrarCapa(abierta, cerrar) {
+  const capa = { abierta, cerrar };
+  capas.push(capa);
+  return capa;
+}
+// Con una capa abierta, una entrada propia del recorrido en el historial; sin ninguna, ninguna
+function revisarCapas() {
+  if (tragarAtras) return;
+  const hay = capas.some((c) => c.abierta()), propia = !!history.state?.[CAPA];
+  if (hay && !propia) history.pushState({ ...(history.state ?? {}), [CAPA]: true }, '', location.href);
+  else if (!hay && propia) { tragarAtras++; history.back(); }
+}
+function capaAbierta(capa) {
+  capasEnOrden = capasEnOrden.filter((c) => c !== capa && c.abierta()).concat(capa);
+  revisarCapas();
+}
+const capaCerrada = () => revisarCapas();
+// La dirección de la estación (#e-…) sin tocar la entrada de la capa: si su «Atrás» propio aún no llega, se escribe al llegar
+function ponerDireccion(url) {
+  if (tragarAtras) direccionPendiente = url;
+  else history.replaceState(history.state, '', url);
+}
+addEventListener('popstate', () => {
+  if (tragarAtras) {
+    tragarAtras--;
+    if (!tragarAtras && direccionPendiente !== null) { history.replaceState(history.state, '', direccionPendiente); direccionPendiente = null; }
+    return revisarCapas();
+  }
+  const encima = capasEnOrden.filter((c) => c.abierta()).at(-1) ?? capas.find((c) => c.abierta());
+  if (!encima) return;
+  encima.cerrar();
+  capasEnOrden = capasEnOrden.filter((c) => c !== encima);
+  revisarCapas();
+});
 // Su «▶» abre la tarjeta de texto en la pestaña de instalar, y otro clic la cierra; al dejar la estación se va sola (CSS)
 const tarjetaDoc = document.querySelector('[data-documentacion]'), botonDoc = document.querySelector('[data-ver-doc]');
+// La documentación está abierta mientras se ve: con el recorrido en 3D, solo en su estación
+const docAbierta = () => !!tarjetaDoc?.classList.contains('abierta') && (!document.documentElement.classList.contains('js-3d') || !!tarjetaDoc.closest('.estacion.actual'));
+const capaDoc = registrarCapa(docAbierta, () => cerrarLectorDoc());
 botonDoc?.addEventListener('click', () => {
   const abre = !tarjetaDoc?.classList.contains('abierta');
   if (abre) elegirPestana(0);
   tarjetaDoc?.classList.toggle('abierta', abre);
   botonDoc.setAttribute('aria-expanded', String(abre));
   if (abre && tarjetaDoc) tarjetaDoc.scrollTop = 0;
+  if (abre) capaAbierta(capaDoc); else capaCerrada();
 });
 // En un teléfono el lector cubre la pantalla (nmw86lki4tit): su «✕», o Esc, lo cierra y devuelve el foco a su «▶»
 const cerrarDoc = document.querySelector('[data-cerrar-doc]');
@@ -164,6 +214,7 @@ function cerrarLectorDoc() {
   tarjetaDoc.classList.remove('abierta');
   botonDoc?.setAttribute('aria-expanded', 'false');
   botonDoc?.focus();
+  capaCerrada();
 }
 cerrarDoc?.addEventListener('click', cerrarLectorDoc);
 tarjetaDoc?.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarLectorDoc(); });
@@ -394,14 +445,17 @@ function abrirVisor(desde) {
   if (!visorIframe.getAttribute('src')) visorIframe.setAttribute('src', `${visorIframe.dataset.src}?lang=${EN ? 'en' : 'es'}`);
   visor.hidden = false;
   visor.querySelector('[data-cerrar-visor]')?.focus({ preventScroll: true });
+  capaAbierta(capaVisor);
 }
 function cerrarVisor() {
   if (!visorAbierto()) return false;
   visor.hidden = true;
   visorIframe.removeAttribute('src');   // se detiene al cerrarla; la pequeña sigue en su estación
   abridor?.focus?.({ preventScroll: true });
+  capaCerrada();
   return true;
 }
+const capaVisor = registrarCapa(visorAbierto, cerrarVisor);
 document.querySelectorAll('[data-ver-animacion]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); abrirVisor(a); }));
 visor?.querySelector('[data-cerrar-visor]')?.addEventListener('click', cerrarVisor);
 // ?animacion: la abre en grande desde el principio, para revisarla o capturarla en el tamaño en que se ve (nmw40vdvitit)
@@ -5262,12 +5316,16 @@ function iniciar() {
     actual = k;
     estaciones.forEach((el, i) => el.classList.toggle('actual', i === k));
     if (fijo !== null && estaciones[k]) resaltar(estaciones[k].id);
+    // La documentación se va sola al dejar su estación (CSS): su entrada del historial, con ella (nmwqyd3dqtit)
+    revisarCapas();
   }
 
   // ── El menú lleva a la estación justo donde la cámara se detiene, no al borde de arriba de su bloque, desde cualquier
   // estación: antes, con un problema abierto, el recuadro seguía abierto y la cámara se quedaba en la estación 2 (nota de
   // voz nmw19elcqtit). Con ?ver=N, el toque que llega antes del clic ya soltó la estación fija y el menú viaja por la línea
   // como en el recorrido de siempre (nmw9f5k8ptit); antes recargaba otra ?ver= y saltaba directo a ella
+  // (lo conecta el bloque de estación en estación, más abajo: el viaje del menú cuenta como viaje para el arrastre)
+  let viajeDelMenu = () => {};
   enlaces.forEach((a) => a.addEventListener('click', (e) => {
     const i = estaciones.findIndex((el) => `#${el.id}` === a.getAttribute('href'));
     if (i < 0) return;
@@ -5278,7 +5336,8 @@ function iniciar() {
     empezarEstacion(i);   // su animación vuelve a empezar (nmw1khrketit)
     medir();
     scrollTo({ top: anclas[i + 1], behavior: quieto ? 'auto' : 'smooth' });
-    history.replaceState(null, '', a.getAttribute('href'));
+    viajeDelMenu(i + 1);
+    ponerDireccion(a.getAttribute('href'));
   }));
 
   // ── El reproductor de un problema (mundo-3d.html › .popup): su animación, a la vista, y sus mandos adentro, debajo
@@ -5714,6 +5773,7 @@ function iniciar() {
     ajustarLienzo();
     empezarClip();
     if (quieto && ctxClip) { pintarClip(ctxClip, i, duraClip(i)); }
+    capaAbierta(capaPopup);
   }
   // Se cierra con Esc, con la rueda fuera de él, con el menú, o solo (4 s después del fin de su animación): sin botón para
   // cerrarlo, porque sus mandos quedan fijos adentro (nmw40cp3jtit). El anillo vuelve a su tamaño y al centro
@@ -5729,8 +5789,11 @@ function iniciar() {
     if (popup && (eraGuia || eraMejora) && !quieto) encogerHaciaLaPantalla(eraGuia ? como3d : mejora3d);
     else if (popup) popup.hidden = true;
     pantalla2.abierta = false;
+    capaCerrada();
     return true;
   };
+  // Un problema, «Se mejora solo» o «Cómo empezar» abiertos en el reproductor: «Atrás» lo cierra (nmwqyd3dqtit)
+  const capaPopup = registrarCapa(() => seleccionado >= 0, () => cerrarPopup());
   // Dónde queda en la pantalla del navegador la pantalla 3D de «Cómo empezar» (nmw6lwwbxtit) o la de «Se mejora solo»
   function dondeEstaLaPantalla(d3 = como3d) {
     if (!d3.pantalla || !disposicion) return null;
@@ -5771,6 +5834,7 @@ function iniciar() {
     cargarVocesDe(MEJORA);
     empezarClip();
     if (quieto && ctxClip) pintarClip(ctxClip, MEJORA, duraClip(MEJORA));
+    capaAbierta(capaPopup);
   }
   document.querySelector('[data-ver-mejora]')?.addEventListener('click', abrirMejora);
   // ── «Cómo empezar» en el reproductor (estación 3; nmw4ircrjtit, nmw4irz3etit): sus mandos son los de los problemas, se abre
@@ -5805,6 +5869,7 @@ function iniciar() {
     empezarClip();
     if (quieto && ctxClip) pintarClip(ctxClip, GUIA, duraClip(GUIA));
     pintarExtraComo();
+    capaAbierta(capaPopup);
   }
   function salirDeComo() {
     popup?.classList.remove('guia');
@@ -5831,12 +5896,16 @@ function iniciar() {
     if (!clonar || clonar.hidden) return;
     clonar.hidden = true;
     botonClonar?.focus();
+    capaCerrada();
   }
+  // Encima de «Cómo empezar»: el primer «Atrás» cierra solo esta ventana (nmwqyd3dqtit)
+  const capaClonar = registrarCapa(() => !!clonar && !clonar.hidden, cerrarClonar);
   botonClonar?.addEventListener('click', () => {
     if (!clonar) return;
     clonar.hidden = false;
     if (copiarClonar) copiarClonar.textContent = L('Copiar', 'Copy');
     copiarClonar?.focus();
+    capaAbierta(capaClonar);
   });
   copiarClonar?.addEventListener('click', async () => {
     const linea = clonar?.querySelector('[data-linea-clonar]')?.textContent.trim() ?? '';
@@ -5984,7 +6053,7 @@ function iniciar() {
     const q = new URLSearchParams(location.search);
     for (const p of ['ver', 'abrir', 'seg']) q.delete(p);
     const resto = q.toString(), estacion = estaciones[Math.round(w) - 1];
-    history.replaceState(null, '', `${location.pathname}${resto ? `?${resto}` : ''}${estacion ? `#${estacion.id}` : ''}`);
+    ponerDireccion(`${location.pathname}${resto ? `?${resto}` : ''}${estacion ? `#${estacion.id}` : ''}`);
   }
   if (fijo !== null && !enVideo) for (const ev of ['pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(ev, () => {
     tocadaEnFijo = true;
@@ -6099,7 +6168,8 @@ function iniciar() {
     medir();
     arranque = true;
     scrollTo({ top: anclas[1], behavior: quieto ? 'auto' : 'smooth' });
-    history.replaceState(null, '', '#e-que-es');
+    viajeDelMenu(1);
+    ponerDireccion('#e-que-es');
   });
   // «Inicio» / «Start», la primera entrada del menú: vuelve a la portada por la línea (como cualquier otra entrada) y, al
   // llegar, repite la animación de entrada: las estrellas forman «STL» otra vez desde el principio
@@ -6112,7 +6182,8 @@ function iniciar() {
     arranque = false;
     repetirNotas = true;
     scrollTo({ top: anclas[0], behavior: quieto ? 'auto' : 'smooth' });
-    history.replaceState(null, '', location.pathname + location.search);
+    viajeDelMenu(0);
+    ponerDireccion(location.pathname + location.search);
   });
   // «¿Qué es STL?» y «Empieza el recorrido», arriba de la portada: al primer acercamiento se van hacia arriba, despacio, y
   // se desvanecen (nota de voz del titular nmw6lwwbxtit); con movimiento reducido, solo se desvanecen
@@ -6139,20 +6210,49 @@ function iniciar() {
     }
     return false;
   };
-  let paradaActual = paradaDelScroll(anclas, scrollY, 0, maximoScroll()), viajandoA = -1;
+  let paradaActual = paradaDelScroll(anclas, scrollY, 0, maximoScroll()), viajandoA = -1, viajeDesde = 0;
   function irAParada(k) {
     if (k < 0 || k === viajandoA) return;
     if (k > 0) empezarEstacion(k - 1);
-    viajandoA = k; paradaActual = k;
+    viajandoA = k; paradaActual = k; viajeDesde = performance.now();
     arranque = false;
     scrollTo({ top: Math.min(anclas[k], maximoScroll()), behavior: quieto ? 'auto' : 'smooth' });
-    history.replaceState(null, '', k > 0 ? `#${estaciones[k - 1].id}` : location.pathname + location.search);
+    ponerDireccion(k > 0 ? `#${estaciones[k - 1].id}` : location.pathname + location.search);
   }
+  // Un viaje dura hasta llegar a su parada; si algo lo cortara sin llegar, a los VIAJE_MAXIMO ms deja de contar
+  const VIAJE_MAXIMO = 2500;
+  const enViaje = () => viajandoA >= 0 && performance.now() - viajeDesde < VIAJE_MAXIMO;
+  // El menú, «Empieza el recorrido» e «Inicio» también viajan: mientras tanto, un arrastre no cuenta
+  viajeDelMenu = (k) => { viajandoA = k; paradaActual = k; viajeDesde = performance.now(); };
   function pasoDeParada(dir) {
     medir();
     const desde = viajandoA >= 0 ? viajandoA : paradaDelScroll(anclas, scrollY, 0, maximoScroll());
-    irAParada(Math.max(0, Math.min(anclas.length - 1, desde + dir)));
+    const k = Math.max(0, Math.min(anclas.length - 1, desde + dir));
+    // Ya en la primera o la última parada, sin a dónde ir: no hay viaje (no quedaría uno que nunca llega)
+    if (k === desde && viajandoA < 0 && Math.abs(Math.min(anclas[k], maximoScroll()) - scrollY) <= 3) return;
+    irAParada(k);
   }
+  // En el teléfono, un arrastre es una estación (nota de voz del titular nmwqyd3dqtit): el dedo no desplaza la página; el
+  // primer arrastre que pasa UMBRAL_ARRASTRE lleva a la estación siguiente o a la anterior y, mientras dura ese viaje, los
+  // demás arrastres no cuentan, aunque se repitan: tampoco uno que empezó durante el viaje y sigue al llegar. Para saltar
+  // varias de una vez está el menú desplegable. Nada de esto con una capa abierta ni dentro de un recuadro con su scroll
+  const UMBRAL_ARRASTRE = 24;
+  let toqueY = null, toqueUsado = false;
+  addEventListener('touchstart', (e) => {
+    toqueY = e.touches.length === 1 ? e.touches[0].clientY : null;
+    toqueUsado = libre() || enViaje();
+  }, { passive: true });
+  addEventListener('touchmove', (e) => {
+    if (toqueY === null || e.touches.length !== 1 || libre()) return;
+    const dy = toqueY - e.touches[0].clientY;
+    if (conScrollPropio(e.target, dy)) return;
+    if (e.cancelable) e.preventDefault();
+    if (enViaje()) toqueUsado = true;
+    if (toqueUsado || docAbierta() || Math.abs(dy) < UMBRAL_ARRASTRE) return;
+    toqueUsado = true;
+    pasoDeParada(Math.sign(dy));
+  }, { passive: false });
+  addEventListener('touchend', () => { toqueY = null; }, { passive: true });
   let finDelGesto = 0, gestoUsado = false;
   addEventListener('wheel', (e) => {
     if (e.defaultPrevented || e.ctrlKey || libre() || conScrollPropio(e.target, e.deltaY)) return;
