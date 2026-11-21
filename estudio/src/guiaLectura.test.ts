@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { enunciadoDeMision } from './missionCard';
 import { claveNieblaDe, nacerSinNiebla, nieblaDelProyecto, nieblaPuesta, ponerNiebla } from './guiaLectura';
-import { bloqueParaEmpezar, centralDeLaNiebla, conNiebla, tapaLaLectura, DEL_MODELO, enCola, juntarEnBloques, lejosDeLaVentana, pausaEntreCeldas, tablaDe, tandasDeFilas, TARJETA, tarjetaDe, PALABRAS_POR_BLOQUE, paraLeer, puntoDe, borde, CAMARA_MAX, conPunto, desdeRueda, esListaCorta, muescas, MUESCA, MS_REUBICAR, PALABRAS_POR_MUESCA, PALABRAS_PUNTO_CORTO, pasoCamara, pxDeRueda, queHaceCentral, dondeSeguir, huellaDe, leerPuntos, lugarEn, MIN_PALABRAS, MS_CAMBIO, MS_CAMBIO_ATRAS, nubesDe, oirVoz, palabrasDe, palabrasPorMinuto, ritmoDeVoz, sinVozAhora, vocesNaturales, vocesNaturalesDeLectura, posHacia, primerTextoPorLeer, textosPorLeer, PPM_BASE, pxPorPalabra, pxPorSegundo, RAPIDEZ_MIN, rapidezReubicar, renglonesDe, ritmo, RATON_QUIETO_MS, SALTO, seMovio, VELOCIDADES, type Caja } from './guiaLectura';
+import { bloqueParaEmpezar, centralDeLaNiebla, leerAntesDeDecidir,conNiebla, tapaLaLectura, DEL_MODELO, enCola, juntarEnBloques, lejosDeLaVentana, pausaEntreCeldas, tablaDe, tandasDeFilas, TARJETA, tarjetaDe, PALABRAS_POR_BLOQUE, paraLeer, puntoDe, borde, CAMARA_MAX, conPunto, desdeRueda, esListaCorta, muescas, MUESCA, MS_REUBICAR, PALABRAS_POR_MUESCA, PALABRAS_PUNTO_CORTO, pasoCamara, pxDeRueda, queHaceCentral, dondeSeguir, huellaDe, leerPuntos, lugarEn, MIN_PALABRAS, MS_CAMBIO, MS_CAMBIO_ATRAS, nubesDe, oirVoz, palabrasDe, palabrasPorMinuto, ritmoDeVoz, sinVozAhora, vocesNaturales, vocesNaturalesDeLectura, posHacia, primerTextoPorLeer, textosPorLeer, PPM_BASE, pxPorPalabra, pxPorSegundo, RAPIDEZ_MIN, rapidezReubicar, renglonesDe, ritmo, RATON_QUIETO_MS, SALTO, seMovio, VELOCIDADES, type Caja } from './guiaLectura';
 
 // Tres renglones de cuatro palabras, de 40 px de ancho, 20 px de alto y 10 px entre una y otra
 const cajas: Caja[] = [0, 1, 2].flatMap((r) => [0, 1, 2, 3].map((p) => ({ x: p * 50, y: r * 30, ancho: 40, alto: 20 })));
@@ -801,6 +801,17 @@ describe('la niebla de lectura (notas de voz del titular, 24 de octubre de 2026)
     const central = leer('guiaLectura.ts').match(/function conBotonCentral\(e: MouseEvent\) \{[\s\S]*?\n\}/)?.[0] ?? '';
     expect(central).toContain('const decisionPendiente = decisionALaVista(caja, b);');
     expect(central).toContain('decisionPendiente }), quedaNiebla, decisionPendiente });');
+  });
+
+  it('la niebla que vuelve más arriba de una decisión sin responder se destapa y se narra con el botón central (nota urgente nmwr165c1tit)', () => {
+    // Dentro de la decisión, o antes de ella en la página (compareDocumentPosition: 2 = va antes, 4 = va después): se lee
+    expect(leerAntesDeDecidir(true, 20)).toBe(true);
+    expect(leerAntesDeDecidir(false, 2)).toBe(true);
+    // Lo que viene después de la decisión sigue frenado por la regla dura (nmwcnnpxrtit)
+    expect(leerAntesDeDecidir(false, 4)).toBe(false);
+    expect(leerAntesDeDecidir(false, 0)).toBe(false);
+    const fn = leer('guiaLectura.ts').match(/function decisionALaVista\([\s\S]*?\n\}/)?.[0] ?? '';
+    expect(fn).toContain('leerAntesDeDecidir(decision.contains(b.el), decision.compareDocumentPosition(b.el))');
   });
 
   it('el botón central, sin nada más por destapar en un documento, marca «Entendido» (nota de voz del titular nmvodewtctit)', () => {

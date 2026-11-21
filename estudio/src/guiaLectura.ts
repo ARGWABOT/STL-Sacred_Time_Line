@@ -2413,8 +2413,20 @@ export function centralDeLaNiebla(s: { hace: ReturnType<typeof queHaceCentral>; 
  */
 function decisionALaVista(caja: HTMLElement, b: Bloque | undefined): boolean {
   const decision = caja.matches('.lector') ? caja.querySelector<HTMLElement>('.trozo.actual.decision:not(.hecho)') : null;
-  return !!decision && !(b && sinTerminar(b) && decision.contains(b.el));
+  return !!decision && !(b && sinTerminar(b) && leerAntesDeDecidir(decision.contains(b.el), decision.compareDocumentPosition(b.el)));
 }
+
+/** `Node.DOCUMENT_POSITION_PRECEDING`: el otro nodo va antes en la página. */
+const VA_ANTES = 2;
+
+/**
+ * ¿Lo que la niebla leería ahora va antes de decidir? Si está dentro de la decisión, o más arriba de ella en la página, sí:
+ * la regla nmwcnnpxrtit frena solo pasar a lo que viene después. Lo de más arriba vuelve a quedar bajo la niebla cuando se
+ * avanzó sin ella y luego se encendió otra vez (o con «Volver a nublar»): la decisión quedaba como la idea de ahora, sin
+ * responder, y el botón central no destapaba ni narraba nada (nota urgente de voz del titular nmwr165c1tit, 21 de
+ * noviembre de 2026). `posicion` es lo que da `decision.compareDocumentPosition(bloque)`. Pura.
+ */
+export const leerAntesDeDecidir = (dentro: boolean, posicion: number): boolean => dentro || (posicion & VA_ANTES) !== 0;
 
 /**
  * ¿Hay en la ventana algo que se lee y que la niebla todavía no tiene listo? Un texto que aún no tiene su bloque (la
