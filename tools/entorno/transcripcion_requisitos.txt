@@ -1,0 +1,6 @@
+# La transcripción local del Director asistente (~/director/.venv), en cualquier sistema. Ver instalar_transcripcion.sh.
+# Probada con Python 3.12. PyAV va por debajo de 15: faster-whisper 1.2 usa un parámetro de av.open que las versiones
+# nuevas quitaron. Es lo mismo para todos: nada aquí depende de la tarjeta gráfica ni del sistema.
+faster-whisper==1.2.1
+ctranslate2==4.8.3
+av==14.2.0

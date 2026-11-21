@@ -1,0 +1,35 @@
+name: "I made it / I got stuck on… · Lo logré / Me trabé en…"
+description: "Tell how your first try went · Cuenta cómo te fue la primera vez"
+labels: ["primera-vez"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Did your first project reach its diagnosis? Tell it in three short answers: it is how STL Studio knows whether it works, without tracking anyone.
+        ¿Tu primer proyecto llegó a su diagnóstico? Cuéntalo en tres respuestas cortas: así sabe STL Studio si funciona, sin rastrear a nadie.
+  - type: dropdown
+    id: resultado
+    attributes:
+      label: "How did it go? · ¿Cómo te fue?"
+      options:
+        - "I made it: my project got its diagnosis · Lo logré: mi proyecto recibió su diagnóstico"
+        - "I got stuck on… · Me trabé en…"
+    validations:
+      required: true
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: "Your system · Tu sistema"
+      options:
+        - Windows
+        - Mac
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: donde
+    attributes:
+      label: "If you got stuck: where, and what you saw · Si te trabaste: dónde, y qué viste"
+      description: "The step of the README or of the Studio, and the message on screen · El paso del README o del Studio, y el mensaje en pantalla"
+    validations:
+      required: false

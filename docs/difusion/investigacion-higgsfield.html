@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Higgsfield desde Claude Code: qué es, la prueba de 72 horas y cómo probarlo</title>
+<style>
+  :root {
+    --fondo: #f6f5f1; --papel: #ffffff; --tinta: #1d1f24; --suave: #5b606b; --linea: #e2e0d8;
+    --acento: #2f5bd3; --ok: #1f7a4d; --ok-f: #e6f4ec; --ojo: #9a5b00; --ojo-f: #fdf1dc;
+    --no: #a12d2d; --no-f: #fbe8e8; --info-f: #e9effc; --codigo: #15171c;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--fondo); color: var(--tinta); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .marco { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 40px; max-width: 1240px; margin: 0 auto; padding: 32px 28px 80px; }
+  nav { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow: auto; font-size: 14.5px; }
+  nav h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--suave); margin: 0 0 10px; }
+  nav ol { margin: 0; padding-left: 20px; }
+  nav li { margin: 5px 0; }
+  nav a { color: var(--tinta); text-decoration: none; }
+  nav a:hover { color: var(--acento); text-decoration: underline; }
+  main { min-width: 0; }
+  header.portada { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 30px 34px; margin-bottom: 28px; }
+  header.portada h1 { font-size: 30px; line-height: 1.25; margin: 0 0 10px; }
+  header.portada p.sub { color: var(--suave); margin: 0; }
+  section { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 26px 34px; margin-bottom: 22px; scroll-margin-top: 20px; }
+  h2 { font-size: 23px; margin: 0 0 14px; }
+  h3 { font-size: 18.5px; margin: 24px 0 8px; }
+  p, li { max-width: 78ch; }
+  a { color: var(--acento); }
+  code { font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; background: #efeee9; padding: 1px 5px; border-radius: 4px; }
+  .cmd { position: relative; background: var(--codigo); color: #e8eaf0; border-radius: 10px; padding: 14px 16px; margin: 10px 0 16px; overflow-x: auto; }
+  .cmd pre { margin: 0; font: 14.5px/1.55 "Cascadia Code", Consolas, monospace; white-space: pre; }
+  .cmd button { position: absolute; top: 8px; right: 8px; background: #2c3140; color: #e8eaf0; border: 1px solid #3c4255; border-radius: 6px; font-size: 12.5px; padding: 4px 10px; cursor: pointer; }
+  .cmd button:hover { background: #3a4156; }
+  .caja { border-radius: 10px; padding: 14px 18px; margin: 14px 0; border-left: 5px solid; }
+  .caja p { margin: 6px 0; }
+  .caja.ok { background: var(--ok-f); border-color: var(--ok); }
+  .caja.ojo { background: var(--ojo-f); border-color: var(--ojo); }
+  .caja.no { background: var(--no-f); border-color: var(--no); }
+  .caja.info { background: var(--info-f); border-color: var(--acento); }
+  .caja strong.t { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 18px; font-size: 15.5px; }
+  th, td { border: 1px solid var(--linea); padding: 9px 11px; text-align: left; vertical-align: top; }
+  th { background: #f0efe9; }
+  .et { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .et.ok { background: var(--ok-f); color: var(--ok); }
+  .et.ojo { background: var(--ojo-f); color: var(--ojo); }
+  .et.no { background: var(--no-f); color: var(--no); }
+  .et.tu { background: #ece6fb; color: #5a35b8; }
+  .et.yo { background: var(--info-f); color: var(--acento); }
+  ol.pasos { counter-reset: paso; list-style: none; padding: 0; }
+  ol.pasos > li { counter-increment: paso; position: relative; padding: 14px 18px 14px 62px; border: 1px solid var(--linea); border-radius: 12px; margin: 12px 0; max-width: none; }
+  ol.pasos > li::before { content: counter(paso); position: absolute; left: 16px; top: 14px; width: 32px; height: 32px; border-radius: 50%; background: var(--acento); color: #fff; font-weight: 700; display: grid; place-items: center; }
+  ol.pasos > li h4 { margin: 2px 0 6px; font-size: 17px; }
+  .resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }
+  .resumen div { border: 1px solid var(--linea); border-radius: 12px; padding: 14px 16px; background: #fbfaf7; }
+  .resumen b { display: block; font-size: 14px; color: var(--suave); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .camino { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .camino div { border: 1px solid var(--linea); border-radius: 12px; padding: 16px; }
+  .camino div.reco { border: 2px solid var(--ok); }
+  .camino h4 { margin: 0 0 6px; }
+  footer { color: var(--suave); font-size: 14px; text-align: center; margin-top: 30px; }
+  @media (max-width: 980px) { .marco { grid-template-columns: 1fr; } nav { position: static; max-height: none; } .resumen, .camino { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="marco">
+
+<nav aria-label="Índice">
+  <h2>En esta página</h2>
+  <ol>
+    <li><a href="#en-30-segundos">En 30 segundos</a></li>
+    <li><a href="#nombres">Higgsfield, Haiku y Fable</a></li>
+    <li><a href="#que-es">Qué es Higgsfield</a></li>
+    <li><a href="#oferta">La oferta de 72 horas</a></li>
+    <li><a href="#precios">Qué cuesta después</a></li>
+    <li><a href="#conectar">Tres formas de conectarlo</a></li>
+    <li><a href="#instrucciones">Instrucciones paso a paso</a></li>
+    <li><a href="#pruebas">Pruebas propuestas para STL</a></li>
+    <li><a href="#comandos">Chuleta de comandos</a></li>
+    <li><a href="#stl">Para qué le sirve a STL</a></li>
+    <li><a href="#riesgos">Riesgos y cuidados</a></li>
+    <li><a href="#reel">El reel de Instagram</a></li>
+    <li><a href="#glosario">Glosario</a></li>
+    <li><a href="#fuentes">Fuentes</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="portada">
+  <h1>Higgsfield desde Claude Code: qué es, la prueba gratis de 72 horas y cómo probarlo aquí</h1>
+  <p class="sub">Investigación del 10 de noviembre de 2026, un día después de que empezara la oferta. Cada dato dice si está confirmado, si es probable o si no se sabe. Las ofertas de Higgsfield cambian seguido: vuelve a mirar las condiciones el día que la actives.</p>
+</header>
+
+<section id="en-30-segundos">
+  <h2>1. En 30 segundos</h2>
+  <p><strong>Higgsfield</strong> es una empresa de San Francisco que junta en un solo lugar los mejores modelos de IA para hacer <strong>video, imágenes y audio</strong>: Seedance, Kling, Veo, MiniMax Hailuo, Nano Banana, Flux, GPT Image y otros. Tiene un <strong>MCP</strong> y un <strong>programa de línea de comandos (CLI)</strong> para que un asistente como Claude genere esos clips por ti.</p>
+  <p>El 9 de noviembre de 2026, el mismo día que Anthropic lanzó <strong>Claude Fable 5.2</strong>, Higgsfield anunció <strong>3 días gratis y «sin límite»</strong> con todos sus modelos a través de su MCP. Es real, pero con letra chica.</p>
+  <div class="resumen">
+    <div><b>Lo bueno</b>72 horas para generar mucho sin pagar por clip. Es la forma más barata de probar el camino «video con IA» de la página de STL.</div>
+    <div><b>La trampa</b>Si no cancelas antes de las 72 horas, se convierte sola en el plan <strong>Ultra</strong>, de pago, con 40 % de descuento el primer mes. Casi seguro pide tarjeta.</div>
+    <div><b>La duda</b>La oferta está pensada para la app de Claude. Nadie confirma si lo «ilimitado» también vale desde Claude Code y su CLI. Se resuelve con una prueba barata mirando el saldo.</div>
+  </div>
+</section>
+
+<section id="nombres">
+  <h2>2. Higgsfield, Haiku y Fable: no confundirlos</h2>
+  <table>
+    <tr><th>Nombre</th><th>Qué es</th><th>¿Hace video?</th></tr>
+    <tr><td><strong>Higgsfield</strong></td><td>Empresa y plataforma de terceros que reúne modelos de video, imagen y audio. Es la de la oferta.</td><td><span class="et ok">Sí</span> Es su negocio.</td></tr>
+    <tr><td><strong>Claude Haiku</strong></td><td>El modelo pequeño y rápido de Anthropic (hoy, Haiku 5.5). Escribe y razona, como Claude.</td><td><span class="et no">No</span> No tiene nada que ver con la oferta.</td></tr>
+    <tr><td><strong>Claude Fable 5.2</strong></td><td>El modelo nuevo de Anthropic, lanzado el 9 de noviembre de 2026. Higgsfield aprovechó el lanzamiento para su promoción.</td><td><span class="et no">No</span> Es el que «dirige» a Higgsfield: escribe los prompts y pide los clips. Quien genera el video es Higgsfield.</td></tr>
+  </table>
+  <div class="caja info"><strong class="t">¿Hace falta Fable 5.2 para usar Higgsfield desde aquí?</strong><p>No para el CLI: Claude Code lo usa con cualquier modelo, porque solo corre comandos. Higgsfield pone a Fable 5.2 en su anuncio por marketing y porque es bueno con 3D, Three.js y Blender, que es lo que muestra en sus ejemplos.</p></div>
+</section>
+
+<section id="que-es">
+  <h2>3. Qué es Higgsfield y qué hace</h2>
+  <h3>Lo que entrega</h3>
+  <ul>
+    <li><strong>Clips de video mudos</strong> de unos 5 a 15 segundos, desde un texto, desde una imagen o entre dos imágenes (primer y último fotograma).</li>
+    <li>Formatos <strong>16:9</strong> (horizontal) y <strong>9:16</strong> (vertical, para reels), de 480p a 1080p, con escalado a 4K.</li>
+    <li><strong>Imágenes</strong> de hasta 2K o 4K, según el modelo.</li>
+    <li><strong>Audio</strong>: voces, cambio de voz y doblaje a otro idioma.</li>
+    <li>Flujos armados («presets»): anuncios estilo UGC, explicadores con monitos, gráficos animados tipo editorial, rehacer un video de referencia con tus propios personajes («Genjutsu»), etc.</li>
+  </ul>
+  <h3>Lo que no hace</h3>
+  <ul>
+    <li>No escribe el guion ni edita: un video largo se arma uniendo clips en un editor (o con <code>ffmpeg</code>, que ya está instalado en este PC).</li>
+    <li>No mantiene un lugar real idéntico entre un clip y otro. Para que no se noten las uniones, el truco es que el último fotograma de un clip sea el primero del siguiente.</li>
+    <li>No tiene un tope de gasto propio: el agente puede gastar créditos sin parar si nadie se lo prohíbe.</li>
+  </ul>
+  <h3>Los modelos que ofrece hoy (según su página)</h3>
+  <table>
+    <tr><th>Video</th><td>Seedance 2.5 y 2.0, Kling 3.0 y 4.0, Veo 3.1, WAN 2.6 y 3.0, Grok Imagine 1.5, Gemini Omni Flash, MiniMax H3 y Hailuo 2.3</td></tr>
+    <tr><th>Imagen</th><td>Nano Banana (Pro y 2), Flux 2, Seedream 5, GPT Image 2 y 2.6, Ideogram 4.5, Soul 2.0</td></tr>
+    <tr><th>Audio</th><td>Eleven v3, MiniMax Speech, Seed Audio, VibeVoice y Higgsfield Audio (voz, cambio de voz, doblaje)</td></tr>
+  </table>
+</section>
+
+<section id="oferta">
+  <h2>4. La oferta de 72 horas: qué se sabe y qué no</h2>
+  <p>El anuncio oficial (en X, 9 de noviembre de 2026) dice: 3 días gratis e ilimitados con los mejores modelos de video e imagen en el MCP de Higgsfield, «$0 ahora, cancela cuando quieras», te avisan por correo antes de que termine y, si no cancelas, <strong>se renueva sola en Higgsfield Ultra con 40 % de descuento el primer mes</strong>. Cierra con «Oferta limitada. Aplican condiciones».</p>
+  <table>
+    <tr><th style="width:150px">Estado</th><th>Dato</th></tr>
+    <tr><td><span class="et ok">Confirmado</span></td><td>Dura 72 horas desde que la activas y empezó el 9 de noviembre de 2026.</td></tr>
+    <tr><td><span class="et ok">Confirmado</span></td><td>Cuesta $0 al activarla y después se convierte sola en Ultra, salvo que canceles.</td></tr>
+    <tr><td><span class="et ok">Confirmado</span></td><td>Se activa en <code>higgsfield.ai/mcp</code>. Conectar el MCP no activa la prueba: son dos pasos distintos.</td></tr>
+    <tr><td><span class="et ok">Confirmado</span></td><td>Normalmente, lo ilimitado de Higgsfield <strong>solo vale en su web</strong>: su página de precios dice que no aplica en MCP/CLI. Esta prueba es la excepción.</td></tr>
+    <tr><td><span class="et ojo">Probable</span></td><td><strong>Pide tarjeta.</strong> En la prueba de julio (24 horas) pedían «agregar los datos de la tarjeta» sin cobrar ese día. Como esta también se renueva sola, casi seguro igual.</td></tr>
+    <tr><td><span class="et ojo">Probable</span></td><td><strong>Solo para cuentas nuevas</strong> y una sola vez, como la de julio.</td></tr>
+    <tr><td><span class="et ojo">Probable</span></td><td><strong>Un clip a la vez</strong> y clips de unos 7 a 8 segundos en 1080p, con imágenes de hasta 2K. Eso tenía la de julio; para esta no publicaron límites.</td></tr>
+    <tr><td><span class="et ojo">Probable</span></td><td><strong>Cancelar no acorta la prueba</strong>: en julio se podía cancelar la renovación el primer minuto y seguir usando las horas que quedaban. Conviene comprobarlo al activarla.</td></tr>
+    <tr><td><span class="et ok">Comprobado aquí</span></td><td><strong>Durante la prueba, el CLI no genera.</strong> El 10 de noviembre de 2026, con la prueba activa, <code>higgsfield generate create</code> devolvió <code>only_mcp_usage_on_trial_is_available</code> y no gastó créditos. En la prueba solo se genera por el MCP.</td></tr>
+    <tr><td><span class="et ok">Comprobado aquí</span></td><td><strong>Hay dos pruebas distintas y solo se puede tener una por cuenta.</strong> Al conectar el MCP, Higgsfield ofrece la prueba «mcp»: Plus por 3 días con 100 créditos solo para MCP. La de lanzamiento de Fable 5.2 es otra: 72 horas ilimitadas que pasan a Ultra. La cuenta guarda cuál se tomó (<code>trial_status.kind</code>), si la ilimitada está activa (<code>unlim_trial_in_mcp_active</code>) y si aún puede tomar otra (<code>eligible</code>). Activar la de créditos deja la cuenta sin derecho a la ilimitada. Para obtenerla hay que activar <em>la oferta de Fable 5.2</em>, la que dice «unlimited» y «Ultra», no la primera que aparece al conectar.</td></tr>
+    <tr><td><span class="et ok">Comprobado aquí</span></td><td><strong>La prueba que se activó no es ilimitada:</strong> es un plan Plus de $0 por 3 días con 100 créditos que solo se usan por MCP, y <code>models_explore</code> responde <code>unlim.available: false</code>. Costos reales: imagen Nano Banana 2 1k = 1,5 créditos; clip Seedance 2.0 Mini de 5 s en 720p = 5; Seedance 2.5 de 5 s en 720p = 35, y de 8 s en 1080p = 128.</td></tr>
+    <tr><td><span class="et ok">Comprobado aquí</span></td><td><strong>Cómo se genera desde Claude Code:</strong> con el servidor MCP general como servidor local (<code>claude mcp add --transport http --scope local higgsfield https://mcp.higgsfield.ai/mcp</code>, reabrir la sesión y autorizar en <code>/mcp</code>). Conviene bloquear antes, en <code>.claude/settings.local.json</code>, las herramientas de compra, cancelación, borrado y publicación.</td></tr>
+    <tr><td><span class="et ok">Comprobado aquí</span></td><td><strong>Qué entra en lo ilimitado:</strong> el catálogo del MCP marca <code>supports_unlim</code> en Seedance 2.5, Seedance 2.0 y Seedance 2.0 Mini (video), y en Nano Banana Pro, Nano Banana 2 y 2.1, GPT Image 2 y Soul 2.0 (imagen). Kling, Veo y MiniMax no lo traen.</td></tr>
+    <tr><td><span class="et ok">Comprobado aquí</span></td><td><strong>En Claude Code, el conector de la app llega solo con 7 herramientas de lectura</strong> (saldo, modelos, historial, espacios de trabajo). No es un permiso de la app: el servidor de Higgsfield da a cada cliente su propia lista (186 herramientas a un cliente genérico, con <code>generate_image</code> y <code>generate_video</code>; 7 de lectura a Claude Code). Con el CLI bloqueado en la prueba, <strong>desde Claude Code no se puede generar durante la prueba</strong>: se genera en la web de Higgsfield o en el chat de Claude, y desde aquí se bajan los resultados con <code>show_generations</code>.</td></tr>
+    <tr><td><span class="et no">No se sabe</span></td><td>Qué modelos entran exactamente. En julio no estaban todos: había 7 de video, 11 de imagen y 5 de audio.</td></tr>
+    <tr><td><span class="et no">No se sabe</span></td><td>Si lo generado en la prueba se puede usar comercialmente. En el plan gratis, el uso comercial no está incluido; en los de pago, sí.</td></tr>
+  </table>
+  <div class="caja ojo"><strong class="t">Cómo leer «ilimitado»</strong><p>Si en algún momento te aparece un precio o un «mejora tu plan», casi siempre es porque la resolución o la duración pedidas se salen de lo que cubre la prueba, o porque hay otro clip generándose al mismo tiempo. No es un error: es un clip que sí cobra.</p></div>
+</section>
+
+<section id="precios">
+  <h2>5. Qué cuesta después (si no cancelas o si decides seguir)</h2>
+  <p>Precios de <code>higgsfield.ai/pricing</code> leídos el 10 de noviembre de 2026, en dólares y sin impuestos:</p>
+  <table>
+    <tr><th>Plan</th><th>Pago anual (por mes)</th><th>Pago mensual</th><th>Créditos al mes</th><th>Trabajos a la vez (video)</th></tr>
+    <tr><td>Free</td><td>$0</td><td>$0</td><td>0</td><td>1</td></tr>
+    <tr><td>Starter</td><td>$15</td><td>no se vio</td><td>200</td><td>2</td></tr>
+    <tr><td>Plus</td><td>$39</td><td>$49</td><td>1.000</td><td>6</td></tr>
+    <tr><td><strong>Ultra</strong> (al que se convierte la prueba)</td><td>$99</td><td>unos 129 € según la prensa</td><td>3.000</td><td>8</td></tr>
+  </table>
+  <ul>
+    <li>Higgsfield calcula unos <strong>14 créditos por video</strong> y <strong>2 por imagen</strong> en promedio. Un Seedance 2.5 de 10 segundos cuesta 70 créditos en 720p y 160 en 1080p.</li>
+    <li>Por MCP o CLI <strong>siempre</strong> se gastan créditos, fuera de esta prueba.</li>
+    <li>El primer mes de Ultra con 40 % de descuento sale cerca de <strong>77 €</strong>, según la prensa. El monto exacto aparece al activarla.</li>
+  </ul>
+</section>
+
+<section id="conectar">
+  <h2>6. Tres formas de conectarlo, y cuál conviene aquí</h2>
+  <div class="camino">
+    <div>
+      <h4>A. Conector en la app de Claude</h4>
+      <p>En claude.ai o Claude Desktop: Personalizar → Conectores → «Agregar conector personalizado» con <code>https://mcp.higgsfield.ai/mcp</code>.</p>
+      <p><span class="et no">No conviene</span> El conector se guarda en tu cuenta de Claude en la web, y tu regla es no guardar nada allí. Además, se usa en el chat, no en Claude Code.</p>
+    </div>
+    <div class="reco">
+      <h4>B. El CLI de Higgsfield (recomendado)</h4>
+      <p>Es lo que Higgsfield recomienda para Claude Code. Se instala con npm y Claude corre los comandos <strong>en esta misma sesión</strong>, sin reiniciar nada.</p>
+      <p><span class="et ok">Conviene</span> Todo queda en este PC. Los clips se bajan a una carpeta local. La única duda es si la prueba lo cubre: se comprueba en el paso 7.</p>
+    </div>
+    <div>
+      <h4>C. MCP local en Claude Code</h4>
+      <p><code>claude mcp add --transport http higgsfield https://mcp.higgsfield.ai/mcp</code>. Queda en la configuración de Claude Code de este PC.</p>
+      <p><span class="et ojo">Plan B</span> Las herramientas aparecen solo al reabrir la sesión. Sirve si la prueba cubre el MCP y no el CLI.</p>
+    </div>
+  </div>
+  <div class="caja ojo"><strong class="t">Corrección del 10 de noviembre: durante la prueba, el camino es el MCP</strong><p>Probado con la prueba activa: el CLI responde <code>only_mcp_usage_on_trial_is_available</code>. Además, en Claude Code el conector llega sin las herramientas de generar: Higgsfield se las da solo a otros clientes. Mientras dure la prueba, se genera en <code>higgsfield.ai</code> (o en el chat de Claude, si se acepta que esa conversación quede en claude.ai), y Claude Code baja los resultados a este PC con <code>show_generations</code> y arma la comparación. Hacerse pasar por otro cliente para recibir más herramientas sería saltarse las reglas de Higgsfield: no se hace. El CLI sirve después, con créditos.</p></div>
+  <div class="caja info"><strong class="t">Lo que no se instala: las «skills» de Higgsfield</strong><p>Higgsfield sugiere <code>npx skills add higgsfield-ai/skills</code>, que agrega 9 skills (generar, anuncios, sitios web, miniaturas de YouTube, etc.). En esta carpeta <strong>no conviene</strong>: cambiarían cómo trabaja el director del Studio, y eso lo decide el código del Studio. Con el CLI solo basta para las pruebas.</p></div>
+  <div class="caja no"><strong class="t">Evitar: los MCP «unlimited» no oficiales de GitHub</strong><p>Hay repositorios que prometen generar «sin créditos» usando la sesión de tu cuenta. No son de Higgsfield, se saltan su sistema de cobro y pueden costarte la cuenta. Solo se usa lo oficial: <code>@higgsfield/cli</code> o <code>mcp.higgsfield.ai</code>.</p></div>
+</section>
+
+<section id="instrucciones">
+  <h2>7. Instrucciones paso a paso</h2>
+  <p>Cada paso dice quién lo hace: <span class="et tu">Tú</span> son los pasos con tu cuenta, tu contraseña o tu tarjeta, que Claude no puede ni debe tocar. <span class="et yo">Claude</span> son los que hago yo desde aquí, cuando me lo pidas.</p>
+  <ol class="pasos">
+    <li>
+      <h4><span class="et tu">Tú</span> Ten listas las pruebas antes de activar</h4>
+      <p>Las 72 horas corren desde que activas la prueba. Antes, decidamos qué vamos a generar (la <a href="#pruebas">sección 8</a> trae una propuesta) y deja reservada una tarde para hacerlo. Así no se pierden horas.</p>
+    </li>
+    <li>
+      <h4><span class="et tu">Tú</span> Crea la cuenta en Higgsfield</h4>
+      <p>Entra a <a href="https://higgsfield.ai" target="_blank" rel="noopener">higgsfield.ai</a> → «Sign up». Puedes usar correo o Google. En el aviso de cookies, elige «Reject Non-Essential Cookies».</p>
+    </li>
+    <li>
+      <h4><span class="et tu">Tú</span> Activa la prueba de 72 horas</h4>
+      <p>Ve a <a href="https://higgsfield.ai/mcp" target="_blank" rel="noopener">higgsfield.ai/mcp</a> con la sesión iniciada y acepta la oferta de prueba. Si pide tarjeta, se pone ahí: no cobra ese día. <strong>Anota la hora exacta</strong> en que la activas.</p>
+    </li>
+    <li>
+      <h4><span class="et tu">Tú</span> Cancela la renovación automática de inmediato</h4>
+      <p>En la web: <strong>Manage Account → Subscription → Cancel auto-renewal</strong>. Según la prueba de julio, cancelar <strong>no acorta</strong> las 72 horas: solo evita el cobro. Después confirma que la prueba sigue activa. Si al cancelar la pierdes, esa es la respuesta: avísame y pon una alarma unas 2 horas antes del fin para cancelar entonces.</p>
+      <div class="caja ojo"><p>Ejemplo: si la activas el lunes 10 a las 16:00, la prueba vence el jueves 13 a las 16:00. La alarma iría el jueves a las 14:00.</p></div>
+    </li>
+    <li>
+      <h4><span class="et yo">Claude</span> Instalo el CLI oficial</h4>
+      <p>Es el paquete oficial de Higgsfield en npm (revisado: versión 1.2.2, repositorio <code>github.com/higgsfield-ai/cli</code>). Node 24 ya está en este PC.</p>
+      <div class="cmd"><pre>npm i -g @higgsfield/cli</pre></div>
+    </li>
+    <li>
+      <h4><span class="et tu">Tú</span> + <span class="et yo">Claude</span> Inicias sesión desde el CLI</h4>
+      <p>Yo corro el comando, se abre el navegador y <strong>tú</strong> completas el inicio de sesión. La contraseña nunca pasa por mí. El acceso dura poco: si un día dice «Session expired», se repite.</p>
+      <div class="cmd"><pre>higgsfield auth login</pre></div>
+    </li>
+    <li>
+      <h4><span class="et yo">Claude</span> Compruebo si la prueba cubre el CLI</h4>
+      <p>Esta es la prueba que resuelve la duda principal. Miro el saldo, genero <strong>una sola imagen</strong> barata y vuelvo a mirar el saldo.</p>
+      <ul>
+        <li>Si el saldo <strong>no bajó</strong>, la prueba cubre el CLI y seguimos por aquí.</li>
+        <li>Si <strong>bajó</strong>, el CLI cobra créditos. Paro de inmediato y paso al MCP local (forma C), que pide reabrir la sesión.</li>
+      </ul>
+      <div class="cmd"><pre>higgsfield account --help
+higgsfield model list
+higgsfield generate create nano_banana_2 --prompt "a single glowing line crossing a calm night landscape, minimal, cinematic" --wait</pre></div>
+    </li>
+    <li>
+      <h4><span class="et yo">Claude</span> Genero las pruebas de video y las bajo a este PC</h4>
+      <p>Antes de cada modelo reviso sus opciones (<code>higgsfield model get &lt;modelo&gt;</code>), porque duración y resolución cambian por modelo. Cada resultado se baja a <code>video/higgsfield/</code>, una carpeta que git ya ignora, así que nada pesado entra al repositorio.</p>
+      <div class="cmd"><pre>higgsfield generate create seedance_2_5 --prompt "..." --aspect_ratio 16:9 --resolution 1080p --duration 8 --wait
+curl -L "&lt;result_url&gt;" -o video/higgsfield/01-seedance.mp4</pre></div>
+    </li>
+    <li>
+      <h4><span class="et tu">Tú</span> Miras los clips y eliges</h4>
+      <p>Te dejo una página local con todos los clips lado a lado, con el modelo, el prompt y lo que tardó cada uno, para que compares y elijas.</p>
+    </li>
+    <li>
+      <h4><span class="et tu">Tú</span> Al final, revisa que no quede nada por cobrar</h4>
+      <p>En Manage Account → Subscription debe decir que no se renueva. Si quieres, desconecta el CLI con <code>higgsfield auth logout</code> y lo desinstalo con <code>npm uninstall -g @higgsfield/cli</code>.</p>
+    </li>
+  </ol>
+</section>
+
+<section id="pruebas">
+  <h2>8. Pruebas propuestas para STL</h2>
+  <p>Pensadas para responder una pregunta concreta: <strong>¿vale la pena el «camino A» (video con IA) para la página pública de STL, frente al «camino B» (Three.js), que ya funciona?</strong> Los prompts van en inglés porque los modelos responden mejor así.</p>
+  <table>
+    <tr><th>#</th><th>Prueba</th><th>Modelo sugerido</th><th>Qué responde</th></tr>
+    <tr><td>1</td><td><strong>Imagen clave</strong> de la «línea del proyecto»: una línea luminosa que cruza un paisaje sereno, con una estación (una puerta) a un costado.</td><td>Nano Banana 2 o GPT Image 2.6</td><td>Si la IA capta el estilo de STL: calma, sin prisa, una línea que se recorre.</td></tr>
+    <tr><td>2</td><td><strong>Clip de cámara</strong> que avanza por la línea en primera persona, mirando hacia adelante, sin cortes ni zoom, y se detiene frente a la estación.</td><td>Seedance 2.5</td><td>Si cumple la regla de la página: la cámara siempre mira hacia adelante, como si caminara por la línea.</td></tr>
+    <tr><td>3</td><td><strong>Clip entre dos imágenes</strong>: de la estación 1 a la estación 2, usando la imagen de la prueba 1 como primer fotograma y otra como último.</td><td>Kling 3.0 (primer y último fotograma)</td><td>Si se pueden encadenar tramos sin costuras, que es la técnica que hace o rompe el camino A.</td></tr>
+    <tr><td>4</td><td><strong>El mismo tramo en tres modelos</strong>, con el mismo prompt.</td><td>Seedance 2.5, Kling 3.0 y Veo 3.1</td><td>Cuál da mejor resultado para STL, antes de gastar en serio.</td></tr>
+    <tr><td>5</td><td><strong>Reel vertical 9:16</strong> de 8 segundos que explique STL en una imagen: una persona y su asistente recorriendo la línea.</td><td>Seedance 2.5 o Kling 3.0</td><td>Si sirve para difundir en Instagram o TikTok, como el reel que viste.</td></tr>
+    <tr><td>6</td><td><strong>Voz</strong>: una frase de la página narrada en español.</td><td>Eleven v3</td><td>Cómo se compara con Kokoro, la voz local que ya usa el Studio.</td></tr>
+  </table>
+  <h3>Ejemplo de prompt (prueba 2)</h3>
+  <div class="cmd"><pre>First-person gimbal shot moving slowly forward along a thin glowing line on the ground,
+calm dusk landscape, soft fog, the camera always looks ahead along the line,
+no cuts, no zoom, no people, no text, ends stopping in front of a simple stone doorway
+standing beside the line. 16:9, cinematic, quiet mood.</pre></div>
+  <div class="caja info"><strong class="t">Con «un clip a la vez», ¿cuánto sale en 72 horas?</strong><p>Si cada clip tarda de 1 a 3 minutos, en una tarde de 3 horas salen fácil 40 a 80 clips. Para estas 6 pruebas, con varias repeticiones, sobra.</p></div>
+</section>
+
+<section id="comandos">
+  <h2>9. Chuleta de comandos del CLI</h2>
+  <p>De la documentación oficial del CLI (<code>github.com/higgsfield-ai/cli</code>). Cualquier comando acepta <code>--help</code> para ver sus opciones.</p>
+  <table>
+    <tr><th>Para qué</th><th>Comando</th></tr>
+    <tr><td>Iniciar y cerrar sesión</td><td><code>higgsfield auth login</code> · <code>higgsfield auth logout</code></td></tr>
+    <tr><td>Ver saldo y movimientos</td><td><code>higgsfield account</code> (ver <code>--help</code>)</td></tr>
+    <tr><td>Listar modelos y ver sus opciones</td><td><code>higgsfield model list</code> · <code>higgsfield model get seedance_2_5</code></td></tr>
+    <tr><td>Generar y esperar el resultado</td><td><code>higgsfield generate create &lt;modelo&gt; --prompt "..." --wait</code></td></tr>
+    <tr><td>Opciones frecuentes</td><td><code>--aspect_ratio 16:9</code> · <code>--resolution 1080p</code> · <code>--duration 8</code> · <code>--start-image &lt;archivo&gt;</code> · <code>--sound</code></td></tr>
+    <tr><td>Ver trabajos</td><td><code>higgsfield generate list --json</code> · <code>generate get &lt;id&gt;</code> · <code>generate wait &lt;id&gt;</code></td></tr>
+    <tr><td>Estimar el costo antes</td><td><code>higgsfield generate cost workflow &lt;nombre&gt; --duration 8 --resolution 1080p</code></td></tr>
+    <tr><td>Subir una imagen de referencia</td><td><code>higgsfield upload &lt;archivo&gt;</code></td></tr>
+    <tr><td>Flujos (reencuadre, doblaje, cambio de voz)</td><td><code>higgsfield generate workflow reframe --video ... --aspect-ratio 9:16</code></td></tr>
+  </table>
+</section>
+
+<section id="stl">
+  <h2>10. Para qué le sirve a STL (y para qué no)</h2>
+  <p>El proyecto ya conoce a Higgsfield: la skill <code>sitio-3d-scroll</code> lo nombra como la herramienta del <strong>camino A</strong> para la página pública, y <code>docs/difusion/aprendido-video-scroll-world.md</code> explica la técnica completa (imágenes clave, clips entre ellas, el scroll mueve el video).</p>
+  <table>
+    <tr><th></th><th>Camino A: video con IA (Higgsfield)</th><th>Camino B: Three.js (el actual)</th></tr>
+    <tr><td>Aspecto</td><td>Lo más cinematográfico, casi como una película.</td><td>Menos realista, pero limpio y propio.</td></tr>
+    <tr><td>Costo</td><td>De 5 a 60 dólares por versión, y cada cambio es otra generación.</td><td>Gratis.</td></tr>
+    <tr><td>Peso</td><td>De 25 a 80 MB de video.</td><td>Unos 200 KB más.</td></tr>
+    <tr><td>Cambios</td><td>Cada corrección vuelve a generar.</td><td>Se edita como cualquier código.</td></tr>
+    <tr><td>Móvil</td><td>Lo más frágil.</td><td>Depende de la GPU del teléfono.</td></tr>
+  </table>
+  <h3>Dónde sí aporta</h3>
+  <ul>
+    <li><strong>Probar el camino A sin pagar por clip</strong> y decidir con clips reales en la mano, no con suposiciones.</li>
+    <li><strong>Reels para difusión</strong> (9:16), cuando llegue esa fase.</li>
+    <li><strong>Imágenes</strong> para compartir la página (la imagen que sale al pegar el enlace) o para las estaciones del recorrido.</li>
+  </ul>
+  <h3>Dónde no</h3>
+  <ul>
+    <li>No reemplaza al Studio ni al director: es una herramienta de medios, no de gestión.</li>
+    <li>No conviene para lo que cambia seguido: cada cambio cuesta otra generación.</li>
+  </ul>
+  <div class="caja ojo"><strong class="t">Las reglas del Studio</strong><p>Lo que cuesta dinero lleva dos pasos en el Studio: la propuesta aceptada y un «Confirmo» con el costo a la vista. La prueba en sí es gratis, pero deja una tarjeta registrada y una renovación pagada. Además, la difusión es de una fase futura: si los clips se van a usar en STL, lo que salga de esta prueba se lleva al Studio como propuesta.</p></div>
+</section>
+
+<section id="riesgos">
+  <h2>11. Riesgos y cuidados</h2>
+  <ul>
+    <li><strong>El cobro automático</strong> es el riesgo principal. Se evita cancelando la renovación apenas actives la prueba (paso 4).</li>
+    <li><strong>No hay tope de gasto.</strong> Fuera de la prueba, cada clip gasta créditos. La regla para Claude: mostrar el costo y esperar tu «sí» antes de cada clip que cobre.</li>
+    <li><strong>Lo «ilimitado» no está definido.</strong> Si aparece un precio, se para y se revisa (sección 4).</li>
+    <li><strong>Uso comercial.</strong> En el plan gratis no está incluido. Antes de publicar un clip de la prueba en la página o en redes, hay que confirmar las condiciones.</li>
+    <li><strong>Privacidad.</strong> Lo que subes (fotos, caras, voces) queda en los servidores de Higgsfield. Para las pruebas no hace falta subir nada personal.</li>
+    <li><strong>Nada a la web de Claude.</strong> Usando el CLI, nada se guarda en tu cuenta de Claude: los clips quedan en <code>video/higgsfield/</code>, en este PC.</li>
+    <li><strong>Las condiciones cambian.</strong> La prueba de julio fue de 24 horas y pasaba al plan Plus; esta es de 72 y pasa a Ultra. Revisa lo que diga la pantalla el día que actives.</li>
+  </ul>
+</section>
+
+<section id="reel">
+  <h2>12. El reel de Instagram que pasaste</h2>
+  <p>No se pudo ver: Instagram pide iniciar sesión, desde la web y desde el navegador integrado. Dos formas de usarlo como modelo:</p>
+  <ul>
+    <li>Inicia sesión en Instagram en el panel del navegador de Claude y avísame. Lo abro y describo qué hace: tomas, ritmo, transiciones, textos.</li>
+    <li>O cuéntame en dos líneas qué te gustó: el estilo, el movimiento de cámara o el formato.</li>
+  </ul>
+  <p>Con eso, el preset «Genjutsu» de Higgsfield puede rehacer un video de referencia con tus propios personajes y lugares, manteniendo el movimiento de cámara y el ritmo. Para eso hay que subir el video de referencia a Higgsfield.</p>
+</section>
+
+<section id="glosario">
+  <h2>13. Glosario</h2>
+  <table>
+    <tr><th>MCP</th><td>«Model Context Protocol»: un enchufe estándar para que un asistente como Claude use herramientas de otros (aquí, generar videos en Higgsfield).</td></tr>
+    <tr><th>CLI</th><td>Programa de línea de comandos. Claude Code lo usa escribiendo comandos en la terminal.</td></tr>
+    <tr><th>Crédito</th><td>La moneda interna de Higgsfield. Cada clip o imagen gasta una cantidad según el modelo, la duración y la resolución.</td></tr>
+    <tr><th>Primer y último fotograma</th><td>Darle al modelo la imagen inicial y la final de un clip, para que invente el movimiento entre las dos. Así se encadenan clips sin costuras.</td></tr>
+    <tr><th>Prompt</th><td>La descripción en texto de lo que se quiere generar.</td></tr>
+    <tr><th>9:16 y 16:9</th><td>Vertical (reels, historias) y horizontal (web, YouTube).</td></tr>
+  </table>
+</section>
+
+<section id="fuentes">
+  <h2>14. Fuentes (consultadas el 10 de noviembre de 2026)</h2>
+  <ul>
+    <li><a href="https://x.com/higgsfield/status/2119884452054937656" target="_blank" rel="noopener">Higgsfield en X: Claude Fable 5.2 y los 3 días gratis e ilimitados</a></li>
+    <li><a href="https://x.com/higgsfield/status/2119884460577726915" target="_blank" rel="noopener">Higgsfield en X: condiciones (renovación a Ultra con 40 %)</a></li>
+    <li><a href="https://pasqualepillitteri.it/en/news/31553/higgsfield-free-72-hour-trial-claude-fable-5-2" target="_blank" rel="noopener">Pasquale Pillitteri: la prueba de 72 horas con Fable 5.2</a></li>
+    <li><a href="https://higgsfield.ai/blog/unlimited-mcp" target="_blank" rel="noopener">Higgsfield: cómo funcionó la prueba ilimitada del MCP (julio de 2026)</a></li>
+    <li><a href="https://higgsfield.ai/mcp?tab=claude-code" target="_blank" rel="noopener">Higgsfield MCP: la pestaña de Claude Code</a></li>
+    <li><a href="https://higgsfield.ai/pricing" target="_blank" rel="noopener">Higgsfield: precios</a></li>
+    <li><a href="https://higgsfield.ai/creator-hub/help-center/integrations/how-do-i-connect-higgsfield-to-ai-agent" target="_blank" rel="noopener">Centro de ayuda de Higgsfield: conectar un agente</a></li>
+    <li><a href="https://higgsfield.ai/blog/Generate-AI-Videos-From-Claude-with-Higgsfield-MCP" target="_blank" rel="noopener">Higgsfield: generar video desde Claude con el MCP</a></li>
+    <li><a href="https://github.com/higgsfield-ai/cli" target="_blank" rel="noopener">GitHub: el CLI oficial de Higgsfield</a></li>
+    <li><a href="https://github.com/higgsfield-ai/skills" target="_blank" rel="noopener">GitHub: las skills de Higgsfield</a></li>
+    <li><a href="https://www.meltflexai.com/blog/higgsfield-mcp" target="_blank" rel="noopener">MeltFlex: MCP o CLI en Claude Code (es de un competidor)</a></li>
+    <li><a href="https://aituber.app/blog/higgsfield-mcp-video-generation/" target="_blank" rel="noopener">AITuber: límites y precios (es de un competidor)</a></li>
+  </ul>
+</section>
+
+<footer>Archivo local de STL. No se publica con la página: el publicador solo sube los archivos que nombra.</footer>
+</main>
+</div>
+<script>
+  document.querySelectorAll('.cmd').forEach(function (caja) {
+    var boton = document.createElement('button');
+    boton.type = 'button';
+    boton.textContent = 'Copiar';
+    boton.addEventListener('click', function () {
+      var texto = caja.querySelector('pre').innerText;
+      navigator.clipboard.writeText(texto).then(function () {
+        boton.textContent = 'Copiado';
+        setTimeout(function () { boton.textContent = 'Copiar'; }, 1500);
+      });
+    });
+    caja.appendChild(boton);
+  });
+</script>
+</body>
+</html>

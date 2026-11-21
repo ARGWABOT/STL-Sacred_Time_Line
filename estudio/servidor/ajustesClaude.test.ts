@@ -1,0 +1,263 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { AJUSTES_DEL_DIRECTOR, ARCHIVO_AUTOR, ajustesDelDirector, arranqueLimpio, clavesDeTusAjustes, conNucleoExplicito, conSkillsDelPlan, fuentesDelDirector, nucleoExplicito, SIN_CONECTORES, skillsDelSegundoTiempo, skillsDisponibles, archivoAjustesClaude, conMaximo, entradaDelModelo, guardarEsfuerzoClaude, guardarModeloClaude, guardarUltracodeClaude, ignoraEsfuerzoGeneral, leerAjustesClaude, nombreCanonico, textoDelNucleo } from './ajustesClaude';
+import { ordenAbrirClaude } from './revisor';
+import { es } from '../src/textos/es';
+
+let carpeta: string;
+let archivo: string;
+beforeEach(async () => {
+  carpeta = await mkdtemp(join(tmpdir(), 'stl-ajustes-'));
+  archivo = join(carpeta, 'settings.json');
+});
+afterEach(() => rm(carpeta, { recursive: true, force: true }));
+
+const leer = async () => JSON.parse(await readFile(archivo, 'utf-8'));
+
+describe('la configuración de Claude Code (lo mismo que /model y /effort)', () => {
+  it('está en ~/.claude, o en CLAUDE_CONFIG_DIR', () => {
+    expect(archivoAjustesClaude({ CLAUDE_CONFIG_DIR: carpeta })).toBe(archivo);
+    expect(archivoAjustesClaude({})).toMatch(/\.claude[\\/]settings\.json$/);
+  });
+
+  it('sin archivo, o con uno que no es JSON, es el de la cuenta', async () => {
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: null, esfuerzo: null, ultracode: false });
+    await writeFile(archivo, '{ esto no es json');
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: null, esfuerzo: null, ultracode: false });
+  });
+
+  it('lee el modelo y el esfuerzo propio del modelo; la clave general, solo donde Claude Code todavía la usa', async () => {
+    await writeFile(archivo, JSON.stringify({ model: 'opus', effortLevel: 'xhigh', modelSettings: { 'claude-opus-4-1': { effortLevel: 'low' }, 'claude-opus-5-5': { effortLevel: 'high' } } }));
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'opus', esfuerzo: 'high', ultracode: false });
+    // Sonnet 5.5 sin esfuerzo propio: la clave general ya no cuenta, así que es el que trae el modelo (null)
+    await writeFile(archivo, JSON.stringify({ model: 'claude-sonnet-5-5', effortLevel: 'xhigh', ultracode: true, modelSettings: { 'claude-opus-5-5': { effortLevel: 'high' } } }));
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'claude-sonnet-5-5', esfuerzo: null, ultracode: true });
+    // En un modelo anterior (o Fable 5.1), la clave general sigue valiendo
+    await writeFile(archivo, JSON.stringify({ model: 'claude-opus-5', effortLevel: 'xhigh' }));
+    expect((await leerAjustesClaude(archivo)).esfuerzo).toBe('xhigh');
+    // «max» no es un esfuerzo guardado (Claude Code no lo acepta en su archivo)
+    await writeFile(archivo, JSON.stringify({ model: 'claude-opus-5', effortLevel: 'max' }));
+    expect((await leerAjustesClaude(archivo)).esfuerzo).toBeNull();
+  });
+
+  it('da el nombre canónico de cada modelo, y sabe cuáles ya no usan la clave general', () => {
+    expect(nombreCanonico({}, 'claude-sonnet-5-5[1m]')).toBe('claude-sonnet-5-5');
+    expect(nombreCanonico({}, 'claude-opus-5-5-20261001')).toBe('claude-opus-5-5');
+    expect(nombreCanonico({}, 'sonnet')).toBe('claude-sonnet-5-5');
+    expect(nombreCanonico({ 'claude-sonnet-6-0': {} }, 'sonnet')).toBe('claude-sonnet-6-0');
+    expect(nombreCanonico({}, null)).toBeNull();
+    expect(ignoraEsfuerzoGeneral('claude-opus-5-5')).toBe(true);
+    expect(ignoraEsfuerzoGeneral('claude-haiku-6-0')).toBe(true);
+    expect(ignoraEsfuerzoGeneral('claude-opus-5')).toBe(false);
+    expect(ignoraEsfuerzoGeneral('claude-fable-5-1')).toBe(false);
+  });
+
+  it('guarda el esfuerzo en la entrada del modelo, como /effort, aunque Claude Code todavía no la tenga (el caso de Sonnet)', async () => {
+    await writeFile(archivo, JSON.stringify({ model: 'opus', effortLevel: 'high', modelSettings: { 'claude-opus-5-5': { effortLevel: 'high' } } }));
+    await guardarModeloClaude('claude-sonnet-5-5', archivo);
+    expect((await leerAjustesClaude(archivo)).esfuerzo).toBeNull();
+    await guardarEsfuerzoClaude('xhigh', archivo);
+    expect(await leer()).toEqual({ model: 'claude-sonnet-5-5', effortLevel: 'high', modelSettings: { 'claude-opus-5-5': { effortLevel: 'high' }, 'claude-sonnet-5-5': { effortLevel: 'xhigh' } } });
+    expect((await leerAjustesClaude(archivo)).esfuerzo).toBe('xhigh');
+    // Al volver a Opus, se ve el suyo
+    await guardarModeloClaude('claude-opus-5-5[1m]', archivo);
+    expect((await leerAjustesClaude(archivo)).esfuerzo).toBe('high');
+  });
+
+  it('nunca guarda «max», y quita el que haya quedado de antes', async () => {
+    await expect(guardarEsfuerzoClaude('max', archivo)).rejects.toThrow(/no guarda/);
+    await writeFile(archivo, JSON.stringify({ model: 'sonnet', effortLevel: 'max', modelSettings: { 'claude-opus-5-5': { effortLevel: 'max' } } }));
+    await guardarEsfuerzoClaude('high', archivo);
+    expect(await leer()).toEqual({ model: 'sonnet', modelSettings: { 'claude-sonnet-5-5': { effortLevel: 'high' } } });
+  });
+
+  it('con «Máximo», el Studio lanza con max y recuerda el guardado de tus sesiones', () => {
+    const a = { modelo: 'sonnet', esfuerzo: 'high' as const, ultracode: false };
+    expect(conMaximo(a, true)).toEqual({ ...a, esfuerzo: 'max', esfuerzoGuardado: 'high' });
+    expect(conMaximo(a, false)).toEqual({ ...a, esfuerzoGuardado: 'high' });
+  });
+
+  it('encuentra la entrada de cada modelo: por su id (también con contexto de 1 M) o, si es un alias, la versión más nueva', () => {
+    const ms = { 'claude-opus-4-10': {}, 'claude-opus-5-5': {}, 'claude-sonnet-5-5': {} };
+    expect(entradaDelModelo(ms, 'claude-opus-5-5[1m]')).toBe('claude-opus-5-5');
+    expect(entradaDelModelo(ms, 'opus')).toBe('claude-opus-5-5');
+    expect(entradaDelModelo(ms, 'haiku')).toBeNull();
+    expect(entradaDelModelo(ms, null)).toBeNull();
+  });
+
+  it('cambia solo el modelo y el esfuerzo, sin tocar nada más', async () => {
+    const antes = { env: { DISABLE_TELEMETRY: '1' }, model: 'opus', hooks: { Stop: [{ hooks: [{ type: 'command', command: 'x' }] }] }, effortLevel: 'xhigh', modelSettings: { 'claude-opus-5-5': { effortLevel: 'high' } } };
+    await writeFile(archivo, JSON.stringify(antes));
+    await guardarModeloClaude('claude-opus-5-5[1m]', archivo);
+    await guardarEsfuerzoClaude('low', archivo);
+    const despues = await leer();
+    expect(despues).toEqual({ ...antes, model: 'claude-opus-5-5[1m]', modelSettings: { 'claude-opus-5-5': { effortLevel: 'low' } } });
+    expect(await leerAjustesClaude(archivo)).toEqual({ modelo: 'claude-opus-5-5[1m]', esfuerzo: 'low', ultracode: false });
+    // «El de tu cuenta» quita el del modelo (como /effort auto), sin dejar la entrada vacía
+    await guardarEsfuerzoClaude(null, archivo);
+    await guardarModeloClaude(null, archivo);
+    expect(await leer()).toEqual({ env: antes.env, hooks: antes.hooks, effortLevel: 'xhigh' });
+    // Sin modelo elegido, la clave general, como antes
+    await guardarEsfuerzoClaude(null, archivo);
+    expect(await leer()).toEqual({ env: antes.env, hooks: antes.hooks });
+  });
+
+  it('enciende ultracode con su clave y, al apagarlo, la quita, sin tocar nada más', async () => {
+    await writeFile(archivo, JSON.stringify({ model: 'opus' }));
+    await guardarUltracodeClaude(true, archivo);
+    expect(await leer()).toEqual({ model: 'opus', ultracode: true });
+    expect((await leerAjustesClaude(archivo)).ultracode).toBe(true);
+    await guardarUltracodeClaude(false, archivo);
+    expect(await leer()).toEqual({ model: 'opus' });
+    // el director que lanza el Studio, sin él salvo que el titular le dé el permiso
+    expect(AJUSTES_DEL_DIRECTOR).toEqual({ ultracode: false });
+  });
+
+  it('el director lanzado sigue a ultracode solo con él encendido y con el permiso del titular', () => {
+    const limpio = arranqueLimpio('C:\\Users\\ana');
+    expect(ajustesDelDirector(true, true, 'C:\\Users\\ana')).toEqual({ ajustes: { disableClaudeAiConnectors: true, ...limpio }, flujos: true });
+    expect(ajustesDelDirector(true, false, 'C:\\Users\\ana')).toEqual({ ajustes: { disableClaudeAiConnectors: true, ...limpio, ultracode: false }, flujos: false });
+    expect(ajustesDelDirector(false, true, 'C:\\Users\\ana')).toEqual({ ajustes: { disableClaudeAiConnectors: true, ...limpio, ultracode: false }, flujos: false });
+    expect(ajustesDelDirector(false, false, 'C:\\Users\\ana')).toEqual({ ajustes: { disableClaudeAiConnectors: true, ...limpio, ultracode: false }, flujos: false });
+  });
+
+  it('cada sesión que lanza el Studio arranca limpia: sin tu CLAUDE.md global, tus hooks, tu memoria ni la foto de git (pd_arranque_limpio, 24 de octubre)', () => {
+    expect(arranqueLimpio('C:\\Users\\ana\\')).toEqual({
+      claudeMdExcludes: ['C:/Users/ana/.claude/CLAUDE.md', 'C:/Users/ana/.claude/rules/**'],
+      disableAllHooks: true,
+      autoMemoryEnabled: false,
+      includeGitInstructions: false,
+    });
+    expect(arranqueLimpio('/home/ana').claudeMdExcludes).toEqual(['/home/ana/.claude/CLAUDE.md', '/home/ana/.claude/rules/**']);
+    // Con ultracode o sin él, y sin quitar herramientas ni tus ajustes (decisión 3 de la parte 10)
+    for (const u of [true, false]) for (const p of [true, false]) {
+      const { ajustes } = ajustesDelDirector(u, p, '/home/ana');
+      expect(ajustes).toMatchObject(arranqueLimpio('/home/ana'));
+      expect(Object.keys(ajustes).some((k) => /tools|permissions/i.test(k))).toBe(false);
+    }
+  });
+
+  it('sin tus ajustes de usuario, el director carga solo los del proyecto y los locales, y conserva ultracode si lo tiene (nota de voz del titular nmvojtb7rtit)', async () => {
+    expect(fuentesDelDirector(true)).toEqual([]);
+    expect(fuentesDelDirector(false)).toEqual(['--setting-sources', 'project,local']);
+    // Ultracode ya no llega de tus ajustes: con su permiso, va explícito; sin él, apagado como siempre
+    expect(ajustesDelDirector(true, true, '/home/ana', false).ajustes.ultracode).toBe(true);
+    expect(ajustesDelDirector(true, true, '/home/ana', false).flujos).toBe(true);
+    expect(ajustesDelDirector(true, false, '/home/ana', false).ajustes.ultracode).toBe(false);
+    expect(ajustesDelDirector(true, true, '/home/ana', false).ajustes).toMatchObject({ ...SIN_CONECTORES, ...arranqueLimpio('/home/ana') });
+    // El lanzador lo usa con lo que eligió la persona (Local › ajustesPropios), y «Modelo y consumo» lo muestra con sus claves
+    const revisor = (await readFile(join(__dirname, 'revisor.ts'), 'utf-8')).replace(/\r\n/g, '\n');
+    expect(revisor).toContain('const propios = elegido.ajustesPropios !== false;');
+    // …y los argumentos de ajustes y de modo salen de modoPermisos.ts: sin elegir nada, los de siempre
+    expect(revisor).toContain('...permisos.argumentos, ');
+    const modo = (await readFile(join(__dirname, 'modoPermisos.ts'), 'utf-8')).replace(/\r\n/g, '\n');
+    expect(modo).toContain("argumentos: ['--settings', e.archivo, ...fuentesDelDirector(e.propios), '--permission-mode', modo === 'automatico' ? 'auto' : 'dontAsk'],");
+    // En su propia pestaña de «Modelo y consumo» (nota de voz del titular nmvow70jqtit, 26 de octubre de 2026), pintada
+    // desde su módulo desde que se partió app.ts (pr_partir_modulos), con lo que la página le da
+    const vista = await readFile(join(__dirname, '..', 'src', 'modelView.ts'), 'utf-8');
+    expect(vista).toContain('ajustes: () => seccionAjustesPropios(datos.ajustes),');
+    expect(await readFile(join(__dirname, '..', 'src', 'app.ts'), 'utf-8')).toContain('ajustes: d.ajustesPropios,');
+    // Su texto está en el archivo de textos (pd_idiomas)
+    expect(await readFile(join(__dirname, '..', 'src', 'vistaAjustesPropios.ts'), 'utf-8')).toContain("data-guardar-ajustes>${t('modelo.guardarSeleccion')}");
+    expect(es['modelo.guardarSeleccion']).toBe('Guardar mi selección');
+    // Las claves, sin valores: [] sin archivo, null si no es JSON
+    expect(await clavesDeTusAjustes(join(carpeta, 'no-esta.json'))).toEqual([]);
+    await writeFile(archivo, JSON.stringify({ model: 'opus', env: { SECRETO: 'x' } }));
+    expect(await clavesDeTusAjustes(archivo)).toEqual(['model', 'env › SECRETO']);
+    await writeFile(archivo, '{ roto');
+    expect(await clavesDeTusAjustes(archivo)).toBeNull();
+  });
+
+  it('el núcleo del director va explícito: el lanzador pasa CLAUDE.md y lo saca, con AGENTS.md, de lo que Claude Code carga solo (pr_reglas_por_encargo, punto 3)', async () => {
+    const n = nucleoExplicito('C:\\xampp\\STL\\', 'C:\\xampp\\STL\\.revisiones\\nucleo-del-director.md');
+    expect(n.claudeMdExcludes).toEqual(['C:/xampp/STL/CLAUDE.md', 'C:/xampp/STL/AGENTS.md']);
+    expect(n.argumentos).toEqual(['--append-system-prompt-file', 'C:\\xampp\\STL\\.revisiones\\nucleo-del-director.md']);
+    // Lo que pasa es CLAUDE.md entero, con una línea que dice qué es, para no tener que abrir el archivo
+    const claude = '# STL Studio: reglas del director asistente\n\nUna regla.\n';
+    expect(textoDelNucleo(claude).startsWith('# CLAUDE.md, the rules of STL Studio\n')).toBe(true);
+    expect(textoDelNucleo(claude).endsWith(claude)).toBe(true);
+    // Se suma a lo que ya excluía el arranque limpio, sin quitarle nada ni repetirlo, y sin tocar lo demás
+    for (const u of [true, false]) for (const p of [true, false]) {
+      const ajustes = ajustesDelDirector(u, p, 'C:\\Users\\ana', false).ajustes;
+      const con = JSON.parse(conNucleoExplicito(JSON.stringify(ajustes), 'C:\\xampp\\STL'));
+      expect(con.claudeMdExcludes).toEqual([...arranqueLimpio('C:\\Users\\ana').claudeMdExcludes, 'C:/xampp/STL/CLAUDE.md', 'C:/xampp/STL/AGENTS.md']);
+      expect({ ...con, claudeMdExcludes: ajustes.claudeMdExcludes }).toEqual(ajustes);
+      expect(JSON.parse(conNucleoExplicito(JSON.stringify(con), 'C:\\xampp\\STL')).claudeMdExcludes).toEqual(con.claudeMdExcludes);
+    }
+    // El lanzador lo usa en cada revisión, urgencia y aclaración: el archivo con el texto, sus argumentos y sus ajustes
+    const revisor = (await readFile(join(__dirname, 'revisor.ts'), 'utf-8')).replace(/\r\n/g, '\n');
+    expect(revisor).toContain("writeFileSync(archivoNucleo, textoDelNucleo(readFileSync(join(this.raiz, 'CLAUDE.md'), 'utf-8'), autor));");
+    // Las reglas de autor, solo en la copia de desarrollo y si están (nmw5gt698tit)
+    expect(revisor).toContain('const autor = elegido.copiaDeDesarrollo && existsSync(reglasDeAutor) ? readFileSync(reglasDeAutor, \'utf-8\') : null;');
+    expect(textoDelNucleo(claude, null)).toBe(textoDelNucleo(claude));
+    expect(textoDelNucleo(claude, '  ')).toBe(textoDelNucleo(claude));
+    const conAutor = textoDelNucleo(claude, '# The author\'s rules\n\n- No animation element overflows.');
+    expect(conAutor.startsWith(textoDelNucleo(claude))).toBe(true);
+    expect(conAutor).toContain(`(${ARCHIVO_AUTOR}, only in the development copy)`);
+    expect(conAutor).toContain('- No animation element overflows.');
+    expect(ARCHIVO_AUTOR).toBe('autor/CLAUDE.md');
+    expect(revisor).toContain('...permisos.argumentos, ...nucleo.argumentos, ');
+    expect(revisor).toContain('writeFileSync(ajustes, conCuenta(conSkillsApagadas(conNucleoExplicito(permisos.ajustes, this.raiz), apagadas)));');
+    expect(revisor).not.toMatch(/writeFileSync\(ajustes, permisos\.ajustes\)/);
+  });
+
+  it('el segundo tiempo arranca solo con las skills que nombra su plan; sin plan, como hoy (pd_dos_tiempos, nmvm0r0rstit)', async () => {
+    const disponibles = ['revisa', 'sitio-3d-scroll', 'vigila'];
+    // Sin plan, nada cambia
+    expect(skillsDelSegundoTiempo(null, disponibles)).toEqual({});
+    const base = JSON.stringify(ajustesDelDirector(false, false, 'C:\\Users\\ana').ajustes);
+    expect(conSkillsDelPlan(base, null, disponibles)).toBe(base);
+    // Un plan sin skills: todas apagadas, también las que trae Claude Code
+    expect(skillsDelSegundoTiempo([], disponibles)).toEqual({ skillOverrides: { revisa: 'off', 'sitio-3d-scroll': 'off', vigila: 'off' }, disableBundledSkills: true });
+    // Las que nombra quedan; si nombra una que no está en las carpetas (de las que trae Claude Code), esas siguen
+    expect(skillsDelSegundoTiempo(['sitio-3d-scroll'], disponibles)).toEqual({ skillOverrides: { revisa: 'off', vigila: 'off' }, disableBundledSkills: true });
+    expect(skillsDelSegundoTiempo(['workflow-authoring'], disponibles)).toEqual({ skillOverrides: { revisa: 'off', 'sitio-3d-scroll': 'off', vigila: 'off' } });
+    // Sobre los ajustes del director, sin tocar lo demás y sumando a lo que ya traían
+    const con = JSON.parse(conSkillsDelPlan(JSON.stringify({ ...JSON.parse(base), skillOverrides: { otra: 'name-only' } }), ['vigila'], disponibles));
+    expect(con.skillOverrides).toEqual({ otra: 'name-only', revisa: 'off', 'sitio-3d-scroll': 'off' });
+    expect(con.disableBundledSkills).toBe(true);
+    expect(con.disableAllHooks).toBe(true);
+    // Las que encuentra en las carpetas: skills con su nombre (el de su cabecera, si lo trae) y comandos
+    await mkdir(join(carpeta, '.claude', 'skills', 'mirar'), { recursive: true });
+    await writeFile(join(carpeta, '.claude', 'skills', 'mirar', 'SKILL.md'), '---\nname: mirar-pantalla\ndescription: x\n---\nname: no-es-esta\n');
+    await mkdir(join(carpeta, '.claude', 'skills', 'sin-skill'), { recursive: true });
+    await mkdir(join(carpeta, '.claude', 'commands'), { recursive: true });
+    await writeFile(join(carpeta, '.claude', 'commands', 'revisa.md'), '# revisa');
+    await writeFile(join(carpeta, '.claude', 'commands', 'nota.txt'), 'x');
+    expect(skillsDisponibles([carpeta, join(carpeta, 'no-existe'), carpeta])).toEqual(['mirar-pantalla', 'revisa']);
+    // El lanzador lo usa al tener el plan del primer tiempo, antes de lanzar el segundo
+    const revisor = (await readFile(join(__dirname, 'revisor.ts'), 'utf-8')).replace(/\r\n/g, '\n');
+    expect(revisor).toContain('writeFileSync(ajustes, conCuenta(conSkillsApagadas(conSkillsDelPlan(conNucleoExplicito(permisos.ajustes, this.raiz), skillsDelPlan(planDeLaRevision), skillsDisponibles([this.raiz, repositorio, homedir()])), apagadas)));');
+    expect(revisor.indexOf('conSkillsDelPlan(')).toBeLessThan(revisor.indexOf('p = lanzarClaude(programa, args'));
+  });
+
+  it('el director lanzado nunca carga los conectores de claude.ai, con ultracode o sin él (pedido del titular del 23 de octubre)', () => {
+    expect(SIN_CONECTORES).toEqual({ disableClaudeAiConnectors: true });
+    for (const u of [true, false]) for (const p of [true, false]) expect(ajustesDelDirector(u, p).ajustes.disableClaudeAiConnectors).toBe(true);
+  });
+
+  it('crea el archivo si no está, y no toca uno que no es JSON ni acepta lo que Claude Code no aceptaría', async () => {
+    await guardarModeloClaude('sonnet', archivo);
+    expect(await leer()).toEqual({ model: 'sonnet' });
+    await writeFile(archivo, '{ roto');
+    await expect(guardarModeloClaude('opus', archivo)).rejects.toThrow(/no es JSON válido/);
+    expect(await readFile(archivo, 'utf-8')).toBe('{ roto');
+    await expect(guardarModeloClaude('Opus; rm -rf', archivo)).rejects.toThrow();
+    await expect(guardarEsfuerzoClaude('altísimo', archivo)).rejects.toThrow();
+  });
+});
+
+describe('«Abrir Claude Code en una terminal»', () => {
+  it('lo abre como lo lanza el Studio, con la carpeta del proyecto a la vista y sin las variables de otra sesión', () => {
+    expect(ordenAbrirClaude('C:\\Users\\x\\AppData\\Roaming\\Claude\\claude-code\\2.1\\claude.exe', 'C:\\STL', 'C:\\proyectos\\it\'s')).toBe(
+      "env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT 'C:/Users/x/AppData/Roaming/Claude/claude-code/2.1/claude.exe' --add-dir 'C:/proyectos/it'\\''s'",
+    );
+    // el proyecto que es el mismo Studio no se agrega otra vez; el .cmd de npm va por su nombre
+    expect(ordenAbrirClaude('C:\\npm\\claude.cmd', 'C:\\STL', 'C:\\STL')).toBe('env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT claude');
+    expect(ordenAbrirClaude('/usr/local/bin/claude', '/stl', null)).toBe("env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT '/usr/local/bin/claude'");
+    // «Máximo», que Claude Code no guarda, va en la orden
+    expect(ordenAbrirClaude('/usr/local/bin/claude', '/stl', null, true)).toBe("env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT '/usr/local/bin/claude' --effort max");
+  });
+});

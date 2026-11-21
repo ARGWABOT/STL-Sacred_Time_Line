@@ -1,0 +1,175 @@
+{
+  "actualizado": "2026-11-09",
+  "nota": "The assistant director's route. The director writes it in its session («revisa estudio»); what the Studio records for the person goes in proyectos/<id>/director/equipo/<person>.json, and the project's own data (context, set goal and who works on it) in proyectos/<id>/proyecto.json. Logic: src/director/director.ts. New projects delivered with the interface in English are born from this template (plantilla/plan-nuevo.en.json; in Spanish, plantilla/plan-nuevo.json): only phase 0, until the director lays out the project and the owner sets the goal.",
+  "mision": "One mission at a time, always forward, measured against the set goal.",
+  "revisado": "",
+  "mensaje": {
+    "fecha": "2026-11-09",
+    "texto": "Welcome to the Studio. I am the assistant director. This project is new: tell me what it is, what you want to achieve and when you will consider it complete. With that I give you back an approach (scope, assumptions, risks and questions) and candidate goals so you set where you want to get; then I draw the route."
+  },
+  "frentes": [
+    {
+      "id": "direccion",
+      "nombre": "Project direction",
+      "que": "The diagnosis, the goal, the route and the owner's decisions.",
+      "rutas": []
+    }
+  ],
+  "fases": [
+    {
+      "id": "arranque",
+      "nombre": "Approach and goal",
+      "etapa": "Conception",
+      "meta": "Understand the idea well, make its assumptions and risks explicit, and set a clear goal with its definition of done.",
+      "porQue": "A new project goes wrong more from what was not said than from what was done badly. Before building, the director gives back what it understood and what is left to decide.",
+      "duracion": "Until the goal is set",
+      "puerta": {
+        "nombre": "The goal, clear",
+        "prueba": "The owner sets their goal, with how to know it was reached, after reading the approach. From that day on, all work is measured against it."
+      },
+      "frentes": {
+        "direccion": {
+          "nivel": "foco",
+          "que": "Tell about the project, read the approach and set the goal. Nothing else until there is a route."
+        }
+      },
+      "criterios": [
+        {
+          "id": "a_contexto",
+          "texto": "The project told: what it is, what you want to achieve and when it will be complete",
+          "como": "Studio › Project: the explanation, the goal and the definition of done."
+        },
+        {
+          "id": "a_diagnostico",
+          "texto": "The director's approach, done",
+          "como": "The director gives back what it understood, the scope, the assumptions, the risks and the open questions (in Project, «The director's approach»).",
+          "indicador": "diagnostico"
+        },
+        {
+          "id": "a_leido",
+          "texto": "The approach read and commented on by the owner",
+          "como": "The mission to read the approach, approved by the director."
+        },
+        {
+          "id": "a_objetivo",
+          "texto": "A clear, set goal, with how to know it was reached",
+          "como": "Studio › Project › The goal.",
+          "indicador": "objetivo"
+        }
+      ],
+      "misiones": [
+        "Tell about the project: the explanation, the goal and when it will be complete.",
+        "The director gives back the approach and proposes goals.",
+        "Read the approach, comment on it part by part and set the goal.",
+        "The director draws the route: phases, gates, fronts and the first mission."
+      ]
+    }
+  ],
+  "misiones": [
+    {
+      "id": "t_contar",
+      "para": "titular",
+      "fase": "arranque",
+      "frente": "direccion",
+      "xp": 20,
+      "titulo": "Tell the director about your project",
+      "porQue": "In a new project there is no repository to read: all the director knows is what you tell it. The most important thing is when you will consider it complete, because the goal comes from there.",
+      "pasos": [
+        {
+          "texto": "Open Project and check the explanation, the goal and when it counts as complete, as you told them when delivering it. Correct what is needed, without polishing.",
+          "ir": {
+            "vista": "proyecto",
+            "ancla": "p-contexto",
+            "etiqueta": "Open Project"
+          }
+        },
+        {
+          "texto": "What you prefer to say out loud (references, fears, what you do not want), record it in the Inbox with «Comment»; it is optional, and you come back with «← Back to your mission». When you are done, mark this step and request the review with «Request review», at the top: the director gives you back the approach and the goals it proposes.",
+          "ir": {
+            "vista": "buzon",
+            "ancla": "escribir",
+            "etiqueta": "Open the Inbox (optional)"
+          }
+        }
+      ],
+      "entrega": "The project told in Project.",
+      "criterios": [
+        "a_contexto"
+      ]
+    }
+  ],
+  "revisiones": {},
+  "respuestas": {},
+  "evaluacion": {},
+  "boletin": [],
+  "documentos": [
+    {
+      "ruta": "docs/metodo/metodologia.md",
+      "titulo": "The STL method",
+      "porQue": "How the director works and why: the whole method."
+    }
+  ],
+  "diagnostico": {
+    "fecha": "",
+    "resumen": [],
+    "frentes": {}
+  },
+  "objetivos": [],
+  "propuestas": [],
+  "ritmo": [
+    "One mission at a time: you see your next mission whole; the others wait in the queue, without steps, so as not to scatter.",
+    "Always forward: what you already reviewed stays sealed (✓) and does not return to the list. If something changes, the director writes a new document with only what changed and puts it as the next step. Nobody rereads what they already went through.",
+    "By milestones, not by dates: you move forward when what the director asks for is met, without calendar deadlines.",
+    "Only the current phase: the director opens proposals and missions when the route reaches them.",
+    "Think, correct, then send: what you leave in the Inbox waits there, editable, until you request the review. What you delete before that never reaches the model.",
+    "Before each task in the repository, each Claude session asks the director (node tools/director/estado.ts and the paths it will touch). If the front is on hold, it says so before starting.",
+    "If you hesitate between adding and polishing, polish.",
+    "A new idea goes to the Inbox first. It comes in only if it serves the goal and the current phase.",
+    "Each gate, with its evidence: a milestone without evidence is a blind milestone."
+  ],
+  "lecciones": [
+    {
+      "titulo": "Phases separated by gates with criteria",
+      "quien": "Robert G. Cooper, the Stage-Gate process",
+      "que": "Work moves forward in stages, and between one and the next there is a gate: an explicit decision, with criteria known in advance, to go on, correct or stop.",
+      "fuente": "https://en.wikipedia.org/wiki/Phase-gate_process",
+      "paraElProyecto": "Each phase of the route has its gate and its criteria at 100 %; the owner crosses it, never the calendar."
+    },
+    {
+      "titulo": "Limit the work in progress",
+      "quien": "The Kanban method (David J. Anderson)",
+      "que": "Starting fewer things at once gets more of them finished: half-done work is inventory that gives no value and hides the blocks.",
+      "fuente": "https://en.wikipedia.org/wiki/Kanban_(development)",
+      "paraElProyecto": "One mission at a time per person, and fronts on hold open no new work without an exception with its reason."
+    },
+    {
+      "titulo": "Build, measure, learn",
+      "quien": "Eric Ries, The Lean Startup",
+      "que": "What matters is not how much is built but how much is learned from real people: the minimum product exists to validate an assumption as early as possible.",
+      "fuente": "https://en.wikipedia.org/wiki/Lean_startup",
+      "paraElProyecto": "What each gate asks for is what was learned, not only what was built; how to test it with people is your own call."
+    },
+    {
+      "titulo": "A goal with measurable results",
+      "quien": "Andy Grove (Intel) and John Doerr, OKRs",
+      "que": "An objective says where you are going; its key results say, with numbers or verifiable facts, how you know you got there.",
+      "fuente": "https://en.wikipedia.org/wiki/Objectives_and_key_results",
+      "paraElProyecto": "The set goal carries its success criterion: «how we will know we got there»."
+    },
+    {
+      "titulo": "Decisions are not rewritten: they are recorded",
+      "quien": "Michael Nygard, architecture decision records (ADR)",
+      "que": "Each important decision stays in a short, immutable document; if it changes, a new one is written that replaces the earlier one, and the history stays in view.",
+      "fuente": "https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions",
+      "paraElProyecto": "Always forward: what was reviewed stays sealed and what changes comes in a new, short document."
+    },
+    {
+      "titulo": "Bound the scope to finish",
+      "quien": "Ryan Singer, Shape Up (Basecamp)",
+      "que": "Before building, the work is shaped: what problem it solves, what goes in and, above all, what does not. Cutting scope is part of the craft, not a failure.",
+      "fuente": "https://basecamp.com/shapeup",
+      "paraElProyecto": "Each phase says what is not done (fronts on hold), and new ideas go to the Inbox until they serve the goal."
+    }
+  ],
+  "adelantado": []
+}

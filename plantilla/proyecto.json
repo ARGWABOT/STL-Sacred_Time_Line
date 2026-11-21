@@ -1,0 +1,14 @@
+{
+  "nombre": "",
+  "tipo": "existente",
+  "contexto": "",
+  "metaInicial": "",
+  "terminado": "",
+  "repositorio": {
+    "url": "",
+    "rama": ""
+  },
+  "objetivo": null,
+  "equipo": [],
+  "sincronizar": false
+}

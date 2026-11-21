@@ -1,0 +1,167 @@
+{
+  "actualizado": "2026-11-09",
+  "nota": "The assistant director's route. The director writes it in its session («revisa estudio»); what the Studio records for the person goes in proyectos/<id>/director/equipo/<person>.json, and the project's own data (context, set goal and who works on it) in proyectos/<id>/proyecto.json. Logic: src/director/director.ts. Each existing project delivered with the interface in English is born from this template (plantilla/plan.en.json; in Spanish, plantilla/plan.json): only phase 0, until the director diagnoses the repository and the owner sets the goal.",
+  "mision": "One mission at a time, always forward, measured against the set goal.",
+  "revisado": "",
+  "mensaje": {
+    "fecha": "2026-11-09",
+    "texto": "Welcome to the Studio. I am the assistant director. This project already exists: I will read its repository, its history and its documentation, find what is in progress and where it is heading, and propose goals to you. When you set one, I draw the route and give you one mission at a time."
+  },
+  "frentes": [
+    {
+      "id": "direccion",
+      "nombre": "Project direction",
+      "que": "The diagnosis, the goal, the route and the owner's decisions.",
+      "rutas": []
+    }
+  ],
+  "fases": [
+    {
+      "id": "arranque",
+      "nombre": "Diagnosis and goal",
+      "etapa": "Discovery",
+      "meta": "Know where the project really stands, what is in progress and where it is heading, and set a clear, measurable goal that can be reached from there.",
+      "porQue": "Without a diagnosis, the route is drawn on assumptions; without a set goal, each front grows wherever it wants. The goal is not written to be filed away: it is the rule the director uses to say yes or «not yet» to each new idea.",
+      "duracion": "Until the goal is set",
+      "puerta": {
+        "nombre": "The goal, clear",
+        "prueba": "The owner sets their goal, with how to know it was reached, after reading the diagnosis. From that day on, all work is measured against it and the director draws the route to get there."
+      },
+      "frentes": {
+        "direccion": {
+          "nivel": "foco",
+          "que": "Request the diagnosis, read it and set the goal. Nothing else until there is a route."
+        }
+      },
+      "criterios": [
+        {
+          "id": "a_contexto",
+          "texto": "The project delivered",
+          "como": "The repository's folder, checked by the Studio at delivery. The context is optional: the director detects it."
+        },
+        {
+          "id": "a_diagnostico",
+          "texto": "The director's diagnosis, done",
+          "como": "The director reads the repository and writes the diagnosis (in Project, «The director's diagnosis») with its document.",
+          "indicador": "diagnostico"
+        },
+        {
+          "id": "a_leido",
+          "texto": "The diagnosis read and commented on by the owner",
+          "como": "The mission to read the diagnosis, approved by the director."
+        },
+        {
+          "id": "a_objetivo",
+          "texto": "A clear, set goal, with how to know it was reached",
+          "como": "Studio › Project › The goal: where you want to get and how you will know you got there.",
+          "indicador": "objetivo"
+        }
+      ],
+      "misiones": [
+        "Deliver the project (the Studio checks its folder) and request the diagnosis; if you want, with what the director should know.",
+        "The director diagnoses the repository: what is done, what is in progress and the goals in its documentation.",
+        "Read the diagnosis, comment on it part by part and set the goal (one of those the director proposes, or yours).",
+        "The director draws the route: phases, gates, fronts and the first mission."
+      ]
+    }
+  ],
+  "misiones": [
+    {
+      "id": "t_conectar",
+      "para": "titular",
+      "fase": "arranque",
+      "frente": "direccion",
+      "xp": 20,
+      "titulo": "Request your project's diagnosis",
+      "porQue": "The Studio already checked the repository's folder at delivery, and the director detects by itself what is in progress, what its documentation says and even its GitHub account: all that is missing is that you request the review in which it diagnoses it.",
+      "pasos": [
+        {
+          "texto": "You do not have to check anything: the Studio already checked your repository's folder when you delivered it. If there is something the director should know before reading it (doubts, priorities, what you already tried, what you do not want touched), write it or record it in the Inbox with «Comment»; it is optional, and you come back with «← Back to your mission». When you are done, mark this step and request the review with «Request review», at the top: the director reads the repository and gives you back its diagnosis and the goals it proposes.",
+          "ir": {
+            "vista": "buzon",
+            "ancla": "escribir",
+            "etiqueta": "Open the Inbox (optional)"
+          }
+        }
+      ],
+      "entrega": "The review requested: the director diagnoses the project.",
+      "criterios": [
+        "a_contexto"
+      ]
+    }
+  ],
+  "revisiones": {},
+  "respuestas": {},
+  "evaluacion": {},
+  "boletin": [],
+  "documentos": [
+    {
+      "ruta": "docs/metodo/metodologia.md",
+      "titulo": "The STL method",
+      "porQue": "How the director works and why: the whole method."
+    }
+  ],
+  "diagnostico": {
+    "fecha": "",
+    "resumen": [],
+    "frentes": {}
+  },
+  "objetivos": [],
+  "propuestas": [],
+  "ritmo": [
+    "One mission at a time: you see your next mission whole; the others wait in the queue, without steps, so as not to scatter.",
+    "Always forward: what you already reviewed stays sealed (✓) and does not return to the list. If something changes, the director writes a new document with only what changed and puts it as the next step. Nobody rereads what they already went through.",
+    "By milestones, not by dates: you move forward when what the director asks for is met, without calendar deadlines.",
+    "Only the current phase: the director opens proposals and missions when the route reaches them.",
+    "Think, correct, then send: what you leave in the Inbox waits there, editable, until you request the review. What you delete before that never reaches the model.",
+    "Before each task in the repository, each Claude session asks the director (node tools/director/estado.ts and the paths it will touch). If the front is on hold, it says so before starting.",
+    "If you hesitate between adding and polishing, polish.",
+    "A new idea goes to the Inbox first. It comes in only if it serves the goal and the current phase.",
+    "Each gate, with its evidence: a milestone without evidence is a blind milestone."
+  ],
+  "lecciones": [
+    {
+      "titulo": "Phases separated by gates with criteria",
+      "quien": "Robert G. Cooper, the Stage-Gate process",
+      "que": "Work moves forward in stages, and between one and the next there is a gate: an explicit decision, with criteria known in advance, to go on, correct or stop.",
+      "fuente": "https://en.wikipedia.org/wiki/Phase-gate_process",
+      "paraElProyecto": "Each phase of the route has its gate and its criteria at 100 %; the owner crosses it, never the calendar."
+    },
+    {
+      "titulo": "Limit the work in progress",
+      "quien": "The Kanban method (David J. Anderson)",
+      "que": "Starting fewer things at once gets more of them finished: half-done work is inventory that gives no value and hides the blocks.",
+      "fuente": "https://en.wikipedia.org/wiki/Kanban_(development)",
+      "paraElProyecto": "One mission at a time per person, and fronts on hold open no new work without an exception with its reason."
+    },
+    {
+      "titulo": "Build, measure, learn",
+      "quien": "Eric Ries, The Lean Startup",
+      "que": "What matters is not how much is built but how much is learned from real people: the minimum product exists to validate an assumption as early as possible.",
+      "fuente": "https://en.wikipedia.org/wiki/Lean_startup",
+      "paraElProyecto": "What each gate asks for is what was learned, not only what was built; how to test it with people is your own call."
+    },
+    {
+      "titulo": "A goal with measurable results",
+      "quien": "Andy Grove (Intel) and John Doerr, OKRs",
+      "que": "An objective says where you are going; its key results say, with numbers or verifiable facts, how you know you got there.",
+      "fuente": "https://en.wikipedia.org/wiki/Objectives_and_key_results",
+      "paraElProyecto": "The set goal carries its success criterion: «how we will know we got there»."
+    },
+    {
+      "titulo": "Decisions are not rewritten: they are recorded",
+      "quien": "Michael Nygard, architecture decision records (ADR)",
+      "que": "Each important decision stays in a short, immutable document; if it changes, a new one is written that replaces the earlier one, and the history stays in view.",
+      "fuente": "https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions",
+      "paraElProyecto": "Always forward: what was reviewed stays sealed and what changes comes in a new, short document."
+    },
+    {
+      "titulo": "Bound the scope to finish",
+      "quien": "Ryan Singer, Shape Up (Basecamp)",
+      "que": "Before building, the work is shaped: what problem it solves, what goes in and, above all, what does not. Cutting scope is part of the craft, not a failure.",
+      "fuente": "https://basecamp.com/shapeup",
+      "paraElProyecto": "Each phase says what is not done (fronts on hold), and new ideas go to the Inbox until they serve the goal."
+    }
+  ],
+  "adelantado": []
+}
