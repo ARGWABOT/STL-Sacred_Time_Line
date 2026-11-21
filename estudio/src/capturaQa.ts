@@ -103,11 +103,37 @@ export function sinLaFoto<T>(lista: readonly T[], indice: number): T[] {
 }
 
 /**
- * Si la fotonota toma otra foto (nmwpnvo38tit: cada audio va con su foto): al detener un fragmento, siempre; al enviar,
- * si un fragmento quedó sin la suya, si las rayas cambiaron desde la última o si todavía no hay ninguna. Pura.
+ * What sending does with the photos (nmwpnvo38tit: each recorded fragment, one photo; nmwqme8cbtit: sending never adds
+ * one of its own). A fragment ended by its pause already left its photo. On sending: a new photo only if the last
+ * fragment (still recording) has none yet, or if there is none at all; if the drawings changed after the last photo,
+ * that photo is taken again in its place, so the count stays one per fragment. Pura.
  */
-export function tomaOtraFoto(o: { fotos: number; fragmentos: number; cambio: boolean }): boolean {
-  return o.fotos === 0 || o.fotos < o.fragmentos || o.cambio;
+export function fotoAlEnviar(o: { fotos: number; fragmentos: number; cambio: boolean }): 'nueva' | 'rehacer' | 'nada' {
+  if (o.fotos === 0 || o.fotos < o.fragmentos) return 'nueva';
+  return o.cambio ? 'rehacer' : 'nada';
+}
+
+/** How many photos a photo note sends after those moments, in that order (each pause or a send while recording ends a fragment). Pura. */
+export function fotosAlFinal(momentos: readonly ('empezar' | 'pausar' | 'seguir' | 'rayar' | 'enviar')[]): number {
+  let fotos = 0;
+  let fragmentos = 0;
+  let cambio = false;
+  let grabando = false;
+  for (const m of momentos) {
+    if (m === 'empezar' || m === 'seguir') {
+      fragmentos++;
+      grabando = true;
+    } else if (m === 'rayar') cambio = true;
+    else if (m === 'pausar' && grabando) {
+      fotos++;
+      cambio = false;
+      grabando = false;
+    } else if (m === 'enviar') {
+      const que = fotoAlEnviar({ fotos, fragmentos, cambio });
+      if (que === 'nueva') fotos++;
+    }
+  }
+  return fotos;
 }
 
 // El alto es el de la ventana que se ve (100dvh: en el móvil, sin la barra del navegador que 100vh se come) y el lienzo ocupa
@@ -233,12 +259,14 @@ export function fotonota(base: HTMLCanvasElement, enviar: (n: Fotonota) => Promi
     capa.append(zoom);
   };
   // La foto de este momento: la imagen congelada con las rayas que lleva
-  const foto = () =>
+  // `enSuLugar`: the last photo is taken again (its drawings changed), instead of adding another
+  const foto = (enSuLugar = false) =>
     new Promise<void>((ok) => {
       actual = null;
       repintar();
       lienzo.toBlob((blob) => {
-        if (blob) fotos.push(new File([blob], `fotonota-${Date.now()}-${fotos.length + 1}.png`, { type: 'image/png' }));
+        if (blob && enSuLugar && fotos.length) fotos[fotos.length - 1] = new File([blob], `fotonota-${Date.now()}-${fotos.length}.png`, { type: 'image/png' });
+        else if (blob) fotos.push(new File([blob], `fotonota-${Date.now()}-${fotos.length + 1}.png`, { type: 'image/png' }));
         cambio = false;
         contar();
         ok();
@@ -283,7 +311,11 @@ export function fotonota(base: HTMLCanvasElement, enviar: (n: Fotonota) => Promi
   });
   // La grabación, quieta en la barra de arriba (no se hace a un lado): cada fragmento detenido deja su foto
   const grabadora = new Grabadora(capa.querySelector('[data-grabadora]') as HTMLElement, true);
-  grabadora.alDetener = () => void foto();
+  // The photo a pause is still taking: sending waits for it, and never counts it as missing
+  let tomando: Promise<void> = Promise.resolve();
+  grabadora.alDetener = () => {
+    tomando = foto();
+  };
   return new Promise((ok) => {
     let listo = false;
     let enviando = false;
@@ -361,7 +393,9 @@ export function fotonota(base: HTMLCanvasElement, enviar: (n: Fotonota) => Promi
         // Cierra la grabación (el último fragmento) y, si le falta, la última foto
         const audio = await grabadora.datos();
         if (!audio) return void (error.textContent = tx('qa.fotonotaSinAudio'));
-        if (!fotos.length || tomaOtraFoto({ fotos: fotos.length + quitadas, fragmentos: grabadora.cuantosFragmentos, cambio })) await foto();
+        await tomando;
+        const que = fotos.length ? fotoAlEnviar({ fotos: fotos.length + quitadas, fragmentos: grabadora.cuantosFragmentos, cambio }) : 'nueva';
+        if (que !== 'nada') await foto(que === 'rehacer');
         if (await enviar({ audio, fotos: [...fotos] })) cerrar(true);
         else error.textContent = tx('qa.fotonotaNoSalio');
       } finally {

@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BORDE_QA, CABECERAS_QA, claveDirectorQa, claveEstacionQa, conEstacion, conEstacionRecordada, marcaSinCache, PARAM_SIN_CACHE, recargaSinCache, direccionQa, directorFlotante, escalaQa, esPaginaDelStudio, MARGEN_QA, MODULO_QA, notaDeQa, paginaQa, rehusaElMarco, RUTA_NOTA_QA, RUTA_QA, TAMANOS_QA, TIPO_FOTONOTA, VENTANA_STUDIO } from './qa';
-import { barraDeCaptura, dibujarTrazo, GROSORES, ROJO, tomaOtraFoto } from './capturaQa';
+import { barraDeCaptura, dibujarTrazo, fotoAlEnviar, GROSORES, ROJO } from './capturaQa';
 import { arranqueDeLaCuenta } from './precargaCierre';
 
 const cab = (h: Record<string, string>) => ({ get: (n: string) => h[n.toLowerCase()] ?? null });
@@ -138,17 +138,18 @@ describe('la pestaña de QA: el director flotante y su nota, con el diálogo del
     expect(congelar).not.toContain('p.stop()');
     expect(congelar).toContain('if (!flujo || !flujo.active)');
     // Abre grabando, cada fragmento detenido deja su foto, y Esc no tira lo grabado
-    expect(captura).toContain('grabadora.alDetener = () => void foto();');
+    expect(captura).toContain('tomando = foto();');
     expect(captura).toContain("capa.querySelector<HTMLButtonElement>('[data-g=\"grabar\"]')?.click();");
     expect(captura).toContain("capa.addEventListener('cancel', (e) => e.preventDefault());");
   });
 
-  it('la fotonota: cada audio con su foto, y al enviar la última si faltaba o si las rayas cambiaron (nmwpnvo38tit)', () => {
-    expect(tomaOtraFoto({ fotos: 0, fragmentos: 1, cambio: false })).toBe(true);
-    expect(tomaOtraFoto({ fotos: 1, fragmentos: 1, cambio: false })).toBe(false);
-    expect(tomaOtraFoto({ fotos: 1, fragmentos: 2, cambio: false })).toBe(true);
-    expect(tomaOtraFoto({ fotos: 2, fragmentos: 2, cambio: true })).toBe(true);
-    expect(tomaOtraFoto({ fotos: 0, fragmentos: 0, cambio: false })).toBe(true);
+  it('la fotonota: cada audio con su foto, y enviar nunca suma una de más (nmwpnvo38tit, nmwqme8cbtit)', () => {
+    expect(fotoAlEnviar({ fotos: 0, fragmentos: 1, cambio: false })).toBe('nueva');
+    expect(fotoAlEnviar({ fotos: 1, fragmentos: 1, cambio: false })).toBe('nada');
+    expect(fotoAlEnviar({ fotos: 1, fragmentos: 2, cambio: false })).toBe('nueva');
+    // The drawings changed after the last photo: it is taken again in its place, never one more
+    expect(fotoAlEnviar({ fotos: 2, fragmentos: 2, cambio: true })).toBe('rehacer');
+    expect(fotoAlEnviar({ fotos: 0, fragmentos: 0, cambio: false })).toBe('nueva');
   });
 
   it('«Volver a mi misión» trae al frente la pestaña del Studio por su nombre y deja abierta la de QA (nmwplzilitit, nmwpkjw9ltit)', () => {

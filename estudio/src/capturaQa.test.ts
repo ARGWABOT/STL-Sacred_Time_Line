@@ -1,7 +1,7 @@
 // La fotonota (nmwpwqyi0tit): una sola barra arriba, con iconos que se explican al pasar el cursor, y la imagen entera debajo.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { accionDeFotos, barraDeCaptura, ESTILO, GROSORES, miniaturasHtml, sinLaFoto, zoomHtml } from './capturaQa';
+import { accionDeFotos, barraDeCaptura, ESTILO, fotosAlFinal, GROSORES, miniaturasHtml, sinLaFoto, zoomHtml } from './capturaQa';
 import { t } from './textos';
 
 const leer = (f: string) => readFileSync(new URL(f, import.meta.url), 'utf8');
@@ -146,6 +146,26 @@ describe('las miniaturas de las fotos', () => {
     expect(manejador.slice(0, manejador.indexOf('data-descartar'))).toContain('e.stopPropagation()');
     // Esc cierra la foto grande y no la nota
     expect(fuente).toContain("if (e.key === 'Escape' && zoom)");
+  });
+});
+
+describe('the photos of a photo note: one per recorded fragment, never one more for sending (nmwqme8cbtit)', () => {
+  it('start, pause and resume, then send gives exactly 2 images', () => {
+    expect(fotosAlFinal(['empezar', 'rayar', 'pausar', 'seguir', 'rayar', 'enviar'])).toBe(2);
+    // The case of note nmwqmbx54tit: both fragments paused, and a stray click on the drawing before sending
+    expect(fotosAlFinal(['empezar', 'rayar', 'pausar', 'seguir', 'rayar', 'pausar', 'rayar', 'enviar'])).toBe(2);
+    expect(fotosAlFinal(['empezar', 'pausar', 'seguir', 'pausar', 'enviar'])).toBe(2);
+  });
+
+  it('a single fragment gives one image, whether sent while recording or after its pause', () => {
+    expect(fotosAlFinal(['empezar', 'enviar'])).toBe(1);
+    expect(fotosAlFinal(['empezar', 'rayar', 'pausar', 'rayar', 'enviar'])).toBe(1);
+  });
+
+  it('sending waits for the photo a pause is still taking, instead of counting it as missing', () => {
+    const src = leer('./capturaQa.ts');
+    expect(src.indexOf('await tomando;')).toBeGreaterThan(-1);
+    expect(src.indexOf('await tomando;')).toBeLessThan(src.indexOf('fotoAlEnviar({ fotos: fotos.length + quitadas'));
   });
 });
 
