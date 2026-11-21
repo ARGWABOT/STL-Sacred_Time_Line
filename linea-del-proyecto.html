@@ -199,7 +199,13 @@
   #todo.vertical #modos { order: -1; justify-self: center; }
   #todo.vertical #modos button { padding: 4px 16px; font-size: 13px; }
   #todo.vertical h1 { justify-self: center; text-align: center; font-size: clamp(12px, 3.6vw, 16px); }
-  #todo.vertical #escena { width: 100%; flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  /* El título de pie, en dos renglones limpios («¿Qué es STL?:» y su frase) con aire debajo, y el dibujo que empieza justo
+     bajo él y nunca sube a taparlo: si los subtítulos se parten en dos renglones y queda menos alto, se recorta su borde de
+     abajo, no el título (t_ve_video_promocional, paso 3: la segunda línea tocaba las cajas de tu atención y los tokens, y
+     en inglés «in Dev» quedaba tapado) */
+  #todo.vertical h1 span { display: block; }
+  #todo.vertical h1 { margin-bottom: 6px; }
+  #todo.vertical #escena { width: 100%; flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-start; justify-content: center; overflow: hidden; }
   #todo.vertical canvas { width: var(--lienzo, 100%); }
   #todo.vertical #estado {
     width: 100%; min-height: 0; padding: 3px 10px; border-radius: 0; line-height: 1.3;

@@ -73,6 +73,13 @@ const FIJO_EN = {
     'Animation knob: with the mouse wheel, or by turning it, you move it forward or back; with the arrow keys, one second at a time',
   'Pausar la animación': 'Pause the animation',
   '🔊 Voz': '🔊 Voice',
+  // Los dos botones del final de «Cómo empezar» y la ventana de «Clonar repositorio» (nmwqxcclotit)
+  '⬇ Descargar ZIP': '⬇ Download ZIP',
+  '⧉ Clonar repositorio': '⧉ Clone repository',
+  'Clonar el repositorio': 'Clone the repository',
+  'Dale esta línea a tu modelo, abierto en la carpeta donde quieres trabajar:': 'Give this line to your model, opened in the folder where you want to work:',
+  'Clona https://github.com/ARGWABOT/STL-Sacred_Time_Line.git en esta carpeta e inicializa STL Studio': 'Clone https://github.com/ARGWABOT/STL-Sacred_Time_Line.git into this folder and initialize STL Studio',
+  'Copiar': 'Copy',
 };
 // «La documentación», la última estación, en inglés (pd_pagina_unica, pd_bilingue): sus pestañas cortas (nmw76dxyhtit), los
 // tres pasos del README.md con la guía INSTALL.md (nmw73ypystit, nmw6ze91ltit), el glosario con los textos del «?» de la
@@ -161,11 +168,9 @@ function cerrarLectorDoc() {
 cerrarDoc?.addEventListener('click', cerrarLectorDoc);
 tarjetaDoc?.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarLectorDoc(); });
 if (EN) cerrarDoc?.setAttribute('aria-label', 'Close the documentation');
-// Lo fijo de «Cómo empezar» en la página, también en inglés (nmw6r9827tit): el enlace a la documentación y, sin 3D,
-// sus siete pasos
+// Lo fijo de «Cómo empezar» en la página, también en inglés (nmw6r9827tit): sin 3D, sus siete pasos (sus dos botones del
+// final, «Download ZIP» y «Clone repository», van por FIJO_EN: nmwqxcclotit)
 if (EN) {
-  const enlace = document.querySelector('[data-enlace-como]');
-  if (enlace) enlace.textContent = 'Open the documentation (the README on GitHub) ↗';
   const pasos = ['Want to try the Studio now? This is how you start.', 'First, bring it to your computer: clone the repository, or download it from GitHub.', 'Put it in the folder where you want to work.', 'For your peace of mind, first ask your model for a security scan: to confirm it brings nothing malicious. For example, in Claude Code: «Review this repository and tell me whether it brings anything malicious before installing it»', 'Then ask it to install it. For example, in Claude Code: «Initialize STL Studio»', 'From there, the Studio guides you step by step.', 'If you have any doubt, read the documentation.'];
   const lista = document.querySelectorAll('ol.lista-como li');
   lista.forEach((li, k) => { if (pasos[k]) li.textContent = pasos[k]; });
@@ -2023,7 +2028,8 @@ function pintarEnunciado(c, texto, q) {
 // El cierre de un segmento (nmw3ruscptit): la tarjeta verde con su ✓, que entra con un saltito; adentro, «Resuelto» y el
 // problema que quedó resuelto, en corto; a su lado, tu cubito sonriendo, que da un brinco de alegría; y abajo, la frase de
 // cierre que dice su voz. Arriba, «✓ Resuelto» y cuál de las situaciones era
-function pintarCierre(c, resuelto, frase, q, cual, etiqueta = 'Resuelto') {
+const Y_CIERRE_COMO = 172;   // la frase del cierre de «Cómo empezar», más arriba que la de los problemas (190)
+function pintarCierre(c, resuelto, frase, q, cual, etiqueta = 'Resuelto', yFrase = 190) {
   const entra = tramo(q, 0, 0.18), s = 0.86 + 0.14 * entra + Math.sin(tope(q / 0.18) * Math.PI) * 0.05;
   c.save(); c.globalAlpha = entra; c.translate(160, 92); c.scale(s, s); c.translate(-160, -92);
   caja(c, 40, 46, 240, 92, VERDE, 0.16, 14);
@@ -2043,7 +2049,7 @@ function pintarCierre(c, resuelto, frase, q, cual, etiqueta = 'Resuelto') {
   caja(c, 8, 5, 64, 14, VERDE, 0.25, 7);
   letrero(c, `✓ ${etiqueta}`, 40, 15.5, '#dff5e8', 8.5);
   if (cual) { caja(c, 262, 5, 50, 14, VERDE, 0.2, 7); letrero(c, cual, 287, 15.5, '#dff5e8', 8.5); }
-  if (frase) letrero(c, frase, 160, 190, '#fffaf0', tamanoQueCabe(c, frase, 11, 300));
+  if (frase) letrero(c, frase, 160, yFrase, '#fffaf0', tamanoQueCabe(c, frase, 11, 300));
 }
 
 // ── Las escenas de «Cómo empezar» (pd_como_empezar): con los mismos actores de la estación 1 y de los problemas. Su rótulo,
@@ -2146,7 +2152,9 @@ const ESCENAS_COMO = [
 // Una escena de «Cómo empezar» (k, de 0; la última es su cierre), q de 0 a 1 dentro de ella, y p lo que va de toda
 function pintarComo(c, k, q, p) {
   const n = GUION_COMO.escenas.length;
-  if (k >= n) { pintarCierre(c, L('En marcha', 'Up and running'), GUION_COMO.cierre, q, '', L('Listo', 'Done')); pintarBarra(c, p); return; }
+  // Su cierre, con la frase y la barra un poco más arriba, para dejar aire sobre los dos botones grandes de abajo
+  // («Descargar ZIP» y «Clonar repositorio», nmwqxcclotit)
+  if (k >= n) { pintarCierre(c, L('En marcha', 'Up and running'), GUION_COMO.cierre, q, '', L('Listo', 'Done'), Y_CIERRE_COMO); pintarBarra(c, p, Y_CIERRE_COMO + 6); return; }
   c.save(); c.translate(CONTENIDO.x, CONTENIDO.y); c.scale(CONTENIDO.escala, CONTENIDO.escala);
   ESCENAS_COMO[k](c, q);
   c.restore();
@@ -3024,11 +3032,11 @@ function pintarClip(ctx, i, t) {
   pintarBarra(ctx, p);
 }
 // La barra de lo que va: se llena hasta el final y ahí se queda; con su punta, para ver dónde va y dónde dar clic
-function pintarBarra(ctx, p) {
+function pintarBarra(ctx, p, y = BARRA.y) {
   if (aparte) return;   // en el teléfono, la barra es la de HTML, bajo el dibujo
-  ctx.fillStyle = 'rgba(255, 255, 255, .12)'; ctx.fillRect(BARRA.x, BARRA.y, BARRA.ancho, BARRA.alto);
-  ctx.fillStyle = ORO; ctx.fillRect(BARRA.x, BARRA.y, BARRA.ancho * p, BARRA.alto);
-  bola(ctx, BARRA.x + BARRA.ancho * p, BARRA.y + BARRA.alto / 2, 2.6, ORO);
+  ctx.fillStyle = 'rgba(255, 255, 255, .12)'; ctx.fillRect(BARRA.x, y, BARRA.ancho, BARRA.alto);
+  ctx.fillStyle = ORO; ctx.fillRect(BARRA.x, y, BARRA.ancho * p, BARRA.alto);
+  bola(ctx, BARRA.x + BARRA.ancho * p, y + BARRA.alto / 2, 2.6, ORO);
 }
 
 // ── Dónde va cada cosa de la estación 2 en la pantalla (nota de voz nmw40cp3jtit): el anillo de íconos, pegado al menú de
@@ -5105,7 +5113,7 @@ function iniciar() {
   // «Cómo empezar», en la estación 3 (nmw4ircrjtit): su reproductor a la izquierda, con la fila del ejemplo y del enlace
   // (EXTRA_ALTO) sobre sus mandos, y la línea a la derecha, donde en la 2 queda el anillo; la imagen se corre para que la
   // línea quede ahí cuando el reproductor está abierto, y al centro de lo libre cuando no
-  const EXTRA_ALTO = 40;
+  const EXTRA_ALTO = 72;   // la fila de 64 px, con los dos botones grandes del final (nmwqxcclotit), y su aire
   const lineaTres = document.querySelector('[data-titulo-tres]')?.closest('.tarjeta');
   function encuadrarTres(w, ancho, alto) {
     // Hacia la 4, se apaga en 0,4, como el de la 2 hacia la 3, y medido desde la estación 3 (nmw84v293tit)
@@ -5814,6 +5822,31 @@ function iniciar() {
     if (pedidoComo) { pedidoComo.textContent = pedido ? L(`Por ejemplo: «${pedido}»`, `For example: «${pedido}»`) : ''; pedidoComo.hidden = !pedido; }
     if (enlaceComo) enlaceComo.hidden = !enlace;
   }
+  // «Clonar repositorio» (nmwqxcclotit): su ventana con la línea exacta para el modelo y «Copiar»; Esc o «Cerrar» la cierran
+  // sin cerrar «Cómo empezar», y al cerrarse el foco vuelve a su botón
+  const clonar = document.getElementById('clonar-como');
+  const botonClonar = extraComo?.querySelector('[data-clonar-como]');
+  const copiarClonar = clonar?.querySelector('[data-copiar-clonar]');
+  function cerrarClonar() {
+    if (!clonar || clonar.hidden) return;
+    clonar.hidden = true;
+    botonClonar?.focus();
+  }
+  botonClonar?.addEventListener('click', () => {
+    if (!clonar) return;
+    clonar.hidden = false;
+    if (copiarClonar) copiarClonar.textContent = L('Copiar', 'Copy');
+    copiarClonar?.focus();
+  });
+  copiarClonar?.addEventListener('click', async () => {
+    const linea = clonar?.querySelector('[data-linea-clonar]')?.textContent.trim() ?? '';
+    try { await navigator.clipboard.writeText(linea); copiarClonar.textContent = L('✓ Copiada', '✓ Copied'); }
+    catch { copiarClonar.textContent = L('Selecciónala y cópiala', 'Select it and copy it'); }
+  });
+  clonar?.querySelector('[data-cerrar-clonar]')?.addEventListener('click', cerrarClonar);
+  clonar?.addEventListener('click', (e) => { if (e.target === clonar) cerrarClonar(); });
+  clonar?.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrarClonar(); } });
+  clonar?.addEventListener('wheel', (e) => e.stopPropagation());
   verComo?.addEventListener('click', () => { guia.visita = true; abrirComo(); });
   // Un clic en el nombre de un problema de la lista lo abre en el mundo (sin 3D, se abre ahí mismo con su respuesta)
   problemas.forEach((d, i) => d.querySelector('summary')?.addEventListener('click', (e) => { e.preventDefault(); alternarProblema(i); }));
