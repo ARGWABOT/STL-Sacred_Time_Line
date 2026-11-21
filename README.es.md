@@ -4,6 +4,8 @@
 
 # STL Studio, la interfaz entre tú y el modelo
 
+https://github.com/user-attachments/assets/42374652-e20f-4214-9afe-68eb74a14ae9
+
 STL Studio es una pequeña aplicación web local que se sienta entre tú y un modelo de IA y lo convierte en el director asistente de tu proyecto. Cuando se construye solo, o en un equipo pequeño, los proyectos rara vez mueren por falta de ideas: mueren por la atención dispersa. Diez chats abiertos, planes a medias, un «¿sigo?» perdido hace tres sesiones, y cada chat nuevo empezando de cero, pidiéndote con cortesía que le expliques todo otra vez.
 
 El método STL lo resuelve con un solo canal. Todo lo que le dices al director (un comentario, una nota de voz, una pregunta, una decisión) entra al Studio. En cada revisión, que solo tú pides, el director lo lee todo, mantiene la ruta hacia tu meta y le da a cada persona una misión a la vez, con su porqué y un botón al lugar exacto. Tú decides; el director propone, ordena el trabajo y ejecuta solo lo que aprobaste, con pruebas y commits locales.

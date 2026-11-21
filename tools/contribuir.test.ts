@@ -39,6 +39,14 @@ describe('lo que dice el repositorio a quien quiere contribuir', () => {
     expect(arriba(en, ['[Leer en español](README.es.md)', imagen('STL Studio: the developer on the golden timeline of the project, and the director, inside the Studio, talking to the model'), '# STL Studio, the interface between you and the model'])).toBe(true);
     expect(arriba(es, ['[Read in English](README.md)', imagen('STL Studio: el desarrollador sobre la línea dorada del proyecto, y el director, dentro del Studio, hablando con el modelo'), '# STL Studio, la interfaz entre tú y el modelo'])).toBe(true);
     expect(existsSync(join(raiz, 'docs', 'difusion', 'recorrido-compartir.png'))).toBe(true);
+    // Debajo del título, el video promocional de su idioma, como adjunto de GitHub en su propia línea (pd_video_readme,
+    // nmwr0wx1otit, nmwr0xm2ttit): el archivo nunca entra al repositorio, y cada README trae solo el suyo
+    const VIDEO_EN = 'https://github.com/user-attachments/assets/2accc981-a2a1-466c-85df-c4b9feb5aa39';
+    const VIDEO_ES = 'https://github.com/user-attachments/assets/42374652-e20f-4214-9afe-68eb74a14ae9';
+    expect(en.replace(/\r\n/g, '\n')).toContain(`# STL Studio, the interface between you and the model\n\n${VIDEO_EN}\n\n`);
+    expect(es.replace(/\r\n/g, '\n')).toContain(`# STL Studio, la interfaz entre tú y el modelo\n\n${VIDEO_ES}\n\n`);
+    expect(en).not.toContain(VIDEO_ES);
+    expect(es).not.toContain(VIDEO_EN);
     // Los tres párrafos del contexto, tal como se escribieron
     for (const parrafo of ['STL Studio is a small local web app that sits between you and an AI model', 'The STL method fixes that with a single channel.', "the model can forget, the project can't. Fewer tabs, more finished things."]) expect(en).toContain(parrafo);
     for (const [t, frases] of [
