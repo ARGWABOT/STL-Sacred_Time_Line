@@ -5299,13 +5299,16 @@ function iniciar() {
   // La velocidad de reproducción, como en la animación del principio (1x, 1,25x, 1,5x o 2x; nota de voz nmw2n33o6tit):
   // acelera la voz y el reloj del clip la sigue. Cada vez que se abre la página empieza a 1,25x, y quien la visita la
   // cambia cuando quiere durante su visita: no se guarda de una visita a otra (nota de voz del titular nmw5gelsmtit)
-  const VELOCIDADES_CLIP = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25;
+  // The new 1x is what 1.25x was (nmwqmymuotit): every speed plays BASE_CLIP times faster, the labels stay the same and
+  // the control still opens at 1.25x, on that new base
+  const VELOCIDADES_CLIP = [1, 1.25, 1.5, 2], VELOCIDAD_INICIAL = 1.25, BASE_CLIP = 1.25;
   let velClip = VELOCIDAD_INICIAL;
+  const ritmoClip = () => velClip * BASE_CLIP;
   // La voz de Kokoro, un 35 % más rápida, como la animación, sin que cambie su tono (nmw1kwbsftit); la de Google, a su
   // ritmo natural (ritmoDeClave); las dos a la velocidad elegida
   const aSuRitmo = (a) => {
     const r = a.ritmo ?? RAPIDEZ;
-    a.defaultPlaybackRate = r; a.playbackRate = r * velClip;
+    a.defaultPlaybackRate = r; a.playbackRate = r * ritmoClip();
     a.preservesPitch = true; a.mozPreservesPitch = true; a.webkitPreservesPitch = true;
     return a;
   };
@@ -5626,8 +5629,8 @@ function iniciar() {
       const tr = tramoDeVoz(seleccionado, clipT), a = voz.audio;
       if (tr && a && voz.hablando && voz.clave === tr.clave && !a.paused) clipT = tr.desde + Math.min(tr.voz, a.currentTime / (a.ritmo ?? 1));
       else {
-        const ya = pasoDeClip(seleccionado, clipT), luego = pasoDeClip(seleccionado, clipT + dt * velClip);
-        if (luego.clave === ya.clave || !sigueHablando()) clipT = Math.min(duraClip(seleccionado), clipT + dt * velClip);
+        const ya = pasoDeClip(seleccionado, clipT), luego = pasoDeClip(seleccionado, clipT + dt * ritmoClip());
+        if (luego.clave === ya.clave || !sigueHablando()) clipT = Math.min(duraClip(seleccionado), clipT + dt * ritmoClip());
       }
       const ahoraEn = pasoDeClip(seleccionado, clipT).clave, trNuevo = tramoDeVoz(seleccionado, clipT);
       const dicho = trNuevo && trNuevo.clave === ahoraEn ? clipT - trNuevo.desde : 0;
