@@ -200,6 +200,14 @@ STL Studio is maintained only by its author: it does not accept code changes fro
 
 The STL method was created by ARGWABOT (A Regular Guy With A Bunch Of Tokens). STL Studio, the interface between you and the model, is its base application, under the [PolyForm Shield 1.0.0](LICENSE) license: free to use, commercial projects included, and to change for your own use; what it does not allow is offering a product that competes with STL Studio, such as selling it or republishing it under another name.
 
+## Why it was private
+
+This repository was private while it was being tested. Before opening it, three things were checked:
+
+- the Studio working on the Windows 11 computer where it is used every day;
+- the measurement of the director's core;
+- a published history with no data from any project.
+
 ## A note on macOS
 
 STL Studio was built and tested on Windows. It is written to work on a Mac too (it runs its commands with bash and opens Terminal where Windows opens Git Bash), but nobody has tried it on a Mac yet: if something fails there, open an issue with the «Algo falla» form and say it was on a Mac.
