@@ -4,7 +4,7 @@
 
 ## The owner's criterion comes first
 
-Nobody trains the director: it is the model the person chose, plus what the Studio gives it in each review. Its judgment is held by the rules, by the facts the inbox prepares without a model, by the checks that do not trust it (`validarPlan`, `bandeja.ts --listo`, the tests) and by the person's final decision. This procedure writes down the part that was spread across sentences: how it orders, how it recommends, how it splits a mission and when it researches. When the owner of a project has said how they decide, their criterion goes before any source; the sources below support it and fill the gaps, they never overrule it.
+Nobody trains the director: it is the model the person chose, plus what the Studio gives it in each review. Its judgment is held by the rules, by the facts the inbox prepares without a model, by the checks that do not trust it (`validarPlan`, `bandeja.ts --listo`, the tests) and by the person's final decision. This procedure writes down the part that was spread across sentences: how it orders, how it recommends, how it splits a mission and when it researches. When the owner of a project has said how they decide, their criterion goes before any source; the sources support it and fill the gaps, they never overrule it.
 
 The owner of STL Studio ordered it, and it holds for any project until its owner says otherwise:
 
@@ -19,11 +19,11 @@ And a logical order, where the missions that build or prepare the path to the ne
 
 Each mission goes where an experienced project director would put it (CLAUDE.md › «The order is the strategy»). Applied with the criterion above:
 
-- **Dependencies first** (the critical path, Kelley and Walker): before writing a mission, ask what it needs to exist first (`despuesDe`); a mission whose prerequisite is not done is not a mission yet. The bottleneck of the project (Goldratt's constraint) is where effort pays most: what holds the most work behind it goes before what holds nothing.
+- **Dependencies first** (the critical path): before writing a mission, ask what it needs to exist first (`despuesDe`); a mission whose prerequisite is not done is not a mission yet. The bottleneck of the project (its constraint) is where effort pays most: what holds the most work behind it goes before what holds nothing.
 - **What is tried, possible today** (hard rule): a step that sends the person to try something in the project's environment (its site or app running, a test or development environment) only goes if what it needs already exists there (data, accounts, a server on), and the director checked it in the repository or the environment before writing it. If it does not exist, the mission is another one: the one that creates those conditions, before it. The step says it in `entorno` (plan-formats.md).
-- **Risk early** (Boehm's spiral model; Cagan's four product risks: value, usability, feasibility and viability): what has never been tried is tried in a small slice before building on it.
-- **Value soon, without skipping stages** (Reinertsen's cost of delay): among pieces that are equally unblocked and equally risky, what someone can use sooner goes first. What belongs to a later stage waits in its phase, because what it tests or announces is still changing.
-- **Quick only to break ties** (Reinertsen's weighted shortest job first divides by size; the owner chose not to): finishing something quickly is never a reason by itself to put it first.
+- **Risk early** (the spiral model; the four product risks: value, usability, feasibility and viability): what has never been tried is tried in a small slice before building on it.
+- **Value soon, without skipping stages** (the cost of delay): among pieces that are equally unblocked and equally risky, what someone can use sooner goes first. What belongs to a later stage waits in its phase, because what it tests or announces is still changing.
+- **Quick only to break ties** (weighted shortest job first divides by size; the owner chose not to): finishing something quickly is never a reason by itself to put it first.
 - **Each `porQue` says why here**: which piece it unblocks, which risk it removes or which use it brings closer; «to fill the ten» is not an answer (CLAUDE.md › «But never filler»).
 - **A review is never a step of a mission** (CLAUDE.md › «Never ask about what has not happened yet»): requesting one changes the missions themselves and leaves the rest of the batch undone. What is only seen during a review is asked in the batch after it, as «how did it look last time», and a recommendation to request one (`recomiendaRevision`) goes only on the last open mission of the batch, when nothing else can go on without it. The only exception is what happens in another Studio, like the closing's test on a clean computer.
 
@@ -33,16 +33,16 @@ A recommendation is a decision the person can make in one reading, with what the
 
 - **The recommendation first**, in its first sentence, and then why (documents.md › the important thing first).
 - **Its real alternative**: at least one other way that a reasonable person would choose, with what it gains and what it loses; never a straw man written to lose.
-- **What it costs and whether it can be undone** (Bezos's one-way and two-way doors): money, the person's time, the model's consumption, and what is lost if it is wrong. A two-way door is recommended and done quickly; a one-way door gets more evidence first and, if it costs or deletes, the two steps in the Studio.
-- **What would make it fail** (Klein's pre-mortem): one sentence on how this could go wrong and what will show it early.
-- **Recorded where it is decided** (Nygard's decision records): the context, the decision and its consequences stay in the part of the document that explains it, so that later nobody asks again what was already decided.
+- **What it costs and whether it can be undone** (one-way and two-way doors): money, the person's time, the model's consumption, and what is lost if it is wrong. A two-way door is recommended and done quickly; a one-way door gets more evidence first and, if it costs or deletes, the two steps in the Studio.
+- **What would make it fail** (a pre-mortem): one sentence on how this could go wrong and what will show it early.
+- **Recorded where it is decided** (decision records): the context, the decision and its consequences stay in the part of the document that explains it, so that later nobody asks again what was already decided.
 
 ## Splitting a mission
 
 To split a mission:
 
-- **Thin, but whole** (Patton's story mapping, Cockburn's walking skeleton): each mission leaves something that works end to end or a decision in firm, not a layer that is only useful when three more arrive.
-- **It passes INVEST** (Wake): independent of the others, negotiable, valuable on its own, estimable, small and testable; its `entrega` says how it is checked.
+- **Thin, but whole** (story mapping, the walking skeleton): each mission leaves something that works end to end or a decision in firm, not a layer that is only useful when three more arrive.
+- **It passes INVEST**: independent of the others, negotiable, valuable on its own, estimable, small and testable; its `entrega` says how it is checked.
 - **One step, one action** (CLAUDE.md › «Each step clear at first reading»): several actions are several steps.
 - **What comes back is a new mission, never a rework**: when delivered work is unfinished, the director gives back what is missing as a new mission, with a new id and a forward-looking title (what to do next, never «redo …»). The Studio never says a mission is being redone: the one that comes back is shown like any other, with no banner, color, icon, face or state of its own.
 
@@ -55,7 +55,7 @@ Research costs tokens and time, so it has rules. **Research before recommending*
 - the project is in a field the director does not know well (a discipline, a regulation, a market);
 - two sources, or a source and the repository, contradict each other.
 
-**Everything else**, with what the model knows and what the repository says, said that way. **Sources, only when asked** (listing them costs tokens and adds parts the person did not ask for): an answer, a document or a mission does not list where each piece of data came from; the director keeps track of it and names the source, with its date, when the person asks for it. It is a rule guarded by the code, not something remembered in one session: `bandeja.ts --listo` does not close with an answer that lists its sources to a note that did not ask for them (`respuestasConFuentes`). The diagnosis and the approach research by their own procedures (diagnosis.md, approach.md).
+**Everything else**, with what the model knows and what the repository says, said that way. **Sources, only when asked** (listing them costs tokens and adds parts the person did not ask for): an answer, a document or a mission does not list where each piece of data came from; the director keeps track of it and names the source, with its date, when the person asks for it (the sources of this criterion are in `docs/metodo/fuentes-del-criterio.md`, read only then). It is a rule guarded by the code, not something remembered in one session: `bandeja.ts --listo` does not close with an answer that lists its sources to a note that did not ask for them (`respuestasConFuentes`). The diagnosis and the approach research by their own procedures (diagnosis.md, approach.md).
 
 ## Measuring it
 
@@ -65,17 +65,3 @@ Whether the criterion works is measured with what the Studio already keeps, with
 - **Where it is seen**: a table in «Modelo y consumo» › «Lo que gasta» (`{ "vista": "modelo", "ancla": "m-consumo" }`) and one line in the inbox, in «Your record in this project».
 - **What it is for**: a recommendation changed or a «No lo entiendo» is read as a failure of the director, not of the person. Before ordering or recommending, look at the last ones and do not repeat them.
 - **When a goal is reached and once a month**: a short audit of the director, with that measurement for the month and what it changed because of it, as a step of one mission in that month's batch (review-cycle.md › «The audit and the clean-up, one mission»).
-
-## The sources
-
-- Project Management Institute, *A Guide to the Project Management Body of Knowledge (PMBOK Guide)*, 7th edition, 2021: principles over processes, and tailoring them to each project.
-- James E. Kelley and Morgan R. Walker, «Critical-Path Planning and Scheduling», 1959: the chain of dependencies decides the order.
-- Eliyahu M. Goldratt, *Critical Chain*, 1997 (Theory of Constraints): the work goes where the bottleneck is.
-- Barry W. Boehm, «A Spiral Model of Software Development and Enhancement», IEEE Computer, 1988: the biggest risk is addressed first.
-- Donald G. Reinertsen, *The Principles of Product Development Flow*, 2009: cost of delay and weighted shortest job first.
-- Marty Cagan, *Inspired*, 2nd edition, 2017: the four product risks.
-- Jeff Patton, *User Story Mapping*, 2014, and Alistair Cockburn, *Crystal Clear*, 2004: thin slices that work end to end.
-- Bill Wake, «INVEST in Good Stories, and SMART Tasks», 2003: what a good piece of work meets.
-- Jeff Bezos, letter to Amazon shareholders, 2016 (on 2015): one-way and two-way doors.
-- Gary Klein, «Performing a Project Premortem», Harvard Business Review, 2007.
-- Michael Nygard, «Documenting Architecture Decisions», 2011: the decision with its context and consequences.

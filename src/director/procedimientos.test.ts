@@ -97,14 +97,27 @@ describe('los procedimientos del director, aparte de CLAUDE.md', () => {
     expect(bandeja).toContain('if (cola.length > 1) linea(EN_VUELTAS);');
   });
 
-  it('el criterio para decidir: el del titular primero, en su orden, cuándo investigar y sus fuentes, en sus dos versiones (pr_criterio_director)', () => {
+  it('el criterio para decidir: el del titular primero, en su orden, cuándo investigar, en sus dos versiones; sus fuentes, aparte (pr_criterio_director)', () => {
     const en = leer(PROCEDIMIENTOS.decidir.archivo);
     const es = leer(enEspanol(PROCEDIMIENTOS.decidir.archivo));
     const titulos = (md: string) => [...md.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
     expect(titulos(en)[0]).toBe("The owner's criterion comes first");
     expect(titulos(es)[0]).toBe('El criterio del titular va primero');
-    expect(titulos(en)).toEqual(expect.arrayContaining(['When to research', 'Measuring it', 'The sources']));
-    expect(titulos(es)).toEqual(expect.arrayContaining(['Cuándo investigar', 'Medirlo', 'Las fuentes']));
+    expect(titulos(en)).toEqual(expect.arrayContaining(['When to research', 'Measuring it']));
+    expect(titulos(es)).toEqual(expect.arrayContaining(['Cuándo investigar', 'Medirlo']));
+    // La lista de fuentes sale de lo que el director lee en cada revisión (pd_auditoria_redundancias, parte 5): vive aparte,
+    // se lee solo cuando la persona pide una fuente, y las reglas dicen la idea sin el nombre de su autor
+    const fuentes = 'docs/metodo/fuentes-del-criterio.md';
+    expect(existsSync(join(raiz, fuentes))).toBe(true);
+    for (const texto of [en, es]) {
+      expect(titulos(texto)).not.toEqual(expect.arrayContaining(['The sources']));
+      expect(titulos(texto)).not.toEqual(expect.arrayContaining(['Las fuentes']));
+      expect(texto).toContain(`\`${fuentes}\``);
+      for (const autor of ['Kelley', 'Goldratt', 'Boehm', 'Reinertsen', 'Cagan', 'Patton', 'Cockburn', 'Wake', 'Bezos', 'Klein', 'Nygard']) {
+        expect(texto).not.toContain(autor);
+        expect(leer(fuentes)).toContain(autor);
+      }
+    }
     const orden = ['Lo que desbloquea lo demás', 'Lo que más riesgo tiene si sale mal', 'Lo que antes le sirve a quien lo usa', 'Lo que se termina rápido'];
     expect(orden.map((o) => es.indexOf(o))).toEqual([...orden.map((o) => es.indexOf(o))].sort((a, b) => a - b));
     expect(orden.every((o) => es.includes(o))).toBe(true);
