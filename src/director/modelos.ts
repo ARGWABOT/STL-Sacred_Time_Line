@@ -89,9 +89,9 @@ export const fichaEnIngles = (m: ModeloConocido) =>
 
 /**
  * La tabla, como la trae el encargo de cada revisión: una línea, en inglés como lo demás del encargo (pd_nucleo_ingles) y
- * sin fecha de hoy, para que no cambie entre una y otra.
+ * sin fecha de hoy, para que no cambie entre una y otra. Sin la dirección de su fuente (vive en INVENTARIO.fuente): al
+ * modelo le sirve la fecha de la tabla, que le dice cuán vieja está (pd_auditoria_redundancias, parte 6).
  */
 export const INVENTARIO_EN_EL_ENCARGO =
-  ` The models the Studio knows (its table of ${INVENTARIO.fecha}, from Anthropic's models overview, ` +
-  `platform.claude.com/docs/en/about-claude/models/overview, and the Claude API guide): ` +
+  ` The models the Studio knows (its table of ${INVENTARIO.fecha}): ` +
   INVENTARIO.modelos.map((m) => `${m.nombre} (${m.id}, alias ${m.familia}): ${fichaEnIngles(m)}`).join(' ');

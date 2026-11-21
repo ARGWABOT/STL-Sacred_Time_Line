@@ -53,6 +53,8 @@ describe('la tabla de modelos', () => {
   it('la línea del encargo la trae entera, sin la fecha de hoy', () => {
     for (const m of INVENTARIO.modelos) expect(INVENTARIO_EN_EL_ENCARGO).toContain(fichaEnIngles(m));
     expect(INVENTARIO_EN_EL_ENCARGO).toContain(INVENTARIO.fecha);
+    // Sin la dirección de su fuente: el modelo no la necesita (pd_auditoria_redundancias, parte 6)
+    expect(INVENTARIO_EN_EL_ENCARGO).not.toMatch(/platform\.claude\.com|https?:|\/docs\//);
   });
 
   it('en el encargo va en inglés, como lo que lee el modelo; en «Modelo y consumo», en español (pd_nucleo_ingles)', () => {
