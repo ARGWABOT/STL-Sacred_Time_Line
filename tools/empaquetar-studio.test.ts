@@ -143,10 +143,11 @@ describe('las notas y la orden para publicar', () => {
     expect(notas.split(/\s+/).length).toBeLessThan(300);
   });
 
-  it('la orden va marcada «Pre-release», de ese commit, y armar no publica nada', () => {
+  it('la orden va marcada «Latest» (la versión de lanzamiento: releases/latest de los README no ve las «Pre-release»), de ese commit, y armar no publica nada', () => {
     const orden = ordenDePublicar('0.1.0', 'abc123', 'z.zip', 'n.md');
     expect(orden.slice(0, 4)).toEqual(['release', 'create', 'v0.1.0', 'z.zip']);
-    expect(orden).toContain('--prerelease');
+    expect(orden).toContain('--latest');
+    expect(orden).not.toContain('--prerelease');
     expect(orden).toEqual(expect.arrayContaining(['--target', 'abc123', '--notes-file', 'n.md', '--repo', 'ARGWABOT/STL-Sacred_Time_Line']));
     const codigo = readFileSync(join(RAIZ, 'tools/empaquetar-studio.ts'), 'utf8').replace(/\r\n/g, '\n');
     expect(codigo).toMatch(/const publicar = process\.argv\.includes\('--publicar'\);/);

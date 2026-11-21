@@ -114,7 +114,7 @@ export function notasDeLaVersion(version: string): string {
   const repo = `https://github.com/${REPOSITORIO}`;
   return `# STL Studio ${version}
 
-STL Studio is a small local web app that sits between you and an AI model and turns the model into your project's assistant director: everything you tell it goes through one channel, and you get one mission at a time. This is the first usable version, and it can still change.
+STL Studio is a small local web app that sits between you and an AI model and turns the model into your project's assistant director: everything you tell it goes through one channel, and you get one mission at a time. This is the launch version.
 
 **Install:** download \`${zip}\`, unzip it, open the folder with Claude Code and ask it to «initialize STL Studio». The steps are in the [README](${repo}#install). The package comes without its dependencies: the agent installs them.
 
@@ -122,7 +122,7 @@ STL Studio is a small local web app that sits between you and an AI model and tu
 
 ---
 
-STL Studio es una pequeña aplicación web local que se pone entre tú y un modelo de IA y lo vuelve el director asistente de tu proyecto: todo lo que le dices pasa por un solo canal, y recibes una misión a la vez. Es la primera versión que se puede usar, y todavía puede cambiar.
+STL Studio es una pequeña aplicación web local que se pone entre tú y un modelo de IA y lo vuelve el director asistente de tu proyecto: todo lo que le dices pasa por un solo canal, y recibes una misión a la vez. Es la versión de lanzamiento.
 
 **Instalar:** baja \`${zip}\`, descomprímelo, abre la carpeta con Claude Code y pídele «inicializa STL Studio». Los pasos están en el [README](${repo}/blob/main/README.es.md#instalar). El paquete viene sin sus dependencias: las instala el agente.
 
@@ -130,9 +130,12 @@ STL Studio es una pequeña aplicación web local que se pone entre tú y un mode
 `;
 }
 
-/** La orden que publica la versión, de ese commit y marcada «Pre-release». Pura. */
+/**
+ * La orden que publica la versión, de ese commit y marcada «Latest» (nota de voz nmwqxcclotit: la 0.1.1 es la versión de
+ * lanzamiento): el enlace «la última versión» de los README (releases/latest) no ve las «Pre-release». Pura.
+ */
 export function ordenDePublicar(version: string, commit: string, zip: string, notas: string): string[] {
-  return ['release', 'create', `v${version}`, zip, '--repo', REPOSITORIO, '--target', commit, '--prerelease', '--title', `STL Studio ${version}`, '--notes-file', notas];
+  return ['release', 'create', `v${version}`, zip, '--repo', REPOSITORIO, '--target', commit, '--latest', '--title', `STL Studio ${version}`, '--notes-file', notas];
 }
 
 function principal(): number {
