@@ -32,8 +32,8 @@ describe('el paso con orden', () => {
     expect(accionesDeOrden({ ...mia, fase: 'corriendo' })).toEqual({ correr: false, yaHice: false, salidas: false });
     // Ended well: only «Done», never «Run here» next to its output
     expect(accionesDeOrden({ ...mia, fase: 'hecha' })).toEqual({ correr: false, yaHice: true, salidas: false });
-    // Failed: its line brings «Try again» and the terminal; the card adds only the ways out
-    expect(accionesDeOrden({ ...mia, fase: 'fallo' })).toEqual({ correr: false, yaHice: false, salidas: true });
+    // Failed: its line brings «Try again» and the terminal; the card adds «Done» (after the terminal) and the ways out
+    expect(accionesDeOrden({ ...mia, fase: 'fallo' })).toEqual({ correr: false, yaHice: true, salidas: true });
     // A step already marked, or someone else's: nothing
     for (const fase of [null, 'hecha', 'fallo'] as const) {
       expect(accionesDeOrden({ mia: true, pendiente: false, fase })).toEqual({ correr: false, yaHice: false, salidas: false });

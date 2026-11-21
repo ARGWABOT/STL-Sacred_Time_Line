@@ -4553,7 +4553,8 @@ function ordenPaso(m: Mision, i: number, p: Exclude<Paso, string>, pendiente: bo
 function accionesDeLaOrden(m: Mision, i: number, p: Exclude<Paso, string>, pendiente: boolean): string {
   const clave = `${m.id}|${i}`;
   const a = accionesDeOrden({ mia: d.identidad.rol === m.para, pendiente, fase: faseDelPaso(m.id, i) });
-  const yaHice = a.yaHice ? `<button type="button" class="primario boton-ya-hice" data-ya-hice="${esc(clave)}" title="${esc(tx(p.comprobar ? 'paso.yaLoHiceTituloComprueba' : 'paso.yaLoHiceTitulo'))}">${icono('check')} ${tx('paso.yaLoHice')}</button>` : '';
+  const fase = faseDelPaso(m.id, i);
+  const yaHice = a.yaHice ? `<button type="button" class="${fase === 'hecha' ? 'primario ' : ''}boton-ya-hice" data-ya-hice="${esc(clave)}" title="${esc(tx(p.comprobar ? 'paso.yaLoHiceTituloComprueba' : 'paso.yaLoHiceTitulo'))}">${icono('check')} ${tx('paso.yaLoHice')}</button>` : '';
   // Mientras el director reescribe este paso («No lo entiendo»), se espera su explicación
   const salidas = a.salidas && !aclarando(m.id, i) ? `<button type="button" class="boton-suave" data-no-salio="${esc(clave)}" title="${esc(tx('paso.noMeSalioTitulo'))}">${esc(tx('paso.noMeSalio'))}</button>${remitirOrden(m, i)}` : '';
   return `${a.correr ? botonCorrer(clave) : ''}${yaHice}<button type="button" class="boton-suave" data-copiar-orden="${esc(p.terminal ?? '')}" title="${esc(tx('paso.copiarTitulo'))}">${tx('paso.copiar')}</button>${salidas}`;

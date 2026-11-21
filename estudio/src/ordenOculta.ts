@@ -46,12 +46,13 @@ export function corridaDelPaso(corridas: readonly CorridaVista[], proyecto: stri
  * terminal» next to it (that window is only for what «Run here» cannot do: a failure offers it, and a kind of command
  * that asks to type opens it by itself) nor «Done», which would mark it without running. While running: nothing to press.
  * Finished well: only «Done», if the step did not mark itself. Failed: its line brings «Try again» and the terminal, plus
- * the ways out. A step already marked, or someone else's: nothing to press. Pura.
+ * «Done» (for whoever then ran it in that terminal) and the ways out. A step already marked, or someone else's: nothing to press. Pura.
  */
 export function accionesDeOrden(o: { mia: boolean; pendiente: boolean; fase: FaseVista | null }): { correr: boolean; yaHice: boolean; salidas: boolean } {
   if (!o.mia || !o.pendiente || o.fase === 'corriendo') return { correr: false, yaHice: false, salidas: false };
   if (o.fase === 'hecha') return { correr: false, yaHice: true, salidas: false };
-  if (o.fase === 'fallo') return { correr: false, yaHice: false, salidas: true };
+  // Failed: «Try again» or the terminal (its line); «Done» stays for whoever ran it in that terminal
+  if (o.fase === 'fallo') return { correr: false, yaHice: true, salidas: true };
   return { correr: true, yaHice: false, salidas: true };
 }
 
