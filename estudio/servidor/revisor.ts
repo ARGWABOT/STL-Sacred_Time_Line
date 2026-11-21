@@ -1696,7 +1696,8 @@ export function ejecutableDelCmd(cmd: string, leer: (archivo: string) => string 
   }
   const m = texto.match(/"%~?dp0%?\\?([^"%]*claude\.exe)"/i);
   if (!m) return null;
-  const exe = join(dirname(cmd), m[1]);
+  // The .cmd writes its path with «\»: split it, so the same path comes out on Linux (the CI) as on Windows
+  const exe = join(dirname(cmd), ...m[1].split(/[\\/]+/).filter(Boolean));
   return hay(exe) ? exe : null;
 }
 
