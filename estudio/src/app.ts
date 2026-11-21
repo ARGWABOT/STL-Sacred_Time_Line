@@ -135,7 +135,7 @@ import { barraDePestanasVisible, lineaCompleta, lineasDeRespuestas, NOMBRE_PESTA
 import { antesDeCerrarConClicFuera, antesDeOtroSobre, arreglarDuracion, enDatos, Grabadora, GRABACION_MUDA, lineaDeLaGrabacion, marcaDeCampos, repartirDictado, type Marca } from './grabadora';
 import { archivoDeAdjunto, borradoresDe, guardarBorrador, leerBorrador, lineaDeBorrador, quitarBorrador, SOBRE_CORREGIR, type Borrador, type SobreBorrador } from './borradores';
 import { probarDialogo, vigilarPermisos } from './dialogoPermiso';
-import { botonCorrer, htmlDelPaso, iniciarOrdenesOcultas } from './ordenOculta';
+import { accionesDeOrden, botonCorrer, faseDelPaso, htmlDelPaso, iniciarOrdenesOcultas } from './ordenOculta';
 import { Adjuntos } from './adjuntos';
 import { campoTipo, grabadoraDelSobre, pedir, ponerContextoDelDialogo, type Campo, type Dicho } from './dialogoNota';
 import { activarDibujos } from './dibujos';
@@ -4533,20 +4533,36 @@ function vigilarVentanaDelAtajo(proyecto: string, ventana: Window) {
  * no está hecho, «Ya lo hice» lo marca como la estrella: si el paso tiene `comprobar`, el Studio lo comprueba antes.
  */
 function ordenPaso(m: Mision, i: number, p: Exclude<Paso, string>, pendiente: boolean): string {
-  const orden = p.terminal ?? '';
   const mia = d.identidad.rol === m.para;
-  const yaHice = mia && pendiente
-    ? `<button type="button" class="boton-ya-hice" data-ya-hice="${esc(m.id)}|${i}" title="${esc(tx(p.comprobar ? 'paso.yaLoHiceTituloComprueba' : 'paso.yaLoHiceTitulo'))}">${icono('check')} ${tx('paso.yaLoHice')}</button>`
-      // Mientras el director reescribe este paso («No lo entiendo»), se espera su explicación
-      + (aclarando(m.id, i) ? '' : `<button type="button" class="boton-suave" data-no-salio="${esc(m.id)}|${i}" title="${esc(tx('paso.noMeSalioTitulo'))}">${esc(tx('paso.noMeSalio'))}</button>${remitirOrden(m, i)}`)
-    : '';
   // Marcado con «Ya te lo dije» o «Ya lo comenté antes»: lo dice, como un paso con opciones (opcionesPaso)
   const remitida = !pendiente && pasosHechos(m.id).includes(i) ? remisionDe(d.estado.notas, m.id, i, m.para)?.sobre.eleccion : undefined;
   const dicho = remitida ? `<p class="eleccion-paso">${icono('check')} ${tx(remitida === YA_LO_DIJE ? 'paso.respondidoComentario' : 'paso.respondidoAntes')}</p>` : '';
-  // «Correr aquí» va primero: la orden corre en el Studio, sin ventana, y su resultado queda bajo la orden (pd_sin_terminal);
-  // la terminal queda para lo que pide escribir
+  // «Correr aquí» va primero: la orden corre en el Studio, sin ventana, y su resultado queda bajo la orden (pd_sin_terminal).
+  // Lo que se oprime depende de su corrida (accionesDeOrden) y se repinta con ella (ordenOculta.ts › pintar)
   const clave = `${m.id}|${i}`;
-  return `<div class="orden-paso"><code>${esc(orden)}</code><div class="acciones-orden">${mia ? `${botonCorrer(clave)}<button type="button" class="abrir-terminal" data-terminal="${esc(clave)}" title="${esc(tx('paso.abrirTerminalTitulo'))}">${tx('paso.abrirTerminal')}</button>` : ''}<button type="button" class="boton-suave" data-copiar-orden="${esc(orden)}" title="${esc(tx('paso.copiarTitulo'))}">${tx('paso.copiar')}</button>${yaHice}</div></div>${mia ? `<div class="corrida-paso" data-corrida-de="${esc(clave)}">${htmlDelPaso(m.id, i)}</div>` : ''}${dicho}`;
+  return `<div class="orden-paso"><code>${esc(p.terminal ?? '')}</code><div class="acciones-orden" data-acciones-de="${esc(clave)}">${accionesDeLaOrden(m, i, p, pendiente)}</div></div>${mia ? `<div class="corrida-paso" data-corrida-de="${esc(clave)}">${htmlDelPaso(m.id, i)}</div>` : ''}${dicho}`;
+}
+
+/**
+ * The buttons of a step's command, by the state of its run (ordenOculta.ts › accionesDeOrden; nmwqmrrumtit,
+ * nmwqnqb0ztit): one clear action each time, «Copy» always, and never «Open the terminal» next to «Run here».
+ */
+function accionesDeLaOrden(m: Mision, i: number, p: Exclude<Paso, string>, pendiente: boolean): string {
+  const clave = `${m.id}|${i}`;
+  const a = accionesDeOrden({ mia: d.identidad.rol === m.para, pendiente, fase: faseDelPaso(m.id, i) });
+  const yaHice = a.yaHice ? `<button type="button" class="primario boton-ya-hice" data-ya-hice="${esc(clave)}" title="${esc(tx(p.comprobar ? 'paso.yaLoHiceTituloComprueba' : 'paso.yaLoHiceTitulo'))}">${icono('check')} ${tx('paso.yaLoHice')}</button>` : '';
+  // Mientras el director reescribe este paso («No lo entiendo»), se espera su explicación
+  const salidas = a.salidas && !aclarando(m.id, i) ? `<button type="button" class="boton-suave" data-no-salio="${esc(clave)}" title="${esc(tx('paso.noMeSalioTitulo'))}">${esc(tx('paso.noMeSalio'))}</button>${remitirOrden(m, i)}` : '';
+  return `${a.correr ? botonCorrer(clave) : ''}${yaHice}<button type="button" class="boton-suave" data-copiar-orden="${esc(p.terminal ?? '')}" title="${esc(tx('paso.copiarTitulo'))}">${tx('paso.copiar')}</button>${salidas}`;
+}
+
+/** The same buttons for the step that ordenOculta.ts repaints when its run changes, or null if it is not on screen any more. */
+function accionesDelPasoAbierto(mision: string, paso: number): string | null {
+  const m = d.plan.misiones.find((x) => x.id === mision);
+  const p = m?.pasos[paso];
+  if (!m || !p || typeof p === 'string' || !p.terminal) return null;
+  const pendiente = d.identidad.rol === m.para && ['pendiente', 'en_curso', 'rehacer'].includes(estadoMision(m, d.plan, d.estado)) && !pasosHechos(m.id).includes(paso);
+  return accionesDeLaOrden(m, paso, p, pendiente);
 }
 
 /**
@@ -8225,7 +8241,12 @@ window.addEventListener('scroll', medirCabeza, { passive: true });
 // Si la página se va a recargar (por ejemplo, porque el director cambió el código del Studio) en medio de una grabación
 // o con algo escrito en un diálogo, el navegador pregunta antes: así no se pierde
 // Las órdenes de los pasos sin ventana (pd_sin_terminal): la línea de arriba con las que corren en todo el Studio
-iniciarOrdenesOcultas({ proyecto: () => (d as Datos | undefined)?.activo ?? '', nombre: () => (d as Datos | undefined)?.proyecto?.nombre || (d as Datos | undefined)?.activo || '', avisar: (texto, bien) => avisar(texto, bien) });
+iniciarOrdenesOcultas({
+  proyecto: () => (d as Datos | undefined)?.activo ?? '',
+  nombre: () => (d as Datos | undefined)?.proyecto?.nombre || (d as Datos | undefined)?.activo || '',
+  avisar: (texto, bien) => avisar(texto, bien),
+  acciones: (mision, paso) => ((d as Datos | undefined) ? accionesDelPasoAbierto(mision, paso) : null),
+});
 
 window.addEventListener('beforeunload', (e) => {
   const grabando = !!document.querySelector('.en-grabacion');

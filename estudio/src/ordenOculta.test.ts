@@ -2,21 +2,66 @@
 // paso con la salida plegada y la línea de arriba con las órdenes de todo el Studio.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { botonCorrer, corridaDelPaso, lineaCritica, lineaDeArriba, lineaDelPaso, preguntaHtml, recienHechas, type CorridaVista } from './ordenOculta';
+import { accionesDeOrden, botonCorrer, corridaDelPaso, seMarcaSola, lineaCritica, lineaDeArriba, lineaDelPaso, preguntaHtml, recienHechas, type CorridaVista } from './ordenOculta';
 import { t } from './textos';
 
 const leer = (f: string) => readFileSync(new URL(f, import.meta.url), 'utf8');
 const corrida = (x: Partial<CorridaVista>): CorridaVista => ({ id: 'c1', proyecto: 'golf', mision: 't_a', paso: 0, orden: 'npm test', fase: 'corriendo', codigo: null, salida: '', inicio: 'x', fin: null, pideTiempo: false, callada: false, quedanMs: 1000, ...x });
 
 describe('el paso con orden', () => {
-  it('«Correr aquí» va antes de «Abrir la terminal con esta orden», y el resultado queda bajo la orden', () => {
+  it('«Correr aquí» goes first, without «Open the terminal» next to it, and the result stays under the command (nmwqmrrumtit)', () => {
     expect(botonCorrer('t_a|0')).toContain('data-correr="t_a|0"');
     expect(botonCorrer('t_a|0')).toContain(`>${t('oculta.correr')}</button>`);
     const app = leer('./app.ts');
-    const orden = app.slice(app.indexOf('function ordenPaso('), app.indexOf('function ordenPaso(') + 3000);
-    expect(orden.indexOf('${botonCorrer(clave)}')).toBeLessThan(orden.indexOf('data-terminal="${esc(clave)}"'));
+    const orden = app.slice(app.indexOf('function ordenPaso('), app.indexOf('function accionesDelPasoAbierto('));
+    expect(orden.indexOf('${a.correr ? botonCorrer(clave)')).toBeGreaterThan(-1);
+    // The terminal window is only for what «Run here» cannot do: the failure line offers it (lineaDelPaso)
+    expect(orden).not.toContain('data-terminal=');
     expect(orden).toContain('<div class="corrida-paso" data-corrida-de="${esc(clave)}">${htmlDelPaso(m.id, i)}</div>');
+    expect(orden).toContain('data-acciones-de="${esc(clave)}"');
     expect(app).toContain('iniciarOrdenesOcultas({');
+    expect(app).toContain('acciones: (mision, paso) =>');
+  });
+
+  it('one clear action per state: before, running, done and failed (nmwqnqb0ztit)', () => {
+    const mia = { mia: true, pendiente: true };
+    // Before running, or after a stop: «Run here» and the ways out, never «Done» (it would mark it without running)
+    expect(accionesDeOrden({ ...mia, fase: null })).toEqual({ correr: true, yaHice: false, salidas: true });
+    expect(accionesDeOrden({ ...mia, fase: 'detenida' })).toEqual({ correr: true, yaHice: false, salidas: true });
+    // Running: nothing to press (its «Stop» is in the line at the top)
+    expect(accionesDeOrden({ ...mia, fase: 'corriendo' })).toEqual({ correr: false, yaHice: false, salidas: false });
+    // Ended well: only «Done», never «Run here» next to its output
+    expect(accionesDeOrden({ ...mia, fase: 'hecha' })).toEqual({ correr: false, yaHice: true, salidas: false });
+    // Failed: its line brings «Try again» and the terminal; the card adds only the ways out
+    expect(accionesDeOrden({ ...mia, fase: 'fallo' })).toEqual({ correr: false, yaHice: false, salidas: true });
+    // A step already marked, or someone else's: nothing
+    for (const fase of [null, 'hecha', 'fallo'] as const) {
+      expect(accionesDeOrden({ mia: true, pendiente: false, fase })).toEqual({ correr: false, yaHice: false, salidas: false });
+      expect(accionesDeOrden({ mia: false, pendiente: true, fase })).toEqual({ correr: false, yaHice: false, salidas: false });
+    }
+  });
+
+  it('a run that ends well marks its step only with its mission open and its card on screen: no mission comes back (nmwqnqb0ztit)', () => {
+    expect(seMarcaSola(true, true)).toBe(true);
+    expect(seMarcaSola(true, false)).toBe(false);
+    expect(seMarcaSola(false, true)).toBe(false);
+    const oculta = leer('./ordenOculta.ts');
+    const marcar = oculta.slice(oculta.indexOf('function marcarLasHechas('), oculta.indexOf('async function consultarServidor('));
+    expect(marcar).toContain('seMarcaSola(accionesDe(c.mision, c.paso) !== null');
+    expect(marcar).toContain('.mision-c [data-ya-hice=');
+    // The buttons are repainted with the run, so «Run here» does not stay next to an output already received
+    expect(oculta).toContain("document.querySelectorAll<HTMLElement>('[data-acciones-de]')");
+  });
+
+  it('under the fog, the command and its result stay hidden until the card is uncovered (nmwqnjj3ntit)', () => {
+    const css = leer('./guiaLectura.css');
+    expect(css).toContain('html.niebla-lectura :is(.mision-c .orden-paso, .mision-c .corrida-paso):not(.destapadas) {\n  visibility: hidden;');
+    const guia = leer('./guiaLectura.ts');
+    const marcar = guia.match(/function marcarOpciones\(\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(marcar).toContain('document.querySelectorAll<HTMLElement>(BLOQUES_DE_ORDEN)');
+    expect(marcar).toContain("bloque.classList.toggle('destapadas', !(caja && nubladoEn(caja)));");
+    // And while the first-time question waits, «Run here» steps aside
+    expect(leer('./director.css')).toContain('.orden-paso:has(+ .corrida-paso .pregunta-orden) .correr-aqui { display: none; }');
   });
 
   it('la primera vez pregunta «Hazlo ahora», «Hazlo ahora, y siempre en este proyecto» o «No»; sin tipo que recordar, sin «siempre»', () => {

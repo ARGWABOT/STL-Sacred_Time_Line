@@ -211,7 +211,7 @@ describe('la misión completada, en un aviso a un lado (pd_toast_mision)', () =>
     expect(sinElegir).not.toContain('disabled>${esc(o)}');
     expect(sinElegir).toContain('const hasta = esperar && !(ir && pasoAbierto(m.id, i)) ? inicioEspera(clave) + esperar * 1000 : 0;');
     // Un paso de terminal (sin opciones) también trae «Ya lo comenté antes» y, con comentario, «Ya te lo dije» (nmw9i6kqltit)
-    const orden = app.match(/function ordenPaso\([\s\S]*?\n\}/)?.[0] ?? '';
+    const orden = app.match(/function accionesDeLaOrden\([\s\S]*?\n\}/)?.[0] ?? '';
     expect(orden).toContain('${remitirOrden(m, i)}');
     const remitir = app.match(/function remitirOrden\([\s\S]*?\n\}/)?.[0] ?? '';
     expect(remitir).toContain('const comento = !!comentarioDe(d.estado.notas, m.id, i, m.para);');

@@ -40,6 +40,11 @@ html.niebla-lectura .mision-c .opciones-paso:not(.destapadas) .boton-opcion {
   cursor: not-allowed;
 }
 
+/* A step's command and its run result, hidden while its card has fogged text (guiaLectura.ts › BLOQUES_DE_ORDEN, nmwqnjj3ntit) */
+html.niebla-lectura :is(.mision-c .orden-paso, .mision-c .corrida-paso):not(.destapadas) {
+  visibility: hidden;
+}
+
 html.niebla-lectura .mision-c .opciones-paso:not(.destapadas) .boton-opcion:is(:hover, :focus-visible) {
   background: var(--panel);
   color: var(--texto);

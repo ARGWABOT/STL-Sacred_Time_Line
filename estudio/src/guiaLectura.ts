@@ -2734,10 +2734,19 @@ export function ponerOpciones(grupo: Pick<HTMLElement, 'classList' | 'querySelec
     else b.removeAttribute('aria-disabled');
   }
 }
+/**
+ * A step's command, its run result and its text to copy are not words the fog uncovers, but they belong to the step: while
+ * its card still has fogged text they stay hidden, and they show when the fog is done (nmwqnjj3ntit).
+ */
+export const BLOQUES_DE_ORDEN = '.mision-c .orden-paso, .mision-c .corrida-paso';
 function marcarOpciones() {
   for (const grupo of document.querySelectorAll<HTMLElement>('.mision-c .opciones-paso')) {
     const caja = grupo.closest('.mision-c');
     ponerOpciones(grupo, !!caja && !!nubladoEn(caja));
+  }
+  for (const bloque of document.querySelectorAll<HTMLElement>(BLOQUES_DE_ORDEN)) {
+    const caja = bloque.closest('.mision-c');
+    bloque.classList.toggle('destapadas', !(caja && nubladoEn(caja)));
   }
 }
 let cuadroOpciones = 0;

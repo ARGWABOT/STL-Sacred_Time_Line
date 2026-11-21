@@ -269,6 +269,8 @@ body.urgencia-bloquea :is([data-listo-paso], [data-elegir], [data-elegir-varias]
 .acciones-orden { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 /* La orden sin ventana (pd_sin_terminal): su resultado bajo la orden, con la salida plegada, y la línea de arriba */
 .corrida-paso:empty { display: none; }
+/* While the first-time question waits for its answer, its «Do it now» is the only action: «Run here» steps aside (nmwqnqb0ztit) */
+.orden-paso:has(+ .corrida-paso .pregunta-orden) .correr-aqui { display: none; }
 .corrida-paso { margin-top: 8px; }
 .corrida-paso .pregunta-orden, .corrida-paso .linea-critica { padding: 8px 12px; border: 1px solid var(--borde); border-radius: 10px; background: var(--panel); }
 .corrida-paso .pregunta-orden p, .corrida-paso .linea-critica { margin: 0; overflow-wrap: anywhere; }

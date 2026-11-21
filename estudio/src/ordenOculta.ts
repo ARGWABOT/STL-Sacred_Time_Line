@@ -40,6 +40,27 @@ export function corridaDelPaso(corridas: readonly CorridaVista[], proyecto: stri
   return corridas.find((c) => c.proyecto === proyecto && c.mision === mision && c.paso === paso) ?? null;
 }
 
+/**
+ * What a step with a command shows, by the state of its last run (nmwqmrrumtit, nmwqnqb0ztit): one clear action each time.
+ * Before running (or after a stop): «Run here», and the ways out of a step that does not work out; never «Open the
+ * terminal» next to it (that window is only for what «Run here» cannot do: a failure offers it, and a kind of command
+ * that asks to type opens it by itself) nor «Done», which would mark it without running. While running: nothing to press.
+ * Finished well: only «Done», if the step did not mark itself. Failed: its line brings «Try again» and the terminal, plus
+ * the ways out. A step already marked, or someone else's: nothing to press. Pura.
+ */
+export function accionesDeOrden(o: { mia: boolean; pendiente: boolean; fase: FaseVista | null }): { correr: boolean; yaHice: boolean; salidas: boolean } {
+  if (!o.mia || !o.pendiente || o.fase === 'corriendo') return { correr: false, yaHice: false, salidas: false };
+  if (o.fase === 'hecha') return { correr: false, yaHice: true, salidas: false };
+  if (o.fase === 'fallo') return { correr: false, yaHice: false, salidas: true };
+  return { correr: true, yaHice: false, salidas: true };
+}
+
+/** If a run that ended well marks its step by itself: only with its mission open and its card on screen. Pura. */
+export const seMarcaSola = (abierta: boolean, aLaVista: boolean): boolean => abierta && aLaVista;
+
+/** La fase de la última corrida de ese paso en el proyecto abierto, o null si no corrió. */
+export const faseDelPaso = (mision: string, paso: number): FaseVista | null => corridaDelPaso(estado.corridas, proyectoAbierto(), mision, paso)?.fase ?? null;
+
 /** El botón «Correr aquí» de un paso con orden. Pura. */
 export const botonCorrer = (clave: string): string =>
   `<button type="button" class="primario correr-aqui" data-correr="${esc(clave)}" title="${esc(tx('oculta.correrTitulo'))}">${esc(tx('oculta.correr'))}</button>`;
@@ -108,6 +129,8 @@ const criticas = new Map<string, string>();
 let proyectoAbierto: () => string = () => '';
 let nombreAbierto: () => string = () => '';
 let avisar: (texto: string, bien?: boolean) => void = () => undefined;
+/** The buttons of an open step with a command (app.ts › accionesDelPasoAbierto), or null if that step is not open. */
+let accionesDe: (mision: string, paso: number) => string | null = () => null;
 
 /** Lo que muestra el paso: su línea crítica, si la tiene, y el resultado de su última corrida. */
 export function htmlDelPaso(mision: string, paso: number): string {
@@ -123,6 +146,12 @@ function pintar() {
     caja.innerHTML = html;
     caja.hidden = !html;
   }
+  // The buttons of each step with a command follow its run: «Run here», nothing while it runs, «Done» once it ended well
+  document.querySelectorAll<HTMLElement>('[data-acciones-de]').forEach((el) => {
+    const [mision, paso] = (el.dataset.accionesDe ?? '').split('|');
+    const html = accionesDe(mision, Number(paso));
+    if (html !== null && el.innerHTML !== html) el.innerHTML = html;
+  });
   document.querySelectorAll<HTMLElement>('[data-corrida-de]').forEach((el) => {
     const [mision, paso] = (el.dataset.corridaDe ?? '').split('|');
     // La pregunta de la primera vez queda hasta que se conteste
@@ -137,11 +166,17 @@ function pintar() {
   });
 }
 
-/** El paso que terminó bien se marca solo, como con «Ya lo hice» (que lo comprueba si tiene comprobación). */
+/**
+ * El paso que terminó bien se marca solo, como con «Ya lo hice» (que lo comprueba si tiene comprobación), only if its
+ * mission is still open and its card is the one on screen: a run that ends while the person is on another mission never
+ * brings that mission back nor moves the order (nmwqnqb0ztit); its step waits with «Done» as its only action.
+ */
 function marcarLasHechas() {
   for (const c of recienHechas(estado.corridas, proyectoAbierto(), vistas)) {
     vistas.add(c.id);
-    if (!primera) document.querySelector<HTMLButtonElement>(`[data-ya-hice="${CSS.escape(`${c.mision}|${c.paso}`)}"]`)?.click();
+    if (!primera && seMarcaSola(accionesDe(c.mision, c.paso) !== null, !!document.querySelector(`.mision-c [data-acciones-de="${CSS.escape(`${c.mision}|${c.paso}`)}"]`))) {
+      document.querySelector<HTMLButtonElement>(`.mision-c [data-ya-hice="${CSS.escape(`${c.mision}|${c.paso}`)}"]`)?.click();
+    }
   }
   // Las que ya habían terminado al abrir la página no marcan nada: su paso ya se marcó o se marca a mano
   for (const c of estado.corridas) if (primera && c.fase !== 'corriendo') vistas.add(c.id);
@@ -200,10 +235,11 @@ async function correr(clave: string) {
 }
 
 /** Enciende las órdenes sin ventana: la línea de arriba, los clics de sus botones y la consulta al servidor. */
-export function iniciarOrdenesOcultas(o: { proyecto: () => string; nombre: () => string; avisar: (texto: string, bien?: boolean) => void }) {
+export function iniciarOrdenesOcultas(o: { proyecto: () => string; nombre: () => string; avisar: (texto: string, bien?: boolean) => void; acciones?: (mision: string, paso: number) => string | null }) {
   proyectoAbierto = o.proyecto;
   nombreAbierto = o.nombre;
   avisar = o.avisar;
+  if (o.acciones) accionesDe = o.acciones;
   caja = document.createElement('div');
   caja.className = 'ordenes-en-marcha';
   caja.setAttribute('role', 'status');
