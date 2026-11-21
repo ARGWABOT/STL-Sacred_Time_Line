@@ -183,7 +183,7 @@ if (EN) {
     ['Do your tokens go on sessions that reread the same things, does your context get polluted every time you change a decision, and you don’t know what the model remembers?', 'With STL the director reads only what changed, what you replaced leaves the context, and you see each step between the director and the model.'],
     ['Did your internet go down and your work with AI stopped?', 'With STL Studio you keep working offline: the Inbox collects your notes, tweaks and deliveries, and you keep reading your documents and answers and auditing the model’s work. Nothing is lost, and when the connection comes back the director receives it all together.'],
     ['Does writing down everything you think tire you, and your messages to the model come out half-done?', 'With STL you dictate your notes: you talk as you would with a friend, naturally, and you can even ramble, since the director will understand you; they are transcribed on your computer and, since they go to the Inbox and not straight to the model, you read and correct them before they arrive.'],
-    ['Are you asked to check something and lose time opening a new tab, finding the right page, signing in as the right user and hunting by hand for the exact spot?', 'In STL Studio, each mission opens the project in its QA tab, on the right page, already signed in as the right user, at the exact spot to check.'],
+    ['Are you asked to check something and lose time opening a new tab, finding the right page, signing in as the right user and hunting by hand for the exact spot? And to ask for a change, do you keep taking screenshots and crops with another tool to paste them into the chat with your model?', 'In STL Studio, each mission opens the project in its QA tab, on the right page, already signed in as the right user, at the exact spot to check. And with the QA tab’s photo note you take the picture of the app right there, mark it in red (draw or circle the part) and dictate a voice note about that exact spot: it goes to the director without leaving the Studio.'],
   ];
   document.querySelectorAll('details.problema').forEach((d, i) => {
     const [enunciado, respuesta] = PROBLEMAS_EN[i] ?? [];
@@ -889,6 +889,12 @@ function pintarCargando(c, w, h, s) {
   c.fillText(EN_DIBUJO ? 'Loading the voice…' : 'Cargando la voz…', x, y + r * 2.1);
   c.restore();
 }
+// Una marca a mano alzada en rojo: la elipse que encierra una parte de la imagen, dibujada poco a poco (k de 0 a 1), como
+// la del dibujo de la nota con foto
+function marcaRoja(c, cx, cy, rx, ry, k) {
+  c.save(); c.strokeStyle = ROJO; c.lineWidth = 2; c.lineCap = 'round';
+  c.beginPath(); c.ellipse(cx, cy, rx, ry, -0.1, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2.1 * k); c.stroke(); c.restore();
+}
 function trazo(c, x1, y1, x2, y2, color, alfa = 1, punteado = false) {
   c.save(); c.globalAlpha *= alfa; c.strokeStyle = color; c.lineWidth = 1.4; if (punteado) c.setLineDash([3, 3]);
   c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.restore();
@@ -1352,9 +1358,30 @@ const SEGMENTOS = [
     // Sin STL, pestañas y un acceso que no llevan a ningún lado, y una página con el usuario equivocado; con STL, el paso trae
     // su atajo, se enciende, y abre la página correcta ya con el usuario correcto. Todo dentro de la ventana, sin pisarse
     problema: (c, q) => {
-      const u = q < 0.5 ? q / 0.5 : (q - 0.5) / 0.5;
-      ventana(c, 30, 22, 260, 140, q < 0.5 ? L('el navegador', 'the browser') : L('la página', 'the page'));
-      if (q < 0.5) {
+      // Cuatro momentos (cortes en 0,26 · 0,52 · 0,78, los de PASOS_SEG[15].problema): las pestañas, el usuario equivocado, y
+      // la segunda parte (la nota con foto): capturas y recortes con otra herramienta, y pegarlos en el chat
+      const u = q < 0.26 ? q / 0.26 : (q - 0.26) / 0.26;
+      ventana(c, 30, 22, 260, 140, q < 0.26 ? L('el navegador', 'the browser') : q < 0.52 ? L('la página', 'the page') : q < 0.78 ? L('la captura', 'the screenshot') : L('el chat con el modelo', 'the chat with the model'));
+      if (q >= 0.78) {
+        // Lo pegas en el chat, una y otra vez, y el modelo no lo recibe bien
+        c.save(); c.globalAlpha *= tramo(q, 0.78, 0.84);
+        globo(c, 44, 38, L('Cambia esta parte', 'Change this part'), ROJO);
+        caja(c, 44, 60, 96, 54, '#8f8a7d', 0.1, 6); renglones(c, 52, 70, 80, 3, 'rgba(255, 255, 255, .3)', 1, 9); caja(c, 62, 92, 56, 16, '#8f8a7d', 0.1, 4);
+        actorDev(c, 60, 136, 1.2);
+        actorModelo(c, 262, 70, 9);
+        c.restore();
+        if (q > 0.9) { cruz(c, 262, 92, 4, tramo(q, 0.9, 0.94)); letrero(c, L('y otra vez, y otra vez', 'and again, and again'), 190, 150, ROJO, 8.5); }
+      } else if (q >= 0.52) {
+        // Otra herramienta: se recorta un pedazo de la app a mano, con sus esquinas punteadas
+        const t = tramo(q, 0.52, 0.7);
+        caja(c, 44, 38, 128, 100, '#8f8a7d', 0.08, 6); letrero(c, L('la app', 'the app'), 108, 50, LUZ, 8);
+        renglones(c, 54, 60, 108, 4, 'rgba(255, 255, 255, .3)', 1, 10);
+        trazo(c, 60, 80, 60 + 88 * t, 80, ROJO, 0.9, true); trazo(c, 60, 80, 60, 80 + 44 * t, ROJO, 0.9, true);
+        trazo(c, 148, 124, 148 - 88 * t, 124, ROJO, 0.9, true); trazo(c, 148, 124, 148, 124 - 44 * t, ROJO, 0.9, true);
+        caja(c, 190, 38, 84, 50, ROJO, 0.12, 6); letrero(c, L('otra herramienta', 'another tool'), 232, 68, '#ffd0da', 8); cruz(c, 264, 48, 3.5, tramo(q, 0.6, 0.66));
+        actorDev(c, 232, 128, 1.2);
+        trazo(c, 232, 117, 232, 92, ROJO, 0.6, true);
+      } else if (q < 0.26) {
         // Una persona que busca entre pestañas y entre accesos que no llevan a nada
         const activa = Math.floor(u * 9) % 4;
         for (let k = 0; k < 4; k++) { caja(c, 38 + k * 62, 38, 58, 14, k === activa ? ROJO : '#8f8a7d', k === activa ? 0.2 : 0.08, 5); renglones(c, 44 + k * 62, 43.5, 40, 1, k === activa ? '#ffd0da' : 'rgba(255, 255, 255, .3)'); }
@@ -1364,7 +1391,7 @@ const SEGMENTOS = [
         caja(c, 130, 128, 60, 12, ROJO, 0.18, 4); letrero(c, L('Entrar', 'Enter'), 160, 137, '#ffd0da', 8);
         actorDev(c, 56, 130, 1.2);
         trazo(c, 56, 119, 38 + activa * 62 + 29, 52, ROJO, 0.6, true);
-        if (q > 0.25) letrero(c, L('¿dónde está?', 'where is it?'), 160, 64, ROJO, 9);
+        if (u > 0.5) letrero(c, L('¿dónde está?', 'where is it?'), 160, 64, ROJO, 9);
       } else {
         // Llega, pero la página lo trata como a otro: el rol que muestra no es el suyo
         c.save(); c.globalAlpha *= tramo(u, 0, 0.14);
@@ -1378,8 +1405,45 @@ const SEGMENTOS = [
       }
     },
     solucion: (c, q) => {
-      const u = q < 0.5 ? q / 0.5 : (q - 0.5) / 0.5;
-      if (q < 0.5) {
+      // Cinco momentos (cortes en 0,18 · 0,37 · 0,55 · 0,88, los de PASOS_SEG[15].solucion): el atajo, la página correcta y, la
+      // segunda parte, la nota con foto de la pestaña de QA: la imagen, las marcas en rojo con la voz, y la nota que llega
+      const u = q < 0.18 ? q / 0.18 : (q - 0.18) / 0.19;
+      if (q >= 0.88) {
+        // La nota llega al director sin salir del Studio
+        const t = tramo(q, 0.88, 0.96);
+        ventana(c, 30, 22, 260, 140, L('dentro del Studio', 'inside the Studio'), VERDE);
+        caja(c, lerp(50, 158, t), 70, 60, 40, CIAN, 0.12, 6); renglones(c, lerp(50, 158, t) + 8, 80, 44, 2, 'rgba(255, 255, 255, .35)', 1, 8); bola(c, lerp(50, 158, t) + 46, 98, 3, ROJO);
+        actorDirector(c, 250, 80, 9); letrero(c, L('el director', 'the director'), 250, 104, ORO, 8.5);
+        if (t > 0.95) palomita(c, 250, 58, 4);
+        actorDev(c, 60, 130, 1.2, true);
+        letrero(c, L('sin salir del Studio', 'without leaving the Studio'), 160, 152, VERDE, 9);
+      } else if (q >= 0.55) {
+        // La imagen congelada con sus marcas en rojo, y tu voz grabando la nota sobre ese punto exacto
+        ventana(c, 30, 22, 260, 140, L('la nota con foto', 'the photo note'), VERDE_DICTADO);
+        caja(c, 44, 38, 150, 96, CIAN, 0.08, 6); renglones(c, 54, 50, 130, 4, 'rgba(255, 255, 255, .3)', 1, 10);
+        caja(c, 64, 82, 110, 38, '#8f8a7d', 0.1, 5);
+        marcaRoja(c, 119, 101, 52, 24, tramo(q, 0.55, 0.65));
+        trazo(c, 66, 126, 66 + 104 * tramo(q, 0.64, 0.7), 126, ROJO, 1);
+        // Desde que dictas (0,73 en adelante), el cuadro de la grabación: el punto rojo, el micrófono y su nota de voz
+        if (q >= 0.71) {
+        caja(c, 206, 38, 70, 96, VERDE_DICTADO, 0.08, 6);
+        bola(c, 220, 50, 3.5, ROJO, 0.4 + 0.6 * Math.sin(q * 60) ** 2); letrero(c, L('grabando', 'recording'), 228, 53, '#ffd0da', 8, 'left');
+        microfono(c, 241, 86, VERDE_DICTADO);
+        for (const r of [8, 13, 18]) { c.save(); c.globalAlpha *= 0.3 + 0.7 * Math.sin(q * 40 - r) ** 2; c.strokeStyle = VERDE_DICTADO; c.lineWidth = 1.4; c.beginPath(); c.arc(241, 80, r, -0.9, 0.9); c.stroke(); c.restore(); }
+        letrero(c, L('nota de voz', 'voice note'), 241, 120, VERDE_DICTADO, 8);
+        }
+        letrero(c, L('marcas en rojo y tu voz', 'red marks and your voice'), 119, 150, '#fffaf0', 8.5);
+      } else if (q >= 0.37) {
+        // En la pestaña de QA, un clic en la nota con foto congela la vista de la app, ahí mismo
+        ventana(c, 30, 22, 260, 140, L('la pestaña de QA', 'the QA tab'), ORO);
+        const foto = tramo(q, 0.41, 0.45);
+        caja(c, 44, 38, 150, 96, foto > 0.5 ? CIAN : VERDE, 0.08 + 0.12 * foto, 6); letrero(c, L('la app', 'the app'), 119, 50, LUZ, 8);
+        renglones(c, 54, 60, 130, 4, 'rgba(255, 255, 255, .3)', 1, 10);
+        caja(c, 206, 40, 70, 22, ORO, 0.1 + 0.4 * foto, 6); letrero(c, L('nota con foto', 'photo note'), 241, 54, foto > 0.5 ? '#fffaf0' : LUZ, 8);
+        actorDev(c, 232, 110, 1.2);
+        trazo(c, 232, 99, 241, 66, ORO, 0.6, true);
+        if (foto > 0.5) letrero(c, L('la app, congelada', 'the app, frozen'), 119, 150, CIAN, 8.5);
+      } else if (q < 0.18) {
         // El paso de la misión trae su atajo, y el atajo se enciende
         ventana(c, 30, 22, 260, 140, L('la misión', 'the mission'), ORO);
         const lista = tramo(u, 0.38, 0.6);
@@ -1436,7 +1500,7 @@ const ENUNCIADOS_SIN_VOZ_TODAVIA = new Set([]);
 // El octavo problema, el acceso directo (segmento 16 y su enunciado g8-e), calla: sus clips s16-p1, s16-p2, s16-1 y s16-2
 // ya existen, pero no se conectan hasta que el titular vea la animación y su guion; su enunciado y su cierre, propuestos,
 // no tienen clip. Ninguna de sus claves tiene pista, así que sus rótulos duran lo que dice la estimación (tardaVoz)
-const CLAVES_SIN_VOZ_TODAVIA = new Set(['g8-e', 's16-p1', 's16-p2', 's16-1', 's16-2', 's16-c']);
+const CLAVES_SIN_VOZ_TODAVIA = new Set(['g8-e', 's16-p1', 's16-p2', 's16-p3', 's16-p4', 's16-1', 's16-2', 's16-3', 's16-4', 's16-5', 's16-6', 's16-c']);
 const callada = (clave) => {
   const seg = /^s(\d+)-/.exec(clave);
   return ENUNCIADOS_SIN_VOZ_TODAVIA.has(clave) || CLAVES_SIN_VOZ_TODAVIA.has(clave) || (seg != null && SIN_VOZ_TODAVIA.has(Number(seg[1]) - 1));
@@ -1473,7 +1537,9 @@ const PASOS_SEG = [
   { problema: [[0, 'Tienes la idea clara en la cabeza,'], [0.36, 'pero escribirla entera cansa,'], [0.66, 'y al modelo le llega solo la mitad.']], solucion: [[0, 'Con STL, la dictas: hablas como hablarías con un amigo,'], [0.1, 'de forma natural, explicándole lo que tienes en mente.'], [0.2, 'Incluso puedes divagar, no importa: el director te entenderá bien.'], [0.32, 'Lo importante es que expreses tu idea como de verdad la quieres,'], [0.42, 'con tu lenguaje natural: la comprensión, déjasela al director.'], [0.52, 'Tu nota se transcribe en tu computador.'], [0.62, 'Como va al Buzón y no directo al modelo,'], [0.74, 'la lees y la corriges antes de que llegue:'], [0.86, 'le quitas o le agregas lo que quieras.']] },
   // 16. El acceso directo, el octavo problema (el último; sus cuatro frases aprobadas por el titular): dos en rojo y dos de la
   // solución, sin enunciado ni cierre todavía (su dibujo y su lugar en la lista están por hacer); la voz sale de aquí
-  { problema: [[0, 'Te pide revisar algo: abres una pestaña nueva y buscas la página'], [0.5, 'Entras con el usuario correcto y rastreas a mano el punto exacto']], solucion: [[0, 'En STL Studio, la misión abre el proyecto en su pestaña de QA'], [0.5, 'En la página correcta, con el usuario correcto, en el punto exacto']] },
+  // Su segunda parte (la nota con foto): capturas y recortes con otra herramienta para pegarlos en el chat, y la nota con foto
+  // de la pestaña de QA, dentro del Studio (sus claves, s16-p3, s16-p4 y s16-3 a s16-6, callan: CLAVES_SIN_VOZ_TODAVIA)
+  { problema: [[0, 'Te pide revisar algo: abres una pestaña nueva y buscas la página'], [0.26, 'Entras con el usuario correcto y rastreas a mano el punto exacto'], [0.52, 'Para pedir un cambio, capturas y recortas con otra herramienta'], [0.78, 'y los pegas en el chat con tu modelo, una y otra vez']], solucion: [[0, 'En STL Studio, la misión abre el proyecto en su pestaña de QA'], [0.18, 'En la página correcta, con el usuario correcto, en el punto exacto'], [0.37, 'Con la nota con foto de esa pestaña, tomas la imagen de la app'], [0.55, 'ahí mismo y la marcas en rojo: dibujas o encierras esa parte,'], [0.73, 'y dictas la nota de voz sobre ese punto exacto.'], [0.88, 'Le llega al director sin salir del Studio.']] },
 ];
 // El cierre de cada segmento (nota de voz nmw3ruscptit): al terminar su solución, y antes del problema siguiente, unos dos
 // segundos con un ✓, el problema que quedó resuelto, en corto, tu cubito sonriendo y una frase de cierre con su voz, que
@@ -1518,7 +1584,8 @@ const PASOS_SEG_EN = [
   { problema: [[0, 'Your internet goes down in the middle of your work,'], [0.45, 'and the chat with the model stops: now what?']], solucion: [[0, 'With STL Studio, you keep working offline:'], [0.2, 'the Inbox collects your notes, tweaks and deliveries,'], [0.4, 'and you keep reading documents and answers'], [0.58, 'or auditing the model\'s work.'], [0.74, 'Nothing is lost: everything stays in the project memory.'], [0.88, 'When the connection comes back, the director receives it all together.']] },
   { problema: [[0, 'You have the idea clear in your head,'], [0.36, 'but writing it all out is tiring,'], [0.66, 'and only half of it reaches the model.']], solucion: [[0, 'With STL, you dictate it: you talk as you would with a friend,'], [0.1, 'naturally, explaining what you have in mind.'], [0.2, 'You can even ramble, it doesn\'t matter: the director will understand you.'], [0.32, 'What matters is that you express your idea the way you really want it,'], [0.42, 'in your natural language: leave the understanding to the director.'], [0.52, 'Your note is transcribed on your computer.'], [0.62, 'Since it goes to the Inbox and not straight to the model,'], [0.74, 'you read it and correct it before it arrives:'], [0.86, 'you take out or add whatever you want.']] },
   // 16. Direct access, the eighth problem (the last one; its four lines approved by the owner): two in red, two in the solution
-  { problema: [[0, 'It asks you to check something: you open a new tab and look for the page'], [0.5, 'You sign in as the right user and hunt for the exact spot by hand']], solucion: [[0, 'In STL Studio, the mission opens the project in its QA tab'], [0.5, 'On the right page, as the right user, at the exact spot to check']] },
+  // Its second part (the photo note): screenshots and crops with another tool pasted into the chat, and the QA tab's photo note, inside the Studio
+  { problema: [[0, 'It asks you to check something: you open a new tab and look for the page'], [0.26, 'You sign in as the right user and hunt for the exact spot by hand'], [0.52, 'And to ask for a change, you take screenshots and crops with another tool'], [0.78, 'and paste them into the chat with your model, over and over']], solucion: [[0, 'In STL Studio, the mission opens the project in its QA tab'], [0.18, 'On the right page, as the right user, at the exact spot to check'], [0.37, 'With the photo note in that tab, you take the picture of the app'], [0.55, 'right there and mark it in red: you draw or circle that part,'], [0.73, 'and dictate the voice note about that exact spot.'], [0.88, 'It goes to the director without leaving the Studio.']] },
 ];
 const CIERRES_EN = [
   ['Half-finished messages', 'Goodbye to fixing half-finished messages: you check it before it goes.'],
@@ -2469,9 +2536,29 @@ const VERTICALES = {
   },
   15: { // 16. El acceso directo: la ventana del navegador, alta, arriba, con sus tres momentos uno tras otro; el texto va debajo, en HTML
     problema: (c, q) => {
-      const u = q < 0.5 ? q / 0.5 : (q - 0.5) / 0.5;
-      ventana(c, 8, 22, 164, 252, q < 0.5 ? L('el navegador', 'the browser') : L('la página', 'the page'));
-      if (q < 0.5) {
+      // Los mismos cuatro momentos que en horizontal (cortes en 0,26 · 0,52 · 0,78)
+      const u = q < 0.26 ? q / 0.26 : (q - 0.26) / 0.26;
+      ventana(c, 8, 22, 164, 252, q < 0.26 ? L('el navegador', 'the browser') : q < 0.52 ? L('la página', 'the page') : q < 0.78 ? L('la captura', 'the screenshot') : L('el chat con el modelo', 'the chat with the model'));
+      if (q >= 0.78) {
+        // Lo pegas en el chat, una y otra vez, y el modelo no lo recibe bien
+        c.save(); c.globalAlpha *= tramo(q, 0.78, 0.84);
+        globo(c, 20, 40, L('Cambia esta parte', 'Change this part'), ROJO);
+        caja(c, 24, 66, 100, 62, '#8f8a7d', 0.1, 6); renglones(c, 32, 76, 84, 3, 'rgba(255, 255, 255, .3)', 1, 9); caja(c, 40, 100, 60, 18, '#8f8a7d', 0.1, 4);
+        actorModelo(c, 148, 90, 9);
+        actorDev(c, 90, 236, 1.3);
+        c.restore();
+        if (q > 0.9) { cruz(c, 148, 112, 4, tramo(q, 0.9, 0.94)); letrero(c, L('y otra vez, y otra vez', 'and again, and again'), 90, 170, ROJO, 9); }
+      } else if (q >= 0.52) {
+        // Otra herramienta: se recorta un pedazo de la app a mano, con sus esquinas punteadas
+        const t = tramo(q, 0.52, 0.7);
+        caja(c, 20, 40, 140, 100, '#8f8a7d', 0.08, 6); letrero(c, L('la app', 'the app'), 90, 52, LUZ, 8);
+        renglones(c, 30, 62, 120, 4, 'rgba(255, 255, 255, .3)', 1, 10);
+        trazo(c, 36, 84, 36 + 108 * t, 84, ROJO, 0.9, true); trazo(c, 36, 84, 36, 84 + 44 * t, ROJO, 0.9, true);
+        trazo(c, 144, 128, 144 - 108 * t, 128, ROJO, 0.9, true); trazo(c, 144, 128, 144, 128 - 44 * t, ROJO, 0.9, true);
+        caja(c, 24, 154, 132, 46, ROJO, 0.12, 6); letrero(c, L('otra herramienta', 'another tool'), 90, 180, '#ffd0da', 8.5); cruz(c, 144, 165, 3.5, tramo(q, 0.6, 0.66));
+        actorDev(c, 90, 236, 1.3);
+        trazo(c, 90, 224, 90, 204, ROJO, 0.6, true);
+      } else if (q < 0.26) {
         // Las cuatro pestañas en una fila y la página de inicio de sesión; tú abajo, buscando entre ellas
         const activa = Math.floor(u * 9) % 4;
         for (let k = 0; k < 4; k++) { caja(c, 14 + k * 38, 40, 35, 14, k === activa ? ROJO : '#8f8a7d', k === activa ? 0.2 : 0.08, 5); renglones(c, 19 + k * 38, 45.5, 22, 1, k === activa ? '#ffd0da' : 'rgba(255, 255, 255, .3)'); }
@@ -2481,7 +2568,7 @@ const VERTICALES = {
         caja(c, 56, 142, 68, 14, ROJO, 0.18, 4); letrero(c, L('Entrar', 'Enter'), 90, 152, '#ffd0da', 8.5);
         actorDev(c, 90, 238, 1.3);
         trazo(c, 90, 226, 14 + activa * 38 + 17, 54, ROJO, 0.6, true);
-        if (q > 0.25) letrero(c, L('¿dónde está?', 'where is it?'), 90, 192, ROJO, 9.5);
+        if (u > 0.5) letrero(c, L('¿dónde está?', 'where is it?'), 90, 192, ROJO, 9.5);
       } else {
         // Llega, pero la página lo trata como a otro: el rol que muestra no es el suyo
         c.save(); c.globalAlpha *= tramo(u, 0, 0.14);
@@ -2495,8 +2582,42 @@ const VERTICALES = {
       }
     },
     solucion: (c, q) => {
-      const u = q < 0.5 ? q / 0.5 : (q - 0.5) / 0.5;
-      if (q < 0.5) {
+      // Los mismos cinco momentos que en horizontal (cortes en 0,18 · 0,37 · 0,55 · 0,88)
+      const u = q < 0.18 ? q / 0.18 : (q - 0.18) / 0.19;
+      if (q >= 0.88) {
+        // La nota llega al director sin salir del Studio
+        const t = tramo(q, 0.88, 0.96);
+        ventana(c, 8, 22, 164, 252, L('dentro del Studio', 'inside the Studio'), VERDE);
+        caja(c, 20, lerp(44, 106, t), 80, 44, CIAN, 0.12, 6); renglones(c, 28, lerp(44, 106, t) + 10, 64, 2, 'rgba(255, 255, 255, .35)', 1, 8); bola(c, 84, lerp(44, 106, t) + 34, 3, ROJO);
+        actorDirector(c, 90, 206, 9); letrero(c, L('el director', 'the director'), 90, 230, ORO, 8.5);
+        if (t > 0.95) palomita(c, 90, 184, 4);
+        letrero(c, L('sin salir del Studio', 'without leaving the Studio'), 90, 262, VERDE, 8.5);
+      } else if (q >= 0.55) {
+        // La imagen congelada con sus marcas en rojo, y tu voz grabando la nota sobre ese punto exacto
+        ventana(c, 8, 22, 164, 252, L('la nota con foto', 'the photo note'), VERDE_DICTADO);
+        caja(c, 20, 40, 140, 100, CIAN, 0.08, 6); renglones(c, 30, 52, 120, 4, 'rgba(255, 255, 255, .3)', 1, 10);
+        caja(c, 36, 82, 108, 42, '#8f8a7d', 0.1, 5);
+        marcaRoja(c, 90, 103, 56, 26, tramo(q, 0.55, 0.65));
+        trazo(c, 34, 130, 34 + 112 * tramo(q, 0.64, 0.7), 130, ROJO, 1);
+        if (q >= 0.71) {
+        caja(c, 20, 152, 140, 82, VERDE_DICTADO, 0.08, 6);
+        bola(c, 34, 166, 3.5, ROJO, 0.4 + 0.6 * Math.sin(q * 60) ** 2); letrero(c, L('grabando', 'recording'), 42, 169, '#ffd0da', 8, 'left');
+        microfono(c, 90, 202, VERDE_DICTADO);
+        for (const r of [8, 13, 18]) { c.save(); c.globalAlpha *= 0.3 + 0.7 * Math.sin(q * 40 - r) ** 2; c.strokeStyle = VERDE_DICTADO; c.lineWidth = 1.4; c.beginPath(); c.arc(90, 196, r, -0.9, 0.9); c.stroke(); c.restore(); }
+        letrero(c, L('nota de voz', 'voice note'), 90, 226, VERDE_DICTADO, 8.5);
+        }
+        letrero(c, L('marcas en rojo y tu voz', 'red marks and your voice'), 90, 256, '#fffaf0', 8.5);
+      } else if (q >= 0.37) {
+        // En la pestaña de QA, un clic en la nota con foto congela la vista de la app, ahí mismo
+        ventana(c, 8, 22, 164, 252, L('la pestaña de QA', 'the QA tab'), ORO);
+        const foto = tramo(q, 0.41, 0.45);
+        caja(c, 20, 40, 140, 100, foto > 0.5 ? CIAN : VERDE, 0.08 + 0.12 * foto, 6); letrero(c, L('la app', 'the app'), 90, 52, LUZ, 8);
+        renglones(c, 30, 62, 120, 4, 'rgba(255, 255, 255, .3)', 1, 10);
+        caja(c, 40, 156, 100, 22, ORO, 0.1 + 0.4 * foto, 6); letrero(c, L('nota con foto', 'photo note'), 90, 170, foto > 0.5 ? '#fffaf0' : LUZ, 8.5);
+        actorDev(c, 90, 236, 1.3);
+        trazo(c, 90, 224, 90, 182, ORO, 0.6, true);
+        if (foto > 0.5) letrero(c, L('la app, congelada', 'the app, frozen'), 90, 196, CIAN, 8.5);
+      } else if (q < 0.18) {
         // El paso de la misión trae su atajo, y el atajo se enciende
         ventana(c, 8, 22, 164, 252, L('la misión', 'the mission'), ORO);
         const lista = tramo(u, 0.38, 0.6);

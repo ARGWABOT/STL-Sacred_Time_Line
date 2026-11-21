@@ -77,7 +77,6 @@
        (nota de voz del titular nmw87ytm7tit) */
     html.js-3d .entrada { height: 100svh; justify-content: flex-start; padding-top: calc(env(safe-area-inset-top) + 18svh); }
     .js-3d .entrada h1 { margin-top: 12svh; }
-    .js-3d .entrada .bajar { margin-top: 20svh; }
     .js-3d .tarjeta.corta { bottom: calc(1.5vh + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); box-sizing: border-box; white-space: normal; }
     .js-3d .tarjeta.corta h2 { white-space: normal; text-wrap: balance; }
     /* Nada se sale por los lados: la página nunca es más ancha que el teléfono */
@@ -119,19 +118,18 @@
   .js-3d .entrada > * { will-change: transform, opacity; }
   .entrada h1 { margin: 0 0 8px; font-size: clamp(36px, 5vw, 64px); line-height: 1.1; color: #fffaf0; }
   .js-3d .entrada h1 { margin: 0 0 2px; font-size: clamp(26px, 2.4vw, 46px); }
-  .js-3d .entrada .bajar { margin-top: 4px; font-size: clamp(14px, 1vw, 19px); }
   /* «What is» / «¿Qué es» queda justo encima de las estrellas que forman «STL» (de 29 a 41 % de la altura; mundo-3d.js › NOTAS):
-     juntos se leen «What is STL», y el botón baja bajo las letras, sin pisarlas */
-  @media (min-width: 901px) { .js-3d .entrada h1 { margin-top: 9vh; } .js-3d .entrada .bajar { margin-top: 17vh; } }
-  /* nmwmwj197tit: en pantallas anchas (desde 1350 px), «Empieza el recorrido» / «Start the tour» baja a la esquina de abajo a
-     la derecha de la portada, lejos de la línea dorada y de los gráficos 3D (antes caía encima de la línea y no se leía). La
-     portada mide 100vh, así que su esquina inferior es la de la ventana; el menú, al centro del borde derecho, no llega ahí */
-  @media (min-width: 1350px) {
-    .js-3d .entrada { position: relative; }
-    .js-3d .entrada .bajar { position: absolute; right: clamp(20px, 3vw, 64px); bottom: clamp(16px, 4vh, 48px); margin: 0;
-      padding: 8px 16px; border-radius: 999px; background: rgba(8, 11, 20, .72); border: 1px solid rgba(245, 210, 122, .35);
-      font-size: clamp(15px, 1.05vw, 22px); text-shadow: 0 1px 6px rgba(0, 0, 0, .8); white-space: nowrap; }
-  }
+     juntos se leen «What is STL» */
+  @media (min-width: 901px) { .js-3d .entrada h1 { margin-top: 9vh; } }
+  /* nmwmwj197tit, y nmwposiqptit para todos los anchos: «Empieza el recorrido» / «Start the tour» va siempre en la esquina de
+     abajo a la derecha de la portada (teléfono de pie, pantalla angosta y ancha), lejos del título (antes quedaba pegado bajo
+     «What is» y se leía «What is Start the tour»), de la línea dorada, de las letras «STL», del botón del menú (arriba a la
+     derecha) y del botón «i» (abajo a la izquierda). La portada mide 100vh (100svh en el teléfono), así que su esquina inferior
+     es la de la ventana. Ninguna regla de un ancho menor lo devuelve bajo el título: no hay otra que le ponga margen */
+  .js-3d .entrada { position: relative; }
+  .js-3d .entrada .bajar { position: absolute; right: clamp(16px, 3vw, 64px); bottom: calc(env(safe-area-inset-bottom) + clamp(16px, 4vh, 48px)); margin: 0;
+    padding: 8px 16px; border-radius: 999px; background: rgba(8, 11, 20, .72); border: 1px solid rgba(245, 210, 122, .35);
+    font-size: clamp(14px, 1.05vw, 22px); text-shadow: 0 1px 6px rgba(0, 0, 0, .8); white-space: nowrap; }
   .js-3d .resto-titulo { display: none; }   /* con 3D, «STL» lo forman las estrellas; sin 3D, se escribe */
   /* Mientras carga el recorrido, no se ve el contenido de la página sin 3D (las tarjetas de los siete problemas se asomaban,
      nmw6lwwbxtit): la clase la pone el guion del principio y la quita mundo-3d.js, con 3D o sin él */
@@ -540,7 +538,7 @@
         <details class="problema" data-resuelve="4" data-corto="Modelo olvidadizo"><summary>¿Se te van los tokens en sesiones que releen lo mismo, tu contexto se contamina cada vez que cambias de decisión y no sabes qué recuerda el modelo?</summary><p>Con STL el director lee solo lo que cambió, lo que reemplazaste sale del contexto y ves cada paso entre el director y el modelo.</p></details>
         <details class="problema" data-resuelve="5" data-corto="Sin internet"><summary>¿Te quedaste sin internet y tu trabajo con la IA se detuvo?</summary><p>Con STL Studio sigues trabajando sin conexión: el Buzón recoge tus notas, ajustes y entregas, y sigues leyendo tus documentos y respuestas y auditando el trabajo del modelo. Nada se pierde, y al volver la conexión el director lo recibe todo junto.</p></details>
         <details class="problema" data-resuelve="6" data-corto="Cansancio de escribir"><summary>¿Te cansa escribir todo lo que piensas, y tus mensajes al modelo salen a medias?</summary><p>Con STL dictas tus notas: hablas como hablarías con un amigo, de forma natural, e incluso puedes divagar, que el director te entenderá; se transcriben en tu computador y, como van al Buzón y no directo al modelo, las lees y las corriges antes de que lleguen.</p></details>
-        <details class="problema" data-resuelve="7" data-corto="No encuentro qué revisar"><summary>¿Te piden revisar algo y pierdes tiempo abriendo una pestaña nueva, buscando la página, entrando con el usuario correcto y rastreando a mano el punto exacto?</summary><p>En STL Studio, cada misión abre el proyecto en su pestaña de QA, en la página correcta, ya con el usuario correcto y en el punto exacto que hay que revisar.</p></details>
+        <details class="problema" data-resuelve="7" data-corto="No encuentro qué revisar"><summary>¿Te piden revisar algo y pierdes tiempo abriendo una pestaña nueva, buscando la página, entrando con el usuario correcto y rastreando a mano el punto exacto? ¿Y para pedir un cambio, sigues sacando capturas y recortes con otra herramienta para pegarlos en el chat con tu modelo?</summary><p>En STL Studio, cada misión abre el proyecto en su pestaña de QA, en la página correcta, ya con el usuario correcto y en el punto exacto que hay que revisar. Y con la nota con foto de esa pestaña tomas la imagen de la app ahí mismo, la marcas en rojo (dibujas o encierras esa parte) y dictas una nota de voz sobre ese punto exacto: le llega al director sin salir del Studio.</p></details>
         </div>
       </div>
     </article>
