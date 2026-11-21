@@ -21,8 +21,6 @@ En la memoria del proyecto, `docs/director/`, en Markdown, partidos con `##` (ca
 ```
 Cortos y para leer de corrido: tablas solo si ayudan. Cada documento nuevo entra en `plan.documentos` (`ruta`, `titulo`, `porQue`) y en la misión que lo pide.
 
-**Lo que la persona lee está en su idioma, también el documento al que la lleva una misión** (regla dura, nota nmwjl67k8tit): nunca un procedimiento del modelo (`docs/metodo/director/*.md`, escrito para el modelo, con los nombres internos del formato de la memoria, como «objetivo») ni un documento en otro idioma. Si la persona tiene que leer una regla del método, el director le escribe un documento suyo, corto, en el idioma de la interfaz y sin identificadores internos, o la lleva a la versión del procedimiento en su idioma (la `.es.md`, con la interfaz en español). `bandeja.ts --aplicar` y `--listo` no dejan pasar una misión abierta que lleve a uno de esos (`documentosEnOtroIdioma`).
-
 ## Se leen de a una idea
 
 **Se leen de a una idea.** El Studio parte cada `##` en ideas (cada párrafo, cada punto de una lista de primer nivel, cada tabla o bloque): cada una se marca «Entendido» o, si es una decisión, se responde; la parte se da por leída sola cuando todas están atendidas, y la siguiente se abre solo entonces. Por eso:

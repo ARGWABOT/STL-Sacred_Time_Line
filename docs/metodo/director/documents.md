@@ -21,8 +21,6 @@ In the project's memory, `docs/director/`, in Markdown, split with `##` (each `#
 ```
 Short and meant to be read straight through: tables only if they help. Each new document goes into `plan.documentos` (`ruta`, `titulo`, `porQue`) and into the mission that asks for it.
 
-**What the person reads is in their language, also the document a mission leads them to** (hard rule, note nmwjl67k8tit): never a model procedure (`docs/metodo/director/*.md`, written for the model, with the internal names of the memory format, like «objetivo») nor a document in another language. If the person has to read a rule of the method, the director writes them a document of its own, short, in the interface's language and without internal identifiers, or leads them to the procedure's version in their language (the `.es.md`, with the interface in Spanish). `bandeja.ts --aplicar` and `--listo` do not let through an open mission that leads to one of those (`documentosEnOtroIdioma`).
-
 ## They are read one idea at a time
 
 **They are read one idea at a time.** The Studio splits each `##` into ideas (each paragraph, each point of a first-level list, each table or block): each one is marked «Entendido» or, if it is a decision, answered; the part counts as read on its own when all of them are attended to, and only then does the next one open. Therefore:
