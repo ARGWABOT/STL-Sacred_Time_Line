@@ -11,7 +11,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type { Plan, Proyecto } from './director.ts';
 import type { Idioma } from './idioma.ts';
-import { abrirMemoria, enDisco, esElStudio, guardarActivo, guardarRutaRepositorio, LEEME_MEMORIA, leerLocal, marcarRespaldo, MEMORIA, rutasDe } from './proyectos.ts';
+import { abrirMemoria, enDisco, esElStudio, guardarRutaRepositorio, LEEME_MEMORIA, leerLocal, marcarRespaldo, MEMORIA, rutasDe } from './proyectos.ts';
 
 /** El proyecto que es el mismo Studio. */
 export const ID_SEMILLA = 'stl-studio';
@@ -51,13 +51,16 @@ async function firmaDeCommit(raiz: string): Promise<string[]> {
 }
 
 /**
- * Una instalación sin proyectos: STL Studio, de su semilla. No hace nada si ya hay proyectos en este computador. Si la copia
- * llegó sin git (el zip), inicia su repositorio con un primer commit; abre la memoria en la rama stl y, si ya tenía la suya,
- * la conecta tal cual, sin escribir nada encima.
+ * STL Studio, de su semilla, en la lista de proyectos de este computador, en cualquier sistema: no hace nada si ya está (o si
+ * su id ya lo usa otro proyecto). Antes solo con la lista vacía, y una instalación que entregaba su primer proyecto antes de
+ * sembrarlo (Ubuntu sin identidad de git al instalar) se quedaba sin él (nota de voz del titular nmws2gqb0tit). Nunca lo deja
+ * activo: el asistente invita a entregar un proyecto propio primero (elegirActivo lo salta mientras nadie lo elija). Si la
+ * copia llegó sin git (el zip), inicia su repositorio con un primer commit; abre la memoria en la rama stl y, si ya tenía la
+ * suya, la conecta tal cual, sin escribir nada encima.
  */
 export async function instalarSemilla(raiz: string): Promise<'instalada' | 'ya_tenia_memoria' | 'ya_hay_proyectos'> {
   const local = await leerLocal(raiz);
-  if (Object.keys(local.repositorios).length) return 'ya_hay_proyectos';
+  if (local.repositorios[ID_SEMILLA] || Object.values(local.repositorios).some((r) => !!r && esElStudio(raiz, r))) return 'ya_hay_proyectos';
   const firma = await firmaDeCommit(raiz);
   const fallo = (que: string, r: { err: string }) => new Error(`${que} (${r.err.trim().split('\n').pop() || 'git falló'}).`);
   if (!existsSync(join(raiz, '.git'))) {
@@ -70,7 +73,6 @@ export async function instalarSemilla(raiz: string): Promise<'instalada' | 'ya_t
   }
   const { yaTenia } = await abrirMemoria(raiz);
   await guardarRutaRepositorio(raiz, ID_SEMILLA, raiz);
-  await guardarActivo(raiz, ID_SEMILLA);
   if (yaTenia) return 'ya_tenia_memoria';
   const { proyecto, plan } = await leerSemilla(raiz, idiomaInicial(local.idioma));
   const nombre = (await git(raiz, ['config', 'user.name'])).out.trim();

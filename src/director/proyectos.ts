@@ -1479,9 +1479,14 @@ export async function proyectosLocales(raiz: string): Promise<string[]> {
   return [...ids.filter((id) => !delStudio(id)), ...ids.filter(delStudio)];
 }
 
-/** El proyecto activo de este computador: el guardado si existe y, si no, el primero que haya. */
-export function elegirActivo(local: Local, ids: string[]): string | null {
-  return local.activo && ids.includes(local.activo) ? local.activo : (ids[0] ?? null);
+/**
+ * El proyecto activo de este computador: el guardado si existe y, si no, el primero que haya, salvo el del Studio mismo, que
+ * solo es activo si alguien lo eligió: con él solo, ninguno, y la página invita a entregar el primero (nota de voz del
+ * titular nmws2gqb0tit). `esStudio`: si un id es el Studio; sin él, el id de la semilla.
+ */
+export function elegirActivo(local: Local, ids: string[], esStudio: (id: string) => boolean = (id) => id === 'stl-studio'): string | null {
+  if (local.activo && ids.includes(local.activo)) return local.activo;
+  return ids.find((id) => !esStudio(id)) ?? null;
 }
 
 function git(cwd: string, args: string[], env: Record<string, string> = {}): Promise<{ ok: boolean; out: string; err: string }> {

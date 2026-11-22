@@ -37,7 +37,8 @@ export async function proyectoElegido(pedido: string | null): Promise<string> {
     console.error(`No hay un proyecto «${pedido}». Los que hay: ${ids.join(', ')}.`);
     process.exit(1);
   }
-  const elegido = pedido ?? elegirActivo(await leerLocal(raiz), ids)!;
+  // Las herramientas trabajan siempre sobre alguno, también el del Studio mismo cuando es el único
+  const elegido = pedido ?? elegirActivo(await leerLocal(raiz), ids, () => false)!;
   // Lanzada por una revisión, la herramienta solo trabaja en el proyecto de esa revisión y en los de su cola
   const permitido = proyectoPermitidoEnRevision(process.env, elegido);
   if (!permitido.ok) {

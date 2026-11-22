@@ -82,12 +82,17 @@ describe('la ventana del asistente de instalación (pd_valores_instalar)', () =>
     expect(fuente).toContain('new Grabadora(caja, true)');
   });
 
-  it('la pantalla final: STL Studio activo y entregar el primer proyecto; lo que termina es esta, y al repasar solo se cierra', () => {
+  it('la pantalla final invita a entregar un proyecto propio o crear uno nuevo, nunca a entrar al de STL Studio (nmws2gqb0tit); al repasar solo se cierra', () => {
+    ponerIdioma('es');
     const texto = sinMarcas(cuerpoDe({ paso: 'final' }, null, null));
+    // STL Studio se nombra como un proyecto más de la lista, no como el activo
     expect(texto).toContain('STL Studio');
+    expect(texto).not.toMatch(/activo/i);
+    expect(texto).toContain('proyecto nuevo');
     const botones = botonesDe('final', { ok: true }, false);
     expect(botones).toContain('data-asistente-terminar="entregar"');
-    expect(botones).toContain('data-asistente-terminar="seguir"');
+    expect(botones).not.toContain('data-asistente-terminar="seguir"');
+    expect(botones).not.toContain('Seguir con STL Studio');
     expect(botones).toContain('Entregar mi primer proyecto');
     // No se cierra sin terminar, ni se vuelve atrás
     expect(botones).not.toContain('data-asistente-cerrar');

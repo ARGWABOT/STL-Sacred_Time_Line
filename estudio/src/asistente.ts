@@ -90,9 +90,11 @@ export function botonesDe(paso: PasoAsistente, sesion: Sesion, repaso: boolean, 
   // Al final no se vuelve atrás: lo elegido ya quedó, y se cambia con «Repasar la instalación». Sin guardar nada, solo se cierra
   if (paso === 'final') {
     // En la muestra se ven los botones de quien instala, sin que hagan nada
-    if (muestra) return `<button type="button" data-asistente-cerrar autofocus>${t('asistente.cerrar')}</button><button type="button" disabled>${t('asistente.finalSeguir')}</button><button type="button" class="primario grande" disabled>${t('asistente.finalEntregar')}</button>`;
+    // Un solo camino: entregar un proyecto suyo (o crear uno nuevo, en el mismo formulario); nunca entrar de una vez al
+    // proyecto del Studio, que la persona aún no conoce (nota de voz del titular nmws2gqb0tit, 22 de noviembre de 2026)
+    if (muestra) return `<button type="button" data-asistente-cerrar autofocus>${t('asistente.cerrar')}</button><button type="button" class="primario grande" disabled>${t('asistente.finalEntregar')}</button>`;
     if (repaso) return `<button type="button" class="primario grande" data-asistente-cerrar autofocus>${t('asistente.cerrar')}</button>`;
-    return `<button type="button" data-asistente-terminar="seguir">${t('asistente.finalSeguir')}</button><button type="button" class="primario grande" data-asistente-terminar="entregar" autofocus>${t('asistente.finalEntregar')}</button>`;
+    return `<button type="button" class="primario grande" data-asistente-terminar="entregar" autofocus>${t('asistente.finalEntregar')}</button>`;
   }
   if (paso === 'inicio') {
     if (!sesion?.ok) return repaso ? `<button type="button" data-asistente-cerrar>${t('asistente.cerrar')}</button>` : '';

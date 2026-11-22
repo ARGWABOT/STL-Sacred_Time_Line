@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { estadoVacio, etapaArranque, RESERVA_MINIMA, reservaDeMisiones, validarPlan, type Plan, type Proyecto } from './director.ts';
-import { guardarRutaRepositorio, marcarCopiaDeDesarrollo, proyectosLocales, queSeBorra, quitarProyecto } from './proyectos.ts';
+import { elegirActivo, esElStudio, guardarRutaRepositorio, leerLocal, marcarCopiaDeDesarrollo, proyectosLocales, queSeBorra, quitarProyecto } from './proyectos.ts';
 import { alinearSemilla, dejarRespaldo, ID_SEMILLA, idiomaInicial, instalarSemilla, leerSemilla, RAMA_RESPALDO, tocaRespaldo } from './semilla.ts';
 import { firmaDeEstaCopia, FIRMA, subePagina } from '../../tools/firma.ts';
 
@@ -53,6 +53,30 @@ describe('STL Studio llega como su propio proyecto (pedido pd_stl_semilla)', () 
     expect(etapaArranque(plan, proyecto, true)).toBe('en_marcha');
     // Volver a correrla no toca nada
     expect(await instalarSemilla(raiz)).toBe('ya_hay_proyectos');
+  });
+
+  it('queda en la lista aunque ya se haya entregado otro proyecto, y nunca activo (nmws2gqb0tit: Ubuntu no lo mostraba)', async () => {
+    const raiz = copiaSinGit();
+    const otro = carpetaVacia();
+    mkdirSync(join(otro, '.stl'), { recursive: true });
+    writeFileSync(join(otro, '.stl', 'proyecto.json'), '{}');
+    await guardarRutaRepositorio(raiz, 'aimaria', otro);
+    expect(await instalarSemilla(raiz)).toBe('instalada');
+    expect(await proyectosLocales(raiz)).toEqual(['aimaria', ID_SEMILLA]);
+    const local = await leerLocal(raiz);
+    expect(local.activo ?? null).toBeNull();
+    const esStudio = (id: string) => !!local.repositorios[id] && esElStudio(raiz, local.repositorios[id]);
+    expect(elegirActivo(local, await proyectosLocales(raiz), esStudio)).toBe('aimaria');
+    // Con el Studio solo y nadie que lo eligiera, ninguno activo: la página invita a entregar el primero
+    expect(elegirActivo(local, [ID_SEMILLA], esStudio)).toBeNull();
+    // Elegido, sí
+    expect(elegirActivo({ ...local, activo: ID_SEMILLA }, [ID_SEMILLA], esStudio)).toBe(ID_SEMILLA);
+    expect(await instalarSemilla(raiz)).toBe('ya_hay_proyectos');
+  });
+
+  it('el servidor lo asegura al encender, en cualquier sistema', () => {
+    const api = readFileSync(join(AQUI, 'estudio', 'servidor', 'api.ts'), 'utf8');
+    expect(api).toContain('void instalarSemilla(raiz).catch(() => {});');
   });
 
   it('un clon que ya trae git no se vuelve a iniciar, y una rama stl que ya existe no se pisa', async () => {

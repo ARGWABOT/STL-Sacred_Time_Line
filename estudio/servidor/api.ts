@@ -119,7 +119,7 @@ import { esElStudio, guardarAsistente, guardarCuentaGit, guardarIdioma, guardarR
 import { compararCuenta, cuentaQueApruebaUsar, entradaDeGh, entrarConGh, esCuentaGitHub, loginDeGitHubSinEsperar, seguirCuentaAlEntrar, sesionActivaDeGh, sesionesDeGh, usarSesionDeGh, vigiaDeCuentaGh, type AvisoDelVigia, type LecturaDeGh, type SeguimientoDeCuenta } from '../../src/director/cuentaGit.ts';
 import { abreSolo, ESFUERZO_DEL_ASISTENTE, estadoAlAbrir, estadoAsistenteDe, revisarInstalacion } from '../../src/director/asistente.ts';
 import type { EstadoVoz } from '../../src/director/instalacionVoz.ts';
-import { alinearSemilla } from '../../src/director/semilla.ts';
+import { alinearSemilla, instalarSemilla } from '../../src/director/semilla.ts';
 import { autorizadasPara, autorizadosDelPaso, revisarPedido, valePara } from './permisosNegados.ts';
 import { comprobarPrivado, repoDeGithub, Respaldo } from './respaldo.ts';
 import { guardarSkills, panelDeSkills } from './skillsDelProyecto.ts';
@@ -399,7 +399,11 @@ export function servidorDirector(): Plugin {
   /** Las rutas del Estudio (proyectos/<id>/…) como las ve la memoria del proyecto. */
   const enMemoria = (rutas: string[]) => rutas.map((x) => ubicar(raiz, x)).filter((u) => u.memoria).map((u) => u.ruta);
 
-  const activo = async (): Promise<string | null> => elegirActivo(await leerLocal(raiz), await listarIds());
+  // El del Studio mismo solo si alguien lo eligió: tras instalar, la página invita a entregar el primero (nmws2gqb0tit)
+  const activo = async (): Promise<string | null> => {
+    const l = await leerLocal(raiz);
+    return elegirActivo(l, await listarIds(), (id) => !!l.repositorios[id] && esElStudio(raiz, l.repositorios[id]));
+  };
   // La memoria de cada proyecto se lee en un solo lugar (src/director/memoria.ts), el mismo que usan las herramientas del
   // director. El plan, con lo archivado (director/archivo.json): el Studio lo muestra todo igual, aunque el plan ya no lo cargue
   const leerPlan = (id: string): Promise<Plan> => leerPlanUnido(raiz, id);
@@ -1495,6 +1499,10 @@ export function servidorDirector(): Plugin {
       // El modelo de voz queda cargado mientras el Studio está encendido: las notas de voz no lo cargan cada vez
       // (nmwgu0fmbtit). Se apaga al cerrarse el servidor; si el nuevo ya lo inició, el reinicio lo vuelve a levantar
       iniciarTranscripcionResidente(raiz);
+      // STL Studio en la lista de proyectos, igual en todos los sistemas y por cualquier camino de instalación: npm run
+      // iniciar lo siembra solo si no falta nada (en Ubuntu, sin identidad de git, no lo sembraba), así que el servidor lo
+      // asegura al encender; nunca lo deja activo (semilla.ts › instalarSemilla; nota de voz del titular nmws2gqb0tit)
+      void instalarSemilla(raiz).catch(() => {});
       server.httpServer?.on('close', () => { if (g.__estudioServidor === server) detenerTranscripcionResidente(); });
       // Al reiniciarse, este lanzador queda retirado: vigila al director que lanzó, y lo siguiente lo lanza el nuevo
       server.httpServer?.on('close', () => {
