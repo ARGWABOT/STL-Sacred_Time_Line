@@ -7,7 +7,7 @@ import type { Mision, Nota } from '../../src/director/director';
 import { icono } from './iconos';
 import { conAyuda } from './palabras';
 import { ponerIdioma } from './textos';
-import { parteEntera, secciones, versionEnSuIdioma, vistaDocumentos, type DatosDocumentos } from './vistaDocumentos';
+import { parteEntera, secciones, versionEnSuIdioma, vistaDocumentos, yaLeidosDelMasNuevo, type DatosDocumentos } from './vistaDocumentos';
 
 const mision = { titulo: 'Leer la ruta' } as Mision;
 // El que sigue (a), el que viene después (b), uno ya leído (c) y uno revisado (d)
@@ -90,6 +90,16 @@ describe('«Documentos», aparte de app.ts (pr_partir_modulos)', () => {
     expect(pedidas.map(([clave, , alNacer]) => [clave, alNacer])).toEqual([['columna|Después', false], ['columna|Ya leídos', false], ['columna|otros', false], ['columna|instrucciones', false]]);
     expect(pedidas[0][1]).toEqual(['docs/b.md']);
     expect(pedidas[1][1]).toEqual(['docs/c.md', 'docs/d.md']);
+  });
+
+  it('«Ya leídos» va del más nuevo al más antiguo: lo de una misión abierta arriba y lo sellado después, cada uno al revés de su orden (nmws4vxultit)', () => {
+    const fila = (ruta: string, lectura: string) => ({ ruta, estado: lectura === 'revisado' ? 'revisado' : 'pendiente', mision, lectura });
+    const varios = [fila('docs/a.md', 'siguiente'), fila('docs/l1.md', 'leido'), fila('docs/l2.md', 'leido'), fila('docs/r1.md', 'revisado'), fila('docs/r2.md', 'revisado'), fila('docs/r3.md', 'revisado')] as DatosDocumentos['enRuta'];
+    expect(yaLeidosDelMasNuevo(varios).map((x) => x.ruta)).toEqual(['docs/l2.md', 'docs/l1.md', 'docs/r3.md', 'docs/r2.md', 'docs/r1.md']);
+    const { html, pedidas } = pintando({ enRuta: varios });
+    expect(pedidas.find(([clave]) => clave === 'columna|Ya leídos')?.[1]).toEqual(['docs/l2.md', 'docs/l1.md', 'docs/r3.md', 'docs/r2.md', 'docs/r1.md']);
+    // En la columna, el más reciente de los sellados va antes que el más antiguo
+    expect(html.indexOf('data-doc="docs/r3.md"')).toBeLessThan(html.indexOf('data-doc="docs/r1.md"'));
   });
 
   it('«Otros documentos»: lo curado, los archivos clave, los del proyecto, los del repositorio y las instrucciones para los agentes; lo del Studio, no', () => {

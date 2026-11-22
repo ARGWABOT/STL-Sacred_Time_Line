@@ -119,6 +119,17 @@ export function versionEnSuIdioma(ruta: string, idioma: string, existe: (ruta: s
 
 const ETIQUETA_DOC = { siguiente: 'docs.sigueEste', despues: 'docs.despues', leido: 'docs.leido', revisado: 'docs.revisado' } as const;
 
+/**
+ * Lo ya leído, del más nuevo al más antiguo (nota de voz del titular nmws4vxultit, 22 de noviembre de 2026): arriba lo
+ * leído de una misión aún abierta, que es lo último, y después lo revisado (sellado); cada grupo, al revés del orden de
+ * sus misiones, que es el orden en que se pidieron. Lo de después sigue en el orden de lectura. Pura.
+ */
+export function yaLeidosDelMasNuevo<T extends { lectura: string }>(enRuta: T[]): T[] {
+  const deLaMision = enRuta.filter((x) => x.lectura === 'leido').reverse();
+  const sellados = enRuta.filter((x) => x.lectura === 'revisado').reverse();
+  return [...deLaMision, ...sellados];
+}
+
 export function vistaDocumentos(datos: DatosDocumentos) {
   const { curados, doc, enRuta, persona, plegable, plegableEnColumna, tituloDoc, tarjetaNota, enParte, leidasDe, reabierta, volverAMisionDe } = datos;
   const propia = persona === datos.yo;
@@ -184,7 +195,7 @@ export function vistaDocumentos(datos: DatosDocumentos) {
     : '';
   // Lo de después y lo ya leído, siempre en su parte plegable: plegadas mientras hay algo por leer, abiertas al nacer si no
   const ordenLectura = !enRuta.length ? `<p class="intro">${t('docs.sinDocumentos')}</p>`
-    : propia ? `${enRuta.filter((x) => x.lectura === 'siguiente').map(tarjeta).join('')}${plegado('despues', enRuta.filter((x) => x.lectura === 'despues'), !leyendo)}${plegado('leidos', enRuta.filter((x) => x.lectura === 'leido' || x.lectura === 'revisado'), !leyendo)}`
+    : propia ? `${enRuta.filter((x) => x.lectura === 'siguiente').map(tarjeta).join('')}${plegado('despues', enRuta.filter((x) => x.lectura === 'despues'), !leyendo)}${plegado('leidos', yaLeidosDelMasNuevo(enRuta), !leyendo)}`
     : enRuta.map(tarjeta).join('');
   // Solo los documentos del proyecto: los del Studio (su método, su diseño) no se mezclan con ellos
   const lista = `<aside class="lista-docs" id="lista-docs">
