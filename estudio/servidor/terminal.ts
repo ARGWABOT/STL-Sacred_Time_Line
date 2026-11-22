@@ -105,7 +105,7 @@ function lanzar(programa: string, args: string[]): Promise<void> {
 }
 
 /** Espera a que exista la marca que escribe el guion en su primera línea; true si apareció antes del plazo. */
-export async function esperarMarca(marca: string, plazoMs = 6000, cadaMs = 150): Promise<boolean> {
+export async function esperarMarca(marca: string, plazoMs = 15000, cadaMs = 150): Promise<boolean> {
   const fin = Date.now() + plazoMs;
   for (;;) {
     if (existsSync(marca)) return true;
@@ -121,7 +121,9 @@ let cuantas = 0;
  * al empezar. Sin marca a tiempo, dice que no se abrió (que la página lo vuelva a pedir o muestre «copia la orden»). Si no se
  * puede, dice por qué (para mostrarlo tal cual). Cada apertura usa guion y marca propios (nombres que no se repiten).
  */
-export async function abrirTerminal(orden: string, carpeta: string, plazoMs = 6000): Promise<{ ok: true } | { ok: false; error: string }> {
+// 15 s, no 6: un bash --login de Git Bash recién instalado prepara su carpeta la primera vez y tarda; con un plazo corto, la
+// ventana que sí se abría se daba por perdida y el reintento abría otra, que corría la misma orden dos veces
+export async function abrirTerminal(orden: string, carpeta: string, plazoMs = 15000): Promise<{ ok: true } | { ok: false; error: string }> {
   const id = `${Date.now()}-${process.pid}-${++cuantas}`;
   const guion = join(tmpdir(), `stl-orden-${id}${process.platform === 'darwin' ? '.command' : '.sh'}`);
   const marca = join(tmpdir(), `stl-orden-${id}.abierta`);
