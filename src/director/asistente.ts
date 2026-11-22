@@ -39,19 +39,19 @@ export interface EstadoAsistente {
 export interface EquipoDelAsistente {
   /** Los proyectos de este computador que no son el mismo Studio: STL Studio, que llega con la semilla, no cuenta. */
   proyectosPropios: number;
-  modeloElegido: string | null;
   estado?: EstadoAsistente;
 }
 
 /**
- * Se abre solo si este computador no tiene ningún proyecto propio ni modelo elegido (t_decide_asistente_tu_copia), o si
- * quedó a mitad: quien lo cerró vuelve donde quedó, aunque ya haya elegido el modelo. Terminado, no vuelve: se ve con
- * «Repasar la instalación».
+ * Se abre solo si este computador no tiene ningún proyecto propio (t_decide_asistente_tu_copia), o si quedó a mitad:
+ * quien lo cerró vuelve donde quedó. Terminado, no vuelve: se ve con «Repasar la instalación». Un modelo ya elegido en
+ * Claude Code no lo salta: quien ya usa Claude Code instala igual la transcripción y las voces antes de entregar su
+ * primer proyecto (nota urgente nmwr3amdptit: en Ubuntu, el Studio llevó directo a entregar sin instalarlas).
  */
-export function abreSolo({ proyectosPropios, modeloElegido, estado }: EquipoDelAsistente): boolean {
+export function abreSolo({ proyectosPropios, estado }: EquipoDelAsistente): boolean {
   if (estado?.terminado) return false;
   if (estado) return true;
-  return proyectosPropios === 0 && !modeloElegido;
+  return proyectosPropios === 0;
 }
 
 /** El esfuerzo que deja el asistente: alto, con cualquier plan (decisión del 30 de octubre de 2026). */

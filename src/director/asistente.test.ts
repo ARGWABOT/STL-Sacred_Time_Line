@@ -6,19 +6,24 @@ import {
 import { permitido } from '../../estudio/servidor/revisor';
 
 describe('cuándo se abre solo (t_decide_asistente_tu_copia)', () => {
-  it('sin proyecto propio y sin modelo elegido, sí', () => {
-    expect(abreSolo({ proyectosPropios: 0, modeloElegido: null })).toBe(true);
+  it('sin proyecto propio, sí', () => {
+    expect(abreSolo({ proyectosPropios: 0 })).toBe(true);
   });
 
   it('a quien ya tiene su Studio configurado, no', () => {
-    expect(abreSolo({ proyectosPropios: 1, modeloElegido: null })).toBe(false);
-    expect(abreSolo({ proyectosPropios: 0, modeloElegido: 'claude-opus-5-5' })).toBe(false);
-    expect(abreSolo({ proyectosPropios: 3, modeloElegido: 'claude-opus-5-5' })).toBe(false);
+    expect(abreSolo({ proyectosPropios: 1 })).toBe(false);
+    expect(abreSolo({ proyectosPropios: 3 })).toBe(false);
   });
 
-  it('quien lo cerró a mitad vuelve aunque ya haya elegido el modelo; terminado, nunca más solo', () => {
-    expect(abreSolo({ proyectosPropios: 0, modeloElegido: 'claude-sonnet-5-5', estado: { paso: 'lista' } })).toBe(true);
-    expect(abreSolo({ proyectosPropios: 0, modeloElegido: null, estado: { paso: 'lista', terminado: '2026-11-01T00:00:00Z' } })).toBe(false);
+  it('quien ya usa Claude Code con un modelo elegido lo ve igual: no se salta la instalación (nmwr3amdptit)', () => {
+    // El modelo de Claude Code ya no cuenta: el asistente es el único camino a la transcripción y las voces
+    const conModeloEnClaudeCode = { proyectosPropios: 0, modeloElegido: 'claude-opus-5-5' };
+    expect(abreSolo(conModeloEnClaudeCode)).toBe(true);
+  });
+
+  it('quien lo cerró a mitad vuelve; terminado, nunca más solo', () => {
+    expect(abreSolo({ proyectosPropios: 0, estado: { paso: 'lista' } })).toBe(true);
+    expect(abreSolo({ proyectosPropios: 0, estado: { paso: 'lista', terminado: '2026-11-01T00:00:00Z' } })).toBe(false);
   });
 });
 
@@ -69,7 +74,7 @@ describe('los pasos y lo que se recuerda', () => {
     expect(estadoAsistenteDe({ paso: 'voz', prueba: 'quizas' })).toEqual({ paso: 'voz' });
     // Lo que se guardó cuando las voces eran opcionales no vale: ahora son obligatorias (nmvzfmvr2tit)
     expect(estadoAsistenteDe({ paso: 'voz', voces: false, sinVoz: true })).toEqual({ paso: 'voz' });
-    expect(abreSolo({ proyectosPropios: 0, modeloElegido: 'claude-opus-5-5', estado: { paso: 'voz' } })).toBe(true);
+    expect(abreSolo({ proyectosPropios: 0, estado: { paso: 'voz' } })).toBe(true);
   });
 
   it('«Dejar todo como viene» acepta lo marcado y lleva a la lista; respeta lo que ya se eligió', () => {

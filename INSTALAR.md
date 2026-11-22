@@ -71,7 +71,12 @@ porque la documentación del SDK de agentes de Anthropic no deja que un producto
    http://localhost:5180/. No uses `npm run estudio` en tu terminal: muere con ella.
 3. Dile al usuario, corto, lo que sigue:
    - el Studio está en **http://localhost:5180/** (guárdala en favoritos): de aquí en adelante todo pasa ahí;
-   - lo primero, **Entregar proyectos**: elige la carpeta de un proyecto y listo;
+   - lo primero, el **asistente de instalación**, que se abre solo a pantalla completa al cargar el Studio: comprueba
+     la sesión de Claude Code, deja el modelo, instala y prueba la transcripción de las notas de voz y baja las voces
+     que leen en voz alta. Es el único camino para esas piezas: no las instales tú ni lo saltes, y que el usuario lo
+     termine antes de entregar su primer proyecto (sin él, el Studio no le entiende lo que graba). Si no se abre solo,
+     llévalo a «Modelo y consumo» › «Repasar la instalación»;
+   - al terminarlo, **Entregar proyectos**: elige la carpeta de un proyecto y listo;
    - si algún día el Studio no abre (por ejemplo, después de reiniciar el computador), basta `npm run encender` en
      esta carpeta, o pedírselo a su agente; en Windows, sin terminal, doble clic en `Abrir STL Studio.cmd` (puede
      mandarlo al escritorio: clic derecho › Enviar a › Escritorio);

@@ -2053,13 +2053,13 @@ export function servidorDirector(): Plugin {
             return responder(res, 200, { planDeClaude: plan });
           }
           // El asistente de instalación (pd_valores_instalar; src/director/asistente.ts): si se abre solo, donde quedó y lo que
-          // hay hoy. Con un modelo ya elegido no hace falta contar los proyectos: no se abre
+          // hay hoy. Un modelo ya elegido en Claude Code no lo salta (nmwr3amdptit): solo un proyecto propio o haberlo terminado
           if (ruta === '/asistente' && req.method === 'GET') {
             const l = await leerLocal(raiz);
             const { modelo } = await leerAjustesClaude();
-            const proyectosPropios = l.asistente || modelo ? 0 : (await resumenProyectos()).filter((p) => !p.esElStudio).length;
+            const proyectosPropios = l.asistente ? 0 : (await resumenProyectos()).filter((p) => !p.esElStudio).length;
             return responder(res, 200, {
-              abre: abreSolo({ proyectosPropios, modeloElegido: modelo, estado: l.asistente }),
+              abre: abreSolo({ proyectosPropios, estado: l.asistente }),
               estado: l.asistente ?? null,
               plan: l.asistente?.plan ?? l.planDeClaude ?? null,
               modelo,
