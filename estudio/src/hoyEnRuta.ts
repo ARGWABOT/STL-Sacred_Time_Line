@@ -157,6 +157,28 @@ export function tarjetaPuntoHtml(x: TarjetaDePunto): string {
   return `<section class="tarjeta-punto panel-d" data-tarjeta-punto="${esc(x.id)}" aria-label="${esc(x.titulo)}"><p class="que">${esc(x.que)}</p><h3>${esc(x.titulo)}</h3>${partes ? `<dl>${partes}</dl>` : ''}<div class="botones">${x.botones ?? ''}<button type="button" class="boton-suave" data-punto-cerrar>${esc(t('hoyRuta.volver'))}</button></div></section>`;
 }
 
+/**
+ * El punto cuya tarjeta sigue abierta debajo de la línea (nota nmws6y66rtit): el elegido queda mientras siga en la línea;
+ * si estuvo en ella (`visto`) y ya salió (una propuesta descartada o ejecutada, una misión revisada), su tarjeta se cierra.
+ * Lo que un paso abrió sin estar en la línea sigue abierto hasta «Volver a mi misión». Pura.
+ */
+export function puntoAunAbierto(elegido: string | null, visto: string | null, enLinea: readonly string[]): { elegido: string | null; visto: string | null } {
+  if (!elegido) return { elegido: null, visto: null };
+  if (enLinea.includes(elegido)) return { elegido, visto: elegido };
+  return visto === elegido ? { elegido: null, visto: null } : { elegido, visto };
+}
+
+/**
+ * Lo que queda enfocado al pintar (nota nmws6y66rtit, con la regla dura nmws6n457tit): si lo enfocable cambió, el enfoque
+ * sigue ahí solo si la persona lo quiere; y con la tarjeta de un punto abierta en «Hoy», la misión no se enfoca (el velo la
+ * taparía), pero sigue siendo lo enfocable: al cerrarse la tarjeta, el enfoque vuelve si la persona lo tenía. Pura.
+ */
+export function enfoqueAlPintar(o: { aqui: string; antes: string; querido: boolean; alAbrir: boolean; tarjetaAbierta: boolean }): string {
+  const tapada = o.tarjetaAbierta && o.aqui.startsWith('mision-');
+  if (o.antes === o.aqui && !tapada) return o.antes;
+  return o.querido && !tapada && (o.aqui !== 'documento' || o.alAbrir) ? o.aqui : '';
+}
+
 /** Los pasos de la línea corta, antes de fijar la meta (linea.ts › lineaSinMeta), como puntos tuyos: el primero es el de ahora. */
 export function puntosSinMeta(pasos: readonly ('diagnostico' | 'meta')[]): PuntoEnHoy[] {
   return pasos.map((p, i) => ({ id: `sin-meta-${p}`, tipo: p, color: 'persona', titulo: t(p === 'diagnostico' ? 'hoyRuta.leerDiagnostico' : 'hoyRuta.fijarMeta'), actual: i === 0 }));

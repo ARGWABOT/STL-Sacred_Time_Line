@@ -196,7 +196,7 @@ import { conAyuda } from './palabras';   // también registra el oyente del «?�
 import { aLaVista, debeOfrecerse, empezarGuia, guiaActiva, instalarAyuda, modoAyuda, pintarAtajoAyuda, pintarGuia, repetirHtml, SECCIONES, seccionDeVista } from './ayudaGuiada';
 import { textoDelPaso } from './stepText';
 import { vistaHoy, type DatosHoy } from './todayView';
-import { BANDERA, dondeEnLinea, lineaHoyHtml, medidaDelGlobo, puntosSinMeta, tarjetaPuntoHtml, vistaHoyEnRuta } from './hoyEnRuta';
+import { BANDERA, dondeEnLinea, enfoqueAlPintar, lineaHoyHtml, medidaDelGlobo, puntoAunAbierto, puntosSinMeta, tarjetaPuntoHtml, vistaHoyEnRuta } from './hoyEnRuta';
 import { hechosDeLaTanda, lineaDeHoy, lineaSinMeta, puntosDeLaLinea } from '../../src/director/linea';
 import { metaCambiada } from '../../src/director/procedimientos';
 import { enunciadoDeMision, tarjetaMision as tarjetaDeMision, type DatosTarjeta } from './missionCard';
@@ -4788,6 +4788,8 @@ function vistaMisiones() {
 let lineaAbierta = false;
 /** El punto cuya tarjeta está abierta debajo de la línea (null: ninguno) y si se cerró la de la bandera, que se abre sola. */
 let puntoElegido: string | null = null;
+/** El elegido, si ya se vio en la línea: cuando sale de ella, su tarjeta se cierra (hoyEnRuta.ts › puntoAunAbierto). */
+let puntoVisto: string | null = null;
 let banderaCerrada = false;
 /**
  * La línea hacia la meta, arriba de «Hoy» y de «Datos del proceso» (hoyEnRuta.ts › lineaHoyHtml; pd_una_sola_linea, segunda
@@ -4801,6 +4803,9 @@ function lineaEnHoy(): string {
   if (!meta) return lineaHoyHtml({ puntos: puntosSinMeta(lineaSinMeta({ diagnosticoLeido: !!d.plan.diagnostico.fecha && !!d.plan.objetivos?.length })), plegados: 0, quedan: 0, meta: null });
   const persona = d.identidad.rol ?? TITULAR;
   const l = lineaDeHoy(puntosDeLaLinea(d.plan, d.estado), { persona, abierta: lineaAbierta, hechos: hechosDeLaTanda(d.plan, d.estado, persona) });
+  // Un punto que salió de la línea (descartado, ejecutado, revisado) ya no deja su tarjeta abierta (nmws6y66rtit)
+  const enLinea = [...l.hechos, ...puntosDeLaLinea(d.plan, d.estado)].map((p) => p.id);
+  ({ elegido: puntoElegido, visto: puntoVisto } = puntoAunAbierto(puntoElegido, puntoVisto, enLinea));
   const elegido = puntoElegido ?? (l.quedan === 0 && !banderaCerrada ? BANDERA : null);
   const puntos = [...l.hechos, ...l.visibles].map((p) => ({ id: p.id, tipo: p.tipo, color: p.color, final: p.final, hecho: p.hecho, actual: p.id === l.actual, ...contenidoDelPunto(p.id, p.tipo) }));
   return lineaHoyHtml({ puntos, plegados: l.plegados, quedan: l.quedan, meta, abierta: lineaAbierta, elegido }) + (elegido ? tarjetaDelPunto(elegido, l.quedan) : '');
@@ -5500,12 +5505,17 @@ let enfoqueQuerido = false;
 let enfoqueAlAbrir = true;
 /**
  * Lo que se puede enfocar aquí, con la misma forma: así, si la misión enfocada deja de ser la de ahora, ya no coincide.
- * Regla dura (nota urgente del titular nmws6n457tit): con la tarjeta de un punto de la línea abierta en «Hoy» (una
- * propuesta a la que lleva el botón de un paso, «Open the proposal»), la misión no se enfoca: el velo taparía la tarjeta
- * y el botón parecería no hacer nada. Al cerrarla («Volver a mi misión»), el enfoque vuelve solo si la persona lo tenía.
+ * La misión de ahora sigue siendo lo enfocable aunque la tarjeta de un punto esté abierta: el botón del enfoque no
+ * desaparece (nota nmws6y66rtit: con un punto elegido que nunca se soltaba, el enfoque dejó de existir en «Hoy»).
  */
 const queEnfocar = () =>
-  vista === 'documentos' && doc ? 'documento' : (vista === 'misiones' && !puntoElegido && $('vista').querySelector<HTMLElement>('.mision-c.sigue.mia')?.dataset.ancla) || '';
+  vista === 'documentos' && doc ? 'documento' : (vista === 'misiones' && $('vista').querySelector<HTMLElement>('.mision-c.sigue.mia')?.dataset.ancla) || '';
+/**
+ * Regla dura (nota urgente del titular nmws6n457tit): con la tarjeta de un punto de verdad abierta debajo de la línea de
+ * «Hoy» (una propuesta a la que lleva el botón de un paso, «Open the proposal»), la misión no se enfoca: el velo taparía
+ * la tarjeta y el botón parecería no hacer nada. Al cerrarla, el enfoque vuelve solo si la persona lo tenía.
+ */
+const tarjetaDePuntoAbierta = () => vista === 'misiones' && !!$('vista').querySelector('[data-tarjeta-punto]');
 const etiquetaEnfoque = (si: boolean) => tx(si ? 'enfoque.salir' : 'enfoque.modo');
 const tituloEnfoque = (si: boolean, aqui: string) =>
   tx(si ? 'enfoque.tituloSalir' : aqui === 'documento' ? 'enfoque.tituloIdea' : 'enfoque.tituloMision');
@@ -5517,8 +5527,10 @@ let saliendo: ReturnType<typeof setTimeout> | undefined;
 function aplicarEnfoque() {
   const aqui = queEnfocar();
   const antes = enfoque;
-  // Lo enfocado cambió de lugar (se navegó): si la persona trabaja enfocada y aquí aplica, sigue enfocada aquí
-  if (enfoque !== aqui) enfoque = enfoqueQuerido && (aqui !== 'documento' || enfoqueAlAbrir) ? aqui : '';
+  const tapada = aqui.startsWith('mision-') && tarjetaDePuntoAbierta();
+  // Lo enfocado cambió de lugar (se navegó): si la persona trabaja enfocada y aquí aplica, sigue enfocada aquí; con la
+  // tarjeta de un punto abierta en «Hoy», no hasta que se cierre (hoyEnRuta.ts › enfoqueAlPintar)
+  enfoque = enfoqueAlPintar({ aqui, antes, querido: enfoqueQuerido, alAbrir: enfoqueAlAbrir, tarjetaAbierta: tapada });
   // Nunca una ventana vacía: un documento sin nada por leer no tiene idea que enfocar, y el enfoque se apaga
   if (enfoque === 'documento' && nadaPorLeer()) enfoque = '';
   const html = document.documentElement;
@@ -5539,7 +5551,8 @@ function aplicarEnfoque() {
   for (const b of document.querySelectorAll<HTMLButtonElement>('[data-enfoque]')) {
     b.hidden = b.classList.contains('salida-enfoque') ? !si : !aqui;
     // En «Hoy», sin el enfoque puesto, el botón central lo oprime: abre tu misión de ahora en modo enfoque (siguiente.ts › ENFOCAR_EN_HOY)
-    b.toggleAttribute('data-central-enfoque', !si && aqui.startsWith('mision-') && !b.classList.contains('salida-enfoque'));
+    // (con la tarjeta de un punto abierta, no: el botón central no la cierra por su cuenta)
+    b.toggleAttribute('data-central-enfoque', !si && !tapada && aqui.startsWith('mision-') && !b.classList.contains('salida-enfoque'));
     b.setAttribute('aria-pressed', String(si));
     b.title = tituloEnfoque(si, aqui);
     if (b.classList.contains('atajo')) {
@@ -5644,6 +5657,11 @@ function ponerEnfoque(si: boolean) {
 function quererEnfoque(si: boolean) {
   enfoqueQuerido = si;
   enfoqueAlAbrir = true;
+  // Pedir el enfoque con la tarjeta de un punto abierta es volver a tu misión: la tarjeta se cierra y la misión se enfoca
+  if (si && tarjetaDePuntoAbierta()) {
+    puntoElegido = null;
+    pintar();
+  }
   ponerEnfoque(si);
 }
 /** Lleva al centro de la pantalla la idea que toca leer (en el modo enfoque, o al marcar la anterior). */
@@ -6898,6 +6916,8 @@ function irA(nueva: Vista) {
     nueva = 'misiones';
   }
   const otra = nueva !== vista;
+  // Al salir de «Hoy», la tarjeta del punto elegido se cierra: de vuelta, tu misión se ve (y se enfoca) sin ella (nmws6y66rtit)
+  if (otra && vista === 'misiones') puntoElegido = puntoVisto = null;
   // «Filtrar» los permisos se vacía al salir de «Modelo y consumo» (nmwk5n39ntit)
   if (otra && vista === 'modelo') filtroPermisos = '';
   vista = nueva;

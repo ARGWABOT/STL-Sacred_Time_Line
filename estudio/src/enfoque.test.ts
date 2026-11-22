@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { enfoqueAlPintar } from './hoyEnRuta';
 import { icono } from './iconos';
 import { lugarDeLaSalida, SALIDA_ARRIBA, SALIDA_DERECHA } from './escala';
 
@@ -175,7 +176,16 @@ describe('el modo enfoque (notas del titular, 22 de octubre de 2026)', () => {
     expect(director).toContain("if (modo === 'enfoque' && vista === 'documentos' && doc?.ruta === paso.ir.doc) quererEnfoque(true);");
     // Al cambiar de lugar, sigue enfocado donde aplica; un documento abierto en una parte ya leída, no
     const aplicar = director.match(/function aplicarEnfoque\(\) \{[\s\S]*?\n\}/)?.[0] ?? '';
-    expect(aplicar).toContain("if (enfoque !== aqui) enfoque = enfoqueQuerido && (aqui !== 'documento' || enfoqueAlAbrir) ? aqui : '';");
+    // (hoyEnRuta.ts › enfoqueAlPintar, que además no tapa la tarjeta de un punto abierta en «Hoy»: nmws6y66rtit)
+    expect(aplicar).toContain('enfoque = enfoqueAlPintar({ aqui, antes, querido: enfoqueQuerido, alAbrir: enfoqueAlAbrir, tarjetaAbierta: tapada });');
+    const nav = { querido: true, alAbrir: true, tarjetaAbierta: false };
+    expect(enfoqueAlPintar({ ...nav, aqui: 'documento', antes: 'mision-t_a' })).toBe('documento');
+    expect(enfoqueAlPintar({ ...nav, aqui: 'documento', antes: 'mision-t_a', alAbrir: false })).toBe('');
+    expect(enfoqueAlPintar({ ...nav, aqui: 'mision-t_a', antes: 'documento' })).toBe('mision-t_a');
+    expect(enfoqueAlPintar({ ...nav, aqui: 'mision-t_a', antes: 'documento', querido: false })).toBe('');
+    expect(enfoqueAlPintar({ ...nav, aqui: '', antes: 'mision-t_a' })).toBe('');
+    // Lo que no cambió de lugar queda como está (puesto a mano, aunque el querido no lo diga)
+    expect(enfoqueAlPintar({ ...nav, aqui: 'mision-t_a', antes: 'mision-t_a', querido: false })).toBe('mision-t_a');
     expect(aplicar).toContain("if (enfoque === 'documento' && antes !== 'documento') requestAnimationFrame(() => centrarIdea());");
     expect(director).toContain('enfoqueAlAbrir = !seccion || !leidasDe(ruta).includes(seccion);');
     // La cara ya no pregunta si salir del enfoque: lleva, y el enfoque sigue donde aplica
