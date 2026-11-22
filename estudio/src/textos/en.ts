@@ -2744,6 +2744,10 @@ export const en: Record<keyof typeof es, Texto> = {
   'explorador.elijaPunto': 'Pick a starting point above.',
   'explorador.elegirRepo': 'Choose this repository',
   'explorador.elegirCarpeta': 'Choose this folder',
+  'explorador.tituloSistema': 'Choose the project folder',
+  'explorador.ventanaAbierta': 'A folder window opened on your computer. If you do not see it, it may be behind the browser.',
+  'explorador.usarExplorador': "Use the Studio's explorer",
+  'explorador.sinDialogo': "Your system has no folder window (zenity or kdialog), so this is the Studio's explorer.",
 
   // Quién eres en el Estudio y el director asistente (equipo.ts)
   'equipo.elTitular': 'The owner',
@@ -3249,6 +3253,9 @@ export const en: Record<keyof typeof es, Texto> = {
   'bitacora.escaneaLugares': 'the places {lugares}',
   'bitacora.yJunto': ' and',
   'bitacora.desde.escanear': '«Scan», in «Scan this computer», when handing over projects',
+  'bitacora.dialogoElige': "chooses the folder {ruta} in the system's folder window",
+  'bitacora.dialogoSinElegir': "opens the system's folder window and chooses nothing there",
+  'bitacora.desde.explorar': '«Browse…», next to a folder field',
   'bitacora.eligeModelo': 'chooses the {modelo} model for the director and new Claude Code sessions',
   'bitacora.vuelveModelo': 'goes back to the model of their Claude account',
   'bitacora.desde.modelo': '«Model», in «Model & usage»',

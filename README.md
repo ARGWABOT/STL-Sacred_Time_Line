@@ -60,6 +60,8 @@ The Studio keeps running even if you close the terminal or the agent, and if its
 3. In Project › «The goal», change what you want in one of the two and press **«Confirm the goal and draw the route»**: it requests the review that draws the roadmap.
 4. Your first mission is a short reading of the diagnosis; if the project lacks something to keep developing it (its GitHub account or repository, your git identity), the next ones complete it, one short mission each; the work missions follow. There is one permission mode, with nothing to choose: the director does by itself what is safe and, for anything else, pauses the review and asks you with a banner until you answer. From there, the cycle: mission → mark its steps (the last one delivers it) → request review.
 
+Every «Browse…» of the Studio opens your system's own folder window: File Explorer on Windows, the Finder on macOS, and zenity or kdialog on Linux. It starts in the folder already written in the field; if there is none, beside your last project; and otherwise in your home folder. While it is open, the form says it may be behind the browser and offers «Use the Studio's explorer». A Linux without zenity or kdialog opens the Studio's explorer instead, and says why only the first time.
+
 The first time, your Studio already comes with one project, **STL Studio**, fixed at the end of the list: it is your own Studio, with its diagnosis done, and you do not have to change anything. To adjust it to your way of working, select it and ask the director in the Inbox. Before each review of that project a local backup branch is left; if an adjustment leaves you without a Studio, go back to it from its folder:
 
 ```bash

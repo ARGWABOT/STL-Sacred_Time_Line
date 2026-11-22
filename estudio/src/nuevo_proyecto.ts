@@ -587,7 +587,7 @@ export function pedirProyectoNuevo(dictar?: Dictar, entregar?: EntregarAlServido
       else if (b.dataset.explorar !== undefined) {
         const caja = b.closest('label') ?? dlg;
         const campo = caja.querySelector<HTMLInputElement>('input[name="ruta"]')!;
-        const elegida = await elegirCarpeta(campo.value);
+        const elegida = await elegirCarpeta(campo.value, b);
         if (!elegida) return;
         campo.value = elegida;
       }

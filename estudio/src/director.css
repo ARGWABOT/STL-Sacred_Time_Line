@@ -1896,6 +1896,9 @@ details.explica-buzon[open] > summary { margin-bottom: 8px; color: var(--texto);
 .con-explorar { display: flex; gap: 6px; }
 .con-explorar input { flex: 1; min-width: 0; }
 .con-explorar button, .fila-form button[data-explorar-repo] { white-space: nowrap; }
+/* While the system's folder window is open (p_explorador_nativo): the line under «Browse…», with its way out */
+.espera-dialogo { margin: 6px 0 0; font-size: 13px; }
+.explorador .aviso-sin-dialogo { margin: 0 0 8px; font-size: 13px; }
 .explorador { width: min(700px, calc(100 * var(--vw) - 32px)); }
 .explorador .inicios-e { display: flex; flex-wrap: wrap; gap: 6px; }
 .explorador .inicios-e button { min-height: 32px; font-size: 13px; padding: 4px 12px; border-radius: 999px; }

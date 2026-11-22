@@ -60,6 +60,8 @@ El Studio queda corriendo aunque cierres la terminal o el agente, y si su servid
 3. En Proyecto › «La meta», cambia lo que quieras de una de las dos y oprime **«Confirmar la meta y trazar la ruta»**: pide la revisión que traza la ruta.
 4. Tu primera misión es una lectura corta del diagnóstico; si al proyecto le falta algo para seguir desarrollándolo (su cuenta de GitHub o su repositorio, tu identidad de git), las que siguen lo completan, una corta cada una; después siguen las de trabajo. Hay un solo modo de permisos, sin nada que elegir: el director hace solo lo seguro y, para todo lo demás, pausa la revisión y te pregunta con un aviso hasta que respondas. Desde ahí, el ciclo: misión → marcar sus pasos (el último la entrega) → pedir revisión.
 
+Cada «Explorar…» del Studio abre la ventana de carpetas de tu sistema: el Explorador de archivos en Windows, el Finder en macOS, y zenity o kdialog en Linux. Empieza en la carpeta que ya está escrita en el campo; si no hay, junto a tu último proyecto; y si no, en tu carpeta personal. Mientras está abierta, el formulario dice que puede estar detrás del navegador y ofrece «Usar el explorador del Studio». Un Linux sin zenity ni kdialog abre el explorador del Studio, y dice por qué solo la primera vez.
+
 La primera vez, tu Studio ya llega con un proyecto, **STL Studio**, fijo al final de la lista: es tu propio Studio, con su diagnóstico hecho, y no tienes que cambiar nada. Para ajustarlo a tu forma de trabajar, selecciónalo y pídeselo al director en el Buzón. Antes de cada revisión de ese proyecto queda una rama de respaldo local; si un ajuste te deja sin Studio, vuelve a ella desde su carpeta:
 
 ```bash

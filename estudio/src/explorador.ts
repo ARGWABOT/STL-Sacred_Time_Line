@@ -7,7 +7,61 @@ import { esc } from './util';
 interface Carpeta { nombre: string; ruta: string; git: boolean }
 interface Listado { ruta: string | null; padre: string | null; git: boolean; carpetas: Carpeta[]; inicios: Carpeta[] }
 
-export function elegirCarpeta(inicial = ''): Promise<string | null> {
+/** What the server answers about the system's folder dialog (estudio/servidor/dialogoCarpeta.ts). */
+export type RespuestaDialogo = { estado: 'elegida'; ruta: string } | { estado: 'cancelada' } | { estado: 'sinDialogo'; avisar: boolean } | { estado: 'fallo'; error?: string };
+
+/**
+ * What «Browse…» does after the system's dialog (p_explorador_nativo): the chosen folder; nothing, if it was cancelled;
+ * or the Studio's explorer, when the person asked for it, when this computer has no dialog (with its one-line notice
+ * only the first time, nmws7mgxstit) or when the dialog could not open.
+ */
+export function trasElDialogo(r: RespuestaDialogo | { estado: 'explorador' }): { ruta: string } | null | { explorador: true; aviso: boolean } {
+  if (r.estado === 'elegida') return { ruta: r.ruta };
+  if (r.estado === 'cancelada') return null;
+  return { explorador: true, aviso: r.estado === 'sinDialogo' && r.avisar };
+}
+
+/**
+ * Every «Browse…» of the Studio comes here, the same way (nmws7la92tit): first the system's own folder dialog, opened
+ * by the local server; while it is open, a line after the button says it may be behind the browser and offers «Use the
+ * Studio's explorer», which cancels the request (and the server ends the dialog's process).
+ */
+export async function elegirCarpeta(inicial: string, boton: HTMLElement): Promise<string | null> {
+  const siguiente = trasElDialogo(await delSistema(inicial, boton));
+  if (!siguiente) return null;
+  if ('ruta' in siguiente) return siguiente.ruta;
+  return explorarEnElStudio(inicial, siguiente.aviso);
+}
+
+async function delSistema(inicial: string, boton: HTMLElement): Promise<RespuestaDialogo | { estado: 'explorador' }> {
+  const corte = new AbortController();
+  let pidioExplorador = false;
+  const linea = document.createElement('p');
+  linea.className = 'espera-dialogo';
+  linea.setAttribute('role', 'status');
+  linea.innerHTML = `${t('explorador.ventanaAbierta')} <button type="button" class="enlace" data-usar-explorador>${t('explorador.usarExplorador')}</button>`;
+  linea.querySelector('button')!.addEventListener('click', () => {
+    pidioExplorador = true;
+    corte.abort();
+  });
+  (boton.closest('label') ?? boton.closest('.fila-form') ?? boton).after(linea);
+  const b = boton as HTMLButtonElement;
+  const estaba = b.disabled;
+  b.disabled = true;
+  try {
+    const r = await fetch('/__estudio/director/dialogo-carpeta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ campo: inicial, titulo: t('explorador.tituloSistema') }), signal: corte.signal });
+    if (!r.ok) return { estado: 'fallo' };
+    return (await r.json()) as RespuestaDialogo;
+  } catch {
+    return pidioExplorador ? { estado: 'explorador' } : { estado: 'fallo' };
+  } finally {
+    linea.remove();
+    b.disabled = estaba;
+  }
+}
+
+/** The Studio's own explorer, the fallback. `aviso`: the one-line notice that this computer has no folder window. */
+function explorarEnElStudio(inicial = '', aviso = false): Promise<string | null> {
   const dlg = document.createElement('dialog');
   dlg.className = 'dialogo-director explorador';
   document.body.append(dlg);
@@ -44,6 +98,7 @@ export function elegirCarpeta(inicial = ''): Promise<string | null> {
       const repos = a.carpetas.filter((c) => c.git).length;
       dlg.innerHTML = `<form method="dialog">
         <h2>${t('explorador.titulo')}</h2>
+        ${aviso ? `<p class="aviso-sin-dialogo" role="note">${t('explorador.sinDialogo')}</p>` : ''}
         <p>${t('explorador.intro')}</p>
         <div class="inicios-e">${a.inicios.map((i) => `<button type="button" data-abrir="${esc(i.ruta)}" title="${esc(i.ruta)}">${esc(i.nombre)}</button>`).join('')}</div>
         <div class="ruta-e">

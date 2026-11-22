@@ -26,6 +26,7 @@ import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { leerTengo, partirConsulta } from '../../src/director/partesDeConsulta.ts';
 import { candadosDelAtajo, direccionDeLaPuerta, esDispositivoQa, esPeticionLocal, INTERRUPTOR_PUERTA } from '../../src/director/atajo.ts';
 import { cabecerasEnLocal, respondeEnLocal } from './acceso.ts';
+import { dialogoDeCarpeta } from './dialogoCarpeta.ts';
 import { correccionDeParte } from '../../src/director/dosIdiomas.ts';
 import { CABECERAS_QA, esPaginaDelStudio, EVENTO_NOTA_QA, marcaSinCache, notaDeQa, paginaQa, rehusaElMarco, TAMANOS_QA, type DirectorQa } from '../src/qa.ts';
 import { homedir } from 'node:os';
@@ -1903,6 +1904,25 @@ export function servidorDirector(): Plugin {
             } catch (e) {
               return responder(res, 400, { error: (e as Error).message });
             }
+          }
+          // «Browse…» opens the system's own folder dialog (p_explorador_nativo, dialogoCarpeta.ts). If the page cancels
+          // the request («Use the Studio's explorer») or leaves, the process ends and its window closes
+          if (ruta === '/dialogo-carpeta' && req.method === 'POST') {
+            const cuerpo = await leerCuerpo(req);
+            const corte = new AbortController();
+            res.on('close', () => {
+              if (!res.writableFinished) corte.abort();
+            });
+            const resultado = await dialogoDeCarpeta({
+              raiz,
+              campo: typeof cuerpo.campo === 'string' ? cuerpo.campo.slice(0, 1000) : '',
+              titulo: typeof cuerpo.titulo === 'string' ? cuerpo.titulo.slice(0, 120) : '',
+              repositorios: (await leerLocal(raiz)).repositorios,
+              senal: corte.signal,
+            });
+            await anotar(raiz, { quien: await quienAqui(), que: resultado.estado === 'elegida' ? tb('bitacora.dialogoElige', { ruta: resultado.ruta }) : tb('bitacora.dialogoSinElegir'), desde: tb('bitacora.desde.explorar') });
+            if (corte.signal.aborted) return;
+            return responder(res, 200, resultado);
           }
           // El modelo y el esfuerzo de Claude Code en este computador: elegirlos aquí es lo mismo que /model y /effort
           // (vale para el director que lanza el Studio y para cualquier sesión de Claude Code), y no va en git

@@ -41,7 +41,7 @@ export interface ContextoDialogo {
   campoUrgente?: () => string;
   confirmarUrgencia?: () => Promise<boolean>;
   /** Buscar una carpeta en el computador (los campos con `explorar`). */
-  elegirCarpeta?: (actual: string) => Promise<string | null>;
+  elegirCarpeta?: (actual: string, boton: HTMLElement) => Promise<string | null>;
 }
 
 let ctx: ContextoDialogo | null = null;
@@ -222,7 +222,7 @@ export function pedir(o: OpcionesPedir): Promise<Dicho | null> {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-explorar]');
       if (!b || !contexto().elegirCarpeta) return;
       const campo = form.querySelector<HTMLInputElement>(`[name="${b.dataset.explorar}"]`)!;
-      const elegida = await contexto().elegirCarpeta!(campo.value);
+      const elegida = await contexto().elegirCarpeta!(campo.value, b);
       if (elegida) campo.value = elegida;
     });
     form.addEventListener('submit', async (e) => {

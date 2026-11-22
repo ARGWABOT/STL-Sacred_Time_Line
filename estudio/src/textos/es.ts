@@ -2744,6 +2744,10 @@ export const es = {
   'explorador.elijaPunto': 'Elige un punto de partida arriba.',
   'explorador.elegirRepo': 'Elegir este repositorio',
   'explorador.elegirCarpeta': 'Elegir esta carpeta',
+  'explorador.tituloSistema': 'Elige la carpeta del proyecto',
+  'explorador.ventanaAbierta': 'Se abrió una ventana de carpetas en tu computador. Si no la ves, puede estar detrás del navegador.',
+  'explorador.usarExplorador': 'Usar el explorador del Studio',
+  'explorador.sinDialogo': 'Tu sistema no tiene ventana de carpetas (zenity o kdialog), así que este es el explorador del Studio.',
 
   // Quién eres en el Estudio y el director asistente (equipo.ts)
   'equipo.elTitular': 'El titular',
@@ -3255,6 +3259,9 @@ export const es = {
   'bitacora.escaneaLugares': 'los lugares {lugares}',
   'bitacora.yJunto': ' y ',
   'bitacora.desde.escanear': '«Escanear», en «Escanear el equipo», al entregar proyectos',
+  'bitacora.dialogoElige': 'elige la carpeta {ruta} en la ventana de carpetas del sistema',
+  'bitacora.dialogoSinElegir': 'abre la ventana de carpetas del sistema y no elige ninguna',
+  'bitacora.desde.explorar': '«Explorar…», junto a un campo de carpeta',
   'bitacora.eligeModelo': 'elige el modelo {modelo} para el director y las sesiones nuevas de Claude Code',
   'bitacora.vuelveModelo': 'vuelve al modelo de su cuenta de Claude',
   'bitacora.desde.modelo': '«Modelo», en «Modelo y consumo»',

@@ -7418,7 +7418,7 @@ async function clicEnVista(b: HTMLButtonElement) {
   } else if (ds.explorarRepo !== undefined) {
     const form = b.closest('form') as HTMLFormElement;
     const campo = form.querySelector<HTMLInputElement>('[name="ruta"]')!;
-    const elegida = await elegirCarpeta(campo.value);
+    const elegida = await elegirCarpeta(campo.value, b);
     if (elegida) {
       campo.value = elegida;
       form.requestSubmit();
