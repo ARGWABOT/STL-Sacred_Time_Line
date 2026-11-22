@@ -308,6 +308,7 @@
   </div>
 </div>
 
+<script src="un-solo-sonido.js"></script>
 <script>
   // La línea va abajo; el modelo, arriba al centro; las ramas suben entre los dos
   // (la línea termina antes del borde derecho: abajo a la derecha va la perilla)
@@ -2733,6 +2734,9 @@
   if (enVisor) $('invita').remove();
   else mando.classList.add('llama');
   iconoBoton();
+  // Un solo sonido a la vez (un-solo-sonido.js, nmwr9og6ttit): si empieza otro sonido del recorrido o la pestaña se
+  // oculta, la animación y su voz se pausan donde iban, y la persona le da play otra vez
+  window.STLSonido?.alCallar(() => { if (reproduce) { reproduce = false; iconoBoton(); } });
 
   // ══ La bienvenida: solo la primera vez (se recuerda en este navegador). «Iniciar la presentación» la cierra y
   //    arranca; con Escape o un clic fuera se cierra y la animación sigue detenida, con el botón latiendo
