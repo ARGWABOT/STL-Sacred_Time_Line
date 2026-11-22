@@ -58,9 +58,11 @@ describe('un audio que no se transcribe no se borra ni se olvida: queda en cola 
     expect(api).toContain('!tocaIntentar(sinTranscribir.get(audio), Date.now())');
     expect(api).toContain('reintentarLuego(x.id, x.audio, x.pista, fallo);');
     expect(api).toContain('enCola: Object.fromEntries(');
+    // Al dictar, va por transcribirGrabado con «si_entiende»: el audio solo se borra si se entendió (nmws1h8yhtit)
     const dictar = api.slice(api.indexOf("ruta === '/dictar'"), api.indexOf("ruta === '/comprobar'"));
-    expect(dictar).not.toContain('finally');
-    expect(dictar.indexOf('await rm(audio')).toBeLessThan(dictar.indexOf('return responder(res, 200, { texto })'));
+    expect(dictar).toContain("'si_entiende')");
+    const grabado = api.slice(api.indexOf('async function transcribirGrabado('), api.indexOf('const TIPOS_AUDIO'));
+    expect(grabado).toContain("if (borrar === 'siempre' || texto) await rm(audio, { force: true });");
     const pagina = readFileSync(join(import.meta.dirname, '..', '..', 'estudio', 'src', 'app.ts'), 'utf-8');
     expect(pagina).toContain("tx('buzon.enColaReintento'");
   });
