@@ -1496,13 +1496,36 @@ function git(cwd: string, args: string[], env: Record<string, string> = {}): Pro
   });
 }
 
+/** El árbol vacío, que git conoce siempre, en cada formato de objetos. */
+const ARBOL_VACIO: Record<string, string> = {
+  sha1: '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
+  sha256: '6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321',
+};
+
+/**
+ * La rama `stl` desde un commit vacío propio, para un git sin `worktree add --orphan` en un repositorio sin commits
+ * (nmws3cw72tit). Sin identidad de git configurada, el commit lo firma el Studio: es solo la raíz vacía de la memoria.
+ */
+async function ramaVaciaDeMemoria(repo: string): Promise<{ ok: boolean; out: string; err: string }> {
+  const formato = (await git(repo, ['rev-parse', '--show-object-format'])).out.trim() || 'sha1';
+  const arbol = ARBOL_VACIO[formato];
+  if (!arbol) return { ok: false, out: '', err: `formato de objetos ${formato}` };
+  const conNombre = !!(await git(repo, ['config', 'user.name'])).out.trim() && !!(await git(repo, ['config', 'user.email'])).out.trim();
+  const firma: Record<string, string> = conNombre ? {} : { GIT_AUTHOR_NAME: 'STL Studio', GIT_AUTHOR_EMAIL: 'stl-studio@localhost', GIT_COMMITTER_NAME: 'STL Studio', GIT_COMMITTER_EMAIL: 'stl-studio@localhost' };
+  const commit = await git(repo, ['commit-tree', arbol, '-m', 'STL: memory branch'], firma);
+  if (!commit.ok) return commit;
+  const rama = await git(repo, ['branch', RAMA, commit.out.trim()]);
+  if (!rama.ok) return rama;
+  return git(repo, ['worktree', 'add', MEMORIA, RAMA]);
+}
+
 /**
  * Abre la memoria de un proyecto en su repositorio: la carpeta `.stl/` con la rama `stl`. Si la rama ya existe (aquí o
  * en GitHub, porque el proyecto ya estuvo en un Estudio), la abre tal cual; si no, la crea vacía, sin historia común con
  * el código. Excluye `.stl/` solo en este computador (.git/info/exclude): no toca el .gitignore del proyecto, ni sus
  * ramas, ni su código. Devuelve si ya tenía memoria (proyecto.json).
  */
-export async function abrirMemoria(repo: string): Promise<{ yaTenia: boolean }> {
+export async function abrirMemoria(repo: string, opciones: { sinOrphan?: boolean } = {}): Promise<{ yaTenia: boolean }> {
   if (!isAbsolute(repo)) throw new Error('La carpeta del repositorio debe ser una ruta completa.');
   const dir = join(repo, MEMORIA);
   const yaAbierta = existsSync(join(dir, '.git'));
@@ -1513,11 +1536,15 @@ export async function abrirMemoria(repo: string): Promise<{ yaTenia: boolean }> 
     if (await hay(`refs/heads/${RAMA}`)) r = await git(repo, ['worktree', 'add', MEMORIA, RAMA]);
     else if (await hay(`refs/remotes/origin/${RAMA}`)) r = await git(repo, ['worktree', 'add', '--track', '-b', RAMA, MEMORIA, `origin/${RAMA}`]);
     else {
-      r = await git(repo, ['worktree', 'add', '--orphan', '-b', RAMA, MEMORIA]);
+      // `sinOrphan`: solo las pruebas, para recorrer el camino de un git viejo en uno nuevo
+      r = opciones.sinOrphan ? { ok: false, out: '', err: '' } : await git(repo, ['worktree', 'add', '--orphan', '-b', RAMA, MEMORIA]);
       // git anterior a 2.42: sin --orphan, se abre suelta y se cambia a una rama nueva sin historia
       if (!r.ok) {
         r = await git(repo, ['worktree', 'add', '--detach', MEMORIA]);
         if (r.ok) r = await git(dir, ['switch', '--orphan', RAMA]);
+        // Un repositorio recién iniciado, sin ningún commit (nmws3cw72tit), no tiene nada que abrir suelto: la rama nace de
+        // un commit vacío propio, sin historia común con main, y main sigue sin commits
+        else if (!(await hay('HEAD'))) r = await ramaVaciaDeMemoria(repo);
       }
     }
     if (!r.ok) throw new Error(`No se pudo abrir la memoria del proyecto (${r.err.trim().split('\n').pop() || 'git falló'}).`);

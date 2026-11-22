@@ -18,7 +18,7 @@ Version 0.1.1. The repository is [ARGWABOT/STL-Sacred_Time_Line](https://github.
 
 1. **Download STL Studio** ([the latest version](https://github.com/ARGWABOT/STL-Sacred_Time_Line/releases/latest)), unzip it and open Claude Code in its folder.
 2. **Ask it «initialize STL Studio»**: it installs everything and opens the Studio in your browser.
-3. **Hand over your project** with «Hand over projects»: the director diagnoses it and gives you your first mission.
+3. **Hand over your project** with «Hand over projects»: the director diagnoses it and gives you your first mission. A folder without git, even an empty one, gets its own repository from the Studio.
 
 The details of each step are below, in «Install».
 

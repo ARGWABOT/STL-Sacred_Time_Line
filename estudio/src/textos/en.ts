@@ -2450,6 +2450,8 @@ export const en: Record<keyof typeof es, Texto> = {
   'servidor.api.eligeCarpetaNuevo': 'Choose the folder where the project will live: its memory is saved there.',
   'servidor.api.eligeCarpetaRepo': "Choose the folder of the project's repository with “Browse…”.",
   'servidor.api.proyectoNuevoNecesita': 'Tell me a little about it in “Tell me about your project”: what it does and what you want to achieve, for example “A booking site for a dentist; I want patients to book online.”',
+  'servidor.api.gitNoInicio': 'The Studio could not start git in that folder. Git said: {razon}',
+  'servidor.api.sinGit': 'Git is not installed on this computer (or the Studio cannot find it): install it and hand over the folder again.',
   'servidor.api.repoYaEnStudio': 'That repository is already in the Studio.',
   'servidor.api.esSubcarpeta': 'That folder is part of the repository {repo}: hand over the whole repository or choose another folder.',
   'servidor.api.nivelesFragmento': 'Those are not the levels of a fragment.',

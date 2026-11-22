@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { proyectoVacio, validarPlan, validarProyecto, type Integrante } from './director';
+import { comprobarRepositorio, esSubcarpeta, iniciarSiNoEsGit, razonDeGit } from './repositorio';
 import { abrirMemoria, esRegistroDe, lineasDeSTL, localSinElProyecto, puedeSubir, queSeBorra, quitarProyecto, sinExclusionDeSTL, sinLineasDeSTL, guardarCuentaGit, guardarAyudaVista, guardarTodoConElModelo,prorrogarRevision, retomarAparte, pedirAclaracion, marcarAclaracion, huellaDelPlan, guardarHuella, planCambiadoTrasCierre, cambiarCorreoDelEquipo, guardarPlanDeClaude, CANDADO_LOCAL, CANDADO_VIEJO_MS, correoValido, corteDeRevision, crearProyecto, directorTrabajando, revisionDe, revisionesNormales, revisionesDeOtros, revisionCorriendo, proyectosRevisando, elegirActivo, enDisco, guardarActivo, guardarPermiso, cambiarSkillsAutorizadas, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarLanzada, marcarRevision, marcarUrgencia, memoriaDe, MISION_PEDIR_DIAGNOSTICO, MISION_PEDIR_PLANTEAMIENTO, mismoCorreo, pedirRevision, pedirUrgencia, proyectosLocales, reintentoDe, rutasDe, SUBE_SOLO, ubicar, urgenciaActiva } from './proyectos';
 
 const raiz = mkdtempSync(join(tmpdir(), 'estudio-proyectos-'));
@@ -84,6 +85,59 @@ describe('la memoria de cada proyecto, en su repositorio', () => {
     expect(git(dir, 'status', '--porcelain')).toBe('');
     // Abrirla otra vez no hace nada nuevo
     expect(await abrirMemoria(dir)).toEqual({ yaTenia: false });
+  });
+
+  describe('una carpeta en blanco, sin git, entregada como «existente» o «nuevo» (nmws3cw72tit)', () => {
+    /** Lo que hace «/proyecto-nuevo» con la carpeta, sin mirar el tipo: iniciar si hace falta, comprobar y abrir la memoria. */
+    async function entregarCarpeta(dir: string, opciones: { sinOrphan?: boolean } = {}) {
+      const inicio = await iniciarSiNoEsGit(dir);
+      expect(inicio).toEqual({ ok: true, iniciado: true });
+      const c = await comprobarRepositorio(dir);
+      if (!c.ok) throw new Error(c.error);
+      expect(esSubcarpeta(dir, c.info.ruta)).toBe(false);
+      expect(c.info.rama).toBe('main');
+      expect(c.info.commits).toBe(0);
+      expect(await abrirMemoria(c.info.ruta, opciones)).toEqual({ yaTenia: false });
+      expect(git(join(dir, '.stl'), 'symbolic-ref', '--short', 'HEAD')).toBe('stl');
+      // main sigue sin commits: la memoria no le pone historia
+      expect(git(dir, 'symbolic-ref', '--short', 'HEAD')).toBe('main');
+      expect(() => git(dir, 'rev-parse', '--verify', '--quiet', 'refs/heads/main')).toThrow();
+    }
+
+    for (const tipo of ['existente', 'nuevo']) {
+      it(`como «${tipo}»: queda un repositorio en main y la memoria abierta en .stl, rama stl`, async () => {
+        const dir = join(raiz, 'repos', `blanca-${tipo}`);
+        mkdirSync(dir, { recursive: true });
+        await entregarCarpeta(dir);
+      });
+    }
+
+    it('con un git sin --orphan, también: la rama stl nace de un commit vacío propio', async () => {
+      const dir = join(raiz, 'repos', 'blanca-git-viejo');
+      mkdirSync(dir, { recursive: true });
+      await entregarCarpeta(dir, { sinOrphan: true });
+      expect(git(join(dir, '.stl'), 'ls-tree', 'HEAD')).toBe('');
+    });
+
+    it('una carpeta dentro de otro repositorio no se inicia: sigue siendo su subcarpeta', async () => {
+      const dir = repo('con-subcarpeta');
+      const sub = join(dir, 'dentro');
+      mkdirSync(sub, { recursive: true });
+      expect(await iniciarSiNoEsGit(sub)).toEqual({ ok: true, iniciado: false });
+      expect(existsSync(join(sub, '.git'))).toBe(false);
+      const c = await comprobarRepositorio(sub);
+      expect(c.ok && esSubcarpeta(sub, c.info.ruta)).toBe(true);
+    });
+
+    it('un repositorio que ya existe no se toca', async () => {
+      const dir = repo('ya-con-git');
+      expect(await iniciarSiNoEsGit(dir)).toEqual({ ok: true, iniciado: false });
+    });
+
+    it('la razón real de git, sin su «fatal:»', () => {
+      expect(razonDeGit('warning: x\nfatal: detected dubious ownership in repository at \'C:/x\'\n')).toBe("detected dubious ownership in repository at 'C:/x'");
+      expect(razonDeGit('')).toBe('');
+    });
   });
 
 });

@@ -481,6 +481,15 @@ describe('una carpeta dentro de un repositorio no se entrega como el repositorio
     expect(api).not.toContain("'/proyectos-varios'");
   });
 
+  it('una carpeta sin git recibe el suyo antes de comprobarla, sea cual sea el tipo, y un fallo dice la razón de git (nmws3cw72tit)', () => {
+    const desde = api.indexOf("if (ruta === '/proyecto-nuevo'");
+    const uno = api.slice(desde, api.indexOf("return responder(res, 200, { id });", desde));
+    expect(uno).toContain('const inicio = await iniciarSiNoEsGit(rutaRepo);');
+    expect(uno).not.toMatch(/tipo === 'nuevo' && existsSync\(rutaRepo\)/);
+    expect(uno.indexOf('iniciarSiNoEsGit(rutaRepo)')).toBeLessThan(uno.indexOf('comprobarRepositorio(rutaRepo)'));
+    expect(uno).toContain("t('servidor.api.gitNoInicio', { razon: inicio.razon })");
+  });
+
   it('el servidor: sin nombre, el de la carpeta legible; uno que ya existe entra con el campo vacío, y uno nuevo solo pide lo contado (pd_campo_libre)', () => {
     const desde = api.indexOf("if (ruta === '/proyecto-nuevo'");
     const uno = api.slice(desde, api.indexOf("return responder(res, 200, { id });", desde));

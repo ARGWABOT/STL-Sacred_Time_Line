@@ -2449,6 +2449,8 @@ export const es = {
   'servidor.api.eligeCarpetaNuevo': 'Elige la carpeta donde vivirá el proyecto: su memoria se guarda ahí.',
   'servidor.api.eligeCarpetaRepo': 'Elige la carpeta del repositorio del proyecto con «Explorar…».',
   'servidor.api.proyectoNuevoNecesita': 'Cuéntame un poco de él en «Cuéntame tu proyecto»: qué hace y qué quieres lograr, por ejemplo «Un sitio de reservas para un dentista; quiero que los pacientes reserven en línea».',
+  'servidor.api.gitNoInicio': 'El Studio no pudo iniciar git en esa carpeta. Git dijo: {razon}',
+  'servidor.api.sinGit': 'Git no está instalado en este computador (o el Studio no lo encuentra): instálalo y vuelve a entregar la carpeta.',
   'servidor.api.repoYaEnStudio': 'Ese repositorio ya está en el Studio.',
   'servidor.api.esSubcarpeta': 'Esa carpeta es parte del repositorio {repo}: entrega el repositorio entero o elige otra carpeta.',
   'servidor.api.nivelesFragmento': 'Eso no son los niveles de un fragmento.',

@@ -30,6 +30,34 @@ export interface InfoRepositorio {
   sinCommit: number;
 }
 
+/** La última línea útil de lo que dijo git, sin su «fatal:»: la razón real de un fallo, para mostrarla tal cual. */
+export const razonDeGit = (err: string): string =>
+  err.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop()?.replace(/^(fatal|error):\s*/i, '') ?? '';
+
+/**
+ * Una carpeta entregada que existe y no está dentro de ningún repositorio git recibe el suyo, en la rama main, sea cual
+ * sea el tipo que mande el formulario (nota del titular nmws3cw72tit: el Studio no detiene a nadie para que inicie git a
+ * mano). Una carpeta dentro de otro repositorio no se toca: sigue siendo una subcarpeta (esSubcarpeta). Si git falla, su
+ * razón real (`razon`), no un mensaje genérico; `sinGit` si git no está instalado.
+ */
+export async function iniciarSiNoEsGit(ruta: string): Promise<{ ok: true; iniciado: boolean } | { ok: false; razon: string; sinGit?: true }> {
+  const r = ruta.trim().replace(/^["']|["']$/g, '');
+  if (!r || !isAbsolute(r) || !existsSync(r) || !statSync(r).isDirectory()) return { ok: true, iniciado: false };
+  const top = await gitEn(r, ['rev-parse', '--show-toplevel']);
+  if (top.ok) return { ok: true, iniciado: false };
+  if (!top.err.trim()) return { ok: false, razon: 'git', sinGit: true };
+  // Solo «no es un repositorio» se arregla iniciándolo; otra razón (una carpeta de otro dueño, un .git roto) se dice tal cual
+  if (!/not a git repository/i.test(top.err)) return { ok: false, razon: razonDeGit(top.err) };
+  let init = await gitEn(r, ['init', '-q', '-b', 'main']);
+  // git anterior a 2.28, sin -b: se inicia y HEAD se apunta a main
+  if (!init.ok && /unknown switch|unknown option/i.test(init.err)) {
+    init = await gitEn(r, ['init', '-q']);
+    if (init.ok) init = await gitEn(r, ['symbolic-ref', 'HEAD', 'refs/heads/main']);
+  }
+  if (!init.ok) return init.err.trim() ? { ok: false, razon: razonDeGit(init.err) } : { ok: false, razon: 'git', sinGit: true };
+  return { ok: true, iniciado: true };
+}
+
 /** Comprueba que una ruta sea un repositorio git y devuelve lo básico de él. */
 export async function comprobarRepositorio(ruta: string): Promise<{ ok: true; info: InfoRepositorio } | { ok: false; error: string }> {
   const r = ruta.trim().replace(/^["']|["']$/g, '');
@@ -37,7 +65,10 @@ export async function comprobarRepositorio(ruta: string): Promise<{ ok: true; in
   if (!isAbsolute(r)) return { ok: false, error: 'Escribe la ruta completa (por ejemplo, C:\\proyectos\\mi-app o /home/yo/mi-app).' };
   if (!existsSync(r) || !statSync(r).isDirectory()) return { ok: false, error: 'Esa carpeta no existe en este computador.' };
   const top = await gitEn(r, ['rev-parse', '--show-toplevel']);
-  if (!top.ok) return { ok: false, error: 'Esa carpeta no es un repositorio git (o git no está instalado). El director necesita su historial.' };
+  if (!top.ok) {
+    if (!top.err.trim()) return { ok: false, error: 'git no está instalado en este computador (o no se encuentra): el director lo necesita.' };
+    return { ok: false, error: `Esa carpeta no se pudo leer como repositorio git: ${razonDeGit(top.err)}` };
+  }
   const raiz = top.out.trim();
   const [rama, remoto, ultimo, commits, archivos, estado] = await Promise.all([
     gitEn(raiz, ['symbolic-ref', '-q', '--short', 'HEAD']),

@@ -101,7 +101,7 @@ import { historialDeProyecto, leerLineasDeRevision, turnoDeProyecto } from '../.
 import { abrirMemoria, anotarAjustesVistos, cambiarAutorizados, marcarEnVentana,cambiarAvisoVersion, refrescarAvisoVersion, versionInstalada, crearProyecto, elegirActivo, enDisco, escribirDeUnaVez, esModoPermisos, esOrigenRevision, guardarActivo, guardarAjustesPropios, guardarEsfuerzoMaximo, guardarModoPermisos, guardarPermiso, guardarPlanDeClaude, guardarRutaRepositorio, idDeNombre, leerLocal, leerRutaRepositorio, marcarUrgencia, memoriaDe, ORIGENES_REVISION, retomarAparte, planCambiadoTrasCierre, guardarTodoConElModelo, guardarAyudaVista, SECCIONES_DE_AYUDA, type AclaracionPedida, pedirAclaracion, pedirRevision, pedirUrgencia, proyectosLocales, RAMA, rutasDe, ubicar, type OrigenRevision } from '../../src/director/proyectos.ts';
 import { lineaDeVersion } from '../../src/director/avisoVersion.ts';
 import { anotar, conFrasesEnSuIdioma, EL_STUDIO, eventoDeAccion, juntas, leerBitacora, origenDeRevision, lineaDeNiveles, quienEnSuIdioma, tb, textoDeBitacora, type DatoBitacora, type TextoBitacora } from '../../src/director/bitacora.ts';
-import { comprobarRepositorio, esSubcarpeta, gitEn, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio.ts';
+import { comprobarRepositorio, esSubcarpeta, gitEn, iniciarSiNoEsGit, leerDelRepositorio, type InfoRepositorio } from '../../src/director/repositorio.ts';
 import { comoDocumento, esArchivoClave } from '../../src/director/archivosClave.ts';
 import { anotarFallo, audiosQueNoSeTranscriben, borrarSiTranscrito, quitarSiVacia, type Reintento, tocaIntentar, detenerTranscripcionResidente, iniciarTranscripcionResidente, modeloDeVoz, transcribirEnLocal, transcripcionEnDisco, txtDeAudio } from '../../src/director/transcripcion.ts';
 import { escanear, fuentesDeEscaneo } from './escaneo.ts';
@@ -1809,8 +1809,10 @@ export function servidorDirector(): Plugin {
             // existe puede llegar sin nada, y su diagnóstico lee la carpeta (nmwfltg6rtit)
             if (tipo === 'nuevo' && !contexto)
               return responder(res, 400, { error: t('servidor.api.proyectoNuevoNecesita') });
-            // Un proyecto nuevo puede empezar en una carpeta sin git: se le inicia (es la carpeta que eligió su titular)
-            if (tipo === 'nuevo' && existsSync(rutaRepo) && !(await gitEn(rutaRepo, ['rev-parse', '--show-toplevel'])).ok) await gitEn(rutaRepo, ['init', '-q']);
+            // Una carpeta sin git recibe el suyo, en main, sea cual sea el tipo (nmws3cw72tit: una carpeta en blanco llega
+            // como «existente» desde el selector); si git falla, se dice su razón real, no un «no es un repositorio»
+            const inicio = await iniciarSiNoEsGit(rutaRepo);
+            if (!inicio.ok) return responder(res, 400, { error: inicio.sinGit ? t('servidor.api.sinGit') : t('servidor.api.gitNoInicio', { razon: inicio.razon }) });
             const c = await comprobarRepositorio(rutaRepo);
             if (!c.ok) return responder(res, 400, { error: c.error });
             // Una carpeta dentro de un repositorio no se registra como el repositorio entero sin que la persona lo elija
