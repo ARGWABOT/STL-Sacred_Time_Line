@@ -181,7 +181,7 @@ function abrir(datos: DatosAsistente, repaso: boolean, alTerminar: (entregar: bo
     }
   };
   const botones = () => botonesDe(estado.paso, sesion, repaso, vozPuedeSeguir(estado, voz, repaso), muestra);
-  /** La grabadora de la prueba, en cuanto su lugar está en la pantalla: la frase sigue a la vista mientras se graba. */
+  /** La grabadora de la prueba, en cuanto su lugar está en la pantalla: se dice cualquier frase (nmws5r55ntit). */
   const armarGrabadora = () => {
     const caja = dlg.querySelector<HTMLElement>('[data-asistente-grabadora]');
     if (!caja) return;
