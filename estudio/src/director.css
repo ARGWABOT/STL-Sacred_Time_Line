@@ -199,16 +199,21 @@ button.al-director:hover { background: #fbf3dc; border-color: #e0c98a; }
 /* El detalle del paso sigue en el mismo párrafo y con la misma letra, después de su botón, y el ✉ va al final (nota de
    voz del titular nmvvvazd4tit: salía debajo, más chico, y parecía otro texto). «No lo entiendo» va debajo, discreto */
 .mision-c .pasos li > .ir-paso + .detalle-paso { margin-left: 6px; }
+/* Regla fija (nmws24jddtit; estilos.test.ts › «el botón del paso»): el botón de un paso sigue en el último renglón de su
+   texto cuando cabe. El texto y el botón van en línea, nunca en bloque ni centrados, y bajo la niebla el botón tapado
+   guarda la misma caja en línea que tendrá al destaparse, para que no salte a un renglón propio */
+.mision-c .pasos li > span:not([class]) { display: inline; }
+.mision-c .pasos li > .ir-paso { display: inline-flex; float: none; margin-inline: 0 4px; vertical-align: baseline; }
+html.niebla-lectura .mision-c .pasos li > .ir-paso.gl-tapado { display: inline-flex; }
 .aclarar-paso { display: block; margin-top: 8px; min-height: 28px; padding: 2px 10px; font-size: 13px; border-radius: 999px; background: transparent; border: 1px dashed var(--borde); color: var(--suave); }
 .aclarar-paso:hover, .aclarar-paso:focus-visible { border-style: solid; color: inherit; }
 .aclaracion-paso { margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radio); background: var(--acento-fondo); font-size: 14px; line-height: 1.5; white-space: pre-line; }
 .aclarando-paso { margin: 8px 0 0; font-size: 13px; color: var(--suave); }
-/* Mientras el director revisa, lo único de un paso que espera es «No lo entiendo»: marcar, elegir, «Hazlo tú» y «Ya lo
-   hice» se ven y se usan como siempre, y quedan para la revisión siguiente (nota del titular, 21 de octubre de 2026) */
+/* El candado del director (pd_candado_revision, nmws24jddtit, que reemplaza la regla del 21 de octubre; candadoUrgencia.ts
+   › BOTONES_DE_AVANCE): mientras una revisión planea o ejecuta, una urgencia o una aclaración, las misiones y las
+   decisiones se ven, pero lo que las hace avanzar se apaga hasta que termina; el ✉ de cada paso y leer siguen abiertos */
 body.director-trabajando .aclarar-paso { opacity: 0.45; cursor: not-allowed; }
-/* El candado de una urgencia (pd_urgencia_bloquea; candadoUrgencia.ts › BOTONES_DE_AVANCE): las misiones se ven, pero lo
-   que las hace avanzar se apaga hasta que termina; el ✉ de cada paso, los documentos y sus decisiones siguen abiertos */
-body.urgencia-bloquea :is([data-listo-paso], [data-elegir], [data-elegir-varias], [data-marcar-opcion], [data-ya-lo-dije], [data-ya-lo-comente], [data-hazlo], [data-ya-hice], [data-aclarar], [data-no-salio], [data-entregar]) { opacity: 0.45; cursor: not-allowed; }
+body.candado-director :is([data-listo-paso], [data-elegir], [data-elegir-varias], [data-marcar-opcion], [data-ya-lo-dije], [data-ya-lo-comente], [data-hazlo], [data-ya-hice], [data-aclarar], [data-no-salio], [data-entregar], [data-aprobar], [data-comentar$="|decide"], [data-responder]) { opacity: 0.45; cursor: not-allowed; }
 /* La línea de arriba de «Hoy» mientras dura la urgencia y después, hasta que la abres o entregas una misión */
 .linea-urgencia { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--aviso-fondo); color: var(--aviso-texto); font-size: 14px; }
 .linea-urgencia.termino { background: var(--ok-fondo); color: var(--ok-texto); }

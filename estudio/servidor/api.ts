@@ -114,7 +114,7 @@ import { corridasGuardadas, detenerMedicion, empezarMedicion, estadoDeMedicion, 
 import { ALCANCES, casosDelAlcance, casosMedibles, type Alcance } from '../../src/director/corrida.ts';
 import { esPlanDeClaude, PLANES_DE_CLAUDE, type PlanDeClaude } from '../../src/director/consumoDelPlan.ts';
 import { esIdioma } from '../../src/director/idioma.ts';
-import { avanzaUnaMision, urgenciaBloquea } from '../../src/director/candadoUrgencia.ts';
+import { avanzaAlgo, etapaDelCandado } from '../../src/director/candadoUrgencia.ts';
 import { esElStudio, guardarAsistente, guardarCuentaGit, guardarIdioma, guardarRespaldoDelStudio, ponerRespaldoPublico, queSeBorra, quitarProyecto } from '../../src/director/proyectos.ts';
 import { compararCuenta, cuentaQueApruebaUsar, entradaDeGh, entrarConGh, esCuentaGitHub, loginDeGitHubSinEsperar, seguirCuentaAlEntrar, sesionActivaDeGh, sesionesDeGh, usarSesionDeGh, vigiaDeCuentaGh, type AvisoDelVigia, type LecturaDeGh, type SeguimientoDeCuenta } from '../../src/director/cuentaGit.ts';
 import { abreSolo, ESFUERZO_DEL_ASISTENTE, estadoAlAbrir, estadoAsistenteDe, revisarInstalacion } from '../../src/director/asistente.ts';
@@ -2854,10 +2854,19 @@ export function servidorDirector(): Plugin {
             const cuerpo = await leerCuerpo(req);
             const deOtro = proyectoDeOtro(cuerpo, id);
             if (deOtro) return responder(res, 409, { error: t('servidor.api.proyectoNoEsElActivo', { otro: deOtro, activo: id }) });
-            // Mientras el director atiende una urgencia, lo que hace avanzar una misión espera a que termine: el ✉, los
-            // documentos y sus decisiones siguen abiertos (pd_urgencia_bloquea; candadoUrgencia.ts)
-            if (avanzaUnaMision(cuerpo) && urgenciaBloquea(((u) => (u?.proyecto === id ? u : null))((await leerLocal(raiz)).urgencia)))
-              return responder(res, 409, { error: t('servidor.api.urgenciaBloquea') });
+            // Mientras el director trabaja en este proyecto (una revisión que planea o ejecuta, una urgencia o una aclaración),
+            // lo que hace avanzar una misión o una decisión espera a que termine: el ✉ y leer siguen abiertos
+            // (pd_candado_revision, nmws24jddtit; candadoUrgencia.ts › etapaDelCandado)
+            if (avanzaAlgo(cuerpo)) {
+              const local = await leerLocal(raiz);
+              const etapa = etapaDelCandado({
+                revision: revisionDe(local, id) ?? null,
+                urgencia: local.urgencia?.proyecto === id ? local.urgencia : null,
+                aclaracion: local.aclaracion?.proyecto === id ? local.aclaracion : null,
+                planeando: !!planDeProyecto(raiz, id)?.planeando,
+              });
+              if (etapa) return responder(res, 409, { error: t(etapa === 'urgencia' ? 'servidor.api.urgenciaBloquea' : 'servidor.api.revisionBloquea'), candado: etapa });
+            }
             const yo = await leerIdentidad(raiz, id);
             if (!yo.rol) return responder(res, 403, { error: yo.problema ?? t('servidor.api.estudioNoSabeQuien') });
             const { estado, proyecto, que, queBitacora, queTb, archivos, audios } = await enFila(() => decidir(id, cuerpo, yo as Identidad & { rol: Persona }));

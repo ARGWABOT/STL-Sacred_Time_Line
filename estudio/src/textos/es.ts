@@ -1755,7 +1755,8 @@ export const es = {
   'aviso.urgenciaAtendida': 'El director atendió lo urgente: el resultado está en «¿Dónde quedamos?».',
   // El candado de una urgencia (pd_urgencia_bloquea; candadoUrgencia.ts)
   'urgencia.atiende': 'El director atiende una urgencia: tus misiones esperan a que termine.',
-  'urgencia.espera': 'Tus misiones esperan a que el director termine la urgencia. Mientras tanto puedes comentar con el ✉ y leer tus documentos.',
+  'urgencia.espera': 'Tus misiones y decisiones esperan a que el director termine la urgencia. Mientras tanto puedes comentar con el ✉ y leer tus documentos.',
+  'candado.espera': 'Tus misiones y decisiones esperan a que el director termine: lo que está haciendo puede cambiarlas. Mientras tanto puedes comentar con el ✉ y leer tus documentos.',
   'urgencia.ninguna': 'El director atendió la urgencia: ninguna de tus misiones cambió.',
   'urgencia.una': 'El director atendió la urgencia: cambió 1 de tus misiones.',
   'urgencia.varias': 'El director atendió la urgencia: cambiaron {n} de tus misiones.',
@@ -1819,7 +1820,7 @@ export const es = {
   'atajos.queHace': 'Qué está haciendo',
   'atajos.queHaceTitulo': 'Ver en vivo lo que va haciendo el director',
   'atajos.queHaceAria': 'Ver lo que va haciendo el director',
-  'aviso.directorRevisando': 'El director está revisando. Mientras termina, puedes leer, hablarle y avanzar en tus misiones y decisiones (todo queda para la revisión siguiente), pero no cambiar la ruta ni lo que él ya está leyendo. Al terminar, se habilita solo.',
+  'aviso.directorRevisando': 'El director está revisando. Mientras termina, puedes leer y hablarle con el ✉ (queda para la revisión siguiente), pero tus misiones, tus decisiones y la ruta esperan: esta misma revisión puede cambiarlas. Al terminar, se habilita solo.',
 
   // Lo que se dice al guardar y al abrir (pd_idiomas)
   'accion.urgenteVa': 'Lo urgente va al director en cuanto termine esta revisión.',
@@ -2489,7 +2490,8 @@ export const es = {
   'servidor.api.sinProyectos': 'Aún no hay proyectos: crea el primero.',
   'servidor.api.sinProyectoDelStudio': 'Este Studio no es uno de sus propios proyectos en este computador: no hay Buzón del Studio donde dejar la nota.',
   'servidor.api.notaDesde': '(Escrita desde el proyecto «{nombre}».)',
-  'servidor.api.urgenciaBloquea':'El director atiende una urgencia: las misiones vuelven a avanzar cuando termine.',
+  'servidor.api.urgenciaBloquea':'El director atiende una urgencia: las misiones y las decisiones vuelven a avanzar cuando termine.',
+  'servidor.api.revisionBloquea':'El director está trabajando en este proyecto: las misiones y las decisiones vuelven a avanzar cuando termine.',
   'servidor.api.studioEsElActivo':'El Studio es el proyecto activo: deja la nota con «Comentario», en su Buzón de siempre.',
   'servidor.recarga.causaArchivo': 'Vite mandó una recarga completa porque cambió {archivo}',
   'servidor.recarga.causaRecarga': 'Vite mandó una recarga completa',

@@ -1756,7 +1756,8 @@ export const en: Record<keyof typeof es, Texto> = {
   'aviso.urgenciaAtendida': 'The director attended to what was urgent: the result is in «Where we left off».',
   // The urgency lock (pd_urgencia_bloquea; candadoUrgencia.ts)
   'urgencia.atiende': 'The director is attending an urgency: your missions wait until it finishes.',
-  'urgencia.espera': 'Your missions wait until the director finishes the urgency. Meanwhile you can comment with the ✉ and read your documents.',
+  'urgencia.espera': 'Your missions and decisions wait until the director finishes the urgency. Meanwhile you can comment with the ✉ and read your documents.',
+  'candado.espera': 'Your missions and decisions wait until the director finishes: what it is doing may change them. Meanwhile you can comment with the ✉ and read your documents.',
   'urgencia.ninguna': 'The director attended the urgency: none of your missions changed.',
   'urgencia.una': 'The director attended the urgency: 1 of your missions changed.',
   'urgencia.varias': 'The director attended the urgency: {n} of your missions changed.',
@@ -1820,7 +1821,7 @@ export const en: Record<keyof typeof es, Texto> = {
   'atajos.queHace': 'What it is doing',
   'atajos.queHaceTitulo': 'See live what the director is doing',
   'atajos.queHaceAria': 'See what the director is doing',
-  'aviso.directorRevisando': 'The director is reviewing. While it finishes, you can read, talk to it and move forward on your missions and decisions (everything waits for the next review), but not change the roadmap or what it is already reading. When it finishes, this opens up by itself.',
+  'aviso.directorRevisando': 'The director is reviewing. While it finishes, you can read and talk to it with the ✉ (it waits for the next review), but your missions, your decisions and the roadmap wait: this same review may change them. When it finishes, this opens up by itself.',
 
   // What is said when saving and opening (pd_idiomas)
   'accion.urgenteVa': 'What is urgent goes to the director as soon as this review ends.',
@@ -2490,7 +2491,8 @@ export const en: Record<keyof typeof es, Texto> = {
   'servidor.api.sinProyectos': 'There are no projects yet: create the first one.',
   'servidor.api.sinProyectoDelStudio': 'This Studio is not one of its own projects on this computer: there is no Studio Inbox to leave the note in.',
   'servidor.api.notaDesde': '(Written from the project «{nombre}».)',
-  'servidor.api.urgenciaBloquea':'The director is attending an urgency: missions move forward again when it finishes.',
+  'servidor.api.urgenciaBloquea':'The director is attending an urgency: missions and decisions move forward again when it finishes.',
+  'servidor.api.revisionBloquea':'The director is working on this project: missions and decisions move forward again when it finishes.',
   'servidor.api.studioEsElActivo':'The Studio is the active project: leave the note with «Comment», in its usual Inbox.',
   'servidor.recarga.causaArchivo': 'Vite sent a full reload because {archivo} changed',
   'servidor.recarga.causaRecarga': 'Vite sent a full reload',

@@ -7,14 +7,39 @@ import type { EstadoRespaldo } from '../servidor/respaldo';
 const css = readFileSync(join(__dirname, 'director.css'), 'utf-8');
 const estilos = readFileSync(join(__dirname, 'estilos.css'), 'utf-8');
 
-describe('los estilos mientras el director revisa', () => {
-  it('no apagan lo que se puede hacer en una misión: marcar, elegir, «Hazlo tú» y «Ya lo hice» (nota del titular, 21 de octubre de 2026)', () => {
+describe('los estilos mientras el director trabaja (pd_candado_revision, que reemplaza la regla del 21 de octubre)', () => {
+  it('con el candado puesto se apaga lo que avanza una misión o una decisión, y el ✉ queda encendido', () => {
+    const regla = css.match(/^body\.candado-director :is\(([^)]*\][^{]*)\{[^}]*not-allowed/m)?.[1] ?? '';
+    for (const b of ['[data-listo-paso]', '[data-elegir]', '[data-hazlo]', '[data-ya-hice]', '[data-entregar]', '[data-aprobar]', '[data-responder]']) expect(regla).toContain(b);
+    expect(regla).not.toContain('comentar-paso');
+    // La de antes, solo para urgencias, salió: una sola regla para todas las etapas
+    expect(css).not.toContain('body.urgencia-bloquea');
+    // «No lo entiendo» sigue esperando la revisión
     const apagados = [...css.matchAll(/body\.director-trabajando\s+([^{]+)\{[^}]*not-allowed/g)].map((m) => m[1].trim());
-    for (const libre of ['.listo-paso', '.boton-opcion', '.ya-lo-dije', '.hazlo-paso', '.boton-ya-hice']) expect(apagados).not.toContain(libre);
-    // «Ya te lo dije en mi comentario» tampoco se apaga por ningún lado mientras revisa
-    expect(css).not.toMatch(/body\.director-trabajando[^{]*\.ya-lo-dije/);
-    // «No lo entiendo» sí espera a que termine la revisión
     expect(apagados).toContain('.aclarar-paso');
+  });
+});
+
+describe('el botón del paso, en el último renglón de su texto cuando cabe (regla fija, nmws24jddtit)', () => {
+  const niebla = readFileSync(join(__dirname, 'guiaLectura.css'), 'utf-8');
+  /** Las declaraciones de cada regla cuyo selector toca el botón de un paso o su texto. */
+  const reglasDe = (hoja: string, toca: RegExp) => [...hoja.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter((m) => toca.test(m[1])).map((m) => ({ selector: m[1].trim(), cuerpo: m[2] }));
+
+  it('el texto y el botón van en línea: el texto, inline; el botón, inline-flex sin flotar', () => {
+    expect(css).toContain('.mision-c .pasos li > span:not([class]) { display: inline; }');
+    expect(css).toContain('.mision-c .pasos li > .ir-paso { display: inline-flex; float: none; margin-inline: 0 4px; vertical-align: baseline; }');
+    // Tapado bajo la niebla, la misma caja en línea que al destaparse
+    expect(css).toContain('html.niebla-lectura .mision-c .pasos li > .ir-paso.gl-tapado { display: inline-flex; }');
+  });
+
+  it('ninguna regla lo saca del renglón: ni bloque, ni flex de caja, ni centrado, ni ancho propio', () => {
+    for (const hoja of [css, estilos, niebla]) {
+      for (const r of reglasDe(hoja, /\.ir-paso(?![\w-])/)) {
+        expect(r.cuerpo, r.selector).not.toMatch(/display:\s*(block|flex|grid|table)\b/);
+        expect(r.cuerpo, r.selector).not.toMatch(/float:\s*(left|right)|(?<![-\w])width:\s*100%|margin(-inline)?(-left|-right)?:[^;]*auto/);
+      }
+      for (const r of reglasDe(hoja, /\.pasos li(\s*\{|\s*,|$)|\.pasos > li(\s*\{|\s*,|$)/)) expect(r.cuerpo, r.selector).not.toMatch(/text-align:\s*center|display:\s*(flex|grid)/);
+    }
   });
 });
 

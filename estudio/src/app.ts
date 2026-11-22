@@ -202,7 +202,7 @@ import { metaCambiada } from '../../src/director/procedimientos';
 import { enunciadoDeMision, tarjetaMision as tarjetaDeMision, type DatosTarjeta } from './missionCard';
 import { abrirAlCargar, comoTerminaLaRevision, esElStudioActivo, lineaSeCongela, marcarTrabajando, pantallaTrabajando, recargaTrasRevision, trabajandoGuardado, tituloTermino, type EsperaTrasRevision } from './trabajando';
 import { sonar } from './sonidos';
-import { avanzaUnaMision, BOTONES_DE_AVANCE, fotoDeMisiones, misionesCambiadas, urgenciaBloquea, type FotoDeMision, type LineaTrasUrgencia } from '../../src/director/candadoUrgencia';
+import { avanzaAlgo, BOTONES_DE_AVANCE, etapaDelCandado, fotoDeMisiones, misionesCambiadas, urgenciaBloquea, type EtapaDelCandado, type FotoDeMision, type LineaTrasUrgencia } from '../../src/director/candadoUrgencia';
 import { alCambiarIdioma as sonidosAlCambiarIdioma, botonSonido } from './panelSonidos';
 import { controlesEnfoque } from './controlesEnfoque';
 import { separarHechas } from './hechoAparte';
@@ -1119,7 +1119,7 @@ function seguirUrgencia() {
   if (!d || !('plan' in d) || !d.plan) return;
   const u = d.urgencia;
   const bloquea = urgenciaBloquea(u);
-  document.body.classList.toggle('urgencia-bloquea', bloquea);
+  ponerCandado();
   const foto = leerGuardado<{ pedida: string; misiones: FotoDeMision[] }>(claveFotoUrgencia());
   const yo = d.identidad.rol ?? TITULAR;
   if (bloquea && u) {
@@ -1157,15 +1157,34 @@ async function abrirLineaUrgencia(que: string) {
   const nombre = { nueva: tx('urgencia.nueva'), quitada: tx('urgencia.quitada'), cambiada: tx('urgencia.cambiada') };
   await confirmar({ titulo: tx('urgencia.tituloCambios'), texto: l.cambios.map((c) => `${nombre[c.que]}: «${c.titulo}»`).join('\n'), boton: tx('urgencia.entendido'), soloAviso: true });
 }
-// Mientras dura, lo que hace avanzar una misión no hace nada y lo dice: el clic se detiene antes de llegar a su botón
+/**
+ * El candado del director en este proyecto (pd_candado_revision, nmws24jddtit): una revisión que planea o ejecuta, una
+ * urgencia o una aclaración. Mientras está puesto, lo que avanza una misión o una decisión espera (candadoUrgencia.ts).
+ */
+function candadoAhora(): EtapaDelCandado | null {
+  if (!d || !('plan' in d) || !d.plan) return null;
+  return etapaDelCandado({ revision: d.revision, urgencia: d.urgencia, aclaracion: d.aclaracion, planeando: !!d.planVivo?.planeando });
+}
+/** Lo que dice el aviso cuando algo espera al candado. */
+const avisoDelCandado = (etapa: EtapaDelCandado) => tx(etapa === 'urgencia' ? 'urgencia.espera' : 'candado.espera');
+/** Los botones que avanzan, apagados mientras el candado está puesto (director.css › body.candado-director). */
+function ponerCandado() {
+  const etapa = candadoAhora();
+  document.body.classList.toggle('candado-director', !!etapa);
+  if (etapa) document.body.dataset.candado = etapa;
+  else delete document.body.dataset.candado;
+}
+// Mientras dura, lo que hace avanzar una misión o una decisión no hace nada y lo dice: el clic se detiene antes de llegar
+// a su botón
 document.addEventListener('click', (e) => {
   const linea = (e.target as Element | null)?.closest?.<HTMLElement>('[data-linea-urgencia]');
   if (linea) return void abrirLineaUrgencia(linea.dataset.lineaUrgencia ?? '');
-  if (!d || !urgenciaBloquea(d.urgencia)) return;
+  const etapa = candadoAhora();
+  if (!etapa) return;
   if (!(e.target as Element | null)?.closest?.(BOTONES_DE_AVANCE.join(','))) return;
   e.preventDefault();
   e.stopImmediatePropagation();
-  avisar(tx('urgencia.espera'), true);
+  avisar(avisoDelCandado(etapa), true);
 }, true);
 
 /** Qué es lo negado en vivo, para quien lo ve mientras el director trabaja. */
@@ -1232,9 +1251,10 @@ function pintarSegundoPlano() {
   caja.innerHTML = lineas.join('');
   caja.hidden = !lineas.length;
   contarTokens(r.estado === 'en_curso' ? (d.tokensVivos ?? null) : null);
-  // Mientras el director trabaja, se navega, se lee y se avanza en las misiones; lo que cambia la ruta espera (ver
-  // libreMientrasRevisa)
+  // Mientras el director trabaja, se navega, se lee y se le habla con el ✉; las misiones, las decisiones y la ruta
+  // esperan (ponerCandado, libreMientrasRevisa)
   document.body.classList.toggle('director-trabajando', r.estado === 'en_curso');
+  ponerCandado();
   const info = document.querySelector<HTMLElement>('.atajo[data-progreso]');
   // Lo urgente, ya lanzado y sin revisión en marcha, también trae su atajo y lo que va haciendo (atiendeUrgencia)
   const urgente = atiendeUrgencia();
@@ -2022,13 +2042,12 @@ function notaTrasCorte(n: Nota | undefined): boolean {
 const avisoRevisando = () => (revisando() ? tx('aviso.revisando') : '');
 
 /**
- * ¿Esta acción puede hacerse mientras el director revisa? Leer, hablarle y avanzar en las misiones y las decisiones sí
- * (espera la revisión siguiente); lo que cambia la ruta o lo que él ya está leyendo, no.
+ * ¿Esta acción puede hacerse mientras el director revisa? Leer y hablarle con el ✉ sí (espera la revisión siguiente);
+ * avanzar una misión o una decisión no: lo detiene antes el candado (ponerCandado, pd_candado_revision, que reemplaza la
+ * regla del 21 de octubre); lo que cambia la ruta o lo que él ya está leyendo, tampoco.
  */
 function libreMientrasRevisa(cuerpo: Record<string, unknown>): boolean {
-  if (['paso', 'leido', 'comentar', 'empezar', 'entregar', 'responder'].includes(String(cuerpo.tipo))) return true;
-  // Retirar una entrega que él no está leyendo (llegó después de empezar)
-  if (cuerpo.tipo === 'deshacer_entrega') { const c = corteRevision(); return !!c && (d.estado.entregas[String(cuerpo.mision)]?.cuando ?? '') > c; }
+  if (['leido', 'comentar'].includes(String(cuerpo.tipo))) return true;
   if (cuerpo.tipo === 'editar_nota' || cuerpo.tipo === 'borrar_nota' || cuerpo.tipo === 'tipo_nota') return notaTrasCorte(d.estado.notas.find((n) => n.id === cuerpo.id));
   if (cuerpo.tipo === 'corregir_transcripcion') return notaTrasCorte(d.estado.notas.find((n) => n.audio === cuerpo.audio));
   return false;
@@ -2050,8 +2069,10 @@ function pistaYaLoDije(sobre: Nota['sobre'] | undefined): string {
 }
 
 async function accion(cuerpo: Record<string, unknown>, hecho = tx('guardado.listo')) {
-  // Mientras el director atiende una urgencia, las misiones esperan (pd_urgencia_bloquea): el servidor también lo rechaza
-  if (urgenciaBloquea(d?.urgencia) && avanzaUnaMision(cuerpo)) { avisar(tx('urgencia.espera'), true); return false; }
+  // Mientras el director trabaja (una revisión que planea o ejecuta, una urgencia o una aclaración), las misiones y las
+  // decisiones esperan (pd_candado_revision): el servidor también lo rechaza. Lo que la página manda sola, sin aviso
+  const etapa = avanzaAlgo(cuerpo) ? candadoAhora() : null;
+  if (etapa) { if (hecho) avisar(avisoDelCandado(etapa), true); return false; }
   // Entregar una misión quita la línea de después de la urgencia (nmwj6e78gtit)
   if (cuerpo.tipo === 'entregar') quitarLineaUrgencia();
   if (!libreMientrasRevisa(cuerpo) && esperaAlDirector()) return false;
