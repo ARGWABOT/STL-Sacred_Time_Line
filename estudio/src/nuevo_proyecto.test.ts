@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { esSubcarpeta } from '../../src/director/repositorio';
-import { botonEntregar, comprobarConLimite, conLaRespuesta, conLaTraduccion, conMetaDetectada, pareceDeOtroIdioma, conRepositorioEntero, datosDeNuevo, datosDeRapido, decidirComprobacion, entregaElegida, nombreLegible, esperarTranscripcion, htmlEscaneo, htmlLento, htmlNuevo, htmlPregunta, htmlRapido, htmlSubcarpeta, LIMITE_COMPROBACION_MS, sumarAlCampo, type Candidato, type Comprobacion, type Entrega } from './nuevo_proyecto';
+import { avisoSinTranscribir, botonEntregar, comprobarConLimite, leerDictado, conLaRespuesta, conLaTraduccion, conMetaDetectada, pareceDeOtroIdioma, conRepositorioEntero, datosDeNuevo, datosDeRapido, decidirComprobacion, entregaElegida, nombreLegible, esperarTranscripcion, htmlEscaneo, htmlLento, htmlNuevo, htmlPregunta, htmlRapido, htmlSubcarpeta, LIMITE_COMPROBACION_MS, sumarAlCampo, type Candidato, type Comprobacion, type Entrega } from './nuevo_proyecto';
 import { en } from './textos/en';
 import { es } from './textos/es';
 import { ponerIdioma } from './textos';
@@ -122,7 +122,7 @@ describe('entregar un proyecto, contándolo también hablando (nmw9v9sbdtit)', (
     expect(fuente).toContain('new Grabadora(caja, true, false)');
     expect(fuente).not.toMatch(/from '\.\/app'/);
     const app = readFileSync(new URL('./app.ts', import.meta.url), 'utf8');
-    expect(app).toContain('pedirProyectoNuevo((audio) => dictar(audio, true), async (e) => {');
+    expect(app).toContain('pedirProyectoNuevo((audio) => dictarConRazon(audio, true), async (e) => {');
   });
 });
 
@@ -543,14 +543,51 @@ describe('el formulario de entrega del primer proyecto transcribe sin proyecto a
     expect(dictarSrv).toContain('...(id ? { proyecto: id } : {})');
   });
 
-  it('transcribe con el mismo motor que la prueba del micrófono del asistente', () => {
-    expect(pruebaMic).toContain('transcribirEnLocal(raiz, [audio]');
-    expect(dictarSrv).toContain('transcribirEnLocal(raiz, [audio]');
-    expect(dictarSrv).toContain('transcripcionEnDisco(audio)');
+  // nmws1h8yhtit: un solo camino para los dos (formato, carpeta, motor y razón), para que no vuelvan a separarse
+  it('transcribe con la misma función que la prueba del micrófono del asistente', () => {
+    expect(pruebaMic).toContain("transcribirGrabado(raiz, 'p', cuerpo.audio");
+    expect(dictarSrv).toContain("transcribirGrabado(raiz, 'd', cuerpo.audio");
+    expect(pruebaMic).not.toMatch(/guardarAudio|transcribirEnLocal/);
+    expect(dictarSrv).not.toMatch(/guardarAudio|transcribirEnLocal/);
+    const funcion = api.slice(api.indexOf('async function transcribirGrabado('), api.indexOf('const TIPOS_AUDIO'));
+    expect(funcion).toContain("guardarAudio(raiz, '.estudio/dictados'");
+    expect(funcion).toContain('transcribirEnLocal(raiz, [audio], contexto)');
+    expect(funcion).toContain('transcripcionEnDisco(audio)');
   });
 
-  it('la página le pasa al formulario esa misma ruta', () => {
-    expect(app).toContain('pedirProyectoNuevo((audio) => dictar(audio, true)');
+  it('la razón del fallo llega a la página, también la de un audio que no se pudo guardar', () => {
+    expect(dictarSrv).toContain('return responder(res, 400, { error: g.error });');
+    expect(dictarSrv).toContain('e instanceof Rechazo ? 400 : 500, { error: (e as Error).message }');
+  });
+
+  it('la página le pasa al formulario esa misma ruta, con la razón', () => {
+    expect(app).toContain('pedirProyectoNuevo((audio) => dictarConRazon(audio, true)');
     expect(app).toContain("fetch('/__estudio/director/dictar'");
+    expect(app).toContain("return { error: typeof c.error === 'string' ? c.error : '' };");
+  });
+});
+
+describe('un dictado que no transcribe dice la razón del servidor en el formulario (nmws1h8yhtit)', () => {
+  it('con razón, la muestra después de «No se pudo transcribir»; sin ella, el aviso de siempre', () => {
+    ponerIdioma('en');
+    expect(avisoSinTranscribir('It could not be transcribed on this computer (python3 was not found).')).toBe('What you said could not be transcribed. The reason: It could not be transcribed on this computer (python3 was not found). Try again, or write it.');
+    expect(avisoSinTranscribir('the Studio did not answer')).toContain('The reason: the Studio did not answer. Try again');
+    expect(avisoSinTranscribir('')).toBe(en['nuevo.noTranscribio']);
+    expect(avisoSinTranscribir(null)).toBe(en['nuevo.noTranscribio']);
+    ponerIdioma('es');
+    expect(avisoSinTranscribir('Falta Python.')).toBe('No se pudo transcribir lo que dijiste. La razón: Falta Python. Inténtalo otra vez, o escríbelo.');
+  });
+
+  it('lee lo que devuelve el dictado: texto, razón o nada', () => {
+    expect(leerDictado({ texto: 'hola' })).toEqual({ texto: 'hola', razon: '' });
+    expect(leerDictado('hola')).toEqual({ texto: 'hola', razon: '' });
+    expect(leerDictado({ error: 'sin Python' })).toEqual({ texto: null, razon: 'sin Python' });
+    expect(leerDictado(null)).toEqual({ texto: null, razon: '' });
+  });
+
+  it('el campo arma su aviso con esa razón', () => {
+    const fuente = readFileSync(new URL('./nuevo_proyecto.ts', import.meta.url), 'utf8');
+    expect(fuente).toContain('armarDictado(caja, texto ? undefined : avisoSinTranscribir(razon));');
+    expect(fuente).not.toContain("armarDictado(caja, texto ? undefined : t('nuevo.noTranscribio'))");
   });
 });

@@ -2364,22 +2364,27 @@ ponerContextoDelDialogo({ dialogo: () => $('dialogo') as HTMLDialogElement, avis
  * a una nota que se corrige. null si no se pudo: el aviso lo dice dentro del diálogo, que sigue abierto con lo grabado.
  */
 async function dictar(audio: string, callado = false): Promise<string | null> {
+  const r = await dictarConRazon(audio, callado);
+  return 'texto' in r ? r.texto : null;
+}
+/** Lo mismo, con la razón del servidor si no se pudo: el formulario de entrega la muestra (nmws1h8yhtit). */
+async function dictarConRazon(audio: string, callado = false): Promise<{ texto: string } | { error: string }> {
   // Mientras se transcribe, la revisión de este proyecto y el cambio de proyecto esperan (nmwdwg5yvtit)
   return notasEnCurso.durante(d.activo, () => dictarYa(audio, callado));
 }
-async function dictarYa(audio: string, callado: boolean): Promise<string | null> {
+async function dictarYa(audio: string, callado: boolean): Promise<{ texto: string } | { error: string }> {
   if (!callado) decir(tx('nota.dictando'), 'pensativo');
   const r = await fetch('/__estudio/director/dictar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audio }), signal: AbortSignal.timeout(15 * 60_000) }).catch((e) => e as Error);
   if (r instanceof Error) {
     if (!callado) avisar(tx('nota.dictadoSinRespuesta'));
-    return null;
+    return { error: tx('nota.dictadoSinRespuesta') };
   }
   const c = await r.json().catch(() => ({}));
   if (!r.ok || !c.texto) {
     if (!callado) avisar(c.error ?? tx('nota.dictadoNo'));
-    return null;
+    return { error: typeof c.error === 'string' ? c.error : '' };
   }
-  return String(c.texto);
+  return { texto: String(c.texto) };
 }
 
 /**
@@ -3502,7 +3507,7 @@ async function nuevoProyecto() {
   // El formulario entrega y se cierra solo si el servidor aceptó: si no, sigue abierto con lo escrito y dice por qué
   // (auditoría de la entrega, punto 1)
   let j: { id?: unknown } = {};
-  const r = await pedirProyectoNuevo((audio) => dictar(audio, true), async (e) => {
+  const r = await pedirProyectoNuevo((audio) => dictarConRazon(audio, true), async (e) => {
     try {
       j = await enviarEntrega(e);
       return null;

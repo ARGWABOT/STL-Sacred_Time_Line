@@ -227,6 +227,32 @@ async function guardarAudio(raiz: string, carpeta: string, id: string, datos: un
   return `${carpeta}/${id}.${ext}`;
 }
 
+/**
+ * Lo grabado para transcribirlo y no para guardarlo (el «Grabar» de un campo, la prueba del micrófono del asistente): un
+ * solo camino para los dos, el mismo formato, carpeta, motor y razón del fallo, para que no vuelvan a separarse (en
+ * Ubuntu la prueba pasaba y el campo no: nmwr9x0dptit, nmws1h8yhtit). Su texto no queda en disco; el audio se borra
+ * siempre (`borrar: 'siempre'`) o solo si se entendió (`'si_entiende'`: lo que no se entendió se queda en
+ * .estudio/dictados, fuera de git, para volver a intentarlo, nota nmw159ihdtit). `error` es la razón para la persona y
+ * `razon`, la de la bitácora.
+ */
+async function transcribirGrabado(raiz: string, prefijo: string, datos: unknown, contexto: string, borrar: 'siempre' | 'si_entiende'): Promise<{ texto: string; error?: string; razon?: string }> {
+  const audio = enDisco(raiz, await guardarAudio(raiz, '.estudio/dictados', `${prefijo}${Date.now().toString(36)}`, datos));
+  let texto = '';
+  try {
+    const r = await transcribirEnLocal(raiz, [audio], contexto);
+    texto = (transcripcionEnDisco(audio) ?? '').trim();
+    if (texto) return { texto };
+    return {
+      texto,
+      error: r.ok ? t('servidor.api.audioSinNada') : t('servidor.api.noSePudoTranscribir', { razon: r.error ?? t('servidor.api.sinRazon') }),
+      razon: r.ok ? 'no se oyó voz' : r.error ?? 'sin detalle',
+    };
+  } finally {
+    await rm(txtDeAudio(audio), { force: true });
+    if (borrar === 'siempre' || texto) await rm(audio, { force: true });
+  }
+}
+
 const TIPOS_AUDIO: Record<string, string> = { webm: 'audio/webm', ogg: 'audio/ogg', m4a: 'audio/mp4', mp3: 'audio/mpeg' };
 const TIPOS_IMAGEN: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
 
@@ -2143,17 +2169,10 @@ export function servidorDirector(): Plugin {
           // La prueba del micrófono: como «/dictar», ni el audio ni su texto quedan en disco, y aquí todavía no hay proyecto propio
           if (ruta === '/asistente/prueba-mic' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);
-            const audio = enDisco(raiz, await guardarAudio(raiz, '.estudio/dictados', `p${Date.now().toString(36)}`, cuerpo.audio));
-            try {
-              const r = await transcribirEnLocal(raiz, [audio], 'Una frase de prueba, leída en voz alta.');
-              const texto = (transcripcionEnDisco(audio) ?? '').trim();
-              await anotar(raiz, { quien: await quienAqui(), que: texto ? tb('bitacora.pruebaMicro') : tb('bitacora.pruebaMicroFalla'), desde: tb('bitacora.desde.pantallaVoz') });
-              if (texto) return responder(res, 200, { texto });
-              return responder(res, 400, { error: r.ok ? t('servidor.api.audioSinNada') : t('servidor.api.noSePudoTranscribir', { razon: r.error ?? t('servidor.api.sinRazon') }) });
-            } finally {
-              await rm(audio, { force: true });
-              await rm(txtDeAudio(audio), { force: true });
-            }
+            const g = await transcribirGrabado(raiz, 'p', cuerpo.audio, 'Una frase de prueba, leída en voz alta.', 'siempre');
+            await anotar(raiz, { quien: await quienAqui(), que: g.texto ? tb('bitacora.pruebaMicro') : tb('bitacora.pruebaMicroFalla'), desde: tb('bitacora.desde.pantallaVoz') });
+            if (g.texto) return responder(res, 200, { texto: g.texto });
+            return responder(res, 400, { error: g.error });
           }
           // El idioma de la interfaz: en la configuración de este computador, para todos los proyectos y fuera de git (pd_idiomas)
           if (ruta === '/idioma' && req.method === 'POST') {
@@ -2301,39 +2320,30 @@ export function servidorDirector(): Plugin {
           // depende de un proyecto: va antes de pedir uno. El formulario de entrega del PRIMER proyecto grababa sin proyecto
           // activo y esta ruta respondía «aún no hay proyectos» (409) o pedía un rol (403), así que en una instalación nueva
           // nunca transcribía, aunque la prueba del micrófono del asistente sí (nota de voz del titular nmwr9x0dptit, Ubuntu).
-          // Ahora va por el mismo camino que esa prueba: transcribirEnLocal, sin rol
+          // Ahora va por el mismo camino que esa prueba, con la misma función (transcribirGrabado), sin rol
           if (ruta === '/dictar' && req.method === 'POST') {
             const id = await activo();
             const cuerpo = await leerCuerpo(req);
             const quien = (await leerIdentidad(raiz, id)).nombre || (await quienAqui());
-            const audio = enDisco(raiz, await guardarAudio(raiz, '.estudio/dictados', `d${Date.now().toString(36)}`, cuerpo.audio));
             // Mientras se transcribe, la revisión de este proyecto y el cambio de proyecto esperan (nmwdwg5yvtit)
             // La página guarda la nota con ese texto justo después: unos segundos más de espera, para que llegue antes que la
             // revisión pedida mientras tanto
             const soltar = id ? notasEnCurso.empieza(id) : () => {};
-            const soltarLuego = () => void setTimeout(soltar, GRACIA_DICTADO_MS).unref?.();
+            let g: Awaited<ReturnType<typeof transcribirGrabado>>;
             try {
-              const r = await transcribirEnLocal(raiz, [audio], 'Nota para el director de un proyecto.').catch((e: unknown) => {
-                soltarLuego();
-                throw e;
-              });
-              soltarLuego();
-              const texto = (transcripcionEnDisco(audio) ?? '').trim();
-              // Con la razón, en la bitácora: sin ella no se sabía si falló Python o si el audio no tenía voz
-              const razon = r.ok ? 'no se oyó voz' : r.error ?? 'sin detalle';
-              await anotar(raiz, { quien, que: texto ? tb('bitacora.transcribeNota') : tb('bitacora.noTranscribeNota', { razon }), desde: tb('bitacora.desde.corregirNotaGrabar'), ...(id ? { proyecto: id } : {}) });
-              if (texto) {
-                await rm(audio, { force: true });
-                await rm(txtDeAudio(audio), { force: true });
-                return responder(res, 200, { texto });
-              }
               // Sin texto, el audio no se borra (nota de voz del titular nmw159ihdtit): se queda en .estudio/dictados,
               // fuera de git, y el diálogo sigue abierto con lo grabado para volver a intentarlo
-              await rm(txtDeAudio(audio), { force: true });
-              return responder(res, 400, { error: r.ok ? t('servidor.api.audioSinNada') : t('servidor.api.noSePudoTranscribir', { razon: r.error ?? t('servidor.api.sinRazon') }) });
+              g = await transcribirGrabado(raiz, 'd', cuerpo.audio, 'Nota para el director de un proyecto.', 'si_entiende');
             } catch (e) {
-              return responder(res, 500, { error: (e as Error).message });
+              void setTimeout(soltar, GRACIA_DICTADO_MS).unref?.();
+              // La razón llega a la página, que la muestra junto a «No se pudo transcribir» (nmws1h8yhtit)
+              return responder(res, e instanceof Rechazo ? 400 : 500, { error: (e as Error).message });
             }
+            void setTimeout(soltar, GRACIA_DICTADO_MS).unref?.();
+            // Con la razón, en la bitácora: sin ella no se sabía si falló Python o si el audio no tenía voz
+            await anotar(raiz, { quien, que: g.texto ? tb('bitacora.transcribeNota') : tb('bitacora.noTranscribeNota', { razon: g.razon ?? 'sin detalle' }), desde: tb('bitacora.desde.corregirNotaGrabar'), ...(id ? { proyecto: id } : {}) });
+            if (g.texto) return responder(res, 200, { texto: g.texto });
+            return responder(res, 400, { error: g.error });
           }
           const id = await activo();
           if (!id) return responder(res, 409, { error: t('servidor.api.sinProyectos') });

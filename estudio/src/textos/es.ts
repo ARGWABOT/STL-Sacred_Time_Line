@@ -1213,6 +1213,7 @@ export const es = {
   'nuevo.grabarTitulo': 'Dilo hablando: se transcribe en este computador y se suma a este campo',
   'nuevo.transcribiendo': 'Transcribiendo lo que dijiste, en este computador…',
   'nuevo.noTranscribio': 'No se pudo transcribir lo que dijiste. Inténtalo otra vez, o escríbelo.',
+  'nuevo.noTranscribioPorque': 'No se pudo transcribir lo que dijiste. La razón: {razon} Inténtalo otra vez, o escríbelo.',
   'nuevo.esperaTranscripcion': 'Espera: tu nota de voz se está transcribiendo. El botón se activa cuando lo dicho esté escrito en su campo.',
   'nuevo.detenGrabacion': 'Primero detén la grabación: lo dicho se transcribe y queda escrito en su campo; después entrega.',
   'nuevo.otras': '¿No sabes dónde está? {escanear}. ¿Todavía no existe? {nuevo}.',

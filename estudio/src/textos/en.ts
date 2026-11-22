@@ -1214,6 +1214,7 @@ export const en: Record<keyof typeof es, Texto> = {
   'nuevo.grabarTitulo': 'Say it out loud: it is transcribed on this computer and added to this field',
   'nuevo.transcribiendo': 'Transcribing what you said, on this computer…',
   'nuevo.noTranscribio': 'What you said could not be transcribed. Try again, or write it.',
+  'nuevo.noTranscribioPorque': 'What you said could not be transcribed. The reason: {razon} Try again, or write it.',
   'nuevo.esperaTranscripcion': 'Wait: your voice note is being transcribed. The button turns on when what you said is written in its field.',
   'nuevo.detenGrabacion': 'First stop the recording: what you said is transcribed and written in its field; then deliver.',
   'nuevo.otras': 'Not sure where it is? {escanear}. Does it not exist yet? {nuevo}.',

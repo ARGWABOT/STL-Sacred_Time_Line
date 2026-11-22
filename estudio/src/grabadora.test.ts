@@ -218,9 +218,12 @@ describe('sumarle algo hablando a una nota que el director aún no lee (nota de 
     expect(corregir).toContain('repartirDictado(');
     const servidor = readFileSync(join(__dirname, '..', 'servidor', 'api.ts'), 'utf-8');
     const dictar = servidor.slice(servidor.indexOf("ruta === '/dictar'"), servidor.indexOf("ruta === '/comprobar'"));
-    expect(dictar).toContain("'.estudio/dictados'");
-    expect(dictar).toContain('await rm(audio');
-    expect(dictar).toContain('await rm(txtDeAudio(audio)');
+    // La ruta va por transcribirGrabado, la misma función que la prueba del micrófono (nmws1h8yhtit): ella guarda y borra
+    expect(dictar).toContain("transcribirGrabado(raiz, 'd', cuerpo.audio, 'Nota para el director de un proyecto.', 'si_entiende')");
+    const grabado = servidor.slice(servidor.indexOf('async function transcribirGrabado('), servidor.indexOf('const TIPOS_AUDIO'));
+    expect(grabado).toContain("'.estudio/dictados'");
+    expect(grabado).toContain('await rm(audio');
+    expect(grabado).toContain('await rm(txtDeAudio(audio)');
   });
 
   it('borrar lo que se entendió del audio y grabar otra cosa la reemplaza, sin dejarla vacía (nota de voz nmvpmv30ytit)', () => {

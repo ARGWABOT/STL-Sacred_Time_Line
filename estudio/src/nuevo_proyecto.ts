@@ -24,8 +24,28 @@ import { idiomaActual, lenguaje, t } from './textos';
 export { nombreLegible };
 import { esc } from './util';
 
-/** Lo dicho en un audio, transcrito en este computador (app.ts › dictar), o null si no se pudo. */
-export type Dictar = (audio: string) => Promise<string | null>;
+/**
+ * Lo dicho en un audio, transcrito en este computador (app.ts › dictarConRazon): su texto, o la razón del servidor si no
+ * se pudo (null o un texto suelto también valen, sin razón).
+ */
+export type Dictar = (audio: string) => Promise<string | { texto: string } | { error: string } | null>;
+
+/**
+ * El aviso del «Grabar» de un campo que no transcribió: con la razón del servidor si la hay, para que un fallo futuro diga
+ * por qué (nmws1h8yhtit: en Ubuntu solo decía «No se pudo transcribir», sin causa). Pura.
+ */
+export function avisoSinTranscribir(razon?: string | null): string {
+  const r = (razon ?? '').trim();
+  if (!r) return t('nuevo.noTranscribio');
+  return t('nuevo.noTranscribioPorque', { razon: /[.!?…)]$/.test(r) ? r : `${r}.` });
+}
+
+/** Lo que devolvió `Dictar`, en texto y razón. Pura. */
+export function leerDictado(r: Awaited<ReturnType<Dictar>>): { texto: string | null; razon: string } {
+  if (typeof r === 'string') return { texto: r || null, razon: '' };
+  if (r && 'texto' in r) return { texto: r.texto || null, razon: '' };
+  return { texto: null, razon: r && 'error' in r ? r.error : '' };
+}
 
 type SenalIA = { agente: string; sesiones?: number; ultima?: string; donde?: string };
 /**
@@ -380,13 +400,14 @@ export function pedirProyectoNuevo(dictar?: Dictar, entregar?: EntregarAlServido
         // Mientras se transcribe, el botón de entregar espera, con su círculo (nota nmw9wgco4tit)
         transcribiendo++;
         esperarTranscripcion(dlg, true);
-        const texto = await enDatos(blob).then(dictar).catch(() => null);
+        const { texto, razon } = leerDictado(await enDatos(blob).then(dictar).catch((e: unknown) => ({ error: e instanceof Error ? e.message : '' })));
         transcribiendo = Math.max(0, transcribiendo - 1);
         esperarTranscripcion(dlg, transcribiendo > 0);
         if (!caja.isConnected || listo) return;
         const campo = dlg.querySelector<HTMLTextAreaElement>(`textarea[name="${caja.dataset.dictar}"]`);
         if (texto && campo) sumarAlCampo(campo, texto);
-        armarDictado(caja, texto ? undefined : t('nuevo.noTranscribio'));
+        // Sin texto, el aviso dice la razón del servidor (nmws1h8yhtit)
+        armarDictado(caja, texto ? undefined : avisoSinTranscribir(razon));
         if (texto) campo?.focus();
       })();
     };
