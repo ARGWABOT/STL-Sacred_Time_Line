@@ -56,7 +56,10 @@ export function zonaTranscripcion(v: EstadoVoz | null, repaso: boolean): string 
   return `${titulo}<p class="como">${t('asistente.voz.transPeso')}</p>${repaso ? `<div><button type="button" data-asistente-instalar="transcripcion">${t('asistente.voz.instalar')}</button></div>` : `<progress max="100" value="0"></progress>`}`;
 }
 
-/** La prueba del micrófono: con la frase a la vista mientras se graba; cuenta cuando la persona dice que se entendió (t_decide_prueba_cuenta). */
+/**
+ * La prueba del micrófono: se dice cualquier frase, sin una de ejemplo que leer (nota nmws5r55ntit: la frase dada ni se
+ * entendía), y después solo se ve lo entendido; cuenta cuando la persona dice que se entendió (t_decide_prueba_cuenta).
+ */
 export function zonaPrueba(e: EleccionVoz, p: PruebaMic, v: EstadoVoz | null): string {
   const titulo = `<h3>${t('asistente.voz.pruebaTitulo')}</h3>`;
   if (v?.transcripcion.estado !== 'lista') return `${titulo}<p class="como">${t('asistente.voz.pruebaEspera')}</p>`;
@@ -64,15 +67,14 @@ export function zonaPrueba(e: EleccionVoz, p: PruebaMic, v: EstadoVoz | null): s
     const dice = e.prueba === 'bien' ? 'asistente.voz.pruebaBien' : e.prueba === 'sigo' ? 'asistente.voz.pruebaSigo' : 'asistente.voz.pruebaSinMic';
     return `${titulo}<p class="asistente-ok" role="status">✓ ${t(dice)}</p><div><button type="button" class="enlace" data-asistente-prueba="otra">${t('asistente.voz.probarOtra')}</button></div>`;
   }
-  const frase = `<blockquote class="asistente-frase" data-asistente-frase>${t('asistente.voz.frase')}</blockquote>`;
   const sinMic = `<button type="button" data-asistente-prueba="sin_mic">${t('asistente.voz.sinMic')}</button>`;
-  if (p.fase === 'transcribiendo') return `${titulo}${frase}<p class="como" role="status">${t('asistente.voz.transcribiendo')}</p>`;
+  if (p.fase === 'transcribiendo') return `${titulo}<p class="como" role="status">${t('asistente.voz.transcribiendo')}</p>`;
   if (p.fase === 'entendio') {
     const boton = { bien: `<button type="button" class="primario" data-asistente-prueba="bien">${t('asistente.voz.si')}</button>`, otra: `<button type="button" data-asistente-prueba="otra">${t('asistente.voz.grabarOtra')}</button>`, sigo: `<button type="button" data-asistente-prueba="sigo">${t('asistente.voz.sigo')}</button>` };
-    return `${titulo}${frase}<p>${t('asistente.voz.entendio')}</p><blockquote class="asistente-entendido">${esc(p.entendido ?? '')}</blockquote><p><b>${t('asistente.voz.seEntendio')}</b></p><div class="botones asistente-prueba-botones">${respuestasDePrueba(p.intentos).map((r) => boton[r]).join('')}${sinMic}</div>`;
+    return `${titulo}<p>${t('asistente.voz.entendio')}</p><blockquote class="asistente-entendido">${esc(p.entendido ?? '')}</blockquote><p><b>${t('asistente.voz.seEntendio')}</b></p><div class="botones asistente-prueba-botones">${respuestasDePrueba(p.intentos).map((r) => boton[r]).join('')}${sinMic}</div>`;
   }
-  if (p.fase === 'fallo') return `${titulo}${frase}<div class="aviso asistente-falta" role="alert"><p>${esc(p.error ?? '')}</p><div class="botones asistente-prueba-botones"><button type="button" class="primario" data-asistente-prueba="otra">${t('asistente.voz.reintentar')}</button>${sinMic}</div></div>`;
-  return `${titulo}<p>${t('asistente.voz.pruebaLee')}</p>${frase}<div class="grabadora" data-asistente-grabadora></div><div class="botones asistente-prueba-botones">${sinMic}</div>`;
+  if (p.fase === 'fallo') return `${titulo}<div class="aviso asistente-falta" role="alert"><p>${esc(p.error ?? '')}</p><div class="botones asistente-prueba-botones"><button type="button" class="primario" data-asistente-prueba="otra">${t('asistente.voz.reintentar')}</button>${sinMic}</div></div>`;
+  return `${titulo}<p>${t('asistente.voz.pruebaDi')}</p><div class="grabadora" data-asistente-grabadora></div><div class="botones asistente-prueba-botones">${sinMic}</div>`;
 }
 
 /**

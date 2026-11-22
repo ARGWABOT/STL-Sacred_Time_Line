@@ -43,13 +43,35 @@ describe('la transcripción: obligatoria (nmvy0cdw1tit)', () => {
 describe('la prueba del micrófono', () => {
   const V = estado(LISTA);
 
-  it('espera a la transcripción; después da la frase escrita, con la grabadora y «No tengo micrófono ahora» (t_decide_frase_mic)', () => {
+  it('espera a la transcripción; después pide decir cualquier frase, con la grabadora y «No tengo micrófono ahora» (t_decide_frase_mic)', () => {
     expect(zonaPrueba({}, PRUEBA_NUEVA, estado({ estado: 'instalando', pct: 1 }))).not.toContain('data-asistente-grabadora');
     const html = zonaPrueba({}, PRUEBA_NUEVA, V);
-    expect(html).toContain('data-asistente-frase');
+    expect(sinMarcas(html)).toContain('dile al director cualquier frase');
     expect(html).toContain('data-asistente-grabadora');
     expect(html).toContain('data-asistente-prueba="sin_mic"');
     expect(sinMarcas(html)).toContain('No tengo micrófono ahora');
+  });
+
+  it('sin frase de ejemplo que leer, ni al grabar, ni al transcribir, ni con lo entendido, en los dos idiomas (nmws5r55ntit)', () => {
+    for (const idioma of ['es', 'en'] as const) {
+      ponerIdioma(idioma);
+      const fases = [
+        zonaPrueba({}, PRUEBA_NUEVA, V),
+        zonaPrueba({}, { fase: 'transcribiendo', intentos: 1 }, V),
+        zonaPrueba({}, { fase: 'entendio', intentos: 1, entendido: 'hola director' }, V),
+        zonaPrueba({}, { fase: 'fallo', intentos: 1, error: 'x' }, V),
+      ];
+      for (const html of fases) {
+        expect(html).not.toMatch(/asistente-frase|blockquote class="asistente-frase"/);
+        expect(sinMarcas(html)).not.toMatch(/Hoy le dejo al director|Today I leave the director|lee esta frase|read this sentence/);
+      }
+      // Mientras transcribe, solo dice que transcribe; después, solo lo entendido y si se entendió
+      expect(sinMarcas(fases[1])).toBe(sinMarcas(`<h3>${idioma === 'es' ? 'Prueba tu micrófono' : 'Test your microphone'}</h3><p>${idioma === 'es' ? 'Transcribiendo lo que dijiste…' : 'Transcribing what you said…'}</p>`));
+      expect(sinMarcas(fases[2])).toContain('hola director');
+      expect(sinMarcas(fases[2])).toContain(idioma === 'es' ? '¿Se entendió?' : 'Did it get it right?');
+      expect(sinMarcas(fases[0])).toContain(idioma === 'es' ? 'cualquier frase' : 'any sentence');
+    }
+    ponerIdioma('es');
   });
 
   it('muestra lo que entendió y pregunta «¿Se entendió?», con «Sí» y «Grabar otra vez»; desde el segundo intento, «Sigo así»', () => {

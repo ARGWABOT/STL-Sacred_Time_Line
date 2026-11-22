@@ -107,17 +107,12 @@ dialog.asistente {
   padding: 10px;
   font-weight: 600;
 }
-.asistente-frase,
 .asistente-entendido {
   margin: 0;
   padding: 10px 14px;
   border-inline-start: 3px solid var(--borde);
   border-radius: var(--radio);
   background: var(--panel);
-}
-.asistente-frase {
-  font-size: 18px;
-  border-inline-start-color: var(--ok);
 }
 .asistente-prueba-botones {
   display: flex;
