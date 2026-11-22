@@ -66,7 +66,7 @@ export function avanzaUnaMision(cuerpo: Record<string, unknown>): boolean {
  * parte de un documento (nmws24jddtit, que reemplaza nmwfnxlyztit). «Agregar a esta decisión» (`comenta`) es un
  * comentario y sigue abierto, como el ✉.
  */
-export function avanzaUnaDecision(cuerpo: Record<string, unknown>): boolean {
+function avanzaUnaDecision(cuerpo: Record<string, unknown>): boolean {
   if (cuerpo.tipo === 'responder') return true;
   if (cuerpo.tipo !== 'comentar') return false;
   const sobre = (cuerpo.sobre ?? {}) as { tipo?: string; decision?: unknown; postura?: unknown };
