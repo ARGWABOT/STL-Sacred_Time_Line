@@ -90,6 +90,9 @@ describe('el candado de una urgencia (pd_urgencia_bloquea)', () => {
     for (const b of BOTONES_DE_AVANCE) expect(regla).toContain(b);
     // El ✉ de los pasos y «Agregar a esta decisión» no se apagan: solo el «Decido otra cosa» de los comentarios
     expect(regla.replace('[data-comentar$="|decide"]', '')).not.toContain('comentar');
+    // Regla dura (nmws6n457tit): el botón de un paso (ir a su lugar) nunca espera al candado
+    expect(BOTONES_DE_AVANCE.join(',')).not.toContain('data-destino');
+    expect(regla).not.toContain('data-destino');
     const app = leer('../../estudio/src/app.ts');
     expect(app).toContain('const etapa = avanzaAlgo(cuerpo) ? candadoAhora() : null;');
     expect(app).toContain('if (etapa) { if (hecho) avisar(avisoDelCandado(etapa), true); return false; }');

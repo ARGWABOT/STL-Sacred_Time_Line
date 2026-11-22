@@ -5498,9 +5498,14 @@ let enfoqueQuerido = false;
  * mostraría la idea por leer, no lo que el paso pide mirar.
  */
 let enfoqueAlAbrir = true;
-/** Lo que se puede enfocar aquí, con la misma forma: así, si la misión enfocada deja de ser la de ahora, ya no coincide. */
+/**
+ * Lo que se puede enfocar aquí, con la misma forma: así, si la misión enfocada deja de ser la de ahora, ya no coincide.
+ * Regla dura (nota urgente del titular nmws6n457tit): con la tarjeta de un punto de la línea abierta en «Hoy» (una
+ * propuesta a la que lleva el botón de un paso, «Open the proposal»), la misión no se enfoca: el velo taparía la tarjeta
+ * y el botón parecería no hacer nada. Al cerrarla («Volver a mi misión»), el enfoque vuelve solo si la persona lo tenía.
+ */
 const queEnfocar = () =>
-  vista === 'documentos' && doc ? 'documento' : (vista === 'misiones' && $('vista').querySelector<HTMLElement>('.mision-c.sigue.mia')?.dataset.ancla) || '';
+  vista === 'documentos' && doc ? 'documento' : (vista === 'misiones' && !puntoElegido && $('vista').querySelector<HTMLElement>('.mision-c.sigue.mia')?.dataset.ancla) || '';
 const etiquetaEnfoque = (si: boolean) => tx(si ? 'enfoque.salir' : 'enfoque.modo');
 const tituloEnfoque = (si: boolean, aqui: string) =>
   tx(si ? 'enfoque.tituloSalir' : aqui === 'documento' ? 'enfoque.tituloIdea' : 'enfoque.tituloMision');

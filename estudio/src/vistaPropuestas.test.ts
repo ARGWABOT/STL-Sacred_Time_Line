@@ -26,4 +26,16 @@ describe('las propuestas, en la línea de «Hoy»', () => {
     expect(irA).toContain("nueva = 'misiones';");
     expect(app).not.toContain('function vistaPropuestas()');
   });
+
+  it('regla dura (nmws6n457tit): con la tarjeta de un punto abierta, el modo enfoque no la tapa', () => {
+    // El botón «Open the proposal» de un paso no sale de «Hoy»: si la misión siguiera enfocada, el velo cubriría la
+    // tarjeta de la propuesta y el botón parecería no hacer nada. Lo enfocable en «Hoy» exige que no haya punto elegido
+    const inicio = app.indexOf('const queEnfocar = () =>');
+    expect(inicio).toBeGreaterThan(-1);
+    const queEnfocar = app.slice(inicio, app.indexOf('\n', app.indexOf('\n', inicio) + 1));
+    expect(queEnfocar).toMatch(/vista === 'misiones' && !puntoElegido && /);
+    // Y el repintado vuelve a decidir el enfoque: al cerrar la tarjeta, la misión vuelve a enfocarse si la persona lo tenía
+    const pintar = app.slice(app.indexOf('function pintar('));
+    expect(pintar.slice(0, pintar.indexOf('\nfunction ', 10))).toContain('aplicarEnfoque();');
+  });
 });
