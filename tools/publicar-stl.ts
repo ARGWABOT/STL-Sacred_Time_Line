@@ -66,9 +66,11 @@ const MODULO_RECORRIDO = 'docs/difusion/mundo-3d.js';
 const ANIMACION = 'docs/difusion/linea-del-proyecto.html';
 // El video corto (pd_voz_video): el recorrido lo carga con ?video, junto a él
 const MODULO_VIDEO = 'docs/difusion/video-corto.js';
-const TITULO = '¿Qué es STL? · El guardrail donde más hacía falta, en el Dev';
+// La guarda de un solo sonido a la vez (nmwr9og6ttit): la cargan las dos páginas antes que su código
+const GUARDA_SONIDO = 'docs/difusion/un-solo-sonido.js';
+const TITULO ='¿Qué es STL? · El guardrail donde más hacía falta, en el Dev';
 const TITULO_LINEA = '¿Qué es STL? · La línea del proyecto';
-for (const archivo of [RECORRIDO, MODULO_RECORRIDO, MODULO_VIDEO, ANIMACION]) if (!existsSync(join(raiz, archivo))) throw new Error(`Falta ${archivo}, de la portada.`);
+for (const archivo of [RECORRIDO, MODULO_RECORRIDO, MODULO_VIDEO, ANIMACION, GUARDA_SONIDO]) if (!existsSync(join(raiz, archivo))) throw new Error(`Falta ${archivo}, de la portada.`);
 const linea = readFileSync(join(raiz, ANIMACION), 'utf8')
   .replace(/<!--[\s\S]*?-->\s*/, '')
   .replace(/<title>[^<]*<\/title>/, `<title>${TITULO_LINEA}</title>\n${metas(TITULO_LINEA, `${URL_PUBLICA}linea-del-proyecto.html`)}`);
@@ -116,6 +118,7 @@ mkdirSync(salida, { recursive: true });
 writeFileSync(join(salida, 'index.html'), portada);
 copyFileSync(join(raiz, MODULO_RECORRIDO), join(salida, 'mundo-3d.js'));
 copyFileSync(join(raiz, MODULO_VIDEO), join(salida, 'video-corto.js'));
+copyFileSync(join(raiz, GUARDA_SONIDO), join(salida, 'un-solo-sonido.js'));
 writeFileSync(join(salida, 'linea-del-proyecto.html'), linea);
 // three.js, la copia que usa el recorrido, con su licencia: se vuelve a copiar entera, para que no quede una versión vieja
 rmSync(join(salida, CARPETA_THREE), { recursive: true, force: true });

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
 // El primer tramo del recorrido en 3D de «Qué es STL» (pd_recorrido_3d), con lo que eligió el titular el 3 de noviembre
@@ -3142,5 +3143,127 @@ describe('la estación «Un Studio que se mejora solo» (pd_estacion_automejora)
     for (let k = 1; k < alturas.length; k++) expect(alturas[k - 1] - alturas[k]).toBeGreaterThanOrEqual(1.4);
     expect(bloque).toContain('Object.assign(mejora3d, { pantalla: pantallaMejora, brillo: brilloMejora, adornos,');
     expect(bloque).not.toMatch(/cargarVocesDe|pistaVoz|new Audio/);
+  });
+});
+
+// Un solo sonido a la vez en todo el recorrido (nota de voz del titular nmwr9og6ttit): la guarda (un-solo-sonido.js) se
+// corre de verdad en un contexto aparte, con un document, un canal entre páginas y unos clips falsos
+describe('un solo sonido a la vez en el recorrido, y nada suena con la pestaña oculta (nmwr9og6ttit)', () => {
+  const guarda = readFileSync(join(raiz, 'docs/difusion/un-solo-sonido.js'), 'utf8');
+  type Oyente = (e?: unknown) => void;
+  // Un canal compartido por las páginas de la prueba, como el BroadcastChannel del navegador (no se oye a sí mismo)
+  function crearMundo() {
+    const canales: { onmessage: Oyente | null; yo: object }[] = [];
+    class Canal {
+      onmessage: Oyente | null = null;
+      constructor() { canales.push({ onmessage: null, yo: this }); }
+      postMessage(data: unknown) {
+        for (const c of canales) if (c.yo !== this) (c.yo as Canal).onmessage?.({ data });
+      }
+    }
+    function pagina() {
+      const oyentesDoc = new Map<string, Oyente[]>();
+      const document = {
+        hidden: false,
+        addEventListener(ev: string, f: Oyente) { oyentesDoc.set(ev, [...(oyentesDoc.get(ev) ?? []), f]); },
+      };
+      class Medio {
+        paused = true;
+        cargado = true;
+        oyentes = new Map<string, Oyente[]>();
+        addEventListener(ev: string, f: Oyente) { this.oyentes.set(ev, [...(this.oyentes.get(ev) ?? []), f]); }
+        pause() { this.paused = true; }
+        play() { this.paused = false; if (this.cargado) this.empezo(); return Promise.resolve(); }
+        // El clip empieza a sonar de verdad (cuando terminó de cargar)
+        empezo() { if (!this.paused) for (const f of this.oyentes.get('playing') ?? []) f(); }
+      }
+      const g: Record<string, unknown> = { document, HTMLMediaElement: Medio, BroadcastChannel: Canal, Promise, Math, addEventListener() {} };
+      g.window = g;
+      runInNewContext(guarda, g);
+      const sonido = g.STLSonido as { alCallar: (f: () => void) => void };
+      const tocar = (ev: string) => { for (const f of oyentesDoc.get(ev) ?? []) f(); };
+      const clip = (cargado = true) => { const m = new Medio(); m.cargado = cargado; return m; };
+      return { document, sonido, tocar, clip };
+    }
+    return { pagina };
+  }
+
+  it('las dos páginas del recorrido la cargan antes que su código, y la publicación la copia', () => {
+    const linea = readFileSync(join(raiz, 'docs/difusion/linea-del-proyecto.html'), 'utf8');
+    expect(html.indexOf('<script src="./un-solo-sonido.js"></script>')).toBeGreaterThan(-1);
+    expect(html.indexOf('un-solo-sonido.js')).toBeLessThan(html.indexOf('mundo-3d.js"></script>'));
+    expect(linea.indexOf('<script src="un-solo-sonido.js"></script>')).toBeLessThan(linea.indexOf('<script>\n'));
+    expect(js).toContain('window.STLSonido?.alCallar(');
+    expect(linea).toContain('window.STLSonido?.alCallar(');
+    expect(readFileSync(join(raiz, 'tools/publicar-stl.ts'), 'utf8')).toContain("join(salida, 'un-solo-sonido.js')");
+    // Al cerrar la animación en grande, su página se descarga de verdad: quitar el src no la detenía
+    expect(js).toContain("visorIframe.contentWindow?.location.replace('about:blank')");
+  });
+
+  it('toda reproducción nueva calla las demás, en su página y en las otras (el iframe y la que lo contiene)', () => {
+    const { pagina } = crearMundo();
+    const recorrido = pagina(), animacion = pagina();
+    let animacionPausada = false;
+    animacion.sonido.alCallar(() => { animacionPausada = true; });
+    const a = recorrido.clip(), b = recorrido.clip(), c = animacion.clip();
+    void c.play();
+    expect(c.paused).toBe(false);
+    recorrido.tocar('pointerdown');
+    void a.play();
+    expect(c.paused).toBe(true);
+    expect(animacionPausada).toBe(true);
+    void b.play();
+    expect(a.paused).toBe(true);
+    expect(b.paused).toBe(false);
+  });
+
+  it('un clip que termina de cargar tarde nunca empieza solo', () => {
+    const { pagina } = crearMundo();
+    const recorrido = pagina(), animacion = pagina();
+    // La voz de la presentación se pide y se queda cargando; la persona toca el recorrido y abre otro clip
+    const tarde = animacion.clip(false);
+    void tarde.play();
+    recorrido.tocar('pointerdown');
+    const otro = recorrido.clip();
+    void otro.play();
+    // Llega la voz de la presentación: no suena
+    tarde.cargado = true; tarde.paused = false; tarde.empezo();
+    expect(tarde.paused).toBe(true);
+    expect(otro.paused).toBe(false);
+    // Y su página, sin la palabra, no vuelve a sonar sola aunque su código lo pida
+    void tarde.play();
+    expect(tarde.paused).toBe(true);
+    // En la misma página: uno viejo que llega tarde, cuando ya se pidió otro, tampoco
+    const viejo = recorrido.clip(false), nuevo = recorrido.clip();
+    void viejo.play(); void nuevo.play();
+    viejo.paused = false; viejo.empezo();
+    expect(viejo.paused).toBe(true);
+    expect(nuevo.paused).toBe(false);
+  });
+
+  it('con la pestaña oculta, la animación y su voz se pausan donde iban, y nada suena hasta que la persona le dé play', () => {
+    const { pagina } = crearMundo();
+    const recorrido = pagina();
+    let pausada = false;
+    recorrido.sonido.alCallar(() => { pausada = true; });
+    const voz = recorrido.clip();
+    void voz.play();
+    recorrido.document.hidden = true;
+    recorrido.tocar('visibilitychange');
+    expect(voz.paused).toBe(true);
+    expect(pausada).toBe(true);
+    void voz.play();
+    expect(voz.paused).toBe(true);
+    recorrido.document.hidden = false;
+    recorrido.tocar('pointerdown');
+    void voz.play();
+    expect(voz.paused).toBe(false);
+  });
+
+  it('la frase de QA dice «pero no te dice dónde», con su clip nuevo', () => {
+    const textos = JSON.parse(readFileSync(join(raiz, 'docs/difusion/voz/es/textos.json'), 'utf8')) as Record<string, { texto: string; ms: number }>;
+    expect(textos['s16-p2'].texto).toBe('pero no te dice dónde: abres otra pestaña y buscas la página,');
+    expect(js).toContain('pero no te dice dónde: abres otra pestaña');
+    expect(js).not.toContain('pero no dónde');
   });
 });
