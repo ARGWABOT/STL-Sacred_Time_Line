@@ -2297,6 +2297,44 @@ export function servidorDirector(): Plugin {
               return responder(res, 400, { error: e instanceof Error ? e.message : String(e) });
             }
           }
+          // Transcribir lo grabado en un campo (el ✉, una nota que se corrige, el formulario de entrega) no firma nada ni
+          // depende de un proyecto: va antes de pedir uno. El formulario de entrega del PRIMER proyecto grababa sin proyecto
+          // activo y esta ruta respondía «aún no hay proyectos» (409) o pedía un rol (403), así que en una instalación nueva
+          // nunca transcribía, aunque la prueba del micrófono del asistente sí (nota de voz del titular nmwr9x0dptit, Ubuntu).
+          // Ahora va por el mismo camino que esa prueba: transcribirEnLocal, sin rol
+          if (ruta === '/dictar' && req.method === 'POST') {
+            const id = await activo();
+            const cuerpo = await leerCuerpo(req);
+            const quien = (await leerIdentidad(raiz, id)).nombre || (await quienAqui());
+            const audio = enDisco(raiz, await guardarAudio(raiz, '.estudio/dictados', `d${Date.now().toString(36)}`, cuerpo.audio));
+            // Mientras se transcribe, la revisión de este proyecto y el cambio de proyecto esperan (nmwdwg5yvtit)
+            // La página guarda la nota con ese texto justo después: unos segundos más de espera, para que llegue antes que la
+            // revisión pedida mientras tanto
+            const soltar = id ? notasEnCurso.empieza(id) : () => {};
+            const soltarLuego = () => void setTimeout(soltar, GRACIA_DICTADO_MS).unref?.();
+            try {
+              const r = await transcribirEnLocal(raiz, [audio], 'Nota para el director de un proyecto.').catch((e: unknown) => {
+                soltarLuego();
+                throw e;
+              });
+              soltarLuego();
+              const texto = (transcripcionEnDisco(audio) ?? '').trim();
+              // Con la razón, en la bitácora: sin ella no se sabía si falló Python o si el audio no tenía voz
+              const razon = r.ok ? 'no se oyó voz' : r.error ?? 'sin detalle';
+              await anotar(raiz, { quien, que: texto ? tb('bitacora.transcribeNota') : tb('bitacora.noTranscribeNota', { razon }), desde: tb('bitacora.desde.corregirNotaGrabar'), ...(id ? { proyecto: id } : {}) });
+              if (texto) {
+                await rm(audio, { force: true });
+                await rm(txtDeAudio(audio), { force: true });
+                return responder(res, 200, { texto });
+              }
+              // Sin texto, el audio no se borra (nota de voz del titular nmw159ihdtit): se queda en .estudio/dictados,
+              // fuera de git, y el diálogo sigue abierto con lo grabado para volver a intentarlo
+              await rm(txtDeAudio(audio), { force: true });
+              return responder(res, 400, { error: r.ok ? t('servidor.api.audioSinNada') : t('servidor.api.noSePudoTranscribir', { razon: r.error ?? t('servidor.api.sinRazon') }) });
+            } catch (e) {
+              return responder(res, 500, { error: (e as Error).message });
+            }
+          }
           const id = await activo();
           if (!id) return responder(res, 409, { error: t('servidor.api.sinProyectos') });
           // El registro de lo que recorriste con la niebla (pd_registro_lectura): de quien abre el Studio, en este proyecto y en
@@ -2749,39 +2787,6 @@ export function servidorDirector(): Plugin {
           // Si el modelo de voz se está preparando (al volver de liberarse en un computador chico): la grabación lo dice
           // mientras espera (pd_voz_memoria, nmwj6jszhtit)
           if (ruta === '/modelo-voz' && req.method === 'GET') return responder(res, 200, { modeloVoz: modeloDeVoz() });
-          if (ruta === '/dictar' && req.method === 'POST') {
-            const cuerpo = await leerCuerpo(req);
-            const yo = await leerIdentidad(raiz, id);
-            if (!yo.rol) return responder(res, 403, { error: yo.problema ?? t('servidor.api.estudioNoSabeQuien') });
-            const audio = enDisco(raiz, await guardarAudio(raiz, '.estudio/dictados', `d${Date.now().toString(36)}`, cuerpo.audio));
-            // Mientras se transcribe, la revisión de este proyecto y el cambio de proyecto esperan (nmwdwg5yvtit)
-            // La página guarda la nota con ese texto justo después: unos segundos más de espera, para que llegue antes que la
-            // revisión pedida mientras tanto
-            const soltar = notasEnCurso.empieza(id);
-            const soltarLuego = () => void setTimeout(soltar, GRACIA_DICTADO_MS).unref?.();
-            try {
-              const r = await transcribirEnLocal(raiz, [audio], 'Nota para el director de un proyecto.').catch((e: unknown) => {
-                soltarLuego();
-                throw e;
-              });
-              soltarLuego();
-              const texto = (transcripcionEnDisco(audio) ?? '').trim();
-              // Con la razón, en la bitácora: sin ella no se sabía si falló Python o si el audio no tenía voz
-              const razon = r.ok ? 'no se oyó voz' : r.error ?? 'sin detalle';
-              await anotar(raiz, { quien: yo.nombre, que: texto ? tb('bitacora.transcribeNota') : tb('bitacora.noTranscribeNota', { razon }), desde: tb('bitacora.desde.corregirNotaGrabar'), proyecto: id });
-              if (texto) {
-                await rm(audio, { force: true });
-                await rm(txtDeAudio(audio), { force: true });
-                return responder(res, 200, { texto });
-              }
-              // Sin texto, el audio no se borra (nota de voz del titular nmw159ihdtit): se queda en .estudio/dictados,
-              // fuera de git, y el diálogo sigue abierto con lo grabado para volver a intentarlo
-              await rm(txtDeAudio(audio), { force: true });
-              return responder(res, 400, { error: r.ok ? t('servidor.api.audioSinNada') : t('servidor.api.noSePudoTranscribir', { razon: r.error ?? t('servidor.api.sinRazon') }) });
-            } catch (e) {
-              return responder(res, 500, { error: (e as Error).message });
-            }
-          }
           // Comprobar un paso de terminal al marcarlo: la orden también sale del plan, y solo si es de las que leen
           if (ruta === '/comprobar' && req.method === 'POST') {
             const cuerpo = await leerCuerpo(req);

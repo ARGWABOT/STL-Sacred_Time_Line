@@ -519,3 +519,38 @@ describe('una carpeta dentro de un repositorio no se entrega como el repositorio
     expect(clic.indexOf('conRepositorioEntero(')).toBeGreaterThan(clic.indexOf('b.dataset.repoEntero !== undefined && porSubcarpeta'));
   });
 });
+
+// En una instalación nueva (Ubuntu, nota de voz del titular nmwr9x0dptit), la prueba del micrófono del asistente
+// transcribía y el formulario de entrega del PRIMER proyecto no: su «Grabar» va a «/dictar», que estaba después de la
+// puerta «aún no hay proyectos» (409) y además pedía un rol (403). Sin proyecto activo, nunca llegaba a transcribir
+describe('el formulario de entrega del primer proyecto transcribe sin proyecto activo, como la prueba del micrófono (nmwr9x0dptit)', () => {
+  const api = readFileSync('estudio/servidor/api.ts', 'utf8');
+  const app = readFileSync('estudio/src/app.ts', 'utf8');
+  const rutaDictar = api.indexOf("if (ruta === '/dictar' && req.method === 'POST')");
+  const puertaSinProyecto = api.indexOf("if (!id) return responder(res, 409, { error: t('servidor.api.sinProyectos') });");
+  const dictarSrv = api.slice(rutaDictar, api.indexOf("ruta === '/lectura'", rutaDictar));
+  const pruebaMic = api.slice(api.indexOf("ruta === '/asistente/prueba-mic'"), api.indexOf("ruta === '/idioma'"));
+
+  it('«/dictar» va antes de la puerta que exige un proyecto activo', () => {
+    expect(rutaDictar).toBeGreaterThan(-1);
+    expect(puertaSinProyecto).toBeGreaterThan(-1);
+    expect(rutaDictar).toBeLessThan(puertaSinProyecto);
+  });
+
+  it('no pide un rol ni un proyecto: el nombre es solo para la bitácora, y sin proyecto no cuenta notas en curso', () => {
+    expect(dictarSrv).not.toMatch(/yo\.rol|responder\(res, 403/);
+    expect(dictarSrv).toContain('const soltar = id ? notasEnCurso.empieza(id) : () => {};');
+    expect(dictarSrv).toContain('...(id ? { proyecto: id } : {})');
+  });
+
+  it('transcribe con el mismo motor que la prueba del micrófono del asistente', () => {
+    expect(pruebaMic).toContain('transcribirEnLocal(raiz, [audio]');
+    expect(dictarSrv).toContain('transcribirEnLocal(raiz, [audio]');
+    expect(dictarSrv).toContain('transcripcionEnDisco(audio)');
+  });
+
+  it('la página le pasa al formulario esa misma ruta', () => {
+    expect(app).toContain('pedirProyectoNuevo((audio) => dictar(audio, true)');
+    expect(app).toContain("fetch('/__estudio/director/dictar'");
+  });
+});
