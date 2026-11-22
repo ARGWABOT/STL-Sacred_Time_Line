@@ -12,13 +12,13 @@ The STL method fixes that with a single channel. Everything you tell the directo
 
 The memory lives in your project's own repository, on a separate stl branch, so nothing depends on a chat's context: the model can forget, the project can't. Fewer tabs, more finished things.
 
-Version 0.1.1. The repository is [ARGWABOT/STL-Sacred_Time_Line](https://github.com/ARGWABOT/STL-Sacred_Time_Line). The interface comes in English and Spanish.
+Version 0.1.2. The repository is [ARGWABOT/STL-Sacred_Time_Line](https://github.com/ARGWABOT/STL-Sacred_Time_Line). The interface comes in English and Spanish.
 
 ## Start in three steps
 
 1. **Download STL Studio** ([the latest version](https://github.com/ARGWABOT/STL-Sacred_Time_Line/releases/latest)), unzip it and open Claude Code in its folder.
 2. **Ask it «initialize STL Studio»**: it installs everything and opens the Studio in your browser.
-3. **Hand over your project** with «Hand over projects»: the director diagnoses it and gives you your first mission. A folder without git, even an empty one, gets its own repository from the Studio.
+3. **Hand over your project** with «Hand over projects»: the director diagnoses it and gives you your first mission.
 
 The details of each step are below, in «Install».
 
@@ -40,7 +40,7 @@ The Studio keeps running even if you close the terminal or the agent, and if its
 
 ### What it needs
 
-- **Node.js 24** or newer and **git**, with your identity (`git config user.name` and `git config user.email`): if the Studio's folder has neither, a small window asks for both once, as soon as the Studio opens, and saves them in that folder.
+- **Node.js 24** or newer and **git**, with your identity (`git config user.name` and `git config user.email`): if the Studio's folder has neither, a small window asks for both once, as soon as the Studio opens, and saves them in that folder. A project folder without git, even an empty one, gets its own repository (branch main) when you hand it over.
 - The Studio signs each of your decisions with that identity. To change your email later, run `node tools/cambiar-correo.ts <new email>` in the Studio's folder: it changes it in git and in each project at once.
 - **Claude Code, with your own account.** The Studio launches the Claude Code you install and sign in to yourself; it does not offer the claude.ai sign-in, because Anthropic's documentation for its agent SDK does not let a third-party product offer it without their approval.
 - **A wide screen**: the Studio is used on a computer with a screen at least 1350 pixels wide (a laptop or more). With less, a cover asks for a wider screen; there is no version for phones or tablets.
@@ -68,7 +68,7 @@ git reset --hard respaldo/studio
 
 ### Updating
 
-In 0.1.1 there is nothing to update from yet. From 0.2.0 on, the Studio offers it, with its report of what clashes with what you changed. A line at the foot of the sidebar, next to your name, says when there is a new version, with its link to its notes on GitHub and an ✕ that closes it until the next one: once a day the Studio asks GitHub which is the latest, without sending anything of yours or of your projects; it is turned off with its checkbox in «Model & usage».
+In 0.1.2 there is nothing to update from yet. From 0.2.0 on, the Studio offers it, with its report of what clashes with what you changed. A line at the foot of the sidebar, next to your name, says when there is a new version, with its link to its notes on GitHub and an ✕ that closes it until the next one: once a day the Studio asks GitHub which is the latest, without sending anything of yours or of your projects; it is turned off with its checkbox in «Model & usage».
 
 ## Why
 

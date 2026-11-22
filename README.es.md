@@ -12,13 +12,13 @@ El método STL lo resuelve con un solo canal. Todo lo que le dices al director (
 
 La memoria vive en el repositorio de tu propio proyecto, en una rama aparte, stl, así que nada depende del contexto de un chat: el modelo puede olvidar, el proyecto no. Menos pestañas, más cosas terminadas.
 
-Versión 0.1.1. El repositorio es [ARGWABOT/STL-Sacred_Time_Line](https://github.com/ARGWABOT/STL-Sacred_Time_Line). La interfaz viene en español y en inglés.
+Versión 0.1.2. El repositorio es [ARGWABOT/STL-Sacred_Time_Line](https://github.com/ARGWABOT/STL-Sacred_Time_Line). La interfaz viene en español y en inglés.
 
 ## Empieza en tres pasos
 
 1. **Baja STL Studio** ([la última versión](https://github.com/ARGWABOT/STL-Sacred_Time_Line/releases/latest)), descomprímelo y abre Claude Code en su carpeta.
 2. **Pídele «inicializa STL Studio»**: instala todo y abre el Studio en tu navegador.
-3. **Entrega tu proyecto** con «Entregar proyectos»: el director lo diagnostica y te da tu primera misión. Una carpeta sin git, aunque esté vacía, recibe su repositorio del Studio.
+3. **Entrega tu proyecto** con «Entregar proyectos»: el director lo diagnostica y te da tu primera misión.
 
 El detalle de cada paso está abajo, en «Instalar».
 
@@ -40,7 +40,7 @@ El Studio queda corriendo aunque cierres la terminal o el agente, y si su servid
 
 ### Lo que necesita
 
-- **Node.js 24** o más nuevo y **git**, con tu identidad (`git config user.name` y `git config user.email`): si la carpeta del Studio no la tiene, una ventanita pide tu nombre y tu correo una vez, en cuanto abres el Studio, y los guarda en esa carpeta.
+- **Node.js 24** o más nuevo y **git**, con tu identidad (`git config user.name` y `git config user.email`): si la carpeta del Studio no la tiene, una ventanita pide tu nombre y tu correo una vez, en cuanto abres el Studio, y los guarda en esa carpeta. Una carpeta de proyecto sin git, aunque esté vacía, recibe su repositorio (rama main) al entregarla.
 - El Studio firma cada decisión tuya con esa identidad. Para cambiar tu correo después, corre `node tools/cambiar-correo.ts <correo nuevo>` en la carpeta del Studio: lo cambia en git y en cada proyecto a la vez.
 - **Claude Code, con tu propia cuenta.** El Studio lanza el Claude Code que tú instalas y abres con tu cuenta; no ofrece el inicio de sesión de claude.ai, porque la documentación del SDK de agentes de Anthropic no deja que un producto de terceros lo ofrezca sin su aprobación.
 - **Una pantalla ancha**: el Studio se usa en un computador con una pantalla de al menos 1350 píxeles de ancho (un portátil o más). Con menos, una cubierta te pide una pantalla más ancha; no hay versión para teléfonos ni tabletas.
@@ -68,7 +68,7 @@ git reset --hard respaldo/studio
 
 ### Actualizar
 
-En la 0.1.1 todavía no hay de qué actualizar. Desde la 0.2.0, el Studio lo ofrece, con su informe de lo que choca con lo que cambiaste. Una línea al pie de la barra, junto a tu nombre, avisa si salió una versión nueva, con su enlace a las notas de esa versión en GitHub y una ✕ que la cierra hasta la siguiente: una vez al día el Studio le pregunta a GitHub cuál es la última, sin enviar nada tuyo ni de tus proyectos; se apaga con su casilla en «Modelo y consumo».
+En la 0.1.2 todavía no hay de qué actualizar. Desde la 0.2.0, el Studio lo ofrece, con su informe de lo que choca con lo que cambiaste. Una línea al pie de la barra, junto a tu nombre, avisa si salió una versión nueva, con su enlace a las notas de esa versión en GitHub y una ✕ que la cierra hasta la siguiente: una vez al día el Studio le pregunta a GitHub cuál es la última, sin enviar nada tuyo ni de tus proyectos; se apaga con su casilla en «Modelo y consumo».
 
 ## Por qué
 
