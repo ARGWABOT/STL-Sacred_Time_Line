@@ -88,9 +88,10 @@ describe('el botón central del ratón, como el «Enter» del Studio (notas de v
     expect(boton).toContain('for (const que of PRIMERO_EN_HOY) {');
     expect(boton).toContain('document.querySelectorAll<HTMLElement>(que)');
     expect(PRIMERO_EN_HOY).toContain(ENFOCAR_EN_HOY);
-    // Lo marca el Studio solo donde hay una misión tuya que enfocar, sin el enfoque puesto, y nunca en la salida del enfoque
+    // Lo marca el Studio solo donde hay una misión tuya que enfocar, sin el enfoque puesto, y nunca en la salida del enfoque;
+    // tampoco con la tarjeta de un punto abierta en «Hoy», que el botón central no cierra por su cuenta (nmws6y66rtit)
     const director = leer('app.ts');
-    expect(director).toContain("b.toggleAttribute('data-central-enfoque', !si && aqui.startsWith('mision-') && !b.classList.contains('salida-enfoque'));");
+    expect(director).toContain("b.toggleAttribute('data-central-enfoque', !si && !tapada && aqui.startsWith('mision-') && !b.classList.contains('salida-enfoque'));");
     // Y ese botón solo pone o quita el enfoque: no pide nada, no borra, no decide
     expect(director).toContain("if ((e.target as HTMLElement).closest('[data-enfoque]')) quererEnfoque(!enfoque);");
   });
