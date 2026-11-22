@@ -531,6 +531,43 @@ describe('el formulario de entrega del primer proyecto transcribe sin proyecto a
   });
 });
 
+// nmws5j949tit: en una instalación nueva, sin ningún proyecto, la bienvenida no carga los datos (`d` no existe) y el
+// «Grabar» del formulario de entrega fallaba con «Cannot read properties of undefined (reading 'activo')»
+describe('dictar sin ningún proyecto y sin datos cargados llega a «/dictar» (nmws5j949tit)', () => {
+  const app = readFileSync('estudio/src/app.ts', 'utf8');
+  const cuerpo = (desde: string, hasta: string) => {
+    const i = app.indexOf(desde);
+    expect(i, desde).toBeGreaterThan(-1);
+    return app.slice(i, app.indexOf(hasta, i + desde.length));
+  };
+
+  it('sin proyecto, el candado de las notas en curso deja correr el dictado y no cuenta nada', async () => {
+    const { NotasEnCurso } = await import('./notasEnCurso');
+    const n = new NotasEnCurso();
+    const libres: string[] = [];
+    n.alQuedarLibre = (p) => libres.push(p);
+    // Lo mismo que hace dictarConRazon con `d` aún sin cargar: d?.activo es undefined
+    const sinDatos = undefined as { activo: string } | undefined;
+    await expect(n.durante(sinDatos?.activo, async () => ({ texto: 'hola' }))).resolves.toEqual({ texto: 'hola' });
+    await expect(n.durante(null, async () => 'sigue')).resolves.toBe('sigue');
+    expect(libres).toEqual([]);
+    expect(n.en('undefined')).toBe(0);
+  });
+
+  it('el camino del «Grabar» del formulario no lee `d.` sin guarda antes del primer proyecto', () => {
+    // Del clic en «Entregar el primer proyecto» hasta que el servidor acepta la entrega: dictar, comprobar y entregar
+    const camino = [
+      cuerpo('async function dictarConRazon(', '\n}\n'),
+      cuerpo('async function dictarYa(', '\n}\n'),
+      cuerpo('async function enviarEntrega(', '\n}\n'),
+      cuerpo('async function comprobarCuenta(', '\n}\n'),
+      cuerpo('async function nuevoProyecto() {', 'if (!r) return;'),
+    ];
+    for (const c of camino) expect(c).not.toMatch(/(?<![\w?.])d\.\w/);
+    expect(camino[0]).toContain('notasEnCurso.durante(d?.activo, () => dictarYa(audio, callado))');
+  });
+});
+
 describe('la entrega nunca se detiene a preguntar: ni «¿Qué es?» (nmws1o6yltit) ni «¿A dónde lo quieres llevar?» (nmws4p04wtit)', () => {
   it('si la comprobación solo echa en falta qué es, entrega al instante, sin pregunta', () => {
     expect(decidirComprobacion({ falta: ['que'] })).toEqual({ accion: 'entregar' });

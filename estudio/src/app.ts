@@ -2390,8 +2390,9 @@ async function dictar(audio: string, callado = false): Promise<string | null> {
 }
 /** Lo mismo, con la razón del servidor si no se pudo: el formulario de entrega la muestra (nmws1h8yhtit). */
 async function dictarConRazon(audio: string, callado = false): Promise<{ texto: string } | { error: string }> {
-  // Mientras se transcribe, la revisión de este proyecto y el cambio de proyecto esperan (nmwdwg5yvtit)
-  return notasEnCurso.durante(d.activo, () => dictarYa(audio, callado));
+  // Mientras se transcribe, la revisión de este proyecto y el cambio de proyecto esperan (nmwdwg5yvtit). Antes del primer
+  // proyecto `d` aún no existe (la bienvenida no lo carga): el formulario de entrega dicta igual, sin candado (nmws5j949tit)
+  return notasEnCurso.durante(d?.activo, () => dictarYa(audio, callado));
 }
 async function dictarYa(audio: string, callado: boolean): Promise<{ texto: string } | { error: string }> {
   if (!callado) decir(tx('nota.dictando'), 'pensativo');

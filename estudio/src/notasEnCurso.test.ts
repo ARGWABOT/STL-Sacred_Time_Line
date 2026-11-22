@@ -54,7 +54,8 @@ describe('las notas en curso de cada proyecto (nmwdwg5yvtit)', () => {
     // La página: la revisión pedida y el cambio de proyecto esperan las de su proyecto; dictar y guardar la corrección cuentan
     expect(cuerpo(app, 'async function pedirLaRevision(')).toMatch(/notasEnCurso\.en\(d\.activo\)[\s\S]*notasEnCurso\.esperar\(de, /);
     expect(cuerpo(app, 'async function activar(')).toMatch(/notasEnCurso\.esperar\(d\.activo, [\s\S]*director\/activo/);
-    expect(cuerpo(app, 'async function dictar(')).toContain('notasEnCurso.durante(d.activo');
+    // Con guarda: antes del primer proyecto `d` no existe y el formulario de entrega también dicta (nmws5j949tit)
+    expect(cuerpo(app, 'async function dictar(')).toContain('notasEnCurso.durante(d?.activo');
     expect(app).toContain('guardar: (r, senal) => notasEnCurso.durante(deEste, async () => {');
     // El servidor: la cola y «/dictar» cuentan, el revisor las mira y «/activo» espera las del proyecto de antes
     expect(api).toContain('soltarAudio.set(audio, notasEnCurso.empieza(id));');
@@ -70,6 +71,15 @@ describe('las notas en curso de cada proyecto (nmwdwg5yvtit)', () => {
     expect(dentro).toBe(1);
     await expect(n.durante('app', async () => { throw new Error('x'); })).rejects.toThrow('x');
     expect(n.en('app')).toBe(0);
+  });
+
+  it('durante sin proyecto (la primera entrega, nmws5j949tit) solo corre: no cuenta ni avisa', async () => {
+    const n = new NotasEnCurso();
+    const libres: string[] = [];
+    n.alQuedarLibre = (p) => libres.push(p);
+    await expect(n.durante(undefined, async () => 'texto')).resolves.toBe('texto');
+    await expect(n.durante(null, async () => { throw new Error('y'); })).rejects.toThrow('y');
+    expect(libres).toEqual([]);
   });
 
   it('un guardado que sigue por detrás tras «Dejar de esperar» cuenta hasta que termina, y la revisión o el cambio de proyecto lo esperan (nmwehuc6jtit)', async () => {

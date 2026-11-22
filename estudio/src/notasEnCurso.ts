@@ -27,8 +27,12 @@ export class NotasEnCurso {
     };
   }
 
-  /** Lo mismo alrededor de una promesa: cuenta mientras corre, y termina pase lo que pase. */
-  async durante<T>(proyecto: string, hacer: () => Promise<T>): Promise<T> {
+  /**
+   * Lo mismo alrededor de una promesa: cuenta mientras corre, y termina pase lo que pase. Sin proyecto (la primera entrega,
+   * antes de que exista ninguno: nmws5j949tit) no hay revisión ni cambio de proyecto que detener: solo corre, sin contar.
+   */
+  async durante<T>(proyecto: string | null | undefined, hacer: () => Promise<T>): Promise<T> {
+    if (!proyecto) return hacer();
     const soltar = this.empieza(proyecto);
     try {
       return await hacer();
