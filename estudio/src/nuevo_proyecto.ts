@@ -221,8 +221,11 @@ export const LIMITE_COMPROBACION_MS = 30_000;
  */
 export function decidirComprobacion(c: Comprobacion | null): { accion: 'entregar'; meta?: string } | { accion: 'preguntar'; falta: ('que' | 'meta')[]; meta?: string } {
   const meta = c?.meta?.trim() || undefined;
-  if (!c || !Array.isArray(c.falta) || !c.falta.length) return { accion: 'entregar', ...(meta ? { meta } : {}) };
-  return { accion: 'preguntar', falta: c.falta, ...(meta ? { meta } : {}) };
+  // «¿Qué es?» nunca se pregunta: lo deduce el modelo al leer la carpeta en el diagnóstico; la persona da la carpeta y, si
+  // quiere, la meta (nota de voz del titular nmws1o6yltit, 22 de noviembre de 2026)
+  const falta = Array.isArray(c?.falta) ? c.falta.filter((f) => f !== 'que') : [];
+  if (!c || !falta.length) return { accion: 'entregar', ...(meta ? { meta } : {}) };
+  return { accion: 'preguntar', falta, ...(meta ? { meta } : {}) };
 }
 
 /**

@@ -140,7 +140,8 @@ describe('la comprobación de lo contado antes de entregar (pd_campo_libre; nmwk
 
   it('falta algo: una pregunta con frases fijas (una, la otra o las dos), campo chico y «Con una o dos frases basta», en los dos idiomas', () => {
     expect(decidirComprobacion({ falta: ['meta'] })).toEqual({ accion: 'preguntar', falta: ['meta'] });
-    expect(decidirComprobacion({ falta: ['que', 'meta'], meta: '' })).toEqual({ accion: 'preguntar', falta: ['que', 'meta'] });
+    // «¿Qué es?» nunca se pregunta (nmws1o6yltit): solo queda la meta
+    expect(decidirComprobacion({ falta: ['que', 'meta'], meta: '' })).toEqual({ accion: 'preguntar', falta: ['meta'] });
     ponerIdioma('en');
     expect(htmlPregunta(['que'])).toContain('<p class="frase-pregunta">What is it?</p>');
     expect(htmlPregunta(['meta'])).toContain('<p class="frase-pregunta">Where do you want to take it?</p>');
@@ -564,6 +565,19 @@ describe('el formulario de entrega del primer proyecto transcribe sin proyecto a
     expect(app).toContain('pedirProyectoNuevo((audio) => dictarConRazon(audio, true)');
     expect(app).toContain("fetch('/__estudio/director/dictar'");
     expect(app).toContain("return { error: typeof c.error === 'string' ? c.error : '' };");
+  });
+});
+
+describe('la entrega nunca pregunta «¿Qué es?»: lo deduce el modelo de la carpeta (nmws1o6yltit)', () => {
+  it('si la comprobación solo echa en falta qué es, entrega al instante, sin pregunta', () => {
+    expect(decidirComprobacion({ falta: ['que'] })).toEqual({ accion: 'entregar' });
+    expect(decidirComprobacion({ falta: ['que'], meta: 'que reserven en línea' })).toEqual({ accion: 'entregar', meta: 'que reserven en línea' });
+  });
+  it('ninguna pregunta que llegue al formulario lleva «¿Qué es?»', () => {
+    for (const falta of [['que'], ['meta'], ['que', 'meta'], ['meta', 'que']] as ('que' | 'meta')[][]) {
+      const d = decidirComprobacion({ falta });
+      if (d.accion === 'preguntar') expect(d.falta).not.toContain('que');
+    }
   });
 });
 
