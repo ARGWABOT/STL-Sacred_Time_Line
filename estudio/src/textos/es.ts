@@ -1198,15 +1198,7 @@ export const es = {
   'nuevo.cuentamePista': 'Qué es, para quién es y a dónde lo quieres llevar, con tus palabras. También puedes grabarlo.',
   'nuevo.cuentameEj': 'Ej.: Una página de citas para un dentista; quiero que los pacientes reserven en línea',
   'nuevo.cuentameVacio': 'Puedes dejarlo vacío: leo todo desde la carpeta.',
-  // La comprobación de lo contado (pd_campo_libre; nmwkbl5d4tit, nmwl4xd7utit, nmwl4xn0mtit, nmwlfn2pbtit, nmwlfndp5tit): frases fijas, no escritas por el modelo
-  'nuevo.faltaQueEs': '¿Qué es?',
-  'nuevo.faltaMeta': '¿A dónde lo quieres llevar?',
-  'nuevo.faltaLasDos': '¿Qué es y a dónde lo quieres llevar?',
-  'nuevo.sugerenciaQueEs': 'Suma unas palabras de lo que hace, por ejemplo: «Un sitio de reservas para un dentista».',
-  'nuevo.sugerenciaMeta': 'Suma lo que quieres lograr con él, por ejemplo: «Quiero que los pacientes reserven en línea antes de marzo».',
-  'nuevo.sugerenciaLasDos': 'Suma qué hace y qué quieres lograr, por ejemplo: «Un sitio de reservas para un dentista; quiero que los pacientes reserven en línea».',
-  'nuevo.faltaRespuesta': 'Tu respuesta',
-  'nuevo.faltaPista': 'Con una o dos frases basta',
+  // La comprobación de lo contado (pd_campo_libre; nmwl4xn0mtit): nunca se detiene a preguntar (nmws4p04wtit), solo avisa si tarda
   'nuevo.tardaMas': 'Esto está tardando más de lo normal',
   'nuevo.entregarSinComprobar': 'Entregarlo sin comprobar',
   'nuevo.opcional': '(opcional)',

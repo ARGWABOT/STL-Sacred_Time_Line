@@ -215,17 +215,14 @@ const CLAVE_COMPROBAR_CUENTA = 'comprobar-cuenta';
 export const LIMITE_COMPROBACION_MS = 30_000;
 
 /**
- * Qué se hace con lo que dijo la comprobación: completo, o sin poder comprobar (null: sin Claude Code, sin sesión, un
- * error, una respuesta ilegible), se entrega al instante y callada (nmwlfn2pbtit, nmwlfndp5tit); si falta algo, se pregunta
- * una vez por todo. Pura.
+ * Qué se hace con lo que dijo la comprobación: siempre se entrega, al instante y callada, con la parte de la meta que se
+ * encontró, si la hay. El formulario nunca se detiene a preguntar: «¿Qué es?» lo deduce el modelo al leer la carpeta en
+ * el diagnóstico (nmws1o6yltit) y la meta se fija después del diagnóstico, en «Tu meta» (elección del titular
+ * nmws4p04wtit, «Nunca detenerse: entregar con solo la carpeta», 22 de noviembre de 2026). Pura.
  */
-export function decidirComprobacion(c: Comprobacion | null): { accion: 'entregar'; meta?: string } | { accion: 'preguntar'; falta: ('que' | 'meta')[]; meta?: string } {
+export function decidirComprobacion(c: Comprobacion | null): { accion: 'entregar'; meta?: string } {
   const meta = c?.meta?.trim() || undefined;
-  // «¿Qué es?» nunca se pregunta: lo deduce el modelo al leer la carpeta en el diagnóstico; la persona da la carpeta y, si
-  // quiere, la meta (nota de voz del titular nmws1o6yltit, 22 de noviembre de 2026)
-  const falta = Array.isArray(c?.falta) ? c.falta.filter((f) => f !== 'que') : [];
-  if (!c || !falta.length) return { accion: 'entregar', ...(meta ? { meta } : {}) };
-  return { accion: 'preguntar', falta, ...(meta ? { meta } : {}) };
+  return { accion: 'entregar', ...(meta ? { meta } : {}) };
 }
 
 /**
@@ -246,19 +243,6 @@ export async function comprobarConLimite(texto: string, comprobar: Comprobar, al
 /** La entrega con la parte de la meta que se encontró (si hay), para «Tu meta», marcada «Detectado». Pura. */
 export function conMetaDetectada(e: Entrega, meta?: string): Entrega {
   return meta?.trim() ? { ...e, datos: { ...e.datos, metaDetectada: meta.trim() } } : e;
-}
-
-/**
- * La entrega con lo que se respondió en el campo chico sumado a lo contado, en un párrafo aparte; puede estar vacía. Con
- * lo contado ya traducido, se suma también a las palabras originales; si la respuesta parece de otro idioma, queda la
- * marca de que falta traducir (la primera revisión lo hace). Pura.
- */
-export function conLaRespuesta(e: Entrega, respuesta: string, idioma: 'es' | 'en' = idiomaActual()): Entrega {
-  const r = respuesta.trim();
-  if (!r) return e;
-  const sumar = (a: string | undefined) => [a, r].filter(Boolean).join('\n\n');
-  const otra = pareceDeOtroIdioma(r, idioma);
-  return { ...e, datos: { ...e.datos, contexto: sumar(e.datos.contexto), ...(e.datos.contextoOriginal ? { contextoOriginal: sumar(e.datos.contextoOriginal) } : {}), ...(otra && !e.datos.contextoOriginal ? { porTraducir: true } : {}) } };
 }
 
 /** Palabras muy frecuentes de cada idioma, para adivinar sin modelo en cuál está un texto. */
@@ -292,18 +276,6 @@ export function conLaTraduccion(e: Entrega, c: Comprobacion | null, idioma: 'es'
   if (c?.traduccion?.trim()) return { ...e, datos: { ...e.datos, contexto: c.traduccion.trim(), contextoOriginal: texto } };
   if (c?.sinTraducir || (!c && pareceDeOtroIdioma(texto, idioma))) return { ...e, datos: { ...e.datos, porTraducir: true } };
   return e;
-}
-
-/**
- * Debajo del campo, lo que falta, en frases fijas (no las escribe el modelo): «¿Qué es?», «¿A dónde lo quieres llevar?» o
- * la frase única de las dos («¿Qué es y a dónde lo quieres llevar?»), una sola pregunta para todo, con un campo chico y «Con una o dos frases basta» (nmwl4xd7utit). Pura.
- */
-export function htmlPregunta(falta: ('que' | 'meta')[]): string {
-  const dos = falta.length > 1, que = !dos && falta[0] === 'que';
-  const frases = esc(t(dos ? 'nuevo.faltaLasDos' : que ? 'nuevo.faltaQueEs' : 'nuevo.faltaMeta'));
-  // Debajo, con suavidad, qué sumar y un ejemplo corto, en vez de solo decir que falta (nota del titular nmwmepe5atit)
-  const sugerencia = esc(t(dos ? 'nuevo.sugerenciaLasDos' : que ? 'nuevo.sugerenciaQueEs' : 'nuevo.sugerenciaMeta'));
-  return `<div class="pregunta-cuenta" role="status"><p class="frase-pregunta">${frases}</p><p class="sugerencia-cuenta">${sugerencia}</p><textarea name="respuesta" rows="2" aria-label="${esc(t('nuevo.faltaRespuesta'))}"></textarea><small class="pista-campo">${t('nuevo.faltaPista')}</small></div>`;
 }
 
 /** Si la comprobación tarda más de 30 segundos: el aviso y «Entregarlo sin comprobar», que entrega al instante (nmwl4xn0mtit). Pura. */
@@ -379,12 +351,11 @@ export function pedirProyectoNuevo(dictar?: Dictar, entregar?: EntregarAlServido
     const dictados = new Set<Grabadora>();
     // Las notas de voz que se están transcribiendo en el formulario a la vista
     let transcribiendo = 0;
-    // La comprobación de lo contado: la que va en marcha (`pendiente`, su entrega, y `vuelta` para ignorarla si se entrega
-    // sin comprobar) y, si faltaba algo, la pregunta ya hecha, con la meta que sí se encontró; la segunda pulsación entrega
+    // La comprobación de lo contado que va en marcha: `pendiente`, su entrega, y `vuelta` para ignorarla si se entrega sin
+    // comprobar. Nunca deja una pregunta: entrega siempre (nmws4p04wtit)
     let comprobando = false;
     let vuelta = 0;
     let pendiente: Entrega | null = null;
-    let preguntada: { meta?: string; comprobacion: Comprobacion | null } | null = null;
     const soltarDictados = () => {
       for (const g of dictados) void g.terminar();
       dictados.clear();
@@ -421,7 +392,6 @@ export function pedirProyectoNuevo(dictar?: Dictar, entregar?: EntregarAlServido
       comprobando = false;
       vuelta++;
       pendiente = null;
-      preguntada = null;
       cargadores.dejarDeEsperar(CLAVE_COMPROBAR_CUENTA);
       dlg.innerHTML = html;
       dlg.querySelectorAll<HTMLElement>('[data-dictar]').forEach((c) => armarDictado(c));
@@ -483,16 +453,14 @@ export function pedirProyectoNuevo(dictar?: Dictar, entregar?: EntregarAlServido
     });
     /** Suelta el cargador de la comprobación (se entregó sin comprobar, o el formulario se repintó): el botón vuelve a la normalidad. */
     const soltarCargador = () => cargadores.dejarDeEsperar(CLAVE_COMPROBAR_CUENTA);
-    const quitarDeLaComprobacion = () => dlg.querySelectorAll('.lento-cuenta, .pregunta-cuenta').forEach((x) => x.remove());
+    const quitarDeLaComprobacion = () => dlg.querySelectorAll('.lento-cuenta').forEach((x) => x.remove());
     /**
-     * Antes de entregar lo contado (pd_campo_libre): sin texto, sin comprobación o con la pregunta ya hecha, la entrega va al
-     * instante (la segunda pulsación suma lo del campo chico, aunque esté vacío, sin comprobar otra vez). Si no, pregunta al
-     * modelo: completo o sin poder comprobar, entrega callada; si falta algo, deja la pregunta y devuelve null (no se entrega
-     * todavía). A los 30 segundos avisa y ofrece «Entregarlo sin comprobar».
+     * Antes de entregar lo contado (pd_campo_libre): sin texto o sin comprobación, la entrega va al instante. Si no, pregunta
+     * al modelo y entrega callada, con lo contado traducido al idioma de la interfaz (nmwjl8tuutit; conLaTraduccion) y la
+     * meta que encontró; nunca se detiene a preguntar (nmws4p04wtit). Devuelve null solo si ya hay una en marcha o si esta
+     * respuesta dejó de contar. A los 30 segundos avisa y ofrece «Entregarlo sin comprobar».
      */
-    const conLaComprobacion = async (e: Entrega, form: HTMLFormElement): Promise<Entrega | null> => {
-      // Con lo contado traducido al idioma de la interfaz, en la misma comprobación (nmwjl8tuutit; conLaTraduccion)
-      if (preguntada) return conMetaDetectada(conLaRespuesta(conLaTraduccion(e, preguntada.comprobacion), form.querySelector<HTMLTextAreaElement>('textarea[name="respuesta"]')?.value ?? ''), preguntada.meta);
+    const conLaComprobacion = async (e: Entrega): Promise<Entrega | null> => {
       if (comprobando) return null;
       if (!comprobar || !e.datos.contexto) return conLaTraduccion(e, null);
       comprobando = true;
@@ -507,12 +475,7 @@ export function pedirProyectoNuevo(dictar?: Dictar, entregar?: EntregarAlServido
       comprobando = false;
       pendiente = null;
       quitarDeLaComprobacion();
-      const d = decidirComprobacion(c ?? null);
-      if (d.accion === 'entregar') return conMetaDetectada(conLaTraduccion(e, c ?? null), d.meta);
-      preguntada = { meta: d.meta, comprobacion: c ?? null };
-      dlg.querySelector('.error-explorador')?.insertAdjacentHTML('beforebegin', htmlPregunta(d.falta));
-      dlg.querySelector<HTMLTextAreaElement>('textarea[name="respuesta"]')?.focus();
-      return null;
+      return conMetaDetectada(conLaTraduccion(e, c ?? null), decidirComprobacion(c ?? null).meta);
     };
 
     // ── Lo de siempre y uno nuevo (htmlRapido, htmlNuevo), con su «Grabar» en cada campo de texto si hay con qué transcribir
@@ -641,13 +604,13 @@ export function pedirProyectoNuevo(dictar?: Dictar, entregar?: EntregarAlServido
       if (cual === 'rapido') {
         // Entregar un proyecto siempre pide su diagnóstico (nota nmwai6p98tit): es el primer paso obligatorio, no una opción.
         // El único botón es «Entregar y pedir su diagnóstico», y también Enter en un campo lo usa
-        const e = await conLaComprobacion({ modo: 'uno', datos: datosDeRapido(Object.fromEntries(new FormData(form).entries()) as Record<string, string>), diagnosticar: true }, form);
+        const e = await conLaComprobacion({ modo: 'uno', datos: datosDeRapido(Object.fromEntries(new FormData(form).entries()) as Record<string, string>), diagnosticar: true });
         return void (e && (await entregarYCerrar(e)));
       }
       // Un proyecto a la vez, por cualquier camino, se entrega pidiendo su revisión en ese instante (nota nmwb73juxtit, pedido
       // pd_entrega_al_instante; nmwcw9ayjtit): su botón dice que la pide
       if (cual === 'nuevo') {
-        const e = await conLaComprobacion({ modo: 'uno', datos: datosDeNuevo(Object.fromEntries(new FormData(form).entries()) as Record<string, string>), diagnosticar: true }, form);
+        const e = await conLaComprobacion({ modo: 'uno', datos: datosDeNuevo(Object.fromEntries(new FormData(form).entries()) as Record<string, string>), diagnosticar: true });
         return void (e && (await entregarYCerrar(e)));
       }
       if (cual === 'escaneo') {

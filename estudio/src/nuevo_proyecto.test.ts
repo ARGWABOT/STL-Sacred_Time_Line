@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { esSubcarpeta } from '../../src/director/repositorio';
-import { avisoSinTranscribir, botonEntregar, comprobarConLimite, leerDictado, conLaRespuesta, conLaTraduccion, conMetaDetectada, pareceDeOtroIdioma, conRepositorioEntero, datosDeNuevo, datosDeRapido, decidirComprobacion, entregaElegida, nombreLegible, esperarTranscripcion, htmlEscaneo, htmlLento, htmlNuevo, htmlPregunta, htmlRapido, htmlSubcarpeta, LIMITE_COMPROBACION_MS, sumarAlCampo, type Candidato, type Comprobacion, type Entrega } from './nuevo_proyecto';
+import { avisoSinTranscribir, botonEntregar, comprobarConLimite, leerDictado, conLaTraduccion, conMetaDetectada, pareceDeOtroIdioma, conRepositorioEntero, datosDeNuevo, datosDeRapido, decidirComprobacion, entregaElegida, nombreLegible, esperarTranscripcion, htmlEscaneo, htmlLento, htmlNuevo, htmlRapido, htmlSubcarpeta, LIMITE_COMPROBACION_MS, sumarAlCampo, type Candidato, type Comprobacion, type Entrega } from './nuevo_proyecto';
 import { en } from './textos/en';
 import { es } from './textos/es';
 import { ponerIdioma } from './textos';
@@ -138,47 +138,9 @@ describe('la comprobación de lo contado antes de entregar (pd_campo_libre; nmwk
     expect(conMetaDetectada(entrega('x'), '  ').datos).not.toHaveProperty('metaDetectada');
   });
 
-  it('falta algo: una pregunta con frases fijas (una, la otra o las dos), campo chico y «Con una o dos frases basta», en los dos idiomas', () => {
-    expect(decidirComprobacion({ falta: ['meta'] })).toEqual({ accion: 'preguntar', falta: ['meta'] });
-    // «¿Qué es?» nunca se pregunta (nmws1o6yltit): solo queda la meta
-    expect(decidirComprobacion({ falta: ['que', 'meta'], meta: '' })).toEqual({ accion: 'preguntar', falta: ['meta'] });
-    ponerIdioma('en');
-    expect(htmlPregunta(['que'])).toContain('<p class="frase-pregunta">What is it?</p>');
-    expect(htmlPregunta(['meta'])).toContain('<p class="frase-pregunta">Where do you want to take it?</p>');
-    const dos = htmlPregunta(['que', 'meta']);
-    // Con las dos faltando, una sola frase fija (nmwlfn2pbtit)
-    expect(dos).toContain('<p class="frase-pregunta">What is it, and where do you want to take it?</p>');
-    expect(dos).toContain('<small class="pista-campo">One or two sentences are enough</small>');
-    expect(dos.match(/<textarea name="respuesta"/g)).toHaveLength(1);
-    ponerIdioma('es');
-    expect(htmlPregunta(['que', 'meta'])).toContain('¿Qué es y a dónde lo quieres llevar?');
-    expect(htmlPregunta(['que'])).toContain('Con una o dos frases basta');
-  });
-
-  it('lo que falta trae, con suavidad, qué sumar y un ejemplo; «booking for dentists» pasa y solo sugiere la meta (nmwmepe5atit)', () => {
-    ponerIdioma('en');
-    // «booking for dentists» dice qué es: la comprobación solo echa en falta la meta, y debajo sugiere qué sumar
-    const d = decidirComprobacion({ falta: ['meta'] });
-    expect(d).toEqual({ accion: 'preguntar', falta: ['meta'] });
-    const meta = htmlPregunta(['meta']);
-    expect(meta).toContain('<p class="sugerencia-cuenta">Add what you want to achieve with it, for example: “I want patients to book online by March.”</p>');
-    expect(meta).not.toContain('What is it?');
-    expect(htmlPregunta(['que'])).toContain('Add a few words on what it does, for example: “A booking site for a dentist.”');
-    expect(htmlPregunta(['que', 'meta'])).toContain('Add what it does and what you want to achieve');
-    // Completa: entrega al instante, sin pregunta ni sugerencia
-    expect(decidirComprobacion({ falta: [], meta: 'patients book online' })).toEqual({ accion: 'entregar', meta: 'patients book online' });
-    // El error del servidor, sin texto, ya no solo dice que falta: sugiere qué contar, con un ejemplo
+  it('el error del servidor, sin texto, sugiere qué contar, con un ejemplo (nmwmepe5atit)', () => {
     expect(en['servidor.api.proyectoNuevoNecesita']).toContain('for example');
     expect(es['servidor.api.proyectoNuevoNecesita']).toContain('por ejemplo');
-    ponerIdioma('es');
-    expect(htmlPregunta(['meta'])).toContain('Suma lo que quieres lograr con él');
-  });
-
-  it('la segunda pulsación entrega de una: lo del campo chico se suma al texto, y puede venir vacío', () => {
-    const e = entrega('Una tienda.');
-    expect(conLaRespuesta(e, ' Quiero venderla en marzo. ').datos.contexto).toBe('Una tienda.\n\nQuiero venderla en marzo.');
-    expect(conLaRespuesta(e, '   ')).toEqual(e);
-    expect(conLaRespuesta(e, '').datos.contexto).toBe('Una tienda.');
   });
 
   it('contado en otro idioma (nmwjl8tuutit, nmwjm4r7atit): «Qué es» recibe la traducción y las palabras de la persona quedan aparte', () => {
@@ -187,10 +149,6 @@ describe('la comprobación de lo contado antes de entregar (pd_campo_libre; nmwk
     const lista = conMetaDetectada(conLaTraduccion(e, c, 'en'), decidirComprobacion(c).meta);
     expect(lista.datos).toMatchObject({ contexto: 'A booking site for dentists. I want patients to book online.', contextoOriginal: 'Una página de citas para dentistas. Quiero que los pacientes reserven en línea.', metaDetectada: 'I want patients to book online.' });
     expect(lista.datos).not.toHaveProperty('porTraducir');
-    // Con la pregunta respondida, la respuesta se suma a las dos versiones
-    const con = conLaRespuesta(conLaTraduccion(e, c, 'en'), 'By March.', 'en');
-    expect(con.datos.contexto).toBe('A booking site for dentists. I want patients to book online.\n\nBy March.');
-    expect(con.datos.contextoOriginal).toBe('Una página de citas para dentistas. Quiero que los pacientes reserven en línea.\n\nBy March.');
     // En el idioma de la interfaz: nada cambia
     expect(conLaTraduccion(e, { falta: [] }, 'es')).toEqual(e);
   });
@@ -203,8 +161,6 @@ describe('la comprobación de lo contado antes de entregar (pd_campo_libre; nmwk
     expect(conLaTraduccion(e, null, 'en').datos).toMatchObject({ contexto: e.datos.contexto, porTraducir: true });
     expect(conLaTraduccion(e, null, 'es')).toEqual(e);
     expect(conLaTraduccion(entrega('A booking site for dentists; I want patients to book online.'), null, 'en').datos).not.toHaveProperty('porTraducir');
-    // Una respuesta en otro idioma, sin traducción hecha, también deja la marca
-    expect(conLaRespuesta(entrega('A booking site.'), 'Quiero que reserven en línea para marzo.', 'en').datos.porTraducir).toBe(true);
   });
 
   it('adivinar el idioma sin modelo: con muy pocas palabras o empatado, no lo afirma', () => {
@@ -273,20 +229,17 @@ describe('la comprobación de lo contado antes de entregar (pd_campo_libre; nmwk
     expect(await comprobarConLimite('Algo', async () => null, () => {})).toBeNull();
   });
 
-  it('el formulario: sin texto o sin comprobación entrega directo; con la pregunta hecha, la segunda pulsación entrega; el botón de lo lento entrega lo pendiente', () => {
+  it('el formulario: sin texto o sin comprobación entrega directo; con la comprobación, entrega siempre, sin pregunta; el botón de lo lento entrega lo pendiente', () => {
     const f = readFileSync(new URL('./nuevo_proyecto.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     const c = f.slice(f.indexOf('const conLaComprobacion = async'), f.indexOf('// ── Lo de siempre y uno nuevo'));
     expect(f).toContain("const CLAVE_COMPROBAR_CUENTA = 'comprobar-cuenta';");
-    // La segunda pulsación va primero y no comprueba otra vez
-    expect(c.indexOf('if (preguntada) return conMetaDetectada(conLaRespuesta(')).toBeLessThan(c.indexOf('comprobarConLimite('));
     expect(c).toContain('if (!comprobar || !e.datos.contexto) return conLaTraduccion(e, null);');
-    // La meta hallada y la pregunta se guardan para la segunda pulsación, con la traducción si la hubo
-    expect(c).toContain('preguntada = { meta: d.meta, comprobacion: c ?? null };');
-    expect(c).toContain('conLaRespuesta(conLaTraduccion(e, preguntada.comprobacion)');
     // Mientras comprueba, el botón lleva el cargador de siempre (cargador.ts)
     expect(c).toContain('cargadores.correr(CLAVE_COMPROBAR_CUENTA');
     expect(f).toContain("import { contenidoDelBoton, corre, crearCargadores } from './cargador';");
-    expect(c).toContain("if (d.accion === 'entregar') return conMetaDetectada(conLaTraduccion(e, c ?? null), d.meta);");
+    // Entrega con la traducción y la meta hallada; nunca deja una pregunta ni espera una segunda pulsación (nmws4p04wtit)
+    expect(c).toContain('return conMetaDetectada(conLaTraduccion(e, c ?? null), decidirComprobacion(c ?? null).meta);');
+    expect(f).not.toMatch(/preguntada|htmlPregunta|pregunta-cuenta|textarea\[name="respuesta"\]/);
     const clic = f.slice(f.indexOf("dlg.addEventListener('click'"), f.indexOf("dlg.addEventListener('submit'"));
     expect(clic).toMatch(/b\.dataset\.sinComprobar !== undefined && pendiente[\s\S]{0,600}const e = conLaTraduccion\(pendiente, null\);[\s\S]{0,300}await entregarYCerrar\(e\)/);
     const envio = f.slice(f.indexOf("dlg.addEventListener('submit'"), f.indexOf("dlg.addEventListener('cancel'"));
@@ -301,14 +254,15 @@ describe('la comprobación de lo contado antes de entregar (pd_campo_libre; nmwk
     expect(api).toContain('plan.detectado = { ...(plan.detectado ?? {}), meta: x.metaDetectada };');
   });
 
-  it('las frases nuevas están en los dos idiomas', () => {
-    for (const k of ['nuevo.faltaQueEs', 'nuevo.faltaMeta', 'nuevo.faltaLasDos', 'nuevo.faltaRespuesta', 'nuevo.faltaPista', 'nuevo.tardaMas', 'nuevo.entregarSinComprobar'] as const) {
+  it('las frases de lo lento están en los dos idiomas, y las de la pregunta ya no existen (nmws4p04wtit)', () => {
+    for (const k of ['nuevo.tardaMas', 'nuevo.entregarSinComprobar'] as const) {
       expect(es[k]).toBeTruthy();
       expect(en[k]).toBeTruthy();
     }
-    expect(es['nuevo.faltaQueEs']).toBe('¿Qué es?');
-    expect(es['nuevo.faltaMeta']).toBe('¿A dónde lo quieres llevar?');
-    expect(es['nuevo.faltaPista']).toBe('Con una o dos frases basta');
+    for (const k of ['nuevo.faltaQueEs', 'nuevo.faltaMeta', 'nuevo.faltaLasDos', 'nuevo.sugerenciaMeta', 'nuevo.faltaRespuesta', 'nuevo.faltaPista']) {
+      expect(es).not.toHaveProperty(k);
+      expect(en).not.toHaveProperty(k);
+    }
   });
 });
 
@@ -577,16 +531,16 @@ describe('el formulario de entrega del primer proyecto transcribe sin proyecto a
   });
 });
 
-describe('la entrega nunca pregunta «¿Qué es?»: lo deduce el modelo de la carpeta (nmws1o6yltit)', () => {
+describe('la entrega nunca se detiene a preguntar: ni «¿Qué es?» (nmws1o6yltit) ni «¿A dónde lo quieres llevar?» (nmws4p04wtit)', () => {
   it('si la comprobación solo echa en falta qué es, entrega al instante, sin pregunta', () => {
     expect(decidirComprobacion({ falta: ['que'] })).toEqual({ accion: 'entregar' });
     expect(decidirComprobacion({ falta: ['que'], meta: 'que reserven en línea' })).toEqual({ accion: 'entregar', meta: 'que reserven en línea' });
   });
-  it('ninguna pregunta que llegue al formulario lleva «¿Qué es?»', () => {
+  it('un texto que no dice nada de la meta entrega igual, directo: la meta se fija después del diagnóstico, en «Tu meta»', () => {
     for (const falta of [['que'], ['meta'], ['que', 'meta'], ['meta', 'que']] as ('que' | 'meta')[][]) {
-      const d = decidirComprobacion({ falta });
-      if (d.accion === 'preguntar') expect(d.falta).not.toContain('que');
+      expect(decidirComprobacion({ falta })).toEqual({ accion: 'entregar' });
     }
+    expect(decidirComprobacion({ falta: ['meta'], meta: '  ' })).toEqual({ accion: 'entregar' });
   });
 });
 

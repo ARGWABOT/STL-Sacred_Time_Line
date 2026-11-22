@@ -1199,15 +1199,7 @@ export const en: Record<keyof typeof es, Texto> = {
   'nuevo.cuentamePista': 'What it is, who it is for and where you want to take it, in your own words. You can also record it.',
   'nuevo.cuentameEj': 'E.g.: A booking site for a dentist; I want patients to book online',
   'nuevo.cuentameVacio': 'You can leave it empty: I read everything from the folder.',
-  // The check of what was told (pd_campo_libre; nmwkbl5d4tit, nmwl4xd7utit, nmwl4xn0mtit, nmwlfn2pbtit, nmwlfndp5tit): fixed sentences, not written by the model
-  'nuevo.faltaQueEs': 'What is it?',
-  'nuevo.faltaMeta': 'Where do you want to take it?',
-  'nuevo.faltaLasDos': 'What is it, and where do you want to take it?',
-  'nuevo.sugerenciaQueEs': 'Add a few words on what it does, for example: “A booking site for a dentist.”',
-  'nuevo.sugerenciaMeta': 'Add what you want to achieve with it, for example: “I want patients to book online by March.”',
-  'nuevo.sugerenciaLasDos': 'Add what it does and what you want to achieve, for example: “A booking site for a dentist; I want patients to book online.”',
-  'nuevo.faltaRespuesta': 'Your answer',
-  'nuevo.faltaPista': 'One or two sentences are enough',
+  // The check of what was told (pd_campo_libre; nmwl4xn0mtit): it never stops to ask (nmws4p04wtit), it only warns when slow
   'nuevo.tardaMas': 'This is taking longer than usual',
   'nuevo.entregarSinComprobar': 'Hand it over without checking',
   'nuevo.opcional': '(optional)',
