@@ -1867,6 +1867,10 @@ export const en: Record<keyof typeof es, Texto> = {
   'asistente.voz.transPeso': 'About 2 GB, once.',
   'asistente.voz.mirando': 'Checking what is installed…',
   'asistente.voz.instalando': 'Installing: {pct} %. If you close this window, it picks up where it was.',
+  'asistente.voz.bajado': 'Downloaded: {hecho} MB of about {total} MB.',
+  'asistente.voz.sigueActivo': 'Still working: it moved a moment ago.',
+  'asistente.voz.sigueSeg': 'Still working: last activity {seg} s ago.',
+  'asistente.voz.sigueMin': 'Still working, but no new activity for {min} min. A slow download can take a while; if it does not move, close this window and open it again.',
   'asistente.voz.transLista': 'The transcription is installed.',
   'asistente.voz.instalar': 'Install',
   'asistente.voz.reintentar': 'Try again',
@@ -1911,6 +1915,9 @@ export const en: Record<keyof typeof es, Texto> = {
   'asistente.noSeGuardo': 'Could not save.',
   'asistente.noSeCopio': 'Could not copy: select the command with the mouse.',
   'asistente.noSeAbrio': 'Could not open the terminal: copy the command and paste it in yours.',
+  'asistente.abriendoTerminal': 'Opening the terminal…',
+  'asistente.reintentandoTerminal': 'The terminal did not open. Trying again ({n} of {total})…',
+  'asistente.copiaLaOrden': 'The terminal could not be opened on this computer. Do this: press «Copy», open your own terminal and paste the command there.',
 
   // The celebration and the notice of a handed-in mission (pd_idiomas)
   'comun.cerrar': 'Close',

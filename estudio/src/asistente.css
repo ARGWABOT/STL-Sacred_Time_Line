@@ -86,6 +86,27 @@ dialog.asistente {
   height: 12px;
   accent-color: var(--ok);
 }
+/* La señal de vida de una descarga: un punto que late mientras el servidor sigue trabajando */
+.asistente-latido {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: asistente-latido 1.2s ease-in-out infinite;
+}
+@keyframes asistente-latido {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .asistente-latido { animation: none; }
+}
+.asistente-copiar-grande {
+  border: 2px solid var(--ok);
+  padding: 10px;
+  font-weight: 600;
+}
 .asistente-frase,
 .asistente-entendido {
   margin: 0;

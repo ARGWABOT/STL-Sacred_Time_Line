@@ -22,9 +22,18 @@ export interface EleccionVoz {
 
 const ORDENES: Record<QueInstala, string> = { transcripcion: 'bash tools/entorno/instalar_transcripcion.sh', voces: 'bash tools/entorno/instalar_voces.sh' };
 
+/** La línea de señal de vida: lo bajado hasta ahora (si se sabe) y hace cuánto se movió algo. Pura, salvo el idioma. */
+export function lineaDeVida(i: Instalacion): string {
+  const mb = (b: number) => Math.round(b / 1e6);
+  const hecho = i.bytes ? `${t('asistente.voz.bajado', { hecho: mb(i.bytes), total: mb(i.esperados ?? 0) })} ` : '';
+  const seg = i.quietoSeg ?? 0;
+  const vida = seg < 5 ? t('asistente.voz.sigueActivo') : seg < 120 ? t('asistente.voz.sigueSeg', { seg }) : t('asistente.voz.sigueMin', { min: Math.floor(seg / 60) });
+  return `${hecho}${vida}`;
+}
+
 function barra(i: Instalacion): string {
   const pct = i.pct ?? 0;
-  return `<progress max="100" value="${pct}"></progress><p class="como" role="status">${t('asistente.voz.instalando', { pct })}</p>`;
+  return `<progress max="100" value="${pct}"></progress><p class="como" role="status">${t('asistente.voz.instalando', { pct })}</p><p class="como asistente-vida"><span class="asistente-latido" aria-hidden="true"></span> ${esc(lineaDeVida(i))}</p>`;
 }
 
 /** Por qué falló, con cómo arreglarlo: dice si fue internet o espacio (t_decide_transcripcion_sin_internet). */

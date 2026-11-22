@@ -4,7 +4,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { t } from '../src/textos.ts';
 import { existsSync } from 'node:fs';
-import { chmod, writeFile } from 'node:fs/promises';
+import { chmod, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { cumpleComprobacion, ordenDeComprobacion, type Comprobacion } from '../../src/director/director.ts';
@@ -46,13 +46,30 @@ export function ordenQueAbre(orden: string): string {
   return `if command -v cygpath >/dev/null 2>&1; then explorer "$(cygpath -wa ${r})"; elif [ "$(uname)" = Darwin ]; then open ${r}; else xdg-open ${r}; fi`;
 }
 
-/** El guion que corre la ventana: entra a la carpeta, muestra la orden, la corre y espera Enter para cerrar. */
-export function guionDeTerminal(orden: string, carpeta: string): string {
+/**
+ * La orden como la corre bash. La que da sesionDeClaude para PowerShell (`& "C:\...\claude.exe" auth login`) empieza con «&»,
+ * que en bash es un error de sintaxis: el guion moría en su segunda línea y la ventana se cerraba al instante, sin mostrar nada
+ * (la segunda pantalla del asistente, «claude auth login»; la primera, `npm install -g …`, no lleva «&»). Aquí se le quita el
+ * «&», y la ruta de Windows con barras invertidas pasa a barras normales, que bash entiende. Pura.
+ */
+export function ordenParaBash(orden: string): string {
+  const m = /^\s*&\s+"([^"]+)"(.*)$/.exec(orden);
+  if (m) return `"${m[1].replace(/\\/g, '/')}"${m[2]}`;
+  return orden.replace(/^\s*&\s+/, '');
+}
+
+/**
+ * El guion que corre la ventana: avisa que arrancó (si hay `marca`, escribe ese archivo en su primera línea: es como el Studio
+ * sabe que la ventana de verdad se abrió), entra a la carpeta, muestra la orden, la corre y espera Enter para cerrar.
+ */
+export function guionDeTerminal(orden: string, carpeta: string, marca?: string): string {
+  const bash = ordenParaBash(orden);
   return [
     '#!/usr/bin/env bash',
+    ...(marca ? [`echo ok > ${comillas(marca.replace(/\\/g, '/'))} 2>/dev/null`] : []),
     `cd ${comillas(carpeta.replace(/\\/g, '/'))} 2>/dev/null`,
-    `printf '%s\\n\\n' ${comillas(`STL Studio corre: ${orden}`)}`,
-    ordenQueAbre(orden),
+    `printf '%s\\n\\n' ${comillas(`STL Studio corre: ${bash}`)}`,
+    ordenQueAbre(bash),
     'echo',
     'read -r -p "Terminó. Oprime Enter para cerrar esta ventana. "',
     '',
@@ -87,10 +104,28 @@ function lanzar(programa: string, args: string[]): Promise<void> {
   });
 }
 
-/** Abre una terminal nueva que corre la orden en la carpeta. Si no se puede, dice por qué (para mostrarlo tal cual). */
-export async function abrirTerminal(orden: string, carpeta: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const guion = join(tmpdir(), `stl-orden-${Date.now()}${process.platform === 'darwin' ? '.command' : '.sh'}`);
-  await writeFile(guion, guionDeTerminal(orden, carpeta), 'utf8');
+/** Espera a que exista la marca que escribe el guion en su primera línea; true si apareció antes del plazo. */
+export async function esperarMarca(marca: string, plazoMs = 6000, cadaMs = 150): Promise<boolean> {
+  const fin = Date.now() + plazoMs;
+  for (;;) {
+    if (existsSync(marca)) return true;
+    if (Date.now() >= fin) return false;
+    await new Promise((ok) => setTimeout(ok, cadaMs));
+  }
+}
+
+let cuantas = 0;
+
+/**
+ * Abre una terminal nueva que corre la orden en la carpeta y comprueba que de verdad se abrió: su guion escribe una marca
+ * al empezar. Sin marca a tiempo, dice que no se abrió (que la página lo vuelva a pedir o muestre «copia la orden»). Si no se
+ * puede, dice por qué (para mostrarlo tal cual). Cada apertura usa guion y marca propios (nombres que no se repiten).
+ */
+export async function abrirTerminal(orden: string, carpeta: string, plazoMs = 6000): Promise<{ ok: true } | { ok: false; error: string }> {
+  const id = `${Date.now()}-${process.pid}-${++cuantas}`;
+  const guion = join(tmpdir(), `stl-orden-${id}${process.platform === 'darwin' ? '.command' : '.sh'}`);
+  const marca = join(tmpdir(), `stl-orden-${id}.abierta`);
+  await writeFile(guion, guionDeTerminal(orden, carpeta, marca), 'utf8');
   await chmod(guion, 0o755).catch(() => {});
   try {
     if (process.platform === 'win32') {
@@ -102,6 +137,8 @@ export async function abrirTerminal(orden: string, carpeta: string): Promise<{ o
     } else {
       await lanzar('x-terminal-emulator', ['-e', 'bash', guion]).catch(() => lanzar('gnome-terminal', ['--', 'bash', guion]));
     }
+    if (!(await esperarMarca(marca, plazoMs))) return { ok: false, error: t('servidor.sinTerminal') };
+    await unlink(marca).catch(() => {});
     return { ok: true };
   } catch {
     return { ok: false, error: t('servidor.sinTerminal') };

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { EstadoVoz, Instalacion } from '../../src/director/instalacionVoz';
+import { avanceReal, quePedirAlRecargar, type EstadoVoz, type Instalacion } from '../../src/director/instalacionVoz';
 import { cuerpoVoz, PRUEBA_NUEVA, zonaPrueba, zonaTranscripcion, zonaVoces } from './asistenteVoz';
 import { ponerIdioma } from './textos';
 
@@ -111,8 +111,48 @@ describe('las voces: obligatorias (nmvzfmvr2tit, nmvzfsccjtit)', () => {
     // Al repasar, nada baja hasta que se pide
     expect(zonaVoces(estado(LISTA), true)).toContain('data-asistente-instalar="voces"');
     const asistente = readFileSync(join(__dirname, 'asistente.ts'), 'utf-8').replace(/\r\n/g, '\n');
-    expect(asistente).toContain("else if (voz.transcripcion.estado === 'lista' && voz.voces.estado === 'sin_instalar') await pedirInstalar('voces');");
+    expect(asistente).toContain('const falta = quePedirAlRecargar(voz, repaso);');
+    expect(asistente).toContain('if (falta) await pedirInstalar(falta);');
     expect(asistente).not.toMatch(/data-asistente-voces|data-asistente-sin-voz|sinVoz/);
+  });
+});
+
+describe('el avance de una descarga: real y siempre con señal de vida', () => {
+  it('avanza en pasos pequeños por los bytes reales, sin bajar, y sin llegar a 100 antes de terminar', () => {
+    let antes = 0;
+    const vistos: number[] = [];
+    for (const b of [19e6, 38e6, 57e6, 76e6, 60e6, 1.9e9, 9e9]) {
+      antes = avanceReal(b, 1.9e9, 50, antes);
+      vistos.push(antes);
+    }
+    expect(vistos).toEqual([1, 2, 3, 4, 4, 99, 99]);
+    // Sin bytes medidos, vale lo que dijo el guion
+    expect(avanceReal(null, 1.9e9, 50)).toBe(50);
+  });
+
+  it('la barra dice los MB bajados y que sigue trabajando, con su punto que late', () => {
+    const html = zonaTranscripcion(estado({ estado: 'instalando', pct: 10, bytes: 190e6, esperados: 1.9e9, quietoSeg: 0 }), false);
+    expect(html).toContain('asistente-latido');
+    expect(sinMarcas(html)).toContain('Bajado: 190 MB de unos 1900 MB');
+    expect(sinMarcas(html)).toContain('Sigue trabajando');
+  });
+
+  it('con el tiempo sin señal lo dice en segundos y en minutos, y nunca queda sin decir nada', () => {
+    expect(sinMarcas(zonaVoces(estado(LISTA, { estado: 'instalando', pct: 5, quietoSeg: 42 }), false))).toContain('última señal hace 42 s');
+    expect(sinMarcas(zonaVoces(estado(LISTA, { estado: 'instalando', pct: 5, quietoSeg: 600 }), false))).toContain('lleva 10 min sin señal nueva');
+    ponerIdioma('en');
+    expect(sinMarcas(zonaVoces(estado(LISTA, { estado: 'instalando', pct: 5, quietoSeg: 42 }), false))).toContain('last activity 42 s ago');
+  });
+
+  it('al recargar: si corre se reengancha sin pedir nada; si no corre y falta, se pide la que toca; al repasar, nada solo', () => {
+    const sin: Instalacion = { estado: 'sin_instalar' };
+    expect(quePedirAlRecargar(estado({ estado: 'instalando', pct: 30 }), false)).toBeNull();
+    expect(quePedirAlRecargar(estado(LISTA, { estado: 'instalando', pct: 30 }), false)).toBeNull();
+    expect(quePedirAlRecargar(estado(sin), false)).toBe('transcripcion');
+    expect(quePedirAlRecargar(estado(LISTA, sin), false)).toBe('voces');
+    expect(quePedirAlRecargar(estado(LISTA, LISTA), false)).toBeNull();
+    expect(quePedirAlRecargar(estado(sin), true)).toBeNull();
+    expect(quePedirAlRecargar(null, false)).toBeNull();
   });
 });
 

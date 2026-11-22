@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PASOS_ASISTENTE } from '../../src/director/asistente';
-import { botonesDe, bloqueSesion, cuerpoDe } from './asistente';
-import { ponerIdioma } from './textos';
+import { abrirConReintentos, botonesDe, bloqueSesion, cuerpoDe } from './asistente';
+import { ponerIdioma, t } from './textos';
 
 afterEach(() => ponerIdioma('es'));
 
@@ -119,5 +119,41 @@ describe('la ventana del asistente de instalación (pd_valores_instalar)', () =>
     expect(fuente).toContain('if (datos?.abre) abrir(datos, false, alTerminar);');
     expect(readFileSync(new URL('./app.ts', import.meta.url), 'utf8')).toContain('void iniciarAsistente(');
     expect(readFileSync(new URL('./modeloDelDirector.ts', import.meta.url), 'utf8')).toContain('data-repasar-instalacion');
+  });
+});
+
+describe('abrir la terminal con reintentos y, si no, «copia la orden»', () => {
+  it('si abre a la primera, no reintenta', async () => {
+    const pedir = vi.fn(async () => ({ ok: true }));
+    const r = await abrirConReintentos(pedir, () => {}, 3, 0);
+    expect(r).toMatchObject({ ok: true, intentos: 1 });
+    expect(pedir).toHaveBeenCalledTimes(1);
+  });
+
+  it('si no abre, lo vuelve a pedir y avisa qué intento viene; si el segundo abre, para ahí', async () => {
+    const respuestas = [{ ok: false, error: 'x' }, { ok: true }];
+    const pedir = vi.fn(async () => respuestas.shift()!);
+    const avisos: [number, number][] = [];
+    const r = await abrirConReintentos(pedir, (n, total) => avisos.push([n, total]), 3, 0);
+    expect(r).toMatchObject({ ok: true, intentos: 2 });
+    expect(avisos).toEqual([[2, 3]]);
+  });
+
+  it('si no abre en ninguno de los 3 intentos, lo dice para mostrar «copia la orden»', async () => {
+    const pedir = vi.fn(async () => ({ ok: false, error: 'sin terminal' }));
+    const r = await abrirConReintentos(pedir, () => {}, 3, 0);
+    expect(r).toMatchObject({ ok: false, error: 'sin terminal', intentos: 3 });
+    expect(pedir).toHaveBeenCalledTimes(3);
+  });
+
+  it('el mensaje de «copia la orden» está en los dos idiomas, el aviso está en la pantalla y la bandera se suelta', () => {
+    expect(t('asistente.copiaLaOrden')).toContain('Copiar');
+    ponerIdioma('en');
+    expect(t('asistente.copiaLaOrden')).toContain('Copy');
+    ponerIdioma('es');
+    expect(bloqueSesion({ ok: false, falta: 'sesion', orden: 'claude auth login' })).toContain('data-asistente-terminal-aviso');
+    const fuente = readFileSync(new URL('./asistente.ts', import.meta.url), 'utf8');
+    expect(fuente).toContain('abriendoTerminal = false;');
+    expect(fuente).toContain("t('asistente.copiaLaOrden')");
   });
 });

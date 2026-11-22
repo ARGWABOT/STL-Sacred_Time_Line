@@ -1866,6 +1866,10 @@ export const es = {
   'asistente.voz.transPeso': 'Unos 2 GB, una sola vez.',
   'asistente.voz.mirando': 'Comprobando lo que hay instalado…',
   'asistente.voz.instalando': 'Instalando: {pct} %. Si cierras esta ventana, sigue donde iba.',
+  'asistente.voz.bajado': 'Bajado: {hecho} MB de unos {total} MB.',
+  'asistente.voz.sigueActivo': 'Sigue trabajando: se movió hace un instante.',
+  'asistente.voz.sigueSeg': 'Sigue trabajando: última señal hace {seg} s.',
+  'asistente.voz.sigueMin': 'Sigue trabajando, pero lleva {min} min sin señal nueva. Una descarga lenta puede tardar; si no avanza, cierra esta ventana y vuelve a abrirla.',
   'asistente.voz.transLista': 'La transcripción está instalada.',
   'asistente.voz.instalar': 'Instalar',
   'asistente.voz.reintentar': 'Reintentar',
@@ -1910,6 +1914,9 @@ export const es = {
   'asistente.noSeGuardo': 'No se pudo guardar.',
   'asistente.noSeCopio': 'No se pudo copiar: selecciona la orden con el ratón.',
   'asistente.noSeAbrio': 'No se pudo abrir la terminal: copia la orden y pégala en la tuya.',
+  'asistente.abriendoTerminal': 'Abriendo la terminal…',
+  'asistente.reintentandoTerminal': 'La terminal no se abrió. Probando otra vez ({n} de {total})…',
+  'asistente.copiaLaOrden': 'No se pudo abrir la terminal en este computador. Haz esto: oprime «Copiar», abre tu propia terminal y pega la orden ahí.',
 
   // La celebración y el aviso de una misión entregada (pd_idiomas)
   'comun.cerrar': 'Cerrar',

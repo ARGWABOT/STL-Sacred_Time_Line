@@ -11,6 +11,10 @@ export type CausaDeFalla = 'internet' | 'espacio' | 'otra';
 export interface Instalacion {
   estado: 'sin_instalar' | 'instalando' | 'lista' | 'fallo';
   pct?: number;
+  /** Mientras se instala: lo que ya hay en el disco, lo que se espera en total (ambos en bytes) y cuántos segundos hace que algo se movió. */
+  bytes?: number;
+  esperados?: number;
+  quietoSeg?: number;
   causa?: CausaDeFalla;
   detalle?: string;
 }
@@ -64,6 +68,30 @@ export function avanceDeInstalacion(salida: string, que: QueInstala): number {
   const porcentajes = [...partes[hechas].matchAll(/(\d{1,3}(?:[.,]\d+)?)\s?%/g)].map((m) => Number(m[1].replace(',', '.'))).filter((n) => n <= 100);
   const dentro = (porcentajes.at(-1) ?? 0) / 100;
   return Math.min(99, Math.round(((hechas - 1 + dentro) / total) * 100));
+}
+
+/** Lo que ocupa en el disco cada instalación ya terminada, en bytes (el entorno de Python y el modelo; las voces), para medir el avance real. */
+export const BYTES_ESPERADOS: Record<QueInstala, number> = { transcripcion: 1.9e9, voces: 0.4e9 };
+
+/**
+ * El avance real, de 0 a 99, por los bytes que ya hay en el disco (pasos de 1 %, sin saltos de etapa). Sin bytes medidos
+ * (aún no se ven, o no se pueden medir), vale lo que dijo el guion. Nunca baja de `antes`. Pura.
+ */
+export function avanceReal(bytes: number | null, esperados: number, porSalida: number, antes = 0): number {
+  const base = bytes && bytes > 0 ? Math.floor((bytes / esperados) * 100) : porSalida;
+  return Math.max(antes, Math.min(99, Math.max(0, base)));
+}
+
+/**
+ * Si al abrir o recargar la pantalla hay que pedir alguna instalación: la primera vez, la que falte (primero la transcripción),
+ * y solo si no corre ya ninguna (si corre, se reengancha a ella sin pedir nada). Al repasar, nada se pide solo. Pura.
+ */
+export function quePedirAlRecargar(v: EstadoVoz | null, repaso: boolean): QueInstala | null {
+  if (!v || repaso) return null;
+  if (v.transcripcion.estado === 'instalando' || v.voces.estado === 'instalando') return null;
+  if (v.transcripcion.estado === 'sin_instalar') return 'transcripcion';
+  if (v.transcripcion.estado === 'lista' && v.voces.estado === 'sin_instalar') return 'voces';
+  return null;
 }
 
 /**

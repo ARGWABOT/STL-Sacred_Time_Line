@@ -11,7 +11,7 @@ import {
 } from '../../src/director/asistente';
 import { PLANES_DE_CLAUDE, type PlanDeClaude } from '../../src/director/consumoDelPlan';
 import { esIdioma } from '../../src/director/idioma';
-import { vozPuedeSeguir, type EstadoVoz, type QueInstala } from '../../src/director/instalacionVoz';
+import { quePedirAlRecargar, vozPuedeSeguir, type EstadoVoz, type QueInstala } from '../../src/director/instalacionVoz';
 import { cuerpoVoz, PRUEBA_NUEVA, zonaPrueba, zonaTranscripcion, zonaVoces, type PruebaMic } from './asistenteVoz';
 import { enDatos, Grabadora } from './grabadora';
 import { nombreEsfuerzo, nombreModelo } from './modeloDelDirector';
@@ -54,6 +54,7 @@ export function bloqueSesion(sesion: Sesion): string {
   const guia = sesion.falta === 'programa' ? 'asistente.faltaPrograma' : 'asistente.faltaSesion';
   return `<div class="aviso asistente-falta" role="alert"><p>${t(guia)}</p>
     <div class="orden-paso"><code>${esc(sesion.orden)}</code><div class="acciones-orden"><button type="button" class="abrir-terminal" data-asistente-terminal>${t('asistente.abrirTerminal')}</button><button type="button" class="boton-suave" data-asistente-copiar="${esc(sesion.orden)}">${t('asistente.copiar')}</button></div></div>
+    <p data-asistente-terminal-aviso role="status" hidden></p>
     <p>${t('asistente.alTerminarSesion')}</p>
     <button type="button" class="primario" data-asistente-comprobar>${t('asistente.yaInicie')}</button></div>`;
 }
@@ -103,6 +104,28 @@ export function botonesDe(paso: PasoAsistente, sesion: Sesion, repaso: boolean, 
   return `${repaso ? `<button type="button" data-asistente-cerrar>${t('asistente.cerrar')}</button>` : ''}${volver}<button type="button" data-asistente-como-viene>${t('asistente.comoViene')}</button><button type="button" class="primario grande" data-asistente-siguiente autofocus>${t('asistente.siguiente')}</button>`;
 }
 
+/**
+ * Pide abrir la terminal y, si el servidor no pudo comprobar que se abrió, lo vuelve a pedir (hasta `intentos` en total).
+ * `avisar` dice qué intento viene. Devuelve el último resultado: si no abrió, la página muestra «copia la orden».
+ */
+export async function abrirConReintentos(
+  pedir: () => Promise<{ ok: boolean; error?: string }>,
+  avisar: (n: number, total: number) => void = () => {},
+  intentos = 3,
+  espera = 700,
+): Promise<{ ok: boolean; error?: string; intentos: number }> {
+  let r: { ok: boolean; error?: string } = { ok: false };
+  for (let n = 1; n <= intentos; n++) {
+    r = await pedir();
+    if (r.ok) return { ...r, intentos: n };
+    if (n < intentos) {
+      avisar(n + 1, intentos);
+      if (espera) await new Promise((ok) => setTimeout(ok, espera));
+    }
+  }
+  return { ...r, intentos };
+}
+
 let abierta: HTMLDialogElement | null = null;
 
 /**
@@ -118,6 +141,7 @@ function abrir(datos: DatosAsistente, repaso: boolean, alTerminar: (entregar: bo
     : (datos.estado ?? { paso: 'inicio' });
   let sesion: Sesion = null;
   let guardando = false;
+  let abriendoTerminal = false;
   let voz: EstadoVoz | null = null;
   let prueba: PruebaMic = PRUEBA_NUEVA;
   let grabadora: Grabadora | null = null;
@@ -219,10 +243,10 @@ function abrir(datos: DatosAsistente, repaso: boolean, alTerminar: (entregar: bo
     const leido = await fetch(`${RUTA}/voz`).then((r) => (r.ok ? (r.json() as Promise<EstadoVoz>) : null)).catch(() => null);
     if (estado.paso !== 'voz') return;
     if (leido) voz = leido;
-    if (voz && !repaso) {
-      if (voz.transcripcion.estado === 'sin_instalar') await pedirInstalar('transcripcion');
-      else if (voz.transcripcion.estado === 'lista' && voz.voces.estado === 'sin_instalar') await pedirInstalar('voces');
-    }
+    // Tras recargar (F5) se le pregunta al servidor: si la descarga corre, se reengancha (sigue el sondeo, con su avance real);
+    // si no corre y falta, se lanza otra vez, y lo ya bajado se reutiliza
+    const falta = quePedirAlRecargar(voz, repaso);
+    if (falta) await pedirInstalar(falta);
     pintarVoz(antes);
     if (!voz || voz.transcripcion.estado === 'instalando' || voz.voces.estado === 'instalando') sondeo = setTimeout(() => void mirarVoz(), 1500);
   };
@@ -309,8 +333,26 @@ function abrir(datos: DatosAsistente, repaso: boolean, alTerminar: (entregar: bo
     if (b.matches('[data-asistente-comprobar]')) return void mirarSesion();
     if (b.dataset.asistenteCopiar) return void navigator.clipboard.writeText(b.dataset.asistenteCopiar).catch(() => decir(t('asistente.noSeCopio')));
     if (b.matches('[data-asistente-terminal]')) {
-      const r = await fetch(`${RUTA}/terminal`, { method: 'POST' }).catch((x) => x as Error);
-      if (r instanceof Error || !r.ok) decir(r instanceof Error ? t('asistente.sinServidor') : ((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? t('asistente.noSeAbrio'));
+      if (abriendoTerminal) return;
+      abriendoTerminal = true;
+      const aviso = dlg.querySelector<HTMLElement>('[data-asistente-terminal-aviso]');
+      const mostrar = (texto: string, fallo: boolean) => {
+        if (!aviso) return decir(texto);
+        aviso.textContent = texto;
+        aviso.hidden = false;
+        aviso.classList.toggle('asistente-copiar-grande', fallo);
+        aviso.setAttribute('role', fallo ? 'alert' : 'status');
+        if (fallo) dlg.querySelector<HTMLElement>('[data-asistente-copiar]')?.scrollIntoView?.({ block: 'center' });
+      };
+      mostrar(t('asistente.abriendoTerminal'), false);
+      const r = await abrirConReintentos(
+        () => fetch(`${RUTA}/terminal`, { method: 'POST' }).then(async (x) => (x.ok ? { ok: true } : { ok: false, error: ((await x.json().catch(() => null)) as { error?: string } | null)?.error })).catch(() => ({ ok: false })),
+        (n, total) => mostrar(t('asistente.reintentandoTerminal', { n, total }), false),
+      );
+      abriendoTerminal = false;
+      if (r.ok) {
+        if (aviso) aviso.hidden = true;
+      } else mostrar(t('asistente.copiaLaOrden'), true);
     }
   });
 
