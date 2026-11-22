@@ -12,7 +12,7 @@ El método STL lo resuelve con un solo canal. Todo lo que le dices al director (
 
 La memoria vive en el repositorio de tu propio proyecto, en una rama aparte, stl, así que nada depende del contexto de un chat: el modelo puede olvidar, el proyecto no. Menos pestañas, más cosas terminadas.
 
-Versión 0.1.2. El repositorio es [ARGWABOT/STL-Sacred_Time_Line](https://github.com/ARGWABOT/STL-Sacred_Time_Line). La interfaz viene en español y en inglés.
+Versión 0.1.3. El repositorio es [ARGWABOT/STL-Sacred_Time_Line](https://github.com/ARGWABOT/STL-Sacred_Time_Line). La interfaz viene en español y en inglés.
 
 ## Empieza en tres pasos
 
@@ -68,7 +68,7 @@ git reset --hard respaldo/studio
 
 ### Actualizar
 
-En la 0.1.2 todavía no hay de qué actualizar. Desde la 0.2.0, el Studio lo ofrece, con su informe de lo que choca con lo que cambiaste. Una línea al pie de la barra, junto a tu nombre, avisa si salió una versión nueva, con su enlace a las notas de esa versión en GitHub y una ✕ que la cierra hasta la siguiente: una vez al día el Studio le pregunta a GitHub cuál es la última, sin enviar nada tuyo ni de tus proyectos; se apaga con su casilla en «Modelo y consumo».
+En la 0.1.3 todavía no hay de qué actualizar. Desde la 0.2.0, el Studio lo ofrece, con su informe de lo que choca con lo que cambiaste. Una línea al pie de la barra, junto a tu nombre, avisa si salió una versión nueva, con su enlace a las notas de esa versión en GitHub y una ✕ que la cierra hasta la siguiente: una vez al día el Studio le pregunta a GitHub cuál es la última, sin enviar nada tuyo ni de tus proyectos; se apaga con su casilla en «Modelo y consumo».
 
 ## Por qué
 

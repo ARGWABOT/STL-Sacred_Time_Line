@@ -12,7 +12,7 @@ The STL method fixes that with a single channel. Everything you tell the directo
 
 The memory lives in your project's own repository, on a separate stl branch, so nothing depends on a chat's context: the model can forget, the project can't. Fewer tabs, more finished things.
 
-Version 0.1.2. The repository is [ARGWABOT/STL-Sacred_Time_Line](https://github.com/ARGWABOT/STL-Sacred_Time_Line). The interface comes in English and Spanish.
+Version 0.1.3. The repository is [ARGWABOT/STL-Sacred_Time_Line](https://github.com/ARGWABOT/STL-Sacred_Time_Line). The interface comes in English and Spanish.
 
 ## Start in three steps
 
@@ -68,7 +68,7 @@ git reset --hard respaldo/studio
 
 ### Updating
 
-In 0.1.2 there is nothing to update from yet. From 0.2.0 on, the Studio offers it, with its report of what clashes with what you changed. A line at the foot of the sidebar, next to your name, says when there is a new version, with its link to its notes on GitHub and an ✕ that closes it until the next one: once a day the Studio asks GitHub which is the latest, without sending anything of yours or of your projects; it is turned off with its checkbox in «Model & usage».
+In 0.1.3 there is nothing to update from yet. From 0.2.0 on, the Studio offers it, with its report of what clashes with what you changed. A line at the foot of the sidebar, next to your name, says when there is a new version, with its link to its notes on GitHub and an ✕ that closes it until the next one: once a day the Studio asks GitHub which is the latest, without sending anything of yours or of your projects; it is turned off with its checkbox in «Model & usage».
 
 ## Why
 
