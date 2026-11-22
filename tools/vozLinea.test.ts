@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARPETA_VOZ_LINEA, CARPETA_VOZ_LINEA_EN, conPista, ENTRE_PEDIDOS_MS, esperaPedida, ESTILO_VOZ_LINEA, ESTILO_VOZ_LINEA_EN, globitosDeLaMeta, lineasDelNarrador, MODELO_VOZ_LINEA, REINTENTOS, SIN_CUOTA, sinCuotaDelDia, VOZ_LINEA, VOZ_LINEA_EN, vozDelIdioma, type ClipDicho } from './vozLinea.ts';
-import { textoParaLaVoz } from './vozRecorrido.ts';
+import { ENTONACION_EN, textoParaLaVoz } from './vozRecorrido.ts';
 
 const raiz = join(import.meta.dirname, '..');
 const html = readFileSync(join(raiz, 'docs/difusion/linea-del-proyecto.html'), 'utf8');
@@ -233,6 +233,21 @@ describe('la voz del narrador de «La línea del proyecto»', () => {
     expect(textoParaLaVoz('s4-6', 'sin explicarle al modelo a qué parte te refieres')).toBe('sin explicarle al modelo a qué parte te refieres.');
     expect(textoParaLaVoz('s4-5', 'y puedes comentar cada idea o párrafo')).toBe('y puedes comentar cada idea o párrafo');
     expect(recorrido).toMatch(/despues\[clave\] = ENTONACION\[clave\] \? \{ texto, ms: hecho\.ms, entonacion: ENTONACION\[clave\] \} : \{ texto, ms: hecho\.ms \};\n\s+guardar\(\);/);
+  });
+
+  it('en inglés, s16-p2 lleva su indicación de tono: calma, la pausa tras «but not where:» y su clip la guarda (nmws02u38tit)', () => {
+    const recorrido = readFileSync(join(raiz, 'tools/vozRecorrido.ts'), 'utf8');
+    expect(ENTONACION_EN['s16-p2'].startsWith(ESTILO_VOZ_LINEA_EN)).toBe(true);
+    expect(ENTONACION_EN['s16-p2']).toContain('unhurried');
+    expect(ENTONACION_EN['s16-p2']).toContain('pause after «but not where:»');
+    // Se rehace mientras textos.json no diga que salió con esa indicación; a Google le llega en vez del estilo general
+    expect(recorrido).toContain('|| (!!ENTONACION_EN[clave] && dichos[clave]?.entonacion !== ENTONACION_EN[clave]))');
+    expect(recorrido).toContain('ENTONACION_EN[clave] ?? ESTILO_VOZ_LINEA_EN, VOZ_LINEA_EN)');
+    expect(recorrido).toMatch(/dichos\[clave\] = ENTONACION_EN\[clave\] \? \{ texto, ms: hecho\.ms, entonacion: ENTONACION_EN\[clave\] \} : \{ texto, ms: hecho\.ms \};\n\s+guardar\(\);/);
+    // El clip publicado salió con ella, y es más pausado que el que decía la frase de corrido (3936 ms)
+    const en = JSON.parse(readFileSync(join(raiz, 'docs/difusion/voz/en/textos.json'), 'utf8')) as Record<string, ClipDicho>;
+    expect(en['s16-p2'].entonacion).toBe(ENTONACION_EN['s16-p2']);
+    expect(en['s16-p2'].ms).toBeGreaterThan(3936);
   });
 
   it('suena cuando aparece su línea y sigue a la reproducción: en pausa se detiene, al girar la perilla se calla, y el subtítulo y la animación esperan a que termine', () => {

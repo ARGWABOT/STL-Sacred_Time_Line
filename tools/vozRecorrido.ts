@@ -52,6 +52,15 @@ export const VOZ_GOOGLE_RECORRIDO = { modelo: MODELO_VOZ_LINEA, voz: VOZ_LINEA }
 export const ENTONACION: Record<string, string> = {
   's4-6': `${ESTILO_VOZ_LINEA} Esta frase continúa la anterior y la cierra afirmando, con el tono que baja al final: no es una pregunta.`,
 };
+/**
+ * La gemela en inglés de ENTONACION: el clip de --en se vuelve a generar (con --confirmo) mientras textos.json no diga
+ * que salió con esa indicación. Aquí el texto va como está: s16-p2 sigue en el rótulo siguiente y termina en coma.
+ * «but not where: you open another tab…» salía de corrido, sin la pausa de los dos puntos (nota de voz del titular
+ * nmws02u38tit, 22 de noviembre de 2026).
+ */
+export const ENTONACION_EN: Record<string, string> = {
+  's16-p2': `${ESTILO_VOZ_LINEA_EN} This line continues the previous one, so say it at a calm, unhurried pace, slower than usual. Make a clear pause after «but not where:», then go on gently with «you open another tab and look for the page», keeping the tone open at the end, because the sentence goes on.`,
+};
 /** Lo que se le manda a la voz para este rótulo: con su indicación de tono, la frase con su punto final. Pura. */
 export function textoParaLaVoz(clave: string, texto: string): string {
   return ENTONACION[clave] && !/[.!?…]$/.test(texto) ? `${texto}.` : texto;
@@ -205,7 +214,8 @@ if (process.argv[1]?.endsWith('vozRecorrido.ts') && process.argv.includes('--en'
   const dichos: Record<string, ClipDicho> = existsSync(indice) ? JSON.parse(readFileSync(indice, 'utf8')) : {};
   // Animación por animación, en el orden de la estación 2: si la cuota del día corta, quedan enteras las que alcanzó
   const orden = ordenDeAnimaciones(js);
-  const faltan = rotulos.filter(({ clave, texto }) => dichos[clave]?.texto !== texto || !existsSync(join(carpeta, `${clave}.mp3`)))
+  const faltan = rotulos.filter(({ clave, texto }) => dichos[clave]?.texto !== texto || !existsSync(join(carpeta, `${clave}.mp3`))
+    || (!!ENTONACION_EN[clave] && dichos[clave]?.entonacion !== ENTONACION_EN[clave]))
     .sort((a, b) => orden.indexOf(a.clave) - orden.indexOf(b.clave));
   if (faltan.length && !confirmo) {
     console.log(`Generaría ${faltan.length} clips en inglés con ${MODELO_VOZ_LINEA} y la voz ${VOZ_LINEA_EN}. Cada uno gasta la API: repite la orden con --confirmo.`);
@@ -221,14 +231,14 @@ if (process.argv[1]?.endsWith('vozRecorrido.ts') && process.argv.includes('--en'
   const paso = { ultimo: 0 };
   try {
     for (const { clave, texto } of faltan) {
-      const hecho = clipDeGoogle(`en-${clave}`, texto, join(carpeta, `${clave}.mp3`), temporal, paso, ESTILO_VOZ_LINEA_EN, VOZ_LINEA_EN);
+      const hecho = clipDeGoogle(`en-${clave}`, texto, join(carpeta, `${clave}.mp3`), temporal, paso, ENTONACION_EN[clave] ?? ESTILO_VOZ_LINEA_EN, VOZ_LINEA_EN);
       if ('error' in hecho) {
         console.error(`La voz falló en ${clave} («${texto}»): ${hecho.error}`);
         fallaron.push(clave);
         if (hecho.error.startsWith(SIN_CUOTA)) break;
         continue;
       }
-      dichos[clave] = { texto, ms: hecho.ms };
+      dichos[clave] = ENTONACION_EN[clave] ? { texto, ms: hecho.ms, entonacion: ENTONACION_EN[clave] } : { texto, ms: hecho.ms };
       guardar();
       console.log(`${clave}: ${texto}`);
     }
