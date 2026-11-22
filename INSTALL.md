@@ -72,20 +72,22 @@ approval.
 2. **Turn the Studio on yourself**: `npm run encender`. It keeps running apart, so it stays on even if your session or
    the terminal closes, and if its server falls it comes back up by itself. Open the browser at http://localhost:5180/.
    Do not use `npm run estudio` in your terminal: it dies with it.
-3. Tell the user, briefly, what comes next:
+3. **Your final message sends the user to the installation assistant, and only there.** It says, briefly and nothing
+   else:
    - the Studio is at **http://localhost:5180/** (bookmark it): from here on everything happens there;
-   - first, the **installation assistant**, which opens by itself, full screen, when the Studio loads: it checks the
-     Claude Code session, leaves the model, installs and tests the transcription of voice notes and downloads the
-     voices that read aloud. It is the only path for those pieces: do not install them yourself or skip it, and have
-     the user finish it before handing over their first project (without it, the Studio cannot understand what they
-     record). If it does not open by itself, take them to «Modelo y consumo» › «Repasar la instalación»;
-   - once it is finished, **«Entregar proyectos»** (hand over projects): choose a project's folder and that is it;
+   - the **installation assistant** opens by itself, full screen, when the Studio loads, and the user finishes it now:
+     it checks the Claude Code session, leaves the model, installs and tests the transcription of voice notes and
+     downloads the voices that read aloud. It is mandatory and the only path for those pieces: do not install them
+     yourself, do not skip it and do not present it as optional or as something for later. While the transcription or
+     the voices are missing, the Studio opens it again by itself and its buttons to hand over a project lead back to
+     it. If it does not open by itself, take them to «Modelo y consumo» › «Repasar la instalación»;
    - if some day the Studio does not open (for example, after restarting the computer), `npm run encender` in this
      folder is enough, or asking their agent; on Windows, without a terminal, double-click `Abrir STL Studio.cmd` (it
-     can be sent to the desktop: right click › Send to › Desktop);
-   - the director's session is Claude Code open **in this folder**: there one writes «revisa estudio» whenever one
-     wants. Without the signed-in CLI, leave `/loop 5m /vigila` running in that session so it takes the requested reviews
-     by itself.
+     can be sent to the desktop: right click › Send to › Desktop).
+
+   **Never in that message**: offering to hand over a project («Entregar proyectos»), listing it as a first step or
+   putting anything before the assistant; nor the director's session or «revisa estudio». The assistant itself takes
+   the user to hand over their first project when it is finished, and the Studio shows the rest in its turn.
 
 ## What is never done when initializing
 

@@ -75,7 +75,7 @@ describe('nadie pide una revisión solo', () => {
     const servidor = leer('estudio/servidor/api.ts');
     const desde = servidor.indexOf("if (ruta === '/proyecto-nuevo' && req.method === 'POST')");
     expect(desde).toBeGreaterThan(0);
-    const entregar = servidor.slice(desde, servidor.indexOf("if (ruta === '/salud'", desde));
+    const entregar = servidor.slice(desde, servidor.indexOf("if (ruta === '/identidad'", desde));
     expect(entregar).not.toMatch(/pedirYLanzar|pedirRevision/);
     expect(entregar).toContain('const diagnosticoPedido = cuerpo.diagnosticar === true;');
     // El elegido del escaneo llega por aquí con lo que se encontró de él, saneado

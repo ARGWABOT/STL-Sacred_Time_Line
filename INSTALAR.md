@@ -69,20 +69,21 @@ porque la documentación del SDK de agentes de Anthropic no deja que un producto
 2. **Enciende el Studio tú**: `npm run encender`. Lo deja corriendo aparte, así que sigue encendido aunque se cierre
    tu sesión o la terminal, y si su servidor se cae se vuelve a levantar solo. Abre el navegador en
    http://localhost:5180/. No uses `npm run estudio` en tu terminal: muere con ella.
-3. Dile al usuario, corto, lo que sigue:
+3. **Tu mensaje final lleva al usuario al asistente de instalación, y solo ahí.** Dice, corto y nada más:
    - el Studio está en **http://localhost:5180/** (guárdala en favoritos): de aquí en adelante todo pasa ahí;
-   - lo primero, el **asistente de instalación**, que se abre solo a pantalla completa al cargar el Studio: comprueba
-     la sesión de Claude Code, deja el modelo, instala y prueba la transcripción de las notas de voz y baja las voces
-     que leen en voz alta. Es el único camino para esas piezas: no las instales tú ni lo saltes, y que el usuario lo
-     termine antes de entregar su primer proyecto (sin él, el Studio no le entiende lo que graba). Si no se abre solo,
-     llévalo a «Modelo y consumo» › «Repasar la instalación»;
-   - al terminarlo, **Entregar proyectos**: elige la carpeta de un proyecto y listo;
+   - el **asistente de instalación** se abre solo a pantalla completa al cargar el Studio, y el usuario lo termina
+     ahora: comprueba la sesión de Claude Code, deja el modelo, instala y prueba la transcripción de las notas de voz y
+     baja las voces que leen en voz alta. Es obligatorio y el único camino para esas piezas: no las instales tú, no lo
+     saltes y no lo presentes como opcional ni como algo para después. Mientras falten la transcripción o las voces, el
+     Studio lo vuelve a abrir solo y sus botones para entregar un proyecto llevan a él. Si no se abre solo, llévalo a
+     «Modelo y consumo» › «Repasar la instalación»;
    - si algún día el Studio no abre (por ejemplo, después de reiniciar el computador), basta `npm run encender` en
      esta carpeta, o pedírselo a su agente; en Windows, sin terminal, doble clic en `Abrir STL Studio.cmd` (puede
-     mandarlo al escritorio: clic derecho › Enviar a › Escritorio);
-   - la sesión del director es Claude Code abierto **en esta carpeta**: ahí se escribe «revisa estudio» cuando se
-     quiera. Sin la CLI con sesión, se deja corriendo `/loop 5m /vigila` en esa sesión para que tome sola las revisiones
-     pedidas.
+     mandarlo al escritorio: clic derecho › Enviar a › Escritorio).
+
+   **Nunca en ese mensaje**: ofrecer entregar un proyecto («Entregar proyectos»), ponerlo como primer paso ni poner
+   nada antes del asistente; tampoco la sesión del director ni «revisa estudio». El mismo asistente lleva al usuario a
+   entregar su primer proyecto al terminar, y el Studio muestra lo demás a su tiempo.
 
 ## Lo que nunca se hace al inicializar
 

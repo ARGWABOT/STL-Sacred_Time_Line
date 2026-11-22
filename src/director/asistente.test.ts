@@ -1,6 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  abreSolo, conPlan, dejarComoViene, estadoAsistenteDe, modeloDePlan, modelosDelPaso, MODELO_DE_LOS_DEMAS, MODELO_MAX20,
+  abreSolo, conPlan, dejarComoViene, estadoAlAbrir, estadoAsistenteDe, faltaLaVoz, modeloDePlan, modelosDelPaso, MODELO_DE_LOS_DEMAS, MODELO_MAX20,
   pasoAnterior, pasoSiguiente, PASOS_ASISTENTE, PLANES_ELEGIBLES, revisarInstalacion,
 } from './asistente';
 import { permitido } from '../../estudio/servidor/revisor';
@@ -24,6 +25,39 @@ describe('cuándo se abre solo (t_decide_asistente_tu_copia)', () => {
   it('quien lo cerró a mitad vuelve; terminado, nunca más solo', () => {
     expect(abreSolo({ proyectosPropios: 0, estado: { paso: 'lista' } })).toBe(true);
     expect(abreSolo({ proyectosPropios: 0, estado: { paso: 'lista', terminado: '2026-11-01T00:00:00Z' } })).toBe(false);
+  });
+
+  it('sin la transcripción o sin las voces se abre siempre, aun terminado o con proyectos propios (nmwr3fvgdtit)', () => {
+    const terminado = { paso: 'final' as const, terminado: '2026-11-01T00:00:00Z' };
+    expect(abreSolo({ proyectosPropios: 2, estado: terminado, voz: { transcripcion: false, voces: true } })).toBe(true);
+    expect(abreSolo({ proyectosPropios: 2, estado: terminado, voz: { transcripcion: true, voces: false } })).toBe(true);
+    expect(abreSolo({ proyectosPropios: 1, voz: { transcripcion: false, voces: false } })).toBe(true);
+    expect(faltaLaVoz({ voz: { transcripcion: true, voces: false } })).toBe(true);
+    // Con las dos listas, manda lo de siempre; sin saberlo, tampoco cuenta
+    expect(abreSolo({ proyectosPropios: 2, estado: terminado, voz: { transcripcion: true, voces: true } })).toBe(false);
+    expect(abreSolo({ proyectosPropios: 2 })).toBe(false);
+    expect(faltaLaVoz({})).toBe(false);
+  });
+
+  it('terminado y sin la voz, vuelve a la pantalla de la voz sin la marca de terminado; a mitad, donde quedó', () => {
+    const falta = { transcripcion: true, voces: false };
+    expect(estadoAlAbrir({ proyectosPropios: 1, voz: falta, estado: { paso: 'final', plan: 'pro', modelo: MODELO_DE_LOS_DEMAS, prueba: 'bien', terminado: '2026-11-01T00:00:00Z' } }))
+      .toEqual({ paso: 'voz', plan: 'pro', modelo: MODELO_DE_LOS_DEMAS, prueba: 'bien' });
+    expect(estadoAlAbrir({ proyectosPropios: 0, voz: falta, estado: { paso: 'modelo' } })).toEqual({ paso: 'modelo' });
+    expect(estadoAlAbrir({ proyectosPropios: 0, voz: falta })).toBeUndefined();
+    // Con la voz lista, lo guardado pasa como está
+    const listo = { paso: 'final' as const, terminado: 'x' };
+    expect(estadoAlAbrir({ proyectosPropios: 1, voz: { transcripcion: true, voces: true }, estado: listo })).toBe(listo);
+  });
+
+  it('el servidor le pasa lo instalado, y la página no deja entregar sin terminarlo', () => {
+    const api = readFileSync(new URL('../../estudio/servidor/api.ts', import.meta.url), 'utf8');
+    const ruta = api.slice(api.indexOf("if (ruta === '/asistente' && req.method === 'GET')"), api.indexOf("if (ruta === '/asistente' && req.method === 'POST')"));
+    expect(ruta).toContain("voz.transcripcion.estado === 'lista'");
+    expect(ruta).toContain('estadoAlAbrir(equipo)');
+    const app = readFileSync(new URL('../../estudio/src/app.ts', import.meta.url), 'utf8');
+    const nuevo = app.slice(app.indexOf('async function nuevoProyecto'), app.indexOf('const r = await pedirProyectoNuevo'));
+    expect(nuevo).toContain('if (await asistenteAntesDeEntregar()) return;');
   });
 });
 

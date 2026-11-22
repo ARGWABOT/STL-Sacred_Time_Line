@@ -40,18 +40,38 @@ export interface EquipoDelAsistente {
   /** Los proyectos de este computador que no son el mismo Studio: STL Studio, que llega con la semilla, no cuenta. */
   proyectosPropios: number;
   estado?: EstadoAsistente;
+  /** Si este computador ya tiene la transcripción y las voces (estudio/servidor/instalarVoz.ts › estado): sin saberlo, no cuenta. */
+  voz?: { transcripcion: boolean; voces: boolean };
 }
+
+/** Si a este computador le falta la transcripción o las voces, que son obligatorias (nota nmwr3fvgdtit). */
+export const faltaLaVoz = ({ voz }: Pick<EquipoDelAsistente, 'voz'>): boolean => !!voz && (!voz.transcripcion || !voz.voces);
 
 /**
  * Se abre solo si este computador no tiene ningún proyecto propio (t_decide_asistente_tu_copia), o si quedó a mitad:
  * quien lo cerró vuelve donde quedó. Terminado, no vuelve: se ve con «Repasar la instalación». Un modelo ya elegido en
  * Claude Code no lo salta: quien ya usa Claude Code instala igual la transcripción y las voces antes de entregar su
- * primer proyecto (nota urgente nmwr3amdptit: en Ubuntu, el Studio llevó directo a entregar sin instalarlas).
+ * primer proyecto (nota urgente nmwr3amdptit: en Ubuntu, el Studio llevó directo a entregar sin instalarlas). Y mientras
+ * falte la transcripción o las voces, se abre siempre, aun terminado o con proyectos: sin ellas no se entrega nada
+ * (nota nmwr3fvgdtit).
  */
-export function abreSolo({ proyectosPropios, estado }: EquipoDelAsistente): boolean {
+export function abreSolo(equipo: EquipoDelAsistente): boolean {
+  const { proyectosPropios, estado } = equipo;
+  if (faltaLaVoz(equipo)) return true;
   if (estado?.terminado) return false;
   if (estado) return true;
   return proyectosPropios === 0;
+}
+
+/**
+ * Dónde abre la ventana que se abre sola: donde quedó. Si ya estaba terminado (o al final) y falta la voz, en la pantalla de la voz,
+ * sin la marca de terminado: se termina otra vez al dejarla lista. Puro.
+ */
+export function estadoAlAbrir(equipo: EquipoDelAsistente): EstadoAsistente | undefined {
+  const { estado } = equipo;
+  if (!estado || !faltaLaVoz(equipo) || (!estado.terminado && estado.paso !== 'final')) return estado;
+  const { terminado: _terminado, ...sinTerminar } = estado;
+  return { ...sinTerminar, paso: 'voz' };
 }
 
 /** El esfuerzo que deja el asistente: alto, con cualquier plan (decisión del 30 de octubre de 2026). */

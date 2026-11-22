@@ -117,7 +117,8 @@ import { esIdioma } from '../../src/director/idioma.ts';
 import { avanzaUnaMision, urgenciaBloquea } from '../../src/director/candadoUrgencia.ts';
 import { esElStudio, guardarAsistente, guardarCuentaGit, guardarIdioma, guardarRespaldoDelStudio, ponerRespaldoPublico, queSeBorra, quitarProyecto } from '../../src/director/proyectos.ts';
 import { compararCuenta, cuentaQueApruebaUsar, entradaDeGh, entrarConGh, esCuentaGitHub, loginDeGitHubSinEsperar, seguirCuentaAlEntrar, sesionActivaDeGh, sesionesDeGh, usarSesionDeGh, vigiaDeCuentaGh, type AvisoDelVigia, type LecturaDeGh, type SeguimientoDeCuenta } from '../../src/director/cuentaGit.ts';
-import { abreSolo, ESFUERZO_DEL_ASISTENTE, estadoAsistenteDe, revisarInstalacion } from '../../src/director/asistente.ts';
+import { abreSolo, ESFUERZO_DEL_ASISTENTE, estadoAlAbrir, estadoAsistenteDe, revisarInstalacion } from '../../src/director/asistente.ts';
+import type { EstadoVoz } from '../../src/director/instalacionVoz.ts';
 import { alinearSemilla } from '../../src/director/semilla.ts';
 import { autorizadasPara, autorizadosDelPaso, revisarPedido, valePara } from './permisosNegados.ts';
 import { comprobarPrivado, repoDeGithub, Respaldo } from './respaldo.ts';
@@ -291,9 +292,10 @@ export interface Comprobacion { id: string; nombre: string; ok: boolean; opciona
 
 /**
  * Lo que necesita un computador para usar el Studio (lo mismo que comprueba `npm run iniciar`): Node 24, git, la carpeta
- * del Studio como repositorio con identidad, y lo opcional (Claude Code para la sesión del director, la transcripción).
+ * del Studio como repositorio con identidad, la transcripción y las voces (obligatorias: las instala el asistente) y lo
+ * opcional (Claude Code para la sesión del director).
  */
-async function saludDelEquipo(raiz: string): Promise<Comprobacion[]> {
+async function saludDelEquipo(raiz: string, voz: EstadoVoz): Promise<Comprobacion[]> {
   const salida: Comprobacion[] = [];
   const mayor = Number(process.versions.node.split('.')[0]);
   salida.push({ id: 'node', nombre: t('saludEquipo.nodeNombre'), ok: mayor >= 24, detalle: t('saludEquipo.nodeDetalle', { version: process.versions.node }), arreglo: t('saludEquipo.nodeArreglo') });
@@ -303,6 +305,10 @@ async function saludDelEquipo(raiz: string): Promise<Comprobacion[]> {
   salida.push({ id: 'repo', nombre: t('saludEquipo.repoNombre'), ok: esRepo, detalle: esRepo ? t('saludEquipo.repoSi') : t('saludEquipo.repoNo'), arreglo: t('saludEquipo.repoArreglo') });
   const [nombre, correo] = await Promise.all(['user.name', 'user.email'].map(async (k) => (await gitEn(raiz, ['config', k])).out.trim()));
   salida.push({ id: 'identidad', nombre: t('saludEquipo.identidadNombre'), ok: !!(nombre && correo), detalle: nombre && correo ? `${nombre} <${correo}>` : t('saludEquipo.identidadDetalle'), arreglo: t('saludEquipo.identidadArreglo') });
+  const trans = voz.transcripcion.estado === 'lista';
+  salida.push({ id: 'transcripcion', nombre: t('saludEquipo.transcripcionNombre'), ok: trans, detalle: trans ? t('saludEquipo.transcripcionSi') : t('saludEquipo.faltaVoz') });
+  const voces = voz.voces.estado === 'lista';
+  salida.push({ id: 'voces', nombre: t('saludEquipo.vocesNombre'), ok: voces, detalle: voces ? t('saludEquipo.vocesSi') : t('saludEquipo.faltaVoz') });
   const claude = await new Promise<boolean>((ok) => execFile(process.platform === 'win32' ? 'claude.cmd' : 'claude', ['--version'], { windowsHide: true, timeout: 8000, shell: process.platform === 'win32' }, (e) => ok(!e)));
   salida.push({ id: 'claude', nombre: t('saludEquipo.claudeNombre'), ok: claude, opcional: true, detalle: claude ? t('saludEquipo.claudeSi') : t('saludEquipo.claudeNo'), arreglo: 'https://claude.com/claude-code' });
   return salida;
@@ -1806,7 +1812,9 @@ export function servidorDirector(): Plugin {
             if (r === 'ok') await anotar(raiz, { quien: v.nombre, que: tb('bitacora.guardaIdentidad'), desde: tb('bitacora.desde.ventanaIdentidad') });
             return responder(res, 200, { ok: true, ya: r === 'ya' });
           }
-          if (ruta === '/salud' && req.method === 'GET') return responder(res, 200, await saludDelEquipo(raiz));
+          // Lo que comprueba la bienvenida, en su propia ruta: «/salud», más arriba, es el chequeo de salud del Studio, y
+          // con la misma la bienvenida recibía aquel objeto y decía «No se pudo comprobar el equipo» (nmwr3fvgdtit)
+          if (ruta === '/salud/equipo' && req.method === 'GET') return responder(res, 200, await saludDelEquipo(raiz, instaladorDeVoz().estado()));
           // La bitácora del Studio en este computador: qué se hizo, quién, desde dónde y cuándo (la más nueva primero). Con
           // cada clic anotado crece rápido: se devuelven las últimas MAX_BITACORA, que la página filtra sin volver a pedirlas
           // Cada línea guarda su tipo fijo (clave y datos): aquí se dice, al leerla, en el idioma de este computador de ahora,
@@ -2053,14 +2061,17 @@ export function servidorDirector(): Plugin {
             return responder(res, 200, { planDeClaude: plan });
           }
           // El asistente de instalación (pd_valores_instalar; src/director/asistente.ts): si se abre solo, donde quedó y lo que
-          // hay hoy. Un modelo ya elegido en Claude Code no lo salta (nmwr3amdptit): solo un proyecto propio o haberlo terminado
+          // hay hoy. Un modelo ya elegido en Claude Code no lo salta (nmwr3amdptit): solo un proyecto propio o haberlo terminado.
+          // Sin la transcripción o las voces se abre siempre, en la pantalla de la voz si ya estaba terminado (nmwr3fvgdtit)
           if (ruta === '/asistente' && req.method === 'GET') {
             const l = await leerLocal(raiz);
             const { modelo } = await leerAjustesClaude();
             const proyectosPropios = l.asistente ? 0 : (await resumenProyectos()).filter((p) => !p.esElStudio).length;
+            const voz = instaladorDeVoz().estado();
+            const equipo = { proyectosPropios, estado: l.asistente, voz: { transcripcion: voz.transcripcion.estado === 'lista', voces: voz.voces.estado === 'lista' } };
             return responder(res, 200, {
-              abre: abreSolo({ proyectosPropios, estado: l.asistente }),
-              estado: l.asistente ?? null,
+              abre: abreSolo(equipo),
+              estado: estadoAlAbrir(equipo) ?? null,
               plan: l.asistente?.plan ?? l.planDeClaude ?? null,
               modelo,
               modo: l.modoPermisos ?? 'autorizado',

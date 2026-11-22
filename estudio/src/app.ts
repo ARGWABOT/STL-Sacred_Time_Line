@@ -189,7 +189,7 @@ import { proyectoEnSuIdioma } from '../../src/director/dosIdiomas';
 import { aplicarTextosFijos } from './textosFijos';
 import { guardarCarpetaDelStudio, laCarpetaDelStudio } from './carpetaDelStudio';
 import { fichaPersona as fichaDePersona } from './personCard';
-import { iniciarAsistente } from './asistente';
+import { asistenteAntesDeEntregar, iniciarAsistente } from './asistente';
 import { arranqueHTML as arranqueDe } from './startSteps';
 import { selectorIdioma } from './selectorIdioma';
 import { conAyuda } from './palabras';   // también registra el oyente del «?» (pr_palabras, nmw5f1q72tit)
@@ -3496,6 +3496,8 @@ async function comprobarCuenta(texto: string): Promise<Comprobacion | null> {
 
 /** Un proyecto nuevo: su nombre, su repositorio y lo que se quiere lograr. Quien lo crea queda como titular. */
 async function nuevoProyecto() {
+  // Sin terminar el asistente, o sin la transcripción o las voces, entregar lleva al asistente (nmwr3fvgdtit)
+  if (await asistenteAntesDeEntregar()) return;
   // Lo que se cuenta del proyecto también se dice hablando: se transcribe aquí, callado (el formulario dice cómo va)
   // El formulario entrega y se cierra solo si el servidor aceptó: si no, sigue abierto con lo escrito y dice por qué
   // (auditoría de la entrega, punto 1)
@@ -3583,8 +3585,10 @@ async function pintarSalud() {
   const el = document.getElementById('salud');
   if (!el) return;
   try {
-    const lista: { nombre: string; ok: boolean; opcional?: boolean; detalle: string; arreglo?: string }[] = await fetch('/__estudio/director/salud').then((r) => r.json());
-    el.innerHTML = lista
+    // Su propia ruta: «/salud» es el chequeo de salud del Studio, un objeto, y con él aquí se leía «No se pudo comprobar el equipo» (nmwr3fvgdtit)
+    const lista: unknown = await fetch('/__estudio/director/salud/equipo').then((r) => r.json());
+    if (!Array.isArray(lista)) throw new Error('salud');
+    el.innerHTML = (lista as { nombre: string; ok: boolean; opcional?: boolean; detalle: string; arreglo?: string }[])
       .map((c) => `<li class="${c.ok ? 'ok' : c.opcional ? 'opcional' : 'falta'}"><span class="icono-s">${c.ok ? '✓' : c.opcional ? '○' : '✗'}</span><div><b>${esc(c.nombre)}</b>${c.opcional ? ` <small>${tx('salud.opcional')}</small>` : ''}<small>${esc(c.detalle)}${!c.ok && c.arreglo ? ` ${tx('salud.arreglo')} <code>${esc(c.arreglo)}</code>` : ''}</small></div></li>`)
       .join('');
   } catch {

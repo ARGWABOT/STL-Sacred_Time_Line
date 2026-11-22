@@ -2,7 +2,8 @@
 // vez sin poder cerrarse hasta elegir (sin ella, el director quedaría sin modelo ni permisos). Lo que decide está en
 // src/director/asistente.ts; aquí, solo lo que se ve. La misma ventana se abre entera con «Repasar la instalación», en
 // «Modelo y consumo», con lo que quedó marcado, y ahí sí se cierra. «Verla como quien instala» la abre como la primera vez, sin
-// guardar nada.
+// guardar nada. Mientras falte terminarla, o la transcripción o las voces, entregar un proyecto la abre en su lugar
+// (asistenteAntesDeEntregar; nota nmwr3fvgdtit).
 import './asistente.css';
 import {
   conPlan, dejarComoViene, ESFUERZO_DEL_ASISTENTE, modeloDePlan, modelosDelPaso, MODO_DEL_ASISTENTE, pasoAnterior, pasoSiguiente, PASOS_ASISTENTE, PLANES_ELEGIBLES,
@@ -323,8 +324,23 @@ function abrir(datos: DatosAsistente, repaso: boolean, alTerminar: (entregar: bo
 
 const leerDatos = () => fetch(RUTA).then((r) => (r.ok ? (r.json() as Promise<DatosAsistente>) : null)).catch(() => null);
 
+/** Lo que hace la página al terminar la ventana que se abre sola: lo deja iniciarAsistente. */
+let alTerminarPrimera: (entregar: boolean) => void = () => location.reload();
+
+/**
+ * Antes de entregar un proyecto: si el asistente aún le toca (sin terminar, o sin la transcripción o las voces), lo abre en
+ * su lugar y devuelve true (nota nmwr3fvgdtit). Lo pregunta al servidor cada vez; si no responde, deja seguir.
+ */
+export async function asistenteAntesDeEntregar(): Promise<boolean> {
+  const datos = await leerDatos();
+  if (!datos?.abre) return false;
+  abrir(datos, false, alTerminarPrimera);
+  return true;
+}
+
 /** Al cargar el Studio: se abre solo cuando le toca (asistente.ts › abreSolo), y si algo falla, el Studio sigue como siempre. */
 export async function iniciarAsistente(alTerminar: (entregar: boolean) => void) {
+  alTerminarPrimera = alTerminar;
   document.addEventListener('click', async (ev) => {
     const b = (ev.target as HTMLElement).closest('[data-repasar-instalacion], [data-ver-instalacion]');
     if (!b) return;
