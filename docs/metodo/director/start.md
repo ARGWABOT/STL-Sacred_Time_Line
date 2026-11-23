@@ -14,7 +14,7 @@ Each project arrives in one of two ways (`proyecto.json` › `tipo`), and the di
 1. **conectar** (existing): no repository is connected on this computer. Answer the notes there are and leave the message reminding the mission of handing over the repository. Do not diagnose blindly. **contar** (new): the explanation, the objective or when it is complete is missing. Answer the notes (if they told it by audio, summarize it in your answer) and ask in the message for what is missing.
 2. **diagnostico**: if it is existing, do **the diagnosis** (`diagnosis.md`); if it is new, **the approach** (`approach.md`).
 3. **objetivo**: the diagnosis is there; the owner still has to set their goal in Project. Answer their notes on the diagnosis and the candidates. If what they said changes the candidates, adjust them in `plan.objetivos`. Whatever changes in the already reviewed document goes forward (CLAUDE.md › «Always forward»).
-4. **ruta**: the goal is set: **draw the route** (`route.md`).
+4. **ruta**: the goal is set: **draw the route** (`route.md`): one line of missions to the goal, with no phases and no gates; `bandeja.ts --aplicar` turns the start plan into that line by itself. Every new project, existing or new, works this way.
 5. **en marcha**: the normal review cycle (`review-cycle.md`).
 
 ## The missing configuration, first

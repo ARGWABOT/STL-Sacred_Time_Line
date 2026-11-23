@@ -34,6 +34,19 @@ export function metaFueraDeLasFases(plan: Plan): Plan {
 }
 
 /**
+ * ¿El plan debe pasar ya a la línea? (nota nmwsg9dqbtit, 22 de noviembre de 2026: un proyecto nuevo, creado con la copia
+ * para instalar, recibió fases y puertas, y una misión le pidió cruzar una puerta que no se podía cruzar.) Un proyecto nace
+ * con su arranque (plantilla/plan*.json) y, en cuanto su meta está fijada o el plan ya tiene más de una fase, va en una
+ * sola línea: `bandeja.ts --aplicar` lo pasa por sí solo, sin `--en-linea`. Si todas sus fases ya se cerraron, no hay
+ * meta a la que llevarla (planEnLinea), y queda como está. Pura.
+ */
+export function debePasarALinea(plan: Plan, estado: Pick<EstadoDirector, 'cierres'>, metaFijada: boolean): boolean {
+  if (plan.linea || !plan.fases?.length) return false;
+  if (!metaFijada && plan.fases.length < 2) return false;
+  return plan.fases.some((f) => !estado.cierres[f.id] || f.sinCierre);
+}
+
+/**
  * Pasa un plan de fases a la línea (decisiones nmwmyxpxvtit, nmwmz1x3ptit y nmwmz23qstit): las fases cuya puerta ya se cerró
  * quedan enteras como historia (`linea.fasesAntes`); la de ahora y las que faltan hasta la meta se juntan en una sola, la
  * meta, con todos sus criterios (la lista de lo que la cumple), su plan en orden y la puerta de la última, que es declarar

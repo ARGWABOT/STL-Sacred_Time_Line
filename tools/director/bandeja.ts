@@ -152,7 +152,7 @@ import { casosSinMision, COMO_ATENDER_LA_MEDICION, lineasDeCasosSinMision, linea
 import { PROPUESTA_VERIFICAR_MEMORIA } from '../../src/director/memoriaDelProyecto.ts';
 import { metaCambiada, PROCEDIMIENTOS, procedimientosDeLaRevision } from '../../src/director/procedimientos.ts';
 import { conSuMeta, esMantenimiento, PUBLICAR_EN_URGENCIA, sinSuMeta, tieneRuta } from '../../src/director/director.ts';
-import { metaFueraDeLasFases, planEnLinea } from '../../src/director/linea.ts';
+import { debePasarALinea, metaFueraDeLasFases, planEnLinea } from '../../src/director/linea.ts';
 import { avisosDePasosALocal, funcionesSinAdoptar, LINEA_PESTANA_QA, lineasDeFuncionesSinAdoptar, pestanaQaDelProyecto } from '../../src/director/funciones.ts';
 import { configuracionPorCerrar, configuracionQueFalta, lineasDeConfiguracion, type EstadoDeConfiguracion } from '../../src/director/configuracionPrimero.ts';
 import { firmaDeEstaCopia, FORMATO_LOG, sinFirmaPorAtender, type Firma } from '../firma.ts';
@@ -301,21 +301,30 @@ if (args.includes('--aplicar')) {
   const equipo = proyecto.equipo.length ? proyecto.equipo.map((i) => i.id) : undefined;
   // Con el idioma de la interfaz: lo que se le escribe a la persona va con sus rótulos (nmw6wwsy2tit)
   const idioma = (await leerLocal(raiz)).idioma;
-  const r = aplicarParche(plan, parche);
   // Con lo archivado y lo que guardó el equipo: un id que ya se usó no vuelve (pr_ids_unicos)
   const { estado } = await leerTodo(pedido, false);
+  // Una sola línea, siempre (nmwsg9dqbtit, pd_una_sola_linea): con la meta fijada, el plan del arranque pasa a la línea
+  // antes del parche, sin --en-linea, para que la ruta que escribe el director caiga en `linea.meta` y nunca en fases con
+  // puertas (linea.ts › debePasarALinea)
+  const base = debePasarALinea(plan, estado, !!proyecto.objetivo?.firmado)
+    ? metaFueraDeLasFases(planEnLinea(plan, estado, new Date().toISOString(), idioma === 'en' ? 'The goal' : 'La meta'))
+    : plan;
+  const r = aplicarParche(base, parche);
+  if (base !== plan) r.hecho.push('linea: the plan is now one line to the goal, without phases or gates (the start kept as history)');
   const { archivo } = archivoDe(elegido);
   // Justo tras cruzar una puerta, su misión de limpieza va primera (pd_rebase_memoria; nmwjogp16tit, nmwmns8xstit)
   if (!r.errores.length) r.plan = conLimpiezaTrasLaPuerta(r.plan, limpiezaDelPlan(r.plan, archivo, estado, idioma));
   // Con --en-linea, además, el plan pasa a una sola línea hacia la meta, guardando la historia (linea.ts › planEnLinea;
   // pd_una_sola_linea): con los mismos controles de abajo, que no dejan pasar un plan inválido ni el estado del equipo roto
-  if (!r.errores.length && args.includes('--en-linea') && !r.plan.linea) {
+  // Y sin él, también todo plan que lo debe (debePasarALinea): un parche que trae fases a un plan sin línea no las deja
+  const aLaLinea = args.includes('--en-linea') || debePasarALinea(r.plan, estado, !!proyecto.objetivo?.firmado);
+  if (!r.errores.length && aLaLinea && !r.plan.linea) {
     r.plan = planEnLinea(r.plan, estado, new Date().toISOString(), idioma === 'en' ? 'The goal' : 'La meta');
     r.hecho.push(`linea: the plan is now one line to the goal (${r.plan.linea?.fasesAntes.length ?? 0} earlier phases kept as history)`);
   }
   // La meta fuera de las fases (t_decide_lista_meta): con --meta-fuera, o al pasar a la línea, la fase «meta» queda en
   // `linea.meta`, con su lista y lo que mueve, y `fases` vacía (linea.ts › metaFueraDeLasFases)
-  if (!r.errores.length && (args.includes('--meta-fuera') || args.includes('--en-linea')) && r.plan.linea && !r.plan.linea.meta) {
+  if (!r.errores.length && (args.includes('--meta-fuera') || aLaLinea) && r.plan.linea && !r.plan.linea.meta) {
     r.plan = metaFueraDeLasFases(r.plan);
     if (r.plan.linea?.meta) r.hecho.push(`linea.meta: the goal's checklist (${r.plan.linea.meta.criterios.length}) and what it moves now live outside the phases; fases is empty`);
   }
@@ -1433,9 +1442,10 @@ if (etapa === 'conectar') {
   linea('on the diagnosis and the candidates. If what they said changes the candidates, add or adjust them in plan.objetivos and');
   linea('write what changed in a new, short document, as the next step (the reviewed diagnosis stays sealed).');
 } else if (etapa === 'ruta') {
-  linea(`THE GOAL IS SIGNED: TIME TO TRACE THE ROUTE. Follow ${PROCEDIMIENTOS.ruta.archivo}: the phases left after`);
-  linea('«arranque», with their gate and their criteria; what each front does in each one; each person\'s first mission (one at');
-  linea('a time); the message; and a short document with the route for the owner to comment on. The owner crosses the start gate.');
+  linea(`THE GOAL IS SIGNED: TIME TO TRACE THE ROUTE. Follow ${PROCEDIMIENTOS.ruta.archivo}: one line to the goal, with no phases`);
+  linea('and no gates (--aplicar turns this plan into the line by itself): the goal\'s checklist and plan in linea.meta, what each');
+  linea('front does, each person\'s first mission (one at a time) with its reserve, the message, and a short document with the route');
+  linea('for the owner to comment on. No mission asks to cross a gate: the person can complete every step they are shown.');
 }
 
 linea(`\n## Deliveries to review (${entregas.length})`);

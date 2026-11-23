@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import planPlantilla from '../../plantilla/plan.json';
 import { conSuMeta, estadoVacio, esperaAlCierre, etapaArranque, FASE_DE_LA_LINEA, faseActual, proyectoVacio, reservaDeMisiones, sinSuMeta, tieneRuta, unirArchivo, validarEstado, validarPlan, type EstadoDirector, type Plan } from './director.ts';
-import { despuesDeLaMeta, hechosDeLaTanda, lineaDeHoy, lineaSinMeta, metaFueraDeLasFases, planEnLinea, PUNTOS_A_LA_VISTA, puntosDeLaLinea, type PuntoDeLinea } from './linea.ts';
+import { debePasarALinea, despuesDeLaMeta, hechosDeLaTanda, lineaDeHoy, lineaSinMeta, metaFueraDeLasFases, planEnLinea, PUNTOS_A_LA_VISTA, puntosDeLaLinea, type PuntoDeLinea } from './linea.ts';
 import { aplicarParche } from './parche.ts';
 
 const plantilla = planPlantilla as unknown as Plan;
@@ -198,6 +198,31 @@ describe('el plan en una sola línea hacia la meta (pd_una_sola_linea)', () => {
     const bandeja = readFileSync(new URL('../../tools/director/bandeja.ts', import.meta.url), 'utf8');
     expect(bandeja).toContain("args.includes('--en-linea')");
     expect(bandeja).toContain('r.plan = planEnLinea(r.plan, estado, new Date().toISOString()');
+  });
+
+  it('un proyecto nacido de las plantillas va en una sola línea en cuanto fija su meta, sin fases ni puertas que cruzar (nmwsg9dqbtit)', () => {
+    for (const base of ['plan', 'plan.en', 'plan-nuevo', 'plan-nuevo.en']) {
+      const nacido = JSON.parse(readFileSync(new URL(`../../plantilla/${base}.json`, import.meta.url), 'utf8')) as Plan;
+      const estado = estadoVacio();
+      // Antes de la meta, el arranque (exento de la reserva); con la meta fijada, o si un parche le trae fases, a la línea
+      expect(debePasarALinea(nacido, estado, false), base).toBe(false);
+      expect(debePasarALinea(nacido, estado, true), base).toBe(true);
+      const conFases = aplicarParche(nacido, { fases: [{ id: 'mvp', nombre: 'MVP', etapa: 'MVP', meta: 'M', porQue: 'P', duracion: 'D', puerta: { nombre: 'Uso', prueba: 'Cinco' }, frentes: {}, criterios: [{ id: 'm_uso', texto: 'Uso' }], misiones: [] }] }).plan;
+      expect(debePasarALinea(conFases, estado, false), base).toBe(true);
+      // Lo que hace bandeja.ts --aplicar: la línea, con la meta fuera de las fases
+      const linea = metaFueraDeLasFases(planEnLinea(nacido, estado, CUANDO, 'The goal'));
+      expect(linea.linea?.meta, base).toBeDefined();
+      expect(linea.fases, base).toEqual([]);
+      expect(linea.misiones.every((m) => m.fase === FASE_DE_LA_LINEA), base).toBe(true);
+      expect(linea.misiones.flatMap((m) => m.pasos).some((p) => typeof p !== 'string' && p.hecho?.que === 'puerta'), base).toBe(false);
+      expect(validarPlan(linea, ['titular']), base).toEqual([]);
+      expect(debePasarALinea(linea, estado, true), base).toBe(false);
+    }
+    // Todas sus fases cerradas: no hay meta a la que llevarla
+    expect(debePasarALinea(planDeFases(), { cierres: { arranque: { quien: 'Laura', fecha: '2026-11-01' }, mvp: { quien: 'Laura', fecha: '2026-11-02' }, beta: { quien: 'Laura', fecha: '2026-11-03' } } } as unknown as EstadoDirector, true)).toBe(false);
+    // La bandeja lo hace sola, sin --en-linea, antes del parche
+    const bandeja = readFileSync(new URL('../../tools/director/bandeja.ts', import.meta.url), 'utf8');
+    expect(bandeja).toContain('debePasarALinea(plan, estado, !!proyecto.objetivo?.firmado)');
   });
 });
 

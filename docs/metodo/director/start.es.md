@@ -14,7 +14,7 @@ Cada proyecto llega de una de dos formas (`proyecto.json` › `tipo`), y el dire
 1. **conectar** (existente): no hay repositorio conectado en este computador. Responde las notas que haya y deja el mensaje recordando la misión de entregar el repositorio. No diagnostiques a ciegas. **contar** (nuevo): falta la explicación, el objetivo o cuándo está completo. Responde las notas (si lo contó por audio, resúmelo en tu respuesta) y pide en el mensaje lo que falta.
 2. **diagnostico**: si es existente, haz **el diagnóstico** (`diagnosis.md`); si es nuevo, **el planteamiento** (`approach.md`).
 3. **objetivo**: el diagnóstico está; falta que el titular fije su meta en Proyecto. Responde sus notas sobre el diagnóstico y los candidatos. Si lo que dijo cambia los candidatos, ajústalos en `plan.objetivos`. Lo que cambie del documento ya revisado va hacia adelante (CLAUDE.md › «Always forward»).
-4. **ruta**: la meta está fijada: **traza la ruta** (`route.md`).
+4. **ruta**: la meta está fijada: **traza la ruta** (`route.md`): una sola línea de misiones hacia la meta, sin fases ni puertas; `bandeja.ts --aplicar` pasa el plan del arranque a esa línea por sí solo. Todo proyecto, existente o nuevo, trabaja así.
 5. **en marcha**: el ciclo normal de revisión (`review-cycle.es.md`).
 
 ## Lo que falta configurar, primero

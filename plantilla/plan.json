@@ -61,7 +61,7 @@
         "Entregar el proyecto (el Studio comprueba su carpeta) y pedir el diagnóstico; si quieres, con lo que el director deba saber.",
         "El director diagnostica el repositorio: lo hecho, lo que está en curso y las metas de su documentación.",
         "Leer el diagnóstico, comentarlo parte por parte y fijar la meta (una de las que propone el director, o la tuya).",
-        "El director traza la ruta: fases, puertas, frentes y la primera misión."
+        "El director traza la ruta: una sola línea de misiones hacia la meta, sin fases ni puertas, y la primera misión."
       ]
     }
   ],
@@ -112,12 +112,12 @@
     "Una misión a la vez: ves tu siguiente misión completa; las demás esperan en cola, sin pasos, para no dispersarse.",
     "Siempre hacia adelante: lo que ya revisaste queda sellado (✓) y no vuelve a la lista. Si algo cambia, el director escribe un documento nuevo con solo lo que cambió y lo pone como el paso siguiente. Nadie relee lo que ya superó.",
     "Por hitos, no por fechas: se avanza cuando se cumple lo que pide el director, sin plazos de calendario.",
-    "Solo lo de la fase en curso: el director abre las propuestas y las misiones cuando la ruta llega a ellas.",
+    "Una sola línea hacia la meta, sin fases ni puertas: el director pone cada misión en su orden y solo te muestra misiones que puedes cumplir.",
     "Piensa, corrige y luego envía: lo que dejas en el Buzón espera allí, editable, hasta que pidas la revisión. Lo que borres antes nunca le llega al modelo.",
     "Antes de cada tarea en el repositorio, cada sesión de Claude le pregunta al director (node tools/director/estado.ts y las rutas que va a tocar). Si el frente está en espera, lo dice antes de empezar.",
     "Si dudas entre agregar y pulir, pule.",
     "Una idea nueva va primero al Buzón. Entra solo si sirve a la meta y a la fase en curso.",
-    "Cada puerta, con su evidencia: un hito sin evidencia es un hito a ciegas."
+    "Cada hito, con su evidencia: un hito sin evidencia es un hito a ciegas."
   ],
   "lecciones": [
     {
@@ -125,7 +125,7 @@
       "quien": "Robert G. Cooper, el proceso Stage-Gate",
       "que": "El trabajo avanza por etapas, y entre una y otra hay una puerta: una decisión explícita, con criterios conocidos de antemano, de seguir, corregir o parar.",
       "fuente": "https://en.wikipedia.org/wiki/Phase-gate_process",
-      "paraElProyecto": "Cada fase de la ruta tiene su puerta y sus criterios al 100 %; la cruza el titular, nunca el calendario."
+      "paraElProyecto": "Sin fases ni puertas: de este método queda que la meta tiene su lista conocida de antemano y la declara cumplida el titular, nunca el calendario."
     },
     {
       "titulo": "Limitar el trabajo en curso",

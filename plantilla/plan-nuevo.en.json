@@ -61,7 +61,7 @@
         "Tell about the project: the explanation, the goal and when it will be complete.",
         "The director gives back the approach and proposes goals.",
         "Read the approach, comment on it part by part and set the goal.",
-        "The director draws the route: phases, gates, fronts and the first mission."
+        "The director draws the route: one line of missions to the goal, with no phases or gates, and the first mission."
       ]
     }
   ],
@@ -120,12 +120,12 @@
     "One mission at a time: you see your next mission whole; the others wait in the queue, without steps, so as not to scatter.",
     "Always forward: what you already reviewed stays sealed (✓) and does not return to the list. If something changes, the director writes a new document with only what changed and puts it as the next step. Nobody rereads what they already went through.",
     "By milestones, not by dates: you move forward when what the director asks for is met, without calendar deadlines.",
-    "Only the current phase: the director opens proposals and missions when the route reaches them.",
+    "One line to the goal, with no phases or gates: the director puts each mission in its order and only shows you missions you can complete.",
     "Think, correct, then send: what you leave in the Inbox waits there, editable, until you request the review. What you delete before that never reaches the model.",
     "Before each task in the repository, each Claude session asks the director (node tools/director/estado.ts and the paths it will touch). If the front is on hold, it says so before starting.",
     "If you hesitate between adding and polishing, polish.",
     "A new idea goes to the Inbox first. It comes in only if it serves the goal and the current phase.",
-    "Each gate, with its evidence: a milestone without evidence is a blind milestone."
+    "Each milestone, with its evidence: a milestone without evidence is a blind milestone."
   ],
   "lecciones": [
     {
@@ -133,7 +133,7 @@
       "quien": "Robert G. Cooper, the Stage-Gate process",
       "que": "Work moves forward in stages, and between one and the next there is a gate: an explicit decision, with criteria known in advance, to go on, correct or stop.",
       "fuente": "https://en.wikipedia.org/wiki/Phase-gate_process",
-      "paraElProyecto": "Each phase of the route has its gate and its criteria at 100 %; the owner crosses it, never the calendar."
+      "paraElProyecto": "No phases or gates: what stays from this method is that the goal has its checklist known in advance, and the owner declares it reached, never the calendar."
     },
     {
       "titulo": "Limit the work in progress",
