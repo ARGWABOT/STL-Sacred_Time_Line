@@ -107,6 +107,8 @@ function chipDePrevista(plan: Plan, estado: EstadoDirector, texto: string): stri
 export function vistaRuta(datos: DatosRuta) {
   const { plan, estado, fase: f, abierta, filaCriterio, pintarPuerta, listaDePropuestas, misionPasada, plegable } = datos;
   const s = situacion(plan, estado, f.id);
+  // Un plan en una línea no tiene fases ni puertas: la meta se cierra con «Meta cumplida» en «Hoy» (pd_ajustes_linea)
+  const enLinea = !!plan.linea;
   const numeroFase = (x: Fase) => plan.fases.indexOf(x);
   const nombreFrente = (id: string) => plan.frentes.find((x) => x.id === id)?.nombre ?? id;
   const adelantado = plan.adelantado.filter((a) => a.fase === f.id);
@@ -143,14 +145,14 @@ export function vistaRuta(datos: DatosRuta) {
   // Solo se pinta la pestaña elegida: lo demás no está en la página
   const cuerpos: Record<PestanaRuta, () => string> = {
     fase: () => `<div class="panel-d">
-        <h2>${t('ruta.fase', { n: numeroFase(f), nombre: esc(f.nombre) })}${conAyuda('fase')} <span class="chip">${NOMBRE_SITUACION[s]}</span></h2>
+        <h2>${t('ruta.fase', { n: numeroFase(f), nombre: esc(f.nombre) })}${enLinea ? '' : conAyuda('fase')} <span class="chip">${NOMBRE_SITUACION[s]}</span></h2>
         <div class="como">${esc(f.etapa)} · ${esc(f.duracion)}</div>
         <p class="texto-fase">${esc(f.meta)}</p>
         <p class="por-que"><b>${t('ruta.porQueVaAqui')}</b> ${esc(f.porQue)}</p>
-        <h3>${t('ruta.paraCruzar')}${conAyuda('criterio')}</h3>
+        <h3>${enLinea ? t('hoyRuta.criterios') : t('ruta.paraCruzar')}${conAyuda('criterio')}</h3>
         <p class="como">${t('ruta.losEvalua', { titular: esc(datos.titular) })}</p>
         <ul class="criterios">${f.criterios.map((c) => filaCriterio(c, f)).join('')}</ul>
-        ${pintarPuerta(f)}
+        ${enLinea ? `<p class="como">${t('ruta.metaEnHoy')}</p>` : pintarPuerta(f)}
       </div>
       ${cerradas ? `<div class="panel-d"><h3>${t('ruta.futura')}</h3><p class="como">${t('ruta.esperanFase', { n: cerradas })}</p></div>` : ''}
       <div class="panel-d" data-ancla="r-plan"><h3>${t('ruta.planFase')}</h3><ol class="misiones">${f.misiones.map((m) => `<li>${esc(m)}${chipDePrevista(plan, estado, m)}</li>`).join('')}</ol></div>

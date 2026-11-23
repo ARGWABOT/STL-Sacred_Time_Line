@@ -9,10 +9,14 @@ import { lugarDelGlobo } from './lugarDelGlobo';
 import { t } from './textos';
 import { esc } from './util';
 
-/** Las doce del glosario, en el orden en que aparecen en el ciclo. */
-export const GLOSARIO = ['mision', 'revision', 'buzon', 'director', 'memoria', 'dispersion', 'ruta', 'fase', 'puerta', 'propuesta', 'pedido', 'linea'] as const;
-/** Las cuatro que solo lleva el «?», sin entrada en el glosario. */
-export const SOLO_AYUDA = ['frente', 'reserva', 'criterio', 'sello'] as const;
+/**
+ * Las diez del glosario, en el orden en que aparecen en el ciclo. Fase y puerta salieron de él (pd_ajustes_linea,
+ * nmwsr0scptit): un proyecto nuevo va en una línea hasta su meta y no las encuentra; siguen con su «?» para los planes
+ * que aún van por fases.
+ */
+export const GLOSARIO = ['mision', 'revision', 'buzon', 'director', 'memoria', 'dispersion', 'ruta', 'propuesta', 'pedido', 'linea'] as const;
+/** Las que solo lleva el «?», sin entrada en el glosario: las cuatro de siempre y fase y puerta, de los planes por fases. */
+export const SOLO_AYUDA = ['frente', 'reserva', 'criterio', 'sello', 'fase', 'puerta'] as const;
 /** Las que llevan su «?» dentro del Studio: misión y reserva; fase, puerta y criterio; frente; sello; propuesta y pedido; revisión y Buzón. */
 export const CON_AYUDA = ['mision', 'reserva', 'fase', 'puerta', 'criterio', 'frente', 'sello', 'propuesta', 'pedido', 'revision', 'buzon'] as const;
 

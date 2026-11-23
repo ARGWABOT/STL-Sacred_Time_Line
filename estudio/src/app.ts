@@ -3648,7 +3648,8 @@ function pintarMando() {
   const { f, av } = cifras();
   const objetivo = d.proyecto.objetivo;
   const arrancando = d.arranque !== 'en_marcha';
-  // Con el plan en una línea, sin fases: el proyecto y la sección, y debajo tu meta (hoyEnRuta.ts › dondeEnLinea; nmwn1h6y1tit)
+  // Con el plan en una línea, sin fases: el proyecto y la sección, y debajo tu meta (hoyEnRuta.ts › dondeEnLinea; nmwn1h6y1tit).
+  // En el arranque tampoco hay contador de criterios para cruzar una puerta: un proyecto nuevo va en una línea (pd_ajustes_linea)
   const enLinea = !!d.plan.linea && !arrancando;
   const seccion = vista === 'diagnostico' && esNuevo() ? tx('nav.planteamiento') : NOMBRE_VISTA[vista];
   $('mando').innerHTML = `
@@ -3660,7 +3661,7 @@ function pintarMando() {
       <div class="acciones-cabeza">${botonRevision()}${((nv) => `<button type="button" class="boton-suave${nv.sinLeer ? ' por-leer' : ''}${nv.nuevo ? ' hay-novedades' : ''}" data-donde-quedamos${nv.sinLeer && vista === 'misiones' ? ' data-central-dq' : ''} title="${esc(nv.sinLeer ? `${nv.nuevo ? `${tx('dq.algoNuevo')} ` : ''}${tx('dq.tituloSinLeer', { n: nv.sinLeer })}` : tx('dq.tituloAlDia'))}">${icono('reloj')} ${tx('cabeza.dondeQuedamos')}${nv.sinLeer ? `<span class="cifra">${nv.sinLeer}</span>` : ''}</button>`)(novedadesDq())}${botonEnfoque()}${botonTema()}${botonSonido()}</div>
     </div>
     <div class="cabeza-fila segunda">
-      ${enLinea ? '' : `<button type="button" class="avance-puerta" data-ir="ruta" title="${tx('ruta.verFase')}">
+      ${enLinea || arrancando ? '' : `<button type="button" class="avance-puerta" data-ir="ruta" title="${tx('ruta.verFase')}">
         <span class="barra-medida"><span style="width:${(av.avance * 100).toFixed(1)}%"></span></span>
         <span>${tx('cabeza.criterios', { cumplidos: av.cumplidos, total: av.total, puerta: esc(f.puerta.nombre) })}</span>
       </button>`}
@@ -6077,8 +6078,9 @@ function filaCriterio(c: Criterio, f: Fase) {
 }
 
 function pintarPuerta(f: Fase) {
-  // Una fase permanente, sin puerta que cruzar (la del proyecto STL Studio de quien instala)
-  if (f.sinCierre) return '';
+  // Una fase permanente, sin puerta que cruzar (la del proyecto STL Studio de quien instala); y la meta de un plan en una
+  // línea, que se cierra con «Meta cumplida» en «Hoy», no con una puerta (pd_ajustes_linea)
+  if (f.sinCierre || d.plan.linea) return '';
   const cierre = d.estado.cierres[f.id];
   if (cierre) {
     return `<div class="puerta abierta" data-ancla="puerta"><div class="cabeza-p"><b>${tx('ruta.puerta', { nombre: esc(f.puerta.nombre) })}${conAyuda('puerta')}</b><span class="chip foco">${tx('ruta.cruzada')}</span></div>

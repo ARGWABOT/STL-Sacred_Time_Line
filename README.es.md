@@ -82,7 +82,7 @@ Dirigir un proyecto de semanas por chat tiene seis problemas: lo que envías se 
 | Explicas a qué parte te refieres | **Comentas el párrafo, el paso o la decisión exacta** |
 | Diez ideas, diez turnos | **Una revisión agrupada**: el director responde cada observación y dice qué hizo con ella |
 | El modelo reescribe lo aprobado | **Siempre hacia adelante**: lo revisado queda sellado; lo que cambia llega en un documento nuevo |
-| Trabajas en todo a la vez | **Una ruta con puertas** y una misión a la vez, hacia la meta que fijaste |
+| Trabajas en todo a la vez | **Una línea hasta la meta** y una misión a la vez, hacia la meta que fijaste |
 
 El método completo está en [docs/metodo/metodologia.es.md](docs/metodo/metodologia.es.md), y en inglés, en [docs/metodo/metodologia.md](docs/metodo/metodologia.md). Al pie de la barra, **«Qué es STL»** abre la animación pública que lo explica en dos minutos.
 
@@ -150,7 +150,7 @@ Junto a la cara del director (abajo a la derecha) hay atajos para decirle algo (
 
 Mientras grabas, el diálogo se hace a un lado: puedes leer y moverte por el Studio mientras hablas.
 
-Cada palabra clave de STL en la interfaz (misión, reserva, fase, puerta, criterio, frente, sello, propuesta, pedido, revisión y Buzón) lleva un pequeño **«?»**, siempre puesto: pasa el ratón y te la explica en una línea; con un clic queda abierto (otro clic, un clic fuera o Esc lo cierran).
+Cada palabra clave de STL en la interfaz (misión, reserva, criterio, frente, sello, propuesta, pedido, revisión y Buzón) lleva un pequeño **«?»**, siempre puesto: pasa el ratón y te la explica en una línea; con un clic queda abierto (otro clic, un clic fuera o Esc lo cierran).
 
 Ninguna ayuda sale sola: los recorridos guiados se ven solo cuando enciendes el **modo ayuda**, con su círculo y su «?» dentro de un globo entre los del director abajo a la derecha (siempre a la vista, también en el modo enfoque, y encima de cualquier recorrido). Mientras está encendido, su fondo es rojo y su «?» se ve entero; apagado, el «?» va tachado. Con él encendido, la primera vez que abres **Hoy** con una misión, el Studio te ofrece una ayuda guiada de cinco globos, uno a la vez (tu misión, los botones de cada paso, «Lo que sigue», el ✉ y «Pedir revisión»), con «Siguiente», «Saltar la ayuda» o Esc; no se repite en tus otros proyectos. El **Buzón** y los **documentos** traen la suya, de cuatro globos cada una, la primera vez que los abres con algo que explicar; igual **La ruta** (cuatro globos) y **Modelo y consumo** (tres). El modo ayuda también explica cada parte al pasar el ratón y trae «Ver otra vez el recorrido de esta sección»; el mismo botón lo apaga y cierra un recorrido a medias. El globo propio del Studio sobre un botón o una palabra sale solo cuando el ratón se queda dos segundos quieto encima, por encima de cualquier ventana abierta.
 

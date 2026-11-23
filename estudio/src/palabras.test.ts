@@ -18,9 +18,12 @@ const documento = (nombre: string) => join(raiz, '.stl', 'docs', 'director', nom
 const frasesDe = (texto: string) => new Map([...texto.matchAll(/^- \*\*([^*]+):\*\* (.+)$/gm)].map((m) => [m[1], m[2].trim()]));
 
 describe('las palabras de STL, con su frase (pr_palabras)', () => {
-  it('son dieciséis: las doce del glosario y las cuatro que solo lleva el «?», sin repetirse', () => {
-    expect(GLOSARIO).toHaveLength(12);
-    expect(SOLO_AYUDA).toEqual(['frente', 'reserva', 'criterio', 'sello']);
+  it('son dieciséis: las diez del glosario y las seis que solo lleva el «?», sin repetirse', () => {
+    expect(GLOSARIO).toHaveLength(10);
+    // Fase y puerta, fuera del glosario: un proyecto nuevo va en una línea (pd_ajustes_linea)
+    expect(GLOSARIO).not.toContain('fase');
+    expect(GLOSARIO).not.toContain('puerta');
+    expect(SOLO_AYUDA).toEqual(['frente', 'reserva', 'criterio', 'sello', 'fase', 'puerta']);
     expect(new Set([...GLOSARIO, ...SOLO_AYUDA]).size).toBe(16);
     // Las del «?» en el Studio son de esas dieciséis
     for (const id of CON_AYUDA) expect([...GLOSARIO, ...SOLO_AYUDA]).toContain(id);
@@ -40,10 +43,22 @@ describe('las palabras de STL, con su frase (pr_palabras)', () => {
     if (!existsSync(doce) || !existsSync(cuatro)) return;   // sin la memoria del proyecto en este computador, no hay con qué comparar
     const aprobadas = new Map([...frasesDe(readFileSync(doce, 'utf8')), ...frasesDe(readFileSync(cuatro, 'utf8'))]);
     expect(aprobadas.size).toBe(16);
+    // Las que cambió después una decisión del titular: la línea sin fases ni puertas (nmwsr0scptit, pd_ajustes_linea)
+    const cambiadas: Record<string, string> = {
+      Ruta: 'el camino del proyecto hasta su meta: una línea de misiones, en el orden del director.',
+      Pedido: 'lo que pediste en una nota, guardado en la línea hasta que se hace.',
+      Criterio: 'una de las cosas que tienen que cumplirse para llegar a la meta; el director te dice cuándo se cumple y tú lo marcas.',
+    };
     for (const id of [...GLOSARIO, ...SOLO_AYUDA]) {
       const { nombre, frase } = ayudaDePalabra(id);
-      expect(aprobadas.get(nombre), nombre).toBe(frase);
+      expect(cambiadas[nombre] ?? aprobadas.get(nombre), nombre).toBe(frase);
     }
+  });
+
+  it('ninguna frase del glosario, ni la del criterio, nombra fases ni puertas (pd_ajustes_linea)', () => {
+    for (const id of [...GLOSARIO, 'criterio' as const]) expect(ayudaDePalabra(id).frase, id).not.toMatch(/\bfases?\b|\bpuertas?\b/);
+    ponerIdioma('en');
+    for (const id of [...GLOSARIO, 'criterio' as const]) expect(ayudaDePalabra(id).frase, id).not.toMatch(/\bphases?\b|\bgates?\b/);
   });
 
   it('la línea del «?» y del glosario es «Nombre: frase», en el idioma de la interfaz', () => {

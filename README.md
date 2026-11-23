@@ -82,7 +82,7 @@ Directing a weeks-long project by chat has six problems: what you send runs at o
 | You explain which part you mean | **You comment on the exact paragraph, step or decision** |
 | Ten ideas, ten turns | **One grouped review**: the director answers each remark and says what it did with it |
 | The model rewrites what was approved | **Always forward**: what was reviewed stays sealed; what changes arrives in a new document |
-| You work on everything at once | **A roadmap with gates** and one mission at a time, toward the goal you set |
+| You work on everything at once | **One line to the goal** and one mission at a time, toward the goal you set |
 
 The full method is in [docs/metodo/metodologia.md](docs/metodo/metodologia.md), and in Spanish, in [docs/metodo/metodologia.es.md](docs/metodo/metodologia.es.md). At the foot of the sidebar, **«What is STL»** opens the public animation that explains it in two minutes.
 
@@ -150,7 +150,7 @@ Next to the director's face (at the bottom right) there are shortcuts to tell it
 
 While you record, the dialog moves aside: you can read and move around the Studio while you talk.
 
-Each key STL word in the interface (mission, reserve, phase, gate, criterion, front, seal, proposal, request, review and Inbox) carries a small **«?»**, always there: hover over it and it explains the word in one line; click it to keep it open (click again, click elsewhere or press Esc to close it).
+Each key STL word in the interface (mission, reserve, criterion, front, seal, proposal, request, review and Inbox) carries a small **«?»**, always there: hover over it and it explains the word in one line; click it to keep it open (click again, click elsewhere or press Esc to close it).
 
 No help starts by itself: the guided tours show only once you turn on the **help mode**, with its circle and its «?» in a speech bubble among the director's circles at the bottom right (always in view, also in focus mode, and above any tour). While it is on, its background is red and its «?» whole; off, the «?» is crossed out. With it on, the first time you open **Today** with a mission, the Studio offers a guided help of five balloons, one at a time (your mission, the buttons of each step, «Up next», the ✉ and «Request review»), with «Next», «Skip the help» or Esc; it does not repeat in your other projects. The **Inbox** and the **documents** bring theirs, four balloons each, the first time you open them with something to explain; so do **The roadmap** (four balloons) and **Model and usage** (three). The help mode also explains each part as you move the mouse over it and brings «See this section’s tour again»; the same button turns it off, and closes a tour in progress. The Studio's own tooltip for a button or a word shows only after the mouse rests two seconds on it, above any open window.
 

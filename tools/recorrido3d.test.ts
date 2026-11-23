@@ -1962,7 +1962,8 @@ describe('«Cómo empezar» y el dictado (pd_como_empezar, pd_dictado)', () => {
     expect(cuatro).toContain('/blob/main/INSTALAR.md');
     expect(js).toContain('`${REPO}/blob/main/INSTALL.md`');
     // El glosario: los textos del «?» del Studio, en el orden del ciclo (palabras.ts › GLOSARIO), cada palabra con su enlace
-    const orden = ['mision', 'revision', 'buzon', 'director', 'memoria', 'dispersion', 'ruta', 'fase', 'puerta', 'propuesta', 'pedido', 'linea'];
+    // Sin fase ni puerta: un proyecto nuevo va en una línea hasta su meta (pd_ajustes_linea)
+    const orden = ['mision', 'revision', 'buzon', 'director', 'memoria', 'dispersion', 'ruta', 'propuesta', 'pedido', 'linea'];
     expect(readFileSync(join(raiz, 'estudio/src/palabras.ts'), 'utf8')).toContain(`export const GLOSARIO = [${orden.map((p) => `'${p}'`).join(', ')}] as const;`);
     const textos = (idioma: string) => readFileSync(join(raiz, `estudio/src/textos/${idioma}.ts`), 'utf8');
     const palabra = (idioma: string, id: string, campo: string) => textos(idioma).match(new RegExp(`'palabra\\.${id}\\.${campo}': '([^']+)'`))?.[1];

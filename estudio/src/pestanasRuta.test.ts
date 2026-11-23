@@ -95,7 +95,7 @@ describe('la vista de «La ruta» usa las pestañas', () => {
 
   it('cada parte está en la pestaña a la que su ancla lleva', () => {
     const fase = tab('fase: () =>', 'misiones: () =>');
-    for (const x of ['data-ancla="r-plan"', '${pintarPuerta(f)}', '${f.criterios.map((c) => filaCriterio(c, f)).join(\'\')}']) expect(fase, x).toContain(x);
+    for (const x of ['data-ancla="r-plan"', ': pintarPuerta(f)}', '${f.criterios.map((c) => filaCriterio(c, f)).join(\'\')}']) expect(fase, x).toContain(x);
     const misiones = tab('misiones: () =>', 'pedidos: () =>');
     for (const x of ['data-ancla="r-misiones"', 'data-ancla="pasada-${esc(m.id)}"']) expect(misiones, x).toContain(x);
     const pedidos = tab('pedidos: () =>', 'propuestas: () =>');

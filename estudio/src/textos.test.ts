@@ -196,6 +196,35 @@ describe('«La ruta» en inglés: nada en español de lo suyo (pd_idiomas)', () 
     for (const x of textos.map((y) => y.replace(/\b(mission|missions|proposal|proposals)\b/gi, ''))) expect(x).not.toMatch(ESPANOL_RUTA);
   });
 
+  it('la tarjeta de la meta de un plan en una línea, sin puerta ni fase (pd_ajustes_linea)', () => {
+    ponerIdioma('en');
+    const enLinea = { ...plan, linea: { meta: {} } } as unknown as Plan;
+    let pinto = 0;
+    const html = vistaRuta({ ...datos(f, true, 'fase'), plan: enLinea, pintarPuerta: () => { pinto++; return 'PUERTA'; } });
+    expect(pinto).toBe(0);
+    const texto = sinMarcas(html);
+    expect(texto).toContain('What says the goal is reached');
+    expect(texto).toContain('«Goal reached» in «Today» asks you to confirm it');
+    expect(texto).not.toMatch(/\bgates?\b|To cross|PUERTA/i);
+    expect(html).not.toContain('data-palabra="fase"');
+    ponerIdioma('es');
+    expect(sinMarcas(vistaRuta({ ...datos(f, true, 'fase'), plan: enLinea }))).not.toMatch(/\bpuertas?\b|Para cruzar/i);
+    // El papel del titular ya no dice que cruza puertas
+    expect(t('metodo.decide', { titular: 'Ana' })).toContain('«Meta cumplida»');
+    ponerIdioma('en');
+    expect(t('metodo.decide', { titular: 'Ana' })).not.toMatch(/\bgates?\b/);
+    // Lo que ve un proyecto nuevo mientras espera su ruta, sin fases ni puertas
+    for (const k of ['ruta.restoTexto', 'espera.ruta.fases', 'espera.consejo.ruta.texto', 'animo.7'] as const) expect(t(k), k).not.toMatch(/\b(phases?|gates?)\b/);
+    ponerIdioma('es');
+    for (const k of ['ruta.restoTexto', 'espera.ruta.fases', 'espera.consejo.ruta.texto', 'animo.7'] as const) expect(t(k), k).not.toMatch(/\b(fases?|puertas?)\b/);
+  });
+
+  it('la cabecera del arranque no cuenta criterios para cruzar una puerta, y la meta en línea no pinta puerta (pd_ajustes_linea)', () => {
+    const app = readFileSync(new URL('./app.ts', import.meta.url), 'utf8');
+    expect(app).toContain("${enLinea || arrancando ? '' : `<button type=\"button\" class=\"avance-puerta\"");
+    expect(app).toContain("if (f.sinCierre || d.plan.linea) return '';");
+  });
+
   it('una fase bajo niebla y lo de después del lanzamiento', () => {
     ponerIdioma('en');
     const fase = sinMarcas(vistaRuta(datos(ultima, false, 'fase')));

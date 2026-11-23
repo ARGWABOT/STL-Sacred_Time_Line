@@ -104,11 +104,9 @@ const DOC_EN = {
     ['Director', 'the model that works for you inside the Studio: it sorts what you say, proposes and gives you one mission at a time; you decide.', 4],
     ['Memory', 'the project files where everything you decided stays, so nobody has to ask you again.', 5],
     ['Scattering', 'what happens when you open many sessions at once and lose the thread; STL exists to avoid it.', 1],
-    ['Roadmap', 'the path of the project to its goal, split into phases.', 3],
-    ['Phase', 'a stretch of the roadmap with a single purpose, for example «Understood at a glance».', 3],
-    ['Gate', 'what has to happen to change phase; you cross it, when its criteria are met.', 3],
+    ['Roadmap', 'the path of the project to its goal: one line of missions, in the order the director sets.', 3],
     ['Proposal', 'an idea from the director with its why and its risks, which you accept or discard.', 2],
-    ['Request', 'what you asked for in a note, kept in its phase until it is done.', 2],
+    ['Request', 'what you asked for in a note, kept on the line until it is done.', 2],
     ['Timeline', 'the history of the project as a line: what already happened, where you are and what comes next.', 5]],
 };
 const enlaceDoc = (href, texto) => `<a href="${href}" target="_blank" rel="noopener">${texto}</a>`;
