@@ -4794,6 +4794,9 @@ export function validarPlan(guardado: Plan, personas?: Persona[], idioma?: Idiom
       if (h.que === 'leido' && h.id && !esDocumento(h.id)) errores.push(`${donde} se marca solo al leer algo que no es de docs/ ni repo:.`);
       if (h.que === 'propuesta' && h.id && !plan.propuestas.some((x) => x.id === h.id)) errores.push(`${donde} se marca solo con una propuesta que no está («${h.id}»).`);
       if (h.que === 'puerta' && h.id && !deFase(h.id)) errores.push(`${donde} se marca solo con la puerta de una fase que no está («${h.id}»).`);
+      // Nunca una misión que la persona no pueda cumplir (regla dura del titular, nota nmwsg9dqbtit): en un plan en línea, o
+      // en el arranque antes de la ruta, no hay puerta que cruzar; un paso que espera cruzarla no se cumple nunca
+      if (!aprobada && h.que === 'puerta' && (plan.linea || !tieneRuta(plan))) errores.push(`${donde} se marca solo al cruzar una puerta, pero ${plan.linea ? 'el plan va en una sola línea hacia la meta' : 'el proyecto aún está en su arranque'}: no hay puerta que cruzar, y la persona nunca podría cumplir ese paso. Quítalo; la meta la declara cumplida el titular en la bandera de «Hoy», sin misión.`);
       if (h.tipo && !TIPOS_SOBRE.includes(h.tipo)) errores.push(`${donde} se marca solo con una nota sobre algo desconocido («${h.tipo}»).`);
       if (h.desde && Number.isNaN(Date.parse(h.desde))) errores.push(`${donde} se marca solo desde una fecha que no se entiende («${h.desde}»).`);
       // Sin su fecha, la medición de antes del cambio marcaría el paso

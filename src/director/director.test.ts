@@ -183,6 +183,7 @@ import {
   type Proyecto,
   type TipoDeNota,
   type Tratamiento,
+  FASE_DE_LA_LINEA,
 } from './director';
 
 const plantilla = planPlantilla as unknown as Plan;
@@ -2462,6 +2463,14 @@ describe('los pasos que se hacen en el Studio se marcan solos', () => {
     expect(con({ texto: 'Fija la meta', hecho: { que: 'meta_fijada' }, detalle: ['Abre Proyecto', 'Oprime «Fijar esta meta»'] })).toEqual([]);
     expect(con({ texto: 'Cruza', hecho: { que: 'puerta', id: 'arranque' } })).toEqual([]);
     expect(con({ texto: 'Cruza', hecho: { que: 'puerta', id: 'nada' } })).toHaveLength(1);
+    // Nunca una misión que la persona no pueda cumplir (nmwsg9dqbtit): sin ruta, o en un plan en línea, no hay puerta que
+    // cruzar, y un paso que espera cruzarla no pasa; aprobado, es historia
+    const cruza = mision([{ texto: 'Cruza la puerta', hecho: { que: 'puerta', id: 'arranque' } }]);
+    const arranque = { ...p, fases: p.fases.slice(0, 1), misiones: [...p.misiones.filter((m) => m.fase === p.fases[0].id), cruza] };
+    expect(validarPlan(arranque, ['titular', 'ana']).filter((e) => /no hay puerta que cruzar/.test(e))).toHaveLength(1);
+    const enLinea = { ...p, fases: [{ ...p.fases[0], id: FASE_DE_LA_LINEA }], linea: { desde: '2026-11-22T00:00:00Z', fasesAntes: [] }, misiones: [{ ...cruza, fase: FASE_DE_LA_LINEA, pasos: [{ texto: 'Cruza la puerta', hecho: { que: 'puerta' as const, id: FASE_DE_LA_LINEA } }] }] };
+    expect(validarPlan(enLinea, ['titular', 'ana']).filter((e) => /no hay puerta que cruzar/.test(e))).toHaveLength(1);
+    expect(validarPlan({ ...enLinea, revisiones: { [cruza.id]: { cuando: '2026-11-22T00:00:00Z', veredicto: 'aprobada', comentario: 'Bien' } } }, ['titular', 'ana']).filter((e) => /no hay puerta que cruzar/.test(e))).toEqual([]);
     expect(con({ texto: 'Lee', hecho: { que: 'leido' } })).toHaveLength(1);
     expect(con({ texto: 'Responde', hecho: { que: 'propuesta', id: 'pr_x' } })).toHaveLength(1);
     expect(con({ texto: 'Algo', hecho: { que: 'otra' as Hecho['que'] } })).toHaveLength(1);
