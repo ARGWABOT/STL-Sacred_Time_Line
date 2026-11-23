@@ -109,13 +109,34 @@ export function comprobarZip(zip: Buffer, version: string): string[] {
  * con su enlace al README y lo que aún no se probó, dicho en vez de prometido. Sin un Mac a mano, y con la segunda prueba en una
  * Ubuntu (t_decide_segundo_sistema). Pura.
  */
+/**
+ * Lo que cambió en cada versión, en inglés y en español, para sus notas (pd_version_linea): sin entrada, las notas no
+ * traen la lista.
+ */
+export const CAMBIOS: Record<string, { en: string[]; es: string[] }> = {
+  '0.1.6': {
+    en: [
+      'A new project goes on one line to its goal by itself, with no phases and no gates, and a mission that can only be completed by crossing a gate can no longer be written.',
+      'No «phase» or «gate» on screen from the start to the goal: the start header, the goal card in «Roadmap», the owner\'s role and the glossary.',
+      'The director\'s procedures and the method describe the line to the goal.',
+    ],
+    es: [
+      'Un proyecto nuevo va solo en una línea hasta su meta, sin fases ni puertas, y ya no se puede escribir una misión que solo se completa cruzando una puerta.',
+      'Ni «fase» ni «puerta» en pantalla desde el arranque hasta la meta: la cabecera del arranque, la tarjeta de la meta en «La ruta», el papel del titular y el glosario.',
+      'Los procedimientos del director y el método describen la línea hasta la meta.',
+    ],
+  },
+};
+
 export function notasDeLaVersion(version: string): string {
   const zip = nombreDelZip(version);
   const repo = `https://github.com/${REPOSITORIO}`;
+  const cambios = CAMBIOS[version];
+  const lista = (titulo: string, xs: string[] | undefined) => (xs?.length ? `\n**${titulo}**\n\n${xs.map((x) => `- ${x}`).join('\n')}\n` : '');
   return `# STL Studio ${version}
 
 STL Studio is a small local web app that sits between you and an AI model and turns the model into your project's assistant director: everything you tell it goes through one channel, and you get one mission at a time. This is the launch version.
-
+${lista('What changed:', cambios?.en)}
 **Install:** download \`${zip}\`, unzip it, open the folder with Claude Code and ask it to «initialize STL Studio». The steps are in the [README](${repo}#install). The package comes without its dependencies: the agent installs them.
 
 **Not tested yet:** macOS, for lack of a Mac, and Codex and Cursor as the agent. It is used every day on Windows 11 with Claude Code; the clean-computer installations, on Windows and on Ubuntu, are being tested with this very version.
@@ -123,7 +144,7 @@ STL Studio is a small local web app that sits between you and an AI model and tu
 ---
 
 STL Studio es una pequeña aplicación web local que se pone entre tú y un modelo de IA y lo vuelve el director asistente de tu proyecto: todo lo que le dices pasa por un solo canal, y recibes una misión a la vez. Es la versión de lanzamiento.
-
+${lista('Qué cambió:', cambios?.es)}
 **Instalar:** baja \`${zip}\`, descomprímelo, abre la carpeta con Claude Code y pídele «inicializa STL Studio». Los pasos están en el [README](${repo}/blob/main/README.es.md#instalar). El paquete viene sin sus dependencias: las instala el agente.
 
 **Aún sin probar:** macOS, por no tener un Mac, y Codex y Cursor como agente. Se usa todos los días en Windows 11 con Claude Code; las instalaciones en un computador limpio, en Windows y en Ubuntu, se están probando con esta misma versión.

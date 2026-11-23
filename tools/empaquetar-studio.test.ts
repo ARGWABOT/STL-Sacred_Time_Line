@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { armarZip, carpetaDelZip, comprobarZip, leerZip, nombreDelZip, notasDeLaVersion, OBLIGATORIOS, ordenDePublicar, revisarContenido, rutaProhibida } from './empaquetar-studio.ts';
+import { armarZip, CAMBIOS, carpetaDelZip, comprobarZip, leerZip, nombreDelZip, notasDeLaVersion, OBLIGATORIOS, ordenDePublicar, revisarContenido, rutaProhibida } from './empaquetar-studio.ts';
 
 // El paquete de instalación (pedido pd_paquete)
 const RAIZ = join(import.meta.dirname, '..');
@@ -141,6 +141,20 @@ describe('las notas y la orden para publicar', () => {
     expect(ingles).not.toContain('inicializa');
     expect(espanol).toContain('inicializa STL Studio');
     expect(notas.split(/\s+/).length).toBeLessThan(300);
+    // Sin cambios escritos para esa versión, sin lista
+    expect(notas).not.toContain('What changed:');
+  });
+
+  it('las de una versión con sus cambios los listan en los dos idiomas, cada uno en su parte (pd_version_linea)', () => {
+    const conCambios = notasDeLaVersion('0.1.6');
+    const [ingles, espanol] = conCambios.split('\n---\n');
+    expect(ingles).toContain('**What changed:**');
+    expect(espanol).toContain('**Qué cambió:**');
+    for (const x of CAMBIOS['0.1.6'].en) expect(ingles).toContain(`- ${x}`);
+    for (const x of CAMBIOS['0.1.6'].es) expect(espanol).toContain(`- ${x}`);
+    expect(ingles).toMatch(/one line to its goal/);
+    expect(CAMBIOS['0.1.6'].en).toHaveLength(CAMBIOS['0.1.6'].es.length);
+    expect(conCambios.split(/\s+/).length).toBeLessThan(450);
   });
 
   it('la orden va marcada «Latest» (la versión de lanzamiento: releases/latest de los README no ve las «Pre-release»), de ese commit, y armar no publica nada', () => {

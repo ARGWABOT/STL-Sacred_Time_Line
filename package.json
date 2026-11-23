@@ -1,7 +1,7 @@
 {
   "name": "stl-studio",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "STL Studio: la interfaz de la Metodología STL. Un director asistente de IA diagnostica tu proyecto, firma contigo un objetivo, traza la ruta por fases y te da una misión a la vez.",
   "keywords": [
     "stl",
