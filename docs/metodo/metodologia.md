@@ -26,24 +26,24 @@ Documents are read one idea at a time: each idea is marked «Got it» or comment
 
 ## 3. The roadmap
 
-**The roadmap goes from an honest diagnosis to a goal you set, in phases, one mission at a time.**
+**The roadmap goes from an honest diagnosis to a goal you set, on one line, one mission at a time.**
 
 - **The diagnosis.** The director reads the repository (its history, structure, documentation, code and tests) and says frankly what is ready, what is missing and what risks there are, front by front: what does not exist, does not exist. A new project gets an approach instead.
 - **The goal.** The director proposes two or three, each with its success criterion; you choose, mix or write your own, and set it.
-- **The phases.** Each has its criteria, which must be at 100 % to cross its gate, and each front is in focus, in support or on hold. You cross the gate, never the calendar: progress comes from milestones, not dates.
-- **The missions.** One at a time, with ten within reach. Each goes after what it needs and never before its time; what closes a phase waits until the approved work of that phase is done.
+- **The line.** One line from today to the goal, with no phases and no gates: each mission, request and proposal is a point on it, in the director's order, and the goal has its checklist. When every point is done, you confirm «Goal reached» and write the next goal. Progress comes from milestones, not dates.
+- **The missions.** One at a time, with ten within reach. Each goes after what it needs and never before its time; what closes the goal waits until the approved work before it is done.
 
 The director orders with the owner's criterion first. The one STL Studio's owner set holds for any project until its owner says otherwise: what unblocks the rest; then what carries most risk if it goes wrong; then what puts something usable in someone's hands soonest; and what finishes quickly only breaks ties.
 
 ## 4. What the director can and cannot do
 
-**The director proposes; you decide.** It diagnoses, recommends with its reasons, its risks and a real alternative, orders the work and executes what you approved. It never marks a criterion, crosses a gate, sets the goal or answers a proposal for you.
+**The director proposes; you decide.** It diagnoses, recommends with its reasons, its risks and a real alternative, orders the work and executes what you approved. It never marks a criterion, declares the goal reached, sets the goal or answers a proposal for you.
 
 - **It works only on what was approved in the Studio:** an accepted proposal, an answered decision that asks for it, a delivered mission or a «Do it for me». Inside your repository, its rules govern: branches, style, tests.
 - **It pushes, pulls or publishes only with your permission,** in «Model & usage» › «Permissions», never forced and never rewriting history.
 - **What costs money or deletes data needs two steps:** the accepted proposal and an answered «Confirmo», with the cost or the list of what is deleted in view. Except what git keeps: a file of your repository that git keeps and that became unused through an approved change is deleted without asking, because its history keeps it, each deletion in its own commit and told in the answer. Whatever git does not keep (an untracked or ignored file, data outside the repository, a branch, a release) still needs the two steps.
 - **If a permission is missing,** it does the rest and says what it could not do; the denied permission appears in «Permissions», with its checkbox. Installing what is needed is asked with «Authorize», saying what it is, what it weighs and what it is for.
-- **It says «not yet»** to what does not serve the goal and the phase, with its reasons, and never asks you again for what is already done or what it can check itself.
+- **It says «not yet»** to what does not serve the goal, with its reasons, and never asks you again for what is already done or what it can check itself.
 
 ## 5. The memory in your repository
 
@@ -72,11 +72,11 @@ What it costs, honestly:
 - **Assistant director:** the AI model working through the Studio. It proposes and orders.
 - **Owner:** the person who directs the project. They decide.
 - **Goal:** where you want to arrive and how you know you arrived; the owner sets it after the diagnosis.
-- **Roadmap:** the path of the project to its goal, split into phases.
+- **Roadmap:** the path of the project to its goal: one line of missions, in the order the director sets.
 - **Mission:** a concrete step with its why and its delivery, one at a time.
 - **Inbox:** where what you say waits until the review.
 - **Review:** the moment the director receives what stayed firm and answers it all together.
-- **Gate:** the step from one phase to the next, with its criteria at 100 %.
-- **Front:** an area of the project's work, in focus, in support or on hold in each phase.
+- **Goal reached:** what you confirm on the flag of the line when every point before it is done; then you write the next goal.
+- **Front:** an area of the project's work, in focus, in support or on hold toward the goal.
 - **Seal:** the mark of what was already reviewed, which does not come back.
 - **Memory:** the project's `stl` branch, where the plan and the documents live.

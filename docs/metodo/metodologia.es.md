@@ -26,24 +26,24 @@ Los documentos se leen una idea a la vez: cada idea se marca «Entendido» o se 
 
 ## 3. La ruta
 
-**La ruta va de un diagnóstico honesto a una meta que fijas tú, por fases, una misión a la vez.**
+**La ruta va de un diagnóstico honesto a una meta que fijas tú, en una línea, una misión a la vez.**
 
 - **El diagnóstico.** El director lee el repositorio (su historia, su estructura, su documentación, su código y sus pruebas) y dice con franqueza qué está listo, qué falta y qué riesgos hay, frente por frente: lo que no existe, no existe. Un proyecto nuevo recibe, en su lugar, un enfoque.
 - **La meta.** El director propone dos o tres, cada una con su criterio de éxito; tú eliges, mezclas o escribes la tuya, y la fijas.
-- **Las fases.** Cada una tiene sus criterios, que deben estar al 100 % para cruzar su puerta, y cada frente está en foco, de apoyo o en espera. La puerta la cruzas tú, nunca el calendario: se avanza por hitos, no por fechas.
-- **Las misiones.** Una a la vez, con diez a su alcance. Cada una va después de lo que necesita y nunca antes de tiempo; lo que cierra una fase espera a que esté hecho el trabajo aprobado de esa fase.
+- **La línea.** Una línea de hoy hasta la meta, sin fases ni puertas: cada misión, pedido y propuesta es un punto en ella, en el orden del director, y la meta tiene su lista. Cuando cada punto está hecho, confirmas «Meta cumplida» y escribes la meta siguiente. Se avanza por hitos, no por fechas.
+- **Las misiones.** Una a la vez, con diez a su alcance. Cada una va después de lo que necesita y nunca antes de tiempo; lo que cierra la meta espera a que esté hecho el trabajo aprobado antes de ella.
 
 El director ordena con el criterio del titular primero. El que fijó el titular de STL Studio vale para cualquier proyecto mientras su titular no diga otro: lo que desbloquea lo demás; después, lo que más riesgo tiene si sale mal; después, lo que antes pone algo usable en manos de alguien; y lo que termina rápido solo desempata.
 
 ## 4. Lo que el director puede y no puede hacer
 
-**El director propone; tú decides.** Diagnostica, recomienda con sus razones, sus riesgos y una alternativa de verdad, ordena el trabajo y ejecuta lo que aprobaste. Nunca marca un criterio, cruza una puerta, fija la meta ni responde una propuesta por ti.
+**El director propone; tú decides.** Diagnostica, recomienda con sus razones, sus riesgos y una alternativa de verdad, ordena el trabajo y ejecuta lo que aprobaste. Nunca marca un criterio, da la meta por cumplida, fija la meta ni responde una propuesta por ti.
 
 - **Trabaja solo en lo aprobado en el Studio:** una propuesta aceptada, una decisión respondida que lo pide, una misión entregada o un «Hazlo tú». Dentro de tu repositorio mandan sus reglas: ramas, estilo, pruebas.
 - **Sube, trae o publica solo con tu permiso,** en «Modelo y consumo» › «Permisos», nunca forzado y nunca reescribiendo la historia.
 - **Lo que cuesta dinero o borra datos pide dos pasos:** la propuesta aceptada y un «Confirmo» respondido, con el costo o la lista de lo que se borra a la vista. Salvo lo que git guarda: un archivo de tu repositorio que git guarda y que quedó sin uso por un cambio aprobado se borra sin pedirte, porque su historia lo conserva, cada borrado en su propio commit y contado en la respuesta. Lo que git no guarda (un archivo sin seguimiento o ignorado, datos fuera del repositorio, una rama, una versión publicada) sigue pidiendo los dos pasos.
 - **Si le falta un permiso,** hace lo demás y dice lo que no pudo; el permiso negado aparece en el panel, con su casilla. Instalar lo necesario se pide con «Autorizo», diciendo qué es, cuánto pesa y para qué sirve.
-- **Dice «todavía no»** a lo que no sirve a la meta y a la fase, con sus razones, y nunca te vuelve a pedir lo que ya está hecho o lo que puede comprobar él.
+- **Dice «todavía no»** a lo que no sirve a la meta, con sus razones, y nunca te vuelve a pedir lo que ya está hecho o lo que puede comprobar él.
 
 ## 5. La memoria en tu repositorio
 
@@ -72,10 +72,11 @@ Lo que cuesta, con franqueza:
 - **Director asistente:** el modelo de IA trabajando a través del Studio. Propone y ordena.
 - **Titular:** la persona que dirige el proyecto. Decide.
 - **Meta:** a dónde se quiere llegar y cómo se sabe que se llegó; la fija el titular después del diagnóstico.
+- **Ruta:** el camino del proyecto hasta su meta: una línea de misiones, en el orden del director.
 - **Misión:** un paso concreto con su porqué y su entrega, una a la vez.
 - **Buzón:** donde espera lo que dices hasta la revisión.
 - **Revisión:** el momento en que el director recibe lo que quedó en firme y lo responde todo junto.
-- **Puerta:** el paso de una fase a la siguiente, con sus criterios al 100 %.
-- **Frente:** un área de trabajo del proyecto, en foco, de apoyo o en espera en cada fase.
+- **Meta cumplida:** lo que confirmas en la bandera de la línea cuando cada punto antes de ella está hecho; luego escribes la meta siguiente.
+- **Frente:** un área de trabajo del proyecto, en foco, de apoyo o en espera hacia la meta.
 - **Sello:** la marca de lo ya revisado, que no vuelve.
 - **Memoria:** la rama `stl` del proyecto, donde viven el plan y los documentos.
