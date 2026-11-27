@@ -46,6 +46,38 @@ for (const [marca, texto] of [['[data-titulo-tres]', T.tres], ['[data-titulo-mej
 // El botón de «Un Studio que se mejora solo» (abre su animación en el reproductor), con el nombre de la estación
 const botonMejora = document.querySelector('[data-ver-mejora]');
 if (botonMejora) botonMejora.textContent = T.mejora;
+// ── Las luciérnagas del botón de cada estación (nota de voz del titular nmwz95yqvtit, 27 de noviembre de 2026: quien
+// recorre veía solo la escena y seguía de largo sin abrir el contenido). Unos puntos de luz titilan y flotan alrededor
+// del botón que abre la estación, en su halo: fuera del botón, detrás de él si se acercan, dentro del relleno de su
+// tarjeta y sin tocar su título; no reciben el puntero y, con movimiento reducido, se quedan quietos y tenues.
+// Sus lugares van en porcentajes del halo, que rodea al botón a HALO_CHISPA píxeles: valen para cualquier ancho
+const BOTONES_CON_CHISPAS = '[data-ver-animacion], [data-ver-mejora], [data-ver-como], [data-ver-doc]';
+const CHISPAS = 10, HALO_CHISPA = 3, LADO_CHISPA = 3, VUELO_CHISPA = 1;
+/** Dónde va cada luciérnaga en el borde del halo (x, y en %), su retraso y su duración (s), y si va «delante» (más grande). Pura. */
+function lugaresDeChispas(n = CHISPAS) {
+  const lugares = [];
+  const arriba = Math.round(n * 0.4), abajo = Math.round(n * 0.4), lados = n - arriba - abajo;
+  for (let i = 0; i < arriba; i++) lugares.push({ x: 10 + (80 * (i + 0.5)) / arriba, y: 0 });
+  for (let i = 0; i < abajo; i++) lugares.push({ x: 90 - (80 * (i + 0.5)) / abajo, y: 100 });
+  for (let i = 0; i < lados; i++) lugares.push({ x: i % 2 ? 100 : 0, y: 50 });
+  // Cada una a su ritmo, sin que titilen juntas: retrasos y duraciones repartidos con una semilla fija
+  return lugares.map((l, i) => ({ ...l, retraso: Number(((i * 0.61) % 2.6).toFixed(2)), dura: Number((2.2 + ((i * 0.37) % 1.4)).toFixed(2)), delante: i % 3 !== 1 }));
+}
+// ── fin de las luciérnagas
+document.querySelectorAll(BOTONES_CON_CHISPAS).forEach((boton) => {
+  const acciones = boton.parentElement;
+  if (!acciones || acciones.querySelector('.chispas')) return;
+  const nube = document.createElement('span');
+  nube.className = 'chispas';
+  nube.setAttribute('aria-hidden', 'true');
+  for (const l of lugaresDeChispas()) {
+    const i = document.createElement('i');
+    if (l.delante) i.className = 'delante';
+    i.style.cssText = `left:${l.x}%;top:${l.y}%;animation-delay:-${l.retraso}s,-${l.retraso}s;animation-duration:${l.dura}s,${(l.dura * 1.7).toFixed(2)}s`;
+    nube.append(i);
+  }
+  acciones.append(nube);
+});
 // Lo fijo de la página que no tiene su propio gancho, en inglés, por su texto en español (nmw766nyutit)
 const FIJO_EN = {
   '¿Qué es STL? · El recorrido': 'What is STL? · The tour',

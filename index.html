@@ -208,6 +208,23 @@
   .boton-ver { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; background: var(--oro); color: #1a1f33; }
   .boton-ver:hover { background: var(--luz); }
   .boton-ver:focus-visible, .volver:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
+  /* Las luciérnagas del botón de cada estación (mundo-3d.js › lugaresDeChispas; nmwz95yqvtit): en su halo, a 3 px del
+     botón (HALO_CHISPA), de 3 px (LADO_CHISPA), flotando 1 px (VUELO_CHISPA): caben en el relleno de la
+     tarjeta, que es de 6 px o más, sin tocar el título ni el botón; detrás de él, sin recibir el puntero */
+  .acciones { position: relative; display: flex; isolation: isolate; }
+  .chispas { position: absolute; inset: -3px; z-index: -1; pointer-events: none; }
+  .chispas i { position: absolute; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, #fffbe6 0 35%, var(--luz) 60%, rgba(245, 210, 122, 0) 100%);
+    box-shadow: 0 0 4px 1px rgba(245, 210, 122, .75), 0 0 8px 2px rgba(255, 236, 170, .35);
+    opacity: .2; scale: .7;
+    animation-name: chispa-titila, chispa-vuela; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
+  /* Las de delante, más grandes y vivas; las de atrás, más chicas y tenues: así se ve la profundidad sin salirse del halo */
+  .chispas i.delante { scale: 1; }
+  @keyframes chispa-titila { 0%, 30% { opacity: .15; } 55% { opacity: 1; } 75%, 100% { opacity: .35; } }
+  @keyframes chispa-vuela {
+    0% { translate: 0 0; } 25% { translate: 1px -1px; } 50% { translate: -1px 1px; } 75% { translate: 1px 1px; } 100% { translate: -1px -1px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .chispas i { animation: none; opacity: .55; } }
 
   /* La animación en grande: casi toda la pantalla, sin tapar el menú de la derecha (--menu-ancho queda libre) */
   .visor { position: fixed; z-index: 12; top: 5vh; bottom: 5vh; left: 1.5vw; right: var(--menu-ancho); display: flex; flex-direction: column; gap: 8px;
@@ -760,7 +777,7 @@
   @media (prefers-reduced-motion: reduce) { #info-caja { transition: none; } }
 </style>
 <div id="info">
-  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-22</span></div></div>
+  <div id="info-caja" role="tooltip"><div><span>Versión del 2026-11-27</span></div></div>
   <button type="button" id="info-boton" aria-label="Más información: la versión" aria-expanded="false" aria-describedby="info-caja">i</button>
 </div>
 <script>
