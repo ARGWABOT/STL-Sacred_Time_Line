@@ -208,23 +208,30 @@
   .boton-ver { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; background: var(--oro); color: #1a1f33; }
   .boton-ver:hover { background: var(--luz); }
   .boton-ver:focus-visible, .volver:focus-visible { outline: 2px solid var(--luz); outline-offset: 2px; }
-  /* Las luciérnagas del botón de cada estación (mundo-3d.js › lugaresDeChispas; nmwz95yqvtit): en su halo, a 3 px del
-     botón (HALO_CHISPA), de 3 px (LADO_CHISPA), flotando 1 px (VUELO_CHISPA): caben en el relleno de la
-     tarjeta, que es de 6 px o más, sin tocar el título ni el botón; detrás de él, sin recibir el puntero */
+  /* Las estrellitas del botón de cada estación (mundo-3d.js › lugaresDeChispas; nmwz95yqvtit, nmwzgeg8ptit): muchas,
+     blancas, con forma de estrella de cuatro puntas, titilando y flotando alrededor del botón, fuera de él, en dos anillos
+     de su halo (HALO_CHISPA y HALO_CERCA px), de LADO_CHISPA px, flotando VUELO_CHISPA px: caben en el relleno de la
+     tarjeta, que con 3D es invisible y es de RELLENO_SOLO_BOTON px; detrás del botón, sin recibir el puntero */
   .acciones { position: relative; display: flex; isolation: isolate; }
-  .chispas { position: absolute; inset: -3px; z-index: -1; pointer-events: none; }
-  .chispas i { position: absolute; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; border-radius: 50%; pointer-events: none;
-    background: radial-gradient(circle, #fffbe6 0 35%, var(--luz) 60%, rgba(245, 210, 122, 0) 100%);
-    box-shadow: 0 0 4px 1px rgba(245, 210, 122, .75), 0 0 8px 2px rgba(255, 236, 170, .35);
-    opacity: .2; scale: .7;
+  .chispas { position: absolute; inset: -14px; z-index: -1; pointer-events: none; }
+  .chispas i { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; pointer-events: none;
+    background: radial-gradient(circle, #fff 0 14%, rgba(255, 255, 255, .55) 26%, rgba(255, 255, 255, 0) 52%),
+      linear-gradient(90deg, rgba(255, 255, 255, 0), #fff 50%, rgba(255, 255, 255, 0)) center / 100% 1px no-repeat,
+      linear-gradient(0deg, rgba(255, 255, 255, 0), #fff 50%, rgba(255, 255, 255, 0)) center / 1px 100% no-repeat;
+    opacity: .2; transform: scale(.45);
     animation-name: chispa-titila, chispa-vuela; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
-  /* Las de delante, más grandes y vivas; las de atrás, más chicas y tenues: así se ve la profundidad sin salirse del halo */
-  .chispas i.delante { scale: 1; }
-  @keyframes chispa-titila { 0%, 30% { opacity: .15; } 55% { opacity: 1; } 75%, 100% { opacity: .35; } }
+  /* Las de delante, más vivas; las de atrás, más chicas: así se ve la profundidad sin salirse del halo */
+  .chispas i:not(.delante) { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; }
+  @keyframes chispa-titila { 0%, 25% { opacity: .1; transform: scale(.4) rotate(0deg); } 55% { opacity: 1; transform: scale(1) rotate(45deg); } 80%, 100% { opacity: .3; transform: scale(.55) rotate(90deg); } }
   @keyframes chispa-vuela {
-    0% { translate: 0 0; } 25% { translate: 1px -1px; } 50% { translate: -1px 1px; } 75% { translate: 1px 1px; } 100% { translate: -1px -1px; }
+    0% { translate: 0 0; } 25% { translate: 2px -2px; } 50% { translate: -2px 1px; } 75% { translate: 1px 2px; } 100% { translate: -2px -2px; }
   }
-  @media (prefers-reduced-motion: reduce) { .chispas i { animation: none; opacity: .55; } }
+  @media (prefers-reduced-motion: reduce) { .chispas i { animation: none; opacity: .55; transform: none; } }
+  /* Con 3D, la tarjeta que es solo su botón (la 1, «Se mejora solo», «Cómo empezar» y «La documentación»: ningún título a la
+     vista) ya no se ve: sin fondo, borde ni sombra, y el botón flota sobre la escena con su borde de sombra (nmwzgeg8ptit).
+     Su relleno, invisible, guarda el sitio de las estrellitas; no recibe el puntero, para que el mundo de alrededor sí */
+  .js-3d .tarjeta.corta:not(:has(> h2:not(.sin-3d))) { background: none; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+    overflow: visible; padding: 22px; pointer-events: none; }
 
   /* La animación en grande: casi toda la pantalla, sin tapar el menú de la derecha (--menu-ancho queda libre) */
   .visor { position: fixed; z-index: 12; top: 5vh; bottom: 5vh; left: 1.5vw; right: var(--menu-ancho); display: flex; flex-direction: column; gap: 8px;
@@ -512,6 +519,20 @@
      recorrido */
   html { scrollbar-width: none; }
   html::-webkit-scrollbar { display: none; }
+  /* Todos los botones dorados del recorrido, con el mismo relieve suave en 3D (nmwzgeg8ptit): luz arriba y sombra abajo, un
+     brillo interior y un borde de sombra que los despega del fondo; al pasar el ratón suben un poco, y al oprimirlos se hunden.
+     Al final de la hoja, para mandar sobre el dorado plano de cada uno */
+  .boton-ver, .volver, .boton-como, .js-3d .popup .siguiente-clip:not([hidden]), .cerrar-clip, .js-3d .cerrar-doc {
+    background: linear-gradient(180deg, #ffe7a8 0%, var(--oro) 50%, #d4a23e 100%); color: #1a1f33;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, .75), inset 0 -2px 3px rgba(110, 75, 15, .4), 0 0 0 1px rgba(0, 0, 0, .35), 0 3px 8px rgba(0, 0, 0, .55), 0 10px 24px rgba(0, 0, 0, .45);
+    transition: transform .12s, box-shadow .2s, filter .2s; }
+  .boton-ver:hover, .volver:hover, .boton-como:hover, .js-3d .popup .siguiente-clip:hover, .cerrar-clip:hover, .js-3d .cerrar-doc:hover {
+    background: linear-gradient(180deg, #fff0c4 0%, var(--luz) 50%, #ddb04e 100%); transform: translateY(-1px); }
+  .boton-ver:active, .volver:active, .boton-como:active, .js-3d .popup .siguiente-clip:active, .cerrar-clip:active, .js-3d .cerrar-doc:active {
+    transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(110, 75, 15, .45), 0 0 0 1px rgba(0, 0, 0, .35), 0 1px 3px rgba(0, 0, 0, .5); }
+  @media (prefers-reduced-motion: reduce) {
+    .boton-ver, .volver, .boton-como, .js-3d .popup .siguiente-clip, .cerrar-clip, .js-3d .cerrar-doc { transition: none; transform: none; }
+  }
 </style>
 </head>
 <body>

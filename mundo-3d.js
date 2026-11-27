@@ -47,22 +47,26 @@ for (const [marca, texto] of [['[data-titulo-tres]', T.tres], ['[data-titulo-mej
 const botonMejora = document.querySelector('[data-ver-mejora]');
 if (botonMejora) botonMejora.textContent = T.mejora;
 // ── Las luciérnagas del botón de cada estación (nota de voz del titular nmwz95yqvtit, 27 de noviembre de 2026: quien
-// recorre veía solo la escena y seguía de largo sin abrir el contenido). Unos puntos de luz titilan y flotan alrededor
-// del botón que abre la estación, en su halo: fuera del botón, detrás de él si se acercan, dentro del relleno de su
-// tarjeta y sin tocar su título; no reciben el puntero y, con movimiento reducido, se quedan quietos y tenues.
-// Sus lugares van en porcentajes del halo, que rodea al botón a HALO_CHISPA píxeles: valen para cualquier ancho
+// recorre veía solo la escena y seguía de largo sin abrir el contenido). Ahora son estrellitas blancas, muchas, que titilan
+// y flotan alrededor del botón, ya sin tarjeta que lo contenga (nota de voz del titular nmwzgeg8ptit, 27 de noviembre de
+// 2026): fuera del botón, en dos anillos de su halo (el de afuera a HALO_CHISPA píxeles, el de adentro a HALO_CERCA),
+// detrás de él, dentro del relleno invisible de su tarjeta; no reciben el puntero y, con movimiento reducido, se quedan
+// quietas y tenues. Sus lugares van en porcentajes del halo, y el anillo de adentro se acerca HALO_CHISPA − HALO_CERCA
+// píxeles hacia el botón (`cerca`): valen para cualquier ancho
 const BOTONES_CON_CHISPAS = '[data-ver-animacion], [data-ver-mejora], [data-ver-como], [data-ver-doc]';
-const CHISPAS = 10, HALO_CHISPA = 3, LADO_CHISPA = 3, VUELO_CHISPA = 1;
-/** Dónde va cada luciérnaga en el borde del halo (x, y en %), su retraso y su duración (s), y si va «delante» (más grande). Pura. */
+const CHISPAS = 20, HALO_CHISPA = 14, HALO_CERCA = 8, LADO_CHISPA = 7, VUELO_CHISPA = 2;
+/** Dónde va cada estrellita en el halo (x, y en %; `cerca`, en el anillo de adentro), su retraso y su duración (s), y si va «delante» (más grande). Pura. */
 function lugaresDeChispas(n = CHISPAS) {
   const lugares = [];
-  const arriba = Math.round(n * 0.4), abajo = Math.round(n * 0.4), lados = n - arriba - abajo;
-  for (let i = 0; i < arriba; i++) lugares.push({ x: 10 + (80 * (i + 0.5)) / arriba, y: 0 });
-  for (let i = 0; i < abajo; i++) lugares.push({ x: 90 - (80 * (i + 0.5)) / abajo, y: 100 });
-  for (let i = 0; i < lados; i++) lugares.push({ x: i % 2 ? 100 : 0, y: 50 });
+  const lados = 4, arriba = Math.ceil((n - lados) / 2), abajo = n - lados - arriba;
+  for (let i = 0; i < arriba; i++) lugares.push({ x: 6 + (88 * (i + 0.5)) / arriba, y: 0, cerca: i % 2 === 1 });
+  for (let i = 0; i < abajo; i++) lugares.push({ x: 94 - (88 * (i + 0.5)) / abajo, y: 100, cerca: i % 2 === 0 });
+  for (let i = 0; i < lados; i++) lugares.push({ x: i % 2 ? 100 : 0, y: i < 2 ? 32 : 68, cerca: false });
   // Cada una a su ritmo, sin que titilen juntas: retrasos y duraciones repartidos con una semilla fija
-  return lugares.map((l, i) => ({ ...l, retraso: Number(((i * 0.61) % 2.6).toFixed(2)), dura: Number((2.2 + ((i * 0.37) % 1.4)).toFixed(2)), delante: i % 3 !== 1 }));
+  return lugares.map((l, i) => ({ ...l, retraso: Number(((i * 0.61) % 3.1).toFixed(2)), dura: Number((1.8 + ((i * 0.37) % 1.9)).toFixed(2)), delante: i % 3 !== 1 }));
 }
+/** Cuánto se acerca al botón una estrellita del anillo de adentro, en píxeles: hacia abajo si va arriba, hacia arriba si va abajo. Pura. */
+const acercaChispa = (l) => (l.cerca ? (l.y === 0 ? HALO_CHISPA - HALO_CERCA : -(HALO_CHISPA - HALO_CERCA)) : 0);
 // ── fin de las luciérnagas
 document.querySelectorAll(BOTONES_CON_CHISPAS).forEach((boton) => {
   const acciones = boton.parentElement;
@@ -73,7 +77,7 @@ document.querySelectorAll(BOTONES_CON_CHISPAS).forEach((boton) => {
   for (const l of lugaresDeChispas()) {
     const i = document.createElement('i');
     if (l.delante) i.className = 'delante';
-    i.style.cssText = `left:${l.x}%;top:${l.y}%;animation-delay:-${l.retraso}s,-${l.retraso}s;animation-duration:${l.dura}s,${(l.dura * 1.7).toFixed(2)}s`;
+    i.style.cssText = `left:${l.x}%;top:calc(${l.y}% + ${acercaChispa(l)}px);animation-delay:-${l.retraso}s,-${l.retraso}s;animation-duration:${l.dura}s,${(l.dura * 1.7).toFixed(2)}s`;
     nube.append(i);
   }
   acciones.append(nube);
